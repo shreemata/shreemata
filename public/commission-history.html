@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commission History - BookStore</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .commission-container {
+            max-width: 1200px;
+            margin: 80px auto 40px;
+            padding: 20px;
+        }
+
+        .page-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .page-header h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .page-header p {
+            font-size: 18px;
+            opacity: 0.95;
+        }
+
+        .commission-card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px;
+            border-radius: 12px;
+            color: white;
+            text-align: center;
+        }
+
+        .summary-card.green {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .summary-card.purple {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .summary-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .summary-subtext {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .filter-group input {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: auto;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .clear-btn {
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: auto;
+        }
+
+        .clear-btn:hover {
+            background: #f8f9fa;
+        }
+
+        .commission-table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow-x: auto;
+            display: block;
+        }
+
+        .commission-table thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .commission-table th {
+            padding: 15px 12px;
+            text-align: left;
+            font-size: 13px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .commission-table tbody {
+            display: block;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .commission-table thead,
+        .commission-table tbody tr {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .commission-table td {
+            padding: 15px 12px;
+            font-size: 14px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .commission-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .type-badge {
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .type-direct {
+            background: #667eea;
+            color: white;
+        }
+
+        .type-tree {
+            background: #28a745;
+            color: white;
+        }
+
+        .amount-positive {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 10px 15px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination .page-info {
+            padding: 10px 15px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .no-data-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .page-header h1 {
+                font-size: 32px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                overflow-x: auto;
+            }
+
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-btn,
+            .clear-btn {
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <div class="container navbar-content">
+                <div class="logo">
+                    <a href="/">📚 BookStore</a>
+                </div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="/orders.html">My Orders</a>
+                    <span id="userName"></span>
+                    <a href="account.html">Account</a>
+                    <a href="referral.html">Referral💰</a>
+                    <a href="cart.html" class="cart-icon">🛒 Cart (<span id="cartCount">0</span>)</a>
+                    <a href="#" id="logoutBtn">Logout</a>
+                    <a href="admin.html" id="adminLink" style="display: none;">Admin</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="commission-container">
+            <div class="page-header">
+                <h1>💰 Commission History</h1>
+                <p>Track all your earnings from referrals</p>
+            </div>
+
+            <div class="commission-card">
+                <h2 style="margin: 0 0 20px 0; color: #333;">📊 Earnings Summary</h2>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-label">Total Earnings</div>
+                        <div class="summary-value">₹<span id="totalEarnings">0</span></div>
+                        <div class="summary-subtext"><span id="totalCount">0</span> transactions</div>
+                    </div>
+                    <div class="summary-card green">
+                        <div class="summary-label">Direct Commission</div>
+                        <div class="summary-value">₹<span id="directTotal">0</span></div>
+                        <div class="summary-subtext"><span id="directCount">0</span> transactions</div>
+                    </div>
+                    <div class="summary-card purple">
+                        <div class="summary-label">Tree Commission</div>
+                        <div class="summary-value">₹<span id="treeTotal">0</span></div>
+                        <div class="summary-subtext"><span id="treeCount">0</span> transactions</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="commission-card">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('all')" id="tabAll">
+                        All Commissions
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('direct')" id="tabDirect">
+                        Direct Only
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('tree')" id="tabTree">
+                        Tree Only
+                    </button>
+                </div>
+
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>From Date</label>
+                        <input type="date" id="startDate">
+                    </div>
+                    <div class="filter-group">
+                        <label>To Date</label>
+                        <input type="date" id="endDate">
+                    </div>
+                    <button class="filter-btn" onclick="applyFilters()">Apply Filters</button>
+                    <button class="clear-btn" onclick="clearFilters()">Clear</button>
+                </div>
+
+                <div id="loadingCommissions" class="loading">
+                    <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
+                    <p>Loading commission history...</p>
+                </div>
+
+                <div id="commissionsContent" style="display: none;">
+                    <div style="overflow-x: auto;">
+                        <table class="commission-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 15%;">Date</th>
+                                    <th style="width: 12%;">Type</th>
+                                    <th style="width: 12%;">Amount</th>
+                                    <th style="width: 10%;">Level</th>
+                                    <th style="width: 10%;">Rate</th>
+                                    <th style="width: 20%;">Purchaser</th>
+                                    <th style="width: 12%;">Order Amount</th>
+                                    <th style="width: 9%;">Order ID</th>
+                                </tr>
+                            </thead>
+                            <tbody id="commissionsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination">
+                        <button onclick="previousPage()" id="prevBtn">← Previous</button>
+                        <div class="page-info">
+                            Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+                        </div>
+                        <button onclick="nextPage()" id="nextBtn">Next →</button>
+                    </div>
+                </div>
+
+                <div id="noCommissions" class="no-data" style="display: none;">
+                    <div class="no-data-icon">💸</div>
+                    <h3>No Commission History Yet</h3>
+                    <p>Start earning by sharing your referral code!</p>
+                    <a href="referral.html" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                        Go to Referral Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 BookStore. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/commission-history.js"></script>
+</body>
+</html>

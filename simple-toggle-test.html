@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Toggle Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .toggle { display: flex; background: #f0f0f0; border-radius: 8px; padding: 3px; margin: 20px 0; max-width: 300px; }
+        .toggle-btn { flex: 1; padding: 10px; text-align: center; cursor: pointer; border-radius: 6px; transition: all 0.3s; }
+        .toggle-btn.active { background: #ff6f61; color: white; }
+        .section { display: none; padding: 20px; border: 2px solid #ddd; border-radius: 8px; margin: 10px 0; }
+        .section.active { display: block !important; border-color: #ff6f61; }
+        .debug { background: #f8f9fa; padding: 10px; margin: 10px 0; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h2>Simple Toggle Test</h2>
+    
+    <div class="toggle">
+        <div class="toggle-btn active" id="btn1">📧 Email</div>
+        <div class="toggle-btn" id="btn2">📱 Phone</div>
+    </div>
+
+    <div class="section active" id="section1">
+        <h3>Email Section</h3>
+        <input type="email" placeholder="Email" style="width: 100%; padding: 8px; margin: 5px 0;">
+        <input type="password" placeholder="Password" style="width: 100%; padding: 8px; margin: 5px 0;">
+    </div>
+
+    <div class="section" id="section2">
+        <h3>Phone Section</h3>
+        <input type="text" placeholder="Phone Number" style="width: 100%; padding: 8px; margin: 5px 0;">
+        <input type="text" placeholder="OTP" style="width: 100%; padding: 8px; margin: 5px 0;">
+    </div>
+
+    <button id="testBtn" style="width: 100%; padding: 12px; background: #ff6f61; color: white; border: none; border-radius: 5px;">
+        Test Button
+    </button>
+
+    <div class="debug" id="debug">
+        Status: Email section active
+    </div>
+
+    <script>
+        let currentMethod = 'email';
+
+        function updateDebug(message) {
+            document.getElementById('debug').textContent = message;
+            console.log(message);
+        }
+
+        document.getElementById('btn1').addEventListener('click', () => {
+            updateDebug('Email button clicked');
+            currentMethod = 'email';
+            
+            // Update buttons
+            document.getElementById('btn1').classList.add('active');
+            document.getElementById('btn2').classList.remove('active');
+            
+            // Update sections
+            document.getElementById('section1').classList.add('active');
+            document.getElementById('section2').classList.remove('active');
+            
+            // Update test button
+            document.getElementById('testBtn').textContent = 'Sign In';
+            
+            updateDebug('Status: Email section active');
+        });
+
+        document.getElementById('btn2').addEventListener('click', () => {
+            updateDebug('Phone button clicked');
+            currentMethod = 'phone';
+            
+            // Update buttons
+            document.getElementById('btn2').classList.add('active');
+            document.getElementById('btn1').classList.remove('active');
+            
+            // Update sections
+            document.getElementById('section2').classList.add('active');
+            document.getElementById('section1').classList.remove('active');
+            
+            // Update test button
+            document.getElementById('testBtn').textContent = 'Send OTP';
+            
+            updateDebug('Status: Phone section active');
+        });
+
+        document.getElementById('testBtn').addEventListener('click', () => {
+            alert(`Button clicked with method: ${currentMethod}`);
+        });
+
+        // Auto test
+        setTimeout(() => {
+            updateDebug('Auto-testing: switching to phone in 2 seconds...');
+            setTimeout(() => {
+                document.getElementById('btn2').click();
+                setTimeout(() => {
+                    updateDebug('Auto-testing: switching back to email in 2 seconds...');
+                    setTimeout(() => {
+                        document.getElementById('btn1').click();
+                    }, 2000);
+                }, 2000);
+            }, 2000);
+        }, 1000);
+    </script>
+</body>
+</html>

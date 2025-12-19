@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Account - Shri Mata</title>
+    <link rel="stylesheet" href="css/account.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header>
+    <div class="navbar">
+        <div class="container navbar-content">
+            <div class="logo">
+                <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                    <img src="/images/logo.png" alt="Shri Mata Logo" style="width: 32px; height: 32px; border-radius: 50%;">
+                    <span>Shri Mata</span>
+                </a>
+            </div>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="cart.html">Cart</a>
+                <a href="#" id="logoutBtn">Logout</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main>
+    <div class="container account-container">
+
+        <h1>My Account</h1>
+
+        <div class="account-menu">
+            <button onclick="showSection('profile')">Profile</button>
+            <button onclick="showSection('edit')">Edit Profile</button>
+            <button onclick="showSection('address')">Delivery Address</button>
+            <button onclick="showSection('orders')">Order History</button>
+            <button onclick="showSection('points')">Points & Rewards</button>
+            <button onclick="logout()">Logout</button>
+        </div>
+
+        <div id="profileSection" class="account-section">
+            <h2>Profile</h2>
+            <p><strong>Name:</strong> <span id="accName"></span></p>
+            <p><strong>Email:</strong> <span id="accEmail"></span></p>
+        </div>
+
+        <div id="editSection" class="account-section" style="display:none;">
+            <h2>Edit Profile</h2>
+            <form id="editForm">
+                <input type="text" id="editName" placeholder="New Name">
+                <input type="email" id="editEmail" placeholder="New Email">
+                <button class="btn-primary" type="submit">Update</button>
+            </form>
+        </div>
+
+        <div id="addressSection" class="account-section" style="display:none;">
+            <h2>Delivery Address</h2>
+            <div id="addressDisplay" style="margin-bottom: 20px;">
+                <p><strong>Street Address:</strong> <span id="displayStreet">Not set</span></p>
+                <p><strong>Taluk:</strong> <span id="displayTaluk">Not set</span></p>
+                <p><strong>District:</strong> <span id="displayDistrict">Not set</span></p>
+                <p><strong>State:</strong> <span id="displayState">Not set</span></p>
+                <p><strong>Pincode:</strong> <span id="displayPincode">Not set</span></p>
+                <p><strong>Phone:</strong> <span id="displayPhone">Not set</span></p>
+            </div>
+            <button class="btn-primary" onclick="toggleAddressEdit()">Edit Address</button>
+            
+            <form id="addressForm" style="display:none; margin-top: 20px;">
+                <input type="text" id="street" placeholder="Street Address" required>
+                <input type="text" id="taluk" placeholder="Taluk" required>
+                <input type="text" id="district" placeholder="District" required>
+                <input type="text" id="state" placeholder="State" required>
+                <input type="text" id="pincode" placeholder="Pincode" required pattern="[0-9]{6}">
+                <input type="tel" id="phone" placeholder="Phone Number" required pattern="[0-9]{10}">
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-primary" type="submit">Save Address</button>
+                    <button class="btn-secondary" type="button" onclick="toggleAddressEdit()">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="ordersSection" class="account-section" style="display:none;">
+            <h2>Order History</h2>
+            <div id="ordersList">Loading...</div>
+        </div>
+
+        <div id="pointsSection" class="account-section" style="display:none;">
+            <h2>Points & Rewards</h2>
+            
+            <div class="points-summary">
+                <div class="points-card">
+                    <h3>Available Points</h3>
+                    <p class="points-value" id="pointsWallet">0</p>
+                </div>
+                <div class="points-card">
+                    <h3>Total Earned</h3>
+                    <p class="points-value" id="totalPointsEarned">0</p>
+                </div>
+                <div class="points-card">
+                    <h3>Virtual Referrals</h3>
+                    <p class="points-value" id="virtualReferralsCreated">0</p>
+                </div>
+            </div>
+
+            <div class="redeem-section">
+                <h3>Redeem Points</h3>
+                <p>You can redeem 100 points to create a virtual referral in your tree.</p>
+                <button class="btn-primary" id="redeemBtn" onclick="redeemVirtualReferral()">
+                    Redeem 100 Points for Virtual Referral
+                </button>
+            </div>
+
+            <div class="points-history">
+                <h3>Points History</h3>
+                <div id="pointsHistoryList">Loading...</div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/account.js"></script>
+</body>
+</html>

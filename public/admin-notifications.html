@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Manage Notifications - Admin</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 28px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .content-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .notification-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .notification-item.inactive {
+            opacity: 0.6;
+            border-left-color: #6c757d;
+        }
+
+        .notification-item.offer {
+            border-left-color: #28a745;
+        }
+
+        .notification-item.discount {
+            border-left-color: #ffc107;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .notification-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .notification-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .type-offer {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .type-discount {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .type-announcement {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .type-update {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .notification-message {
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .notification-meta {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 10px;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .notification-actions .btn {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 15px 20px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+                width: 100%;
+            }
+
+            .nav-buttons {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .content-card {
+                padding: 20px;
+            }
+
+            .notification-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .notification-title {
+                margin-bottom: 8px;
+            }
+
+            .notification-actions {
+                width: 100%;
+            }
+
+            .notification-actions .btn {
+                flex: 1;
+            }
+
+            .form-group input,
+            .form-group textarea,
+            .form-group select {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="header">
+            <h1>📢 Manage Notifications & Offers</h1>
+            <div class="nav-buttons">
+                <a href="/admin.html" class="btn btn-secondary">← Back to Admin</a>
+                <button onclick="logout()" class="btn btn-danger">Logout</button>
+            </div>
+        </div>
+
+        <!-- Create Notification Form -->
+        <div class="content-card">
+            <h2 style="margin-bottom: 20px; color: #667eea;">Create New Notification</h2>
+            <form id="notificationForm">
+                <div class="form-group">
+                    <label for="title">Title *</label>
+                    <input type="text" id="title" name="title" required placeholder="e.g., Special Discount Offer!">
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Message *</label>
+                    <textarea id="message" name="message" required placeholder="e.g., Buy above ₹500 and get 20% discount on your order!"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="type">Type *</label>
+                    <select id="type" name="type" required onchange="toggleOfferFields()">
+                        <option value="announcement">Announcement</option>
+                        <option value="offer">Offer</option>
+                        <option value="discount">Discount</option>
+                        <option value="update">Update</option>
+                    </select>
+                </div>
+
+                <!-- Offer Details (shown only for offer/discount types) -->
+                <div id="offerDetailsSection" style="display: none; background: #f0f8ff; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="margin-bottom: 15px; color: #667eea;">💰 Offer Details</h3>
+                    
+                    <div class="form-group">
+                        <label for="minAmount">Minimum Cart Amount (₹) *</label>
+                        <input type="number" id="minAmount" name="minAmount" step="0.01" min="0" placeholder="e.g., 550">
+                        <small>Customer must spend at least this amount to get the discount</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="discountType">Discount Type *</label>
+                        <select id="discountType" name="discountType" onchange="toggleDiscountInputs()">
+                            <option value="percentage">Percentage Discount (%)</option>
+                            <option value="fixed">Fixed Amount Discount (₹)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="percentageInput">
+                        <label for="discountPercentage">Discount Percentage *</label>
+                        <input type="number" id="discountPercentage" name="discountPercentage" step="0.01" min="0" max="100" placeholder="e.g., 20">
+                        <small>Enter percentage (e.g., 20 for 20% off). On ₹550, 20% off = ₹110 discount</small>
+                    </div>
+
+                    <div class="form-group" id="fixedInput" style="display: none;">
+                        <label for="discountFixed">Discount Amount (₹) *</label>
+                        <input type="number" id="discountFixed" name="discountFixed" step="0.01" min="0" placeholder="e.g., 100">
+                        <small>Fixed discount amount (e.g., ₹100 off)</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="validUntil">Valid Until (Optional)</label>
+                    <input type="datetime-local" id="validUntil" name="validUntil">
+                </div>
+
+                <button type="submit" class="btn btn-primary">Create Notification</button>
+            </form>
+        </div>
+
+        <!-- Notifications List -->
+        <div class="content-card">
+            <h2 style="margin-bottom: 20px; color: #667eea;">All Notifications</h2>
+            <div id="notificationsList">
+                <div class="empty-state">
+                    <p>Loading notifications...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000/api' 
+            : '/api';
+
+        // Check authentication
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        // Load notifications on page load
+        loadNotifications();
+
+        // Toggle offer details section
+        function toggleOfferFields() {
+            const type = document.getElementById('type').value;
+            const offerSection = document.getElementById('offerDetailsSection');
+            const minAmount = document.getElementById('minAmount');
+            
+            if (type === 'offer' || type === 'discount') {
+                offerSection.style.display = 'block';
+                minAmount.required = true;
+                toggleDiscountInputs();
+            } else {
+                offerSection.style.display = 'none';
+                minAmount.required = false;
+            }
+        }
+
+        // Toggle between percentage and fixed discount inputs
+        function toggleDiscountInputs() {
+            const discountType = document.getElementById('discountType').value;
+            const percentageInput = document.getElementById('percentageInput');
+            const fixedInput = document.getElementById('fixedInput');
+            const percentageField = document.getElementById('discountPercentage');
+            const fixedField = document.getElementById('discountFixed');
+            
+            if (discountType === 'percentage') {
+                percentageInput.style.display = 'block';
+                fixedInput.style.display = 'none';
+                percentageField.required = true;
+                fixedField.required = false;
+            } else {
+                percentageInput.style.display = 'none';
+                fixedInput.style.display = 'block';
+                percentageField.required = false;
+                fixedField.required = true;
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('notificationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const type = document.getElementById('type').value;
+            const formData = {
+                title: document.getElementById('title').value,
+                message: document.getElementById('message').value,
+                type: type,
+                validUntil: document.getElementById('validUntil').value || null
+            };
+
+            // Add offer details if type is offer or discount
+            if (type === 'offer' || type === 'discount') {
+                const minAmount = parseFloat(document.getElementById('minAmount').value);
+                const discountType = document.getElementById('discountType').value;
+                
+                if (!minAmount) {
+                    alert('Please enter minimum cart amount');
+                    return;
+                }
+
+                let discountValue, discountPercentage;
+                
+                if (discountType === 'percentage') {
+                    discountPercentage = parseFloat(document.getElementById('discountPercentage').value);
+                    
+                    if (!discountPercentage || discountPercentage <= 0 || discountPercentage > 100) {
+                        alert('Please enter a valid discount percentage (1-100)');
+                        return;
+                    }
+                    
+                    discountValue = discountPercentage;
+                } else {
+                    const fixedDiscount = parseFloat(document.getElementById('discountFixed').value);
+                    
+                    if (!fixedDiscount || fixedDiscount <= 0) {
+                        alert('Please enter a valid discount amount');
+                        return;
+                    }
+                    
+                    if (fixedDiscount >= minAmount) {
+                        alert('Discount amount must be less than minimum amount');
+                        return;
+                    }
+                    
+                    discountValue = fixedDiscount;
+                }
+
+                formData.offerDetails = {
+                    minAmount: minAmount,
+                    discountType: discountType,
+                    discountValue: discountValue
+                };
+                
+                console.log('=== Creating Offer ===');
+                console.log('Form Data:', formData);
+            }
+
+            try {
+                console.log('Sending to:', `${API_URL}/notifications/admin/create`);
+                const response = await fetch(`${API_URL}/notifications/admin/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                console.log('Response status:', response.status);
+                console.log('Response data:', data);
+
+                if (response.ok) {
+                    console.log('✅ Notification created successfully!');
+                    alert('Notification created successfully!');
+                    document.getElementById('notificationForm').reset();
+                    loadNotifications();
+                } else {
+                    console.error('❌ Failed to create:', data);
+                    alert(data.error || 'Failed to create notification');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error creating notification');
+            }
+        });
+
+        // Load all notifications
+        async function loadNotifications() {
+            try {
+                const response = await fetch(`${API_URL}/notifications/admin/all`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayNotifications(data.notifications);
+                } else {
+                    document.getElementById('notificationsList').innerHTML = `
+                        <div class="empty-state">
+                            <p>Error loading notifications</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('notificationsList').innerHTML = `
+                    <div class="empty-state">
+                        <p>Error loading notifications</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display notifications
+        function displayNotifications(notifications) {
+            const container = document.getElementById('notificationsList');
+
+            if (notifications.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No notifications yet. Create your first one above!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = notifications.map(notif => {
+                const createdDate = new Date(notif.createdAt).toLocaleString();
+                const validUntil = notif.validUntil ? new Date(notif.validUntil).toLocaleString() : 'No expiry';
+                const isExpired = notif.validUntil && new Date(notif.validUntil) < new Date();
+
+                let offerDetailsHtml = '';
+                if (notif.offerDetails && notif.offerDetails.minAmount) {
+                    let discountText = '';
+                    if (notif.offerDetails.discountType === 'percentage') {
+                        discountText = `Get ${notif.offerDetails.discountValue}% off on orders above ₹${notif.offerDetails.minAmount}`;
+                    } else {
+                        discountText = `Get ₹${notif.offerDetails.discountValue} off on orders above ₹${notif.offerDetails.minAmount}`;
+                    }
+                    
+                    offerDetailsHtml = `
+                        <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                            <strong>💰 Offer:</strong> ${discountText}
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="notification-item ${!notif.isActive ? 'inactive' : ''} ${notif.type}">
+                        <div class="notification-header">
+                            <div class="notification-title">${notif.title}</div>
+                            <span class="notification-type type-${notif.type}">${notif.type}</span>
+                        </div>
+                        <div class="notification-message">${notif.message}</div>
+                        ${offerDetailsHtml}
+                        <div class="notification-meta">
+                            Created: ${createdDate} | Valid Until: ${validUntil}
+                            ${isExpired ? ' | <strong style="color: #dc3545;">EXPIRED</strong>' : ''}
+                            ${!notif.isActive ? ' | <strong style="color: #6c757d;">INACTIVE</strong>' : ''}
+                        </div>
+                        <div class="notification-actions">
+                            <button onclick="toggleNotification('${notif._id}')" class="btn ${notif.isActive ? 'btn-warning' : 'btn-success'}">
+                                ${notif.isActive ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button onclick="deleteNotification('${notif._id}')" class="btn btn-danger">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Toggle notification active status
+        async function toggleNotification(id) {
+            if (!confirm('Are you sure you want to toggle this notification?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/notifications/admin/toggle/${id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    loadNotifications();
+                } else {
+                    alert(data.error || 'Failed to toggle notification');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error toggling notification');
+            }
+        }
+
+        // Delete notification
+        async function deleteNotification(id) {
+            if (!confirm('Are you sure you want to delete this notification? This action cannot be undone.')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/notifications/admin/delete/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Notification deleted successfully');
+                    loadNotifications();
+                } else {
+                    alert(data.error || 'Failed to delete notification');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error deleting notification');
+            }
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+    </script>
+    <script src="js/admin-navigation.js"></script>
+</body>
+</html>

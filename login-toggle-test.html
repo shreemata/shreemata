@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Toggle Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-container { max-width: 500px; margin: 0 auto; }
+        .login-toggle { display: flex; background: #f0f0f0; border-radius: 8px; padding: 3px; margin: 20px 0; }
+        .toggle-option { flex: 1; padding: 10px; text-align: center; cursor: pointer; border-radius: 6px; transition: all 0.3s; }
+        .toggle-option.active { background: #ff6f61; color: white; }
+        .login-section { display: none; padding: 20px; border: 2px solid #ddd; border-radius: 8px; margin: 10px 0; }
+        .login-section.active { display: block; border-color: #ff6f61; }
+        .debug { background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h2>Login Toggle Test</h2>
+        
+        <div class="login-toggle">
+            <div class="toggle-option active" id="emailToggle">📧 Email & Password</div>
+            <div class="toggle-option" id="phoneToggle">📱 Phone & OTP</div>
+        </div>
+
+        <div class="login-section active" id="emailSection">
+            <h3>Email Login Section</h3>
+            <input type="email" placeholder="Enter email" style="width: 100%; padding: 8px; margin: 5px 0;">
+            <input type="password" placeholder="Enter password" style="width: 100%; padding: 8px; margin: 5px 0;">
+        </div>
+
+        <div class="login-section" id="phoneSection">
+            <h3>Phone Login Section</h3>
+            <input type="text" placeholder="Enter phone number" style="width: 100%; padding: 8px; margin: 5px 0;">
+            <input type="text" placeholder="Enter OTP" style="width: 100%; padding: 8px; margin: 5px 0;">
+        </div>
+
+        <button id="loginBtn" style="width: 100%; padding: 12px; background: #ff6f61; color: white; border: none; border-radius: 5px; font-size: 16px;">
+            Sign In
+        </button>
+
+        <div class="debug" id="debugInfo">
+            Current method: email<br>
+            Click toggles to test functionality
+        </div>
+    </div>
+
+    <script>
+        let currentMethod = 'email';
+
+        document.getElementById('emailToggle').addEventListener('click', () => {
+            console.log('Email toggle clicked');
+            currentMethod = 'email';
+            
+            // Update toggles
+            document.getElementById('emailToggle').classList.add('active');
+            document.getElementById('phoneToggle').classList.remove('active');
+            
+            // Update sections
+            document.getElementById('emailSection').classList.add('active');
+            document.getElementById('phoneSection').classList.remove('active');
+            
+            // Update button
+            document.getElementById('loginBtn').textContent = 'Sign In';
+            
+            // Update debug
+            document.getElementById('debugInfo').innerHTML = 'Current method: email<br>Email section should be visible';
+        });
+
+        document.getElementById('phoneToggle').addEventListener('click', () => {
+            console.log('Phone toggle clicked');
+            currentMethod = 'phone';
+            
+            // Update toggles
+            document.getElementById('phoneToggle').classList.add('active');
+            document.getElementById('emailToggle').classList.remove('active');
+            
+            // Update sections
+            document.getElementById('phoneSection').classList.add('active');
+            document.getElementById('emailSection').classList.remove('active');
+            
+            // Update button
+            document.getElementById('loginBtn').textContent = 'Send OTP';
+            
+            // Update debug
+            document.getElementById('debugInfo').innerHTML = 'Current method: phone<br>Phone section should be visible';
+        });
+
+        // Test button click
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            alert(`Login button clicked with method: ${currentMethod}`);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+/* Admin Navigation Grid Layout */
+nav { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+    padding: 20px 0; 
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    right: 0; 
+    z-index: 100; 
+}
+
+nav .container { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    padding: 0 20px; 
+}
+
+nav h1 { 
+    color: white; 
+    margin: 0 0 15px 0; 
+    font-size: 24px; 
+    text-align: center; 
+}
+
+nav .nav-content { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+}
+
+nav .user-info { 
+    color: white; 
+    margin-bottom: 15px; 
+    font-weight: 500; 
+}
+
+nav .nav-grid { 
+    display: grid !important; 
+    grid-template-columns: repeat(6, minmax(120px, 1fr)) !important; 
+    gap: 8px; 
+    width: 100%; 
+    max-width: 1000px;
+    grid-auto-rows: minmax(45px, auto);
+    justify-content: center;
+    align-items: center;
+}
+
+nav a { 
+    color: white; 
+    text-decoration: none; 
+    padding: 8px 6px; 
+    border-radius: 6px; 
+    transition: all 0.3s ease; 
+    font-weight: 500; 
+    text-align: center;
+    font-size: 11px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 45px;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+nav a:hover, nav a.active { 
+    background: rgba(255,255,255,0.2); 
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Mobile responsive navigation */
+@media (max-width: 768px) {
+    nav .nav-grid { 
+        grid-template-columns: repeat(3, 1fr) !important; 
+        gap: 6px; 
+        max-width: 600px;
+    }
+    nav a { 
+        padding: 6px 4px; 
+        font-size: 10px; 
+        min-height: 40px;
+    }
+    .main-container { 
+        margin-top: 240px !important; 
+        padding: 20px; 
+    }
+}
+
+@media (max-width: 480px) {
+    nav .nav-grid { 
+        grid-template-columns: repeat(2, 1fr) !important; 
+        gap: 5px; 
+        max-width: 400px;
+    }
+    nav a { 
+        padding: 5px 3px; 
+        font-size: 9px; 
+        min-height: 35px;
+    }
+    .main-container { 
+        margin-top: 280px !important; 
+        padding: 15px; 
+    }
+    nav h1 { 
+        font-size: 18px; 
+    }
+}
+
+/* Ensure main content has proper spacing */
+.main-container {
+    margin-top: 180px;
+}

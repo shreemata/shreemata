@@ -1,0 +1,670 @@
+// routes/payments.js
+const express = require("express");
+const Razorpay = require("razorpay");
+const crypto = require("crypto");
+const Order = require("../models/Order");
+const User = require("../models/User");
+const { authenticateToken } = require("../middleware/auth");
+const { sendOrderConfirmationEmail, sendAdminNotification } = require("../utils/emailService");
+const { distributeCommissions } = require("../services/commissionDistribution");
+const { awardPoints } = require("../services/pointsService");
+const Book = require("../models/Book");
+const Bundle = require("../models/Bundle");
+
+const router = express.Router();
+
+// Razorpay instance
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
+
+/**
+ * Generate 7% multi-level distribution:
+ * 3 → 1.5 → 0.75 → 0.375 → ...
+ */
+function getReferralPercentages(levels = 10) {
+  const arr = [];
+  let percent = 3; // Level 1 gets 3%
+  for (let i = 0; i < levels; i++) {
+    arr.push(percent);
+    percent = percent / 2;
+  }
+  return arr;
+}
+
+/**
+ * Apply referral commission
+ * NOTE: This function should only be called AFTER atomic update has marked rewardApplied=true
+ * The duplicate prevention is handled at the database level, not here
+ */
+async function applyReferralRewardForOrder(order) {
+  if (!order) return { applied: false, reason: "no-order" };
+
+  const buyer = await User.findById(order.user_id);
+  if (!buyer) return { applied: false, reason: "buyer-not-found" };
+
+  // Must have been referred
+  if (!buyer.referredBy) {
+    return { applied: false, reason: "no-referrer" };
+  }
+
+  const totalAmount = order.totalAmount;
+  const ADMIN_PERCENT = 3; // Admin gets 3%
+  const REFERRAL_LEVELS = getReferralPercentages(10); // Referral chain gets 6% (3+1.5+0.75+...)
+
+  console.log("=== Referral Reward Calculation ===");
+  console.log("Order Total Amount (after discount):", totalAmount);
+  if (order.appliedOffer) {
+    console.log("Offer Applied:", order.appliedOffer.offerTitle);
+    console.log("Original Amount:", order.appliedOffer.originalAmount);
+    console.log("Discounted Amount:", order.appliedOffer.discountedAmount);
+    console.log("Savings:", order.appliedOffer.savings);
+    console.log("✅ Referral rewards will be calculated on:", totalAmount, "(discounted amount)");
+  } else {
+    console.log("No offer applied. Referral rewards on full amount:", totalAmount);
+  }
+
+  let results = [];
+
+  // ---------------------------------------
+  // A: Admin Commission (3%)
+  // ---------------------------------------
+  const admin = await User.findOne({ role: "admin" });
+  if (admin) {
+    const adminAmount = (totalAmount * ADMIN_PERCENT) / 100;
+    admin.wallet += adminAmount;
+    await admin.save();
+
+    results.push({
+      type: "admin",
+      percent: ADMIN_PERCENT,
+      amount: adminAmount,
+      userId: admin._id
+    });
+  }
+
+  // ---------------------------------------
+  // B: Referral Chain Commission (7%)
+  // ---------------------------------------
+  let parent = await User.findOne({ referralCode: buyer.referredBy });
+  let level = 0;
+
+  while (parent && level < REFERRAL_LEVELS.length) {
+    const percent = REFERRAL_LEVELS[level];
+    const amount = (totalAmount * percent) / 100;
+
+    parent.wallet += amount;
+    await parent.save();
+
+    results.push({
+      type: "referral",
+      level: level + 1,
+      percent,
+      amount,
+      userId: parent._id
+    });
+
+    // next in chain
+    parent = await User.findOne({ referralCode: parent.referredBy });
+    level++;
+  }
+
+  // Lock referral after FIRST purchase
+  if (!buyer.firstPurchaseDone) {
+    buyer.firstPurchaseDone = true;
+    await buyer.save();
+  }
+
+  // Note: rewardApplied is already set to true by the atomic update
+  // No need to save again here
+  
+  console.log(`✅ Rewards applied for order ${order._id}`);
+
+  return { applied: true, chain: results };
+}
+
+// =====================================================
+// 1️⃣ CREATE RAZORPAY ORDER
+// =====================================================
+router.post("/create-order", authenticateToken, async (req, res) => {
+  try {
+    const { amount, items, deliveryAddress, appliedOffer, courierCharge, totalWeight } = req.body;
+
+    console.log("Create order request:", { 
+      amount, 
+      itemsCount: items?.length, 
+      hasAddress: !!deliveryAddress, 
+      hasOffer: !!appliedOffer,
+      courierCharge,
+      totalWeight
+    });
+    console.log("Items type:", typeof items, "Is array:", Array.isArray(items));
+    
+    // Ensure items is an array
+    if (!Array.isArray(items)) {
+      console.error("Items is not an array:", items);
+      return res.status(400).json({ error: "Items must be an array" });
+    }
+
+    // 🚨 MANDATORY DELIVERY ADDRESS VALIDATION
+    if (!deliveryAddress || 
+        !deliveryAddress.street || 
+        !deliveryAddress.city || 
+        !deliveryAddress.state || 
+        !deliveryAddress.pincode || 
+        !deliveryAddress.phone) {
+      
+      console.log("❌ Delivery address validation failed:", deliveryAddress);
+      
+      return res.status(400).json({ 
+        error: "Complete delivery address is required",
+        message: "Please set your complete delivery address before proceeding with payment",
+        missingFields: {
+          street: !deliveryAddress?.street,
+          city: !deliveryAddress?.city,
+          state: !deliveryAddress?.state,
+          pincode: !deliveryAddress?.pincode,
+          phone: !deliveryAddress?.phone
+        },
+        requiresAddressSetup: true
+      });
+    }
+
+    // Validate address fields are not empty strings
+    const addressFields = ['street', 'city', 'state', 'pincode', 'phone'];
+    const emptyFields = addressFields.filter(field => 
+      !deliveryAddress[field] || deliveryAddress[field].trim() === ''
+    );
+
+    if (emptyFields.length > 0) {
+      console.log("❌ Empty address fields found:", emptyFields);
+      
+      return res.status(400).json({ 
+        error: "All delivery address fields must be filled",
+        message: "Please complete your delivery address information",
+        emptyFields: emptyFields,
+        requiresAddressSetup: true
+      });
+    }
+
+    // Validate phone number format (basic validation)
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(deliveryAddress.phone)) {
+      return res.status(400).json({ 
+        error: "Invalid phone number",
+        message: "Please enter a valid 10-digit Indian mobile number",
+        requiresAddressSetup: true
+      });
+    }
+
+    // Validate pincode format (basic validation)
+    const pincodeRegex = /^\d{6}$/;
+    if (!pincodeRegex.test(deliveryAddress.pincode)) {
+      return res.status(400).json({ 
+        error: "Invalid pincode",
+        message: "Please enter a valid 6-digit pincode",
+        requiresAddressSetup: true
+      });
+    }
+
+    console.log("✅ Delivery address validation passed");
+
+    const options = {
+      amount: Math.round(amount * 100),
+      currency: "INR",
+      receipt: "order_" + Date.now()
+    };
+
+    const razorpayOrder = await razorpay.orders.create(options);
+    console.log("Razorpay order created:", razorpayOrder.id);
+
+    // Prepare delivery address with defaults
+    const addressData = deliveryAddress ? {
+      street: deliveryAddress.street || "",
+      city: deliveryAddress.city || "",
+      state: deliveryAddress.state || "",
+      pincode: deliveryAddress.pincode || "",
+      phone: deliveryAddress.phone || ""
+    } : undefined;
+
+    // Prepare items array properly
+    const orderItems = items.map(item => ({
+      id: item.id,
+      title: item.title,
+      author: item.author,
+      price: Number(item.price),
+      quantity: Number(item.quantity),
+      coverImage: item.coverImage,
+      type: item.type || 'book'
+    }));
+
+    console.log("Prepared order items:", orderItems);
+
+    // Prepare offer data if applicable
+    const offerData = appliedOffer ? {
+      offerId: appliedOffer.offerId,
+      offerTitle: appliedOffer.offerTitle,
+      discountType: appliedOffer.discountType,
+      discountValue: appliedOffer.discountValue,
+      originalAmount: appliedOffer.originalAmount,
+      discountedAmount: appliedOffer.discountedAmount,
+      savings: appliedOffer.savings
+    } : undefined;
+
+    if (offerData) {
+      console.log("Applied offer:", offerData);
+    }
+
+    const dbOrder = await Order.create({
+      user_id: req.user.id,
+      items: orderItems,
+      totalAmount: amount,
+      courierCharge: courierCharge || 0,
+      totalWeight: totalWeight || 0,
+      appliedOffer: offerData,
+      deliveryAddress: addressData,
+      status: "pending",
+      rewardApplied: false,
+      razorpay_order_id: razorpayOrder.id
+    });
+
+    console.log("DB order created:", dbOrder._id);
+
+    res.json({ order: razorpayOrder, dbOrder });
+  } catch (err) {
+    console.error("Create order error:", err);
+    console.error("Error details:", err.message);
+    res.status(500).json({ error: "Unable to create Razorpay order", details: err.message });
+  }
+});
+
+// =====================================================
+// 2️⃣ VERIFY PAYMENT
+// =====================================================
+router.post("/verify", authenticateToken, async (req, res) => {
+  console.log("\n🔍 ===== PAYMENT VERIFICATION STARTED =====");
+  console.log("   Razorpay Order ID:", req.body.razorpay_order_id);
+  console.log("   Razorpay Payment ID:", req.body.razorpay_payment_id);
+  
+  try {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      totalAmount,
+      items,
+      deliveryAddress
+    } = req.body;
+
+    // Signature check
+    const expected = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(razorpay_order_id + "|" + razorpay_payment_id)
+      .digest("hex");
+
+    if (expected !== razorpay_signature) {
+      return res.status(400).json({ error: "Invalid signature" });
+    }
+
+    // ATOMIC UPDATE: Find order and mark as processing in one operation
+    // This prevents race condition between verify and webhook
+    const order = await Order.findOneAndUpdate(
+      { 
+        razorpay_order_id,
+        rewardApplied: false  // Only update if not already processed
+      },
+      {
+        status: "completed",
+        razorpay_payment_id,
+        items,
+        totalAmount,
+        deliveryAddress: deliveryAddress || {},
+        rewardApplied: true  // Mark immediately to prevent duplicate
+      },
+      { new: true }
+    );
+
+    if (!order) {
+      // Either order not found OR already processed
+      const existingOrder = await Order.findOne({ razorpay_order_id });
+      if (existingOrder && existingOrder.rewardApplied) {
+        console.log("⚠️ Verify: Rewards already applied, skipping");
+        return res.json({ message: "Payment already processed", order: existingOrder });
+      }
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    console.log("✅ Verify: Order marked as processed, applying rewards...");
+
+    // APPLY NEW COMMISSION DISTRIBUTION SYSTEM
+    try {
+      console.log("💰 Distributing commissions for order:", order._id);
+      const commissionTransaction = await distributeCommissions(
+        order._id,
+        order.user_id,
+        order.totalAmount
+      );
+      console.log("✅ Commission distribution completed:", commissionTransaction._id);
+    } catch (commissionError) {
+      console.error("❌ Commission distribution error:", commissionError);
+      // Log error but don't fail the payment verification
+      // Implement retry logic here if needed
+    }
+
+    // AWARD POINTS FOR PURCHASED ITEMS
+    try {
+      console.log("🎁 Awarding points for order:", order._id);
+      for (const item of order.items) {
+        let points = 0;
+        
+        if (item.type === 'book') {
+          const book = await Book.findById(item.id);
+          if (book && book.rewardPoints > 0) {
+            points = book.rewardPoints * item.quantity;
+          }
+        } else if (item.type === 'bundle') {
+          const bundle = await Bundle.findById(item.id);
+          if (bundle && bundle.rewardPoints > 0) {
+            points = bundle.rewardPoints * item.quantity;
+          }
+        }
+        
+        if (points > 0) {
+          await awardPoints(
+            order.user_id,
+            points,
+            item.type === 'book' ? 'book_purchase' : 'bundle_purchase',
+            item.id,
+            order._id
+          );
+          console.log(`✅ Awarded ${points} points for ${item.title}`);
+        }
+      }
+    } catch (pointsError) {
+      console.error("❌ Points awarding error:", pointsError);
+      // Log error but don't fail the payment verification
+    }
+
+    // OLD REFERRAL SYSTEM DISABLED - Using new commission distribution system only
+    // The old system was causing double payments by adding to wallet twice
+    // const result = await applyReferralRewardForOrder(order);
+    // console.log("Referral Result:", result);
+
+    // SEND EMAIL NOTIFICATIONS - ALWAYS EXECUTE
+    console.log("\n🔍 ===== EMAIL NOTIFICATION PROCESS STARTED =====");
+    
+    // Fetch user
+    console.log("🔍 Fetching user for order:", order.user_id);
+    const user = await User.findById(order.user_id);
+    
+    if (!user) {
+      console.error("❌ CRITICAL: User not found for order:", order.user_id);
+      console.log("🔍 ===== EMAIL NOTIFICATION PROCESS ENDED (NO USER) =====\n");
+    } else {
+      console.log("✅ User found:", user.name);
+      console.log("   User email:", user.email || "❌ NO EMAIL SET");
+      
+      if (!user.email) {
+        console.error("❌ CRITICAL: User has no email address!");
+        console.log("🔍 ===== EMAIL NOTIFICATION PROCESS ENDED (NO EMAIL) =====\n");
+      } else {
+        // Send customer confirmation email
+        console.log("\n📧 Attempting to send order confirmation email...");
+        console.log("   To:", user.email);
+        console.log("   Order ID:", order._id);
+        
+        try {
+          const customerEmail = await sendOrderConfirmationEmail(order, user);
+          if (customerEmail.success) {
+            console.log("✅ SUCCESS: Customer email sent!");
+            console.log("   Message ID:", customerEmail.messageId);
+          } else {
+            console.error("❌ FAILED: Customer email not sent");
+            console.error("   Error:", customerEmail.error);
+          }
+        } catch (emailError) {
+          console.error("❌ EXCEPTION: Error sending customer email");
+          console.error("   Error:", emailError.message);
+          console.error("   Stack:", emailError.stack);
+        }
+
+        // Send admin notification email
+        console.log("\n📧 Attempting to send admin notification...");
+        console.log("   To:", process.env.MAIL_USER);
+        
+        try {
+          const adminEmail = await sendAdminNotification(order, user);
+          if (adminEmail.success) {
+            console.log("✅ SUCCESS: Admin notification sent!");
+            console.log("   Message ID:", adminEmail.messageId);
+          } else {
+            console.error("❌ FAILED: Admin notification not sent");
+            console.error("   Error:", adminEmail.error);
+          }
+        } catch (emailError) {
+          console.error("❌ EXCEPTION: Error sending admin notification");
+          console.error("   Error:", emailError.message);
+          console.error("   Stack:", emailError.stack);
+        }
+        
+        console.log("\n🔍 ===== EMAIL NOTIFICATION PROCESS COMPLETED =====\n");
+      }
+    }
+
+    res.json({ message: "Payment verified", order });
+
+  } catch (err) {
+    console.error("Verify error:", err);
+    res.status(500).json({ error: "Error verifying payment" });
+  }
+});
+
+// =====================================================
+// 2.5️⃣ CANCEL PAYMENT
+// =====================================================
+router.post("/cancel", authenticateToken, async (req, res) => {
+  try {
+    const { razorpay_order_id } = req.body;
+    
+    if (!razorpay_order_id) {
+      return res.status(400).json({ error: "Razorpay order ID is required" });
+    }
+
+    // Mark order as cancelled
+    const order = await Order.findOneAndUpdate(
+      { 
+        razorpay_order_id,
+        user_id: req.user.id, // Ensure user can only cancel their own orders
+        status: "pending" // Only allow cancelling pending orders
+      },
+      { 
+        status: "cancelled",
+        cancelledAt: new Date()
+      },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ 
+        error: "Order not found or cannot be cancelled" 
+      });
+    }
+
+    console.log(`✅ Order ${order._id} cancelled by user ${req.user.id}`);
+    
+    res.json({ 
+      message: "Order cancelled successfully", 
+      orderId: order._id 
+    });
+
+  } catch (err) {
+    console.error("Cancel payment error:", err);
+    res.status(500).json({ error: "Error cancelling payment" });
+  }
+});
+
+// =====================================================
+// 2.6️⃣ CLEANUP ABANDONED ORDERS
+// =====================================================
+router.post("/cleanup-abandoned", async (req, res) => {
+  try {
+    // Find orders that are pending for more than 1 hour
+    const oneHourAgo = new Date();
+    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+
+    const abandonedOrders = await Order.updateMany(
+      {
+        status: "pending",
+        createdAt: { $lt: oneHourAgo },
+        rewardApplied: false
+      },
+      {
+        status: "abandoned",
+        abandonedAt: new Date()
+      }
+    );
+
+    console.log(`✅ Cleaned up ${abandonedOrders.modifiedCount} abandoned orders`);
+    
+    res.json({ 
+      message: "Cleanup completed", 
+      cleanedCount: abandonedOrders.modifiedCount 
+    });
+
+  } catch (err) {
+    console.error("Cleanup error:", err);
+    res.status(500).json({ error: "Error during cleanup" });
+  }
+});
+
+// =====================================================
+// 3️⃣ WEBHOOK (backup referral application)
+// =====================================================
+router.post("/webhook", async (req, res) => {
+  try {
+    const rawBody = req.body;
+    const signature = req.headers["x-razorpay-signature"];
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(rawBody)
+      .digest("hex");
+
+    if (expected !== signature) {
+      return res.status(400).send("Invalid signature");
+    }
+
+    const data = JSON.parse(rawBody);
+    const event = data.event;
+
+    if (!data.payload?.payment?.entity) {
+      return res.send("OK");
+    }
+
+    const payment = data.payload.payment.entity;
+
+    if (event === "payment.captured") {
+      // ATOMIC UPDATE: Only process if not already done
+      const order = await Order.findOneAndUpdate(
+        { 
+          razorpay_order_id: payment.order_id,
+          rewardApplied: false  // Only update if not already processed
+        },
+        {
+          status: "completed",
+          razorpay_payment_id: payment.id,
+          rewardApplied: true  // Mark immediately
+        },
+        { new: true }
+      );
+
+      if (order) {
+        console.log("✅ Webhook: Order marked as processed, applying rewards...");
+        
+        // APPLY NEW COMMISSION DISTRIBUTION SYSTEM
+        try {
+          console.log("💰 Webhook: Distributing commissions for order:", order._id);
+          const commissionTransaction = await distributeCommissions(
+            order._id,
+            order.user_id,
+            order.totalAmount
+          );
+          console.log("✅ Webhook: Commission distribution completed:", commissionTransaction._id);
+        } catch (commissionError) {
+          console.error("❌ Webhook: Commission distribution error:", commissionError);
+          // Implement retry logic here if needed
+        }
+
+        // AWARD POINTS FOR PURCHASED ITEMS
+        try {
+          console.log("🎁 Webhook: Awarding points for order:", order._id);
+          for (const item of order.items) {
+            let points = 0;
+            
+            if (item.type === 'book') {
+              const book = await Book.findById(item.id);
+              if (book && book.rewardPoints > 0) {
+                points = book.rewardPoints * item.quantity;
+              }
+            } else if (item.type === 'bundle') {
+              const bundle = await Bundle.findById(item.id);
+              if (bundle && bundle.rewardPoints > 0) {
+                points = bundle.rewardPoints * item.quantity;
+              }
+            }
+            
+            if (points > 0) {
+              await awardPoints(
+                order.user_id,
+                points,
+                item.type === 'book' ? 'book_purchase' : 'bundle_purchase',
+                item.id,
+                order._id
+              );
+              console.log(`✅ Webhook: Awarded ${points} points for ${item.title}`);
+            }
+          }
+        } catch (pointsError) {
+          console.error("❌ Webhook: Points awarding error:", pointsError);
+        }
+        
+        // OLD REFERRAL SYSTEM DISABLED - Using new commission distribution system only
+        // The old system was causing double payments by adding to wallet twice
+        // await applyReferralRewardForOrder(order);
+        
+        // Send email notification from webhook as backup
+        console.log("🔍 Webhook: Sending email notification...");
+        try {
+          const user = await User.findById(order.user_id);
+          if (user && user.email) {
+            await sendOrderConfirmationEmail(order, user);
+            await sendAdminNotification(order, user);
+            console.log("✅ Webhook: Email notifications sent");
+          }
+        } catch (emailError) {
+          console.error("❌ Webhook: Email error:", emailError.message);
+        }
+      } else {
+        console.log("⚠️ Webhook: Order already processed or not found, skipping");
+      }
+    }
+
+    if (event === "payment.failed") {
+      await Order.findOneAndUpdate(
+        { razorpay_order_id: payment.order_id },
+        { status: "failed" }
+      );
+      console.log(`✅ Webhook: Order marked as failed for payment ${payment.id}`);
+    }
+
+    res.send("OK");
+
+  } catch (err) {
+    console.error("Webhook error:", err);
+    res.status(500).send("Webhook error");
+  }
+});
+
+module.exports = router;

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Bundle Details - BookStore</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .bundle-container {
+            max-width: 1200px;
+            margin: 100px auto 50px;
+            padding: 20px;
+        }
+        .bundle-header {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        .bundle-image {
+            flex: 0 0 300px;
+        }
+        .bundle-image img {
+            width: 100%;
+            border-radius: 8px;
+        }
+        .bundle-info {
+            flex: 1;
+        }
+        .discount-badge {
+            background: #ff4444;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 20px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        .price-section {
+            margin: 20px 0;
+        }
+        .original-price {
+            text-decoration: line-through;
+            color: #999;
+            font-size: 24px;
+        }
+        .bundle-price {
+            font-size: 36px;
+            color: #ff4444;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .savings {
+            color: #4CAF50;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .books-included {
+            margin-top: 40px;
+        }
+        .books-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .book-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .book-item img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .action-buttons button {
+            flex: 1;
+            padding: 15px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <div class="container navbar-content">
+                <div class="logo">
+                    <a href="/">📚 BookStore</a>
+                </div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="cart.html">🛒 Cart</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="bundle-container">
+        <div id="loadingSpinner" class="loading">Loading bundle...</div>
+        
+        <div id="bundleContent" style="display: none;">
+            <div class="bundle-header">
+                <div class="bundle-image">
+                    <img id="bundleImage" src="" alt="Bundle">
+                </div>
+                <div class="bundle-info">
+                    <span class="discount-badge" id="discountBadge"></span>
+                    <h1 id="bundleName"></h1>
+                    <p id="bundleDescription" style="color: #666; font-size: 16px; margin: 20px 0;"></p>
+                    
+                    <div class="price-section">
+                        <p class="original-price">₹<span id="originalPrice"></span></p>
+                        <p class="bundle-price">₹<span id="bundlePrice"></span></p>
+                        <p class="savings">You Save: ₹<span id="savings"></span></p>
+                    </div>
+
+                    <div style="background: #fff3e0; padding: 12px 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ff9800;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #e65100; font-weight: 600;">📦 Total Weight:</span>
+                            <span id="bundleWeight" style="color: #e65100; font-weight: 600;">0 kg</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="color: #e65100; font-size: 13px;">Courier Charge:</span>
+                            <span id="bundleCourierCharge" style="color: #e65100; font-size: 13px;">₹0</span>
+                        </div>
+                    </div>
+
+                    <p style="color: #666;">
+                        <strong id="bookCount"></strong> books included in this bundle
+                    </p>
+
+                    <div class="action-buttons">
+                        <button class="btn-primary" onclick="addToCart()">Add to Cart</button>
+                        <button class="btn-secondary" onclick="buyNow()">Buy Now</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="books-included">
+                <h2>Books Included in This Bundle</h2>
+                <div id="booksGrid" class="books-grid"></div>
+            </div>
+        </div>
+
+        <div id="errorState" style="display: none; text-align: center; padding: 50px;">
+            <h2>Bundle Not Found</h2>
+            <p>This bundle may have been removed or is no longer available.</p>
+            <a href="/" class="btn-primary">Back to Home</a>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/cartUtils.js"></script>
+    <script>
+        const API = window.API_URL;
+        let currentBundle = null;
+
+        // Calculate courier charge
+        function calculateCourierCharge(totalWeight) {
+            if (totalWeight <= 0) return 0;
+            const charge = Math.ceil(totalWeight) * 25;
+            return Math.min(charge, 100);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadBundleDetails();
+        });
+
+        async function loadBundleDetails() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const bundleId = urlParams.get("id");
+
+            if (!bundleId) return showError();
+
+            try {
+                const res = await fetch(`${API}/bundles/${bundleId}`);
+                const data = await res.json();
+
+                if (!res.ok) throw new Error("Bundle not found");
+
+                currentBundle = data.bundle;
+                displayBundle(currentBundle);
+
+                document.getElementById("loadingSpinner").style.display = "none";
+                document.getElementById("bundleContent").style.display = "block";
+
+            } catch (err) {
+                console.error("Error loading bundle:", err);
+                showError();
+            }
+        }
+
+        function displayBundle(bundle) {
+            document.getElementById("bundleName").textContent = bundle.name;
+            document.getElementById("bundleDescription").textContent = bundle.description || '';
+            document.getElementById("bundleImage").src = bundle.image || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="400"%3E%3Crect fill="%23ddd" width="300" height="400"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="24" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EBundle%3C/text%3E%3C/svg%3E';
+            
+            const discount = bundle.discount || Math.round(((bundle.originalPrice - bundle.bundlePrice) / bundle.originalPrice) * 100);
+            document.getElementById("discountBadge").textContent = `${discount}% OFF`;
+            
+            document.getElementById("originalPrice").textContent = bundle.originalPrice.toFixed(2);
+            document.getElementById("bundlePrice").textContent = bundle.bundlePrice.toFixed(2);
+            document.getElementById("savings").textContent = (bundle.originalPrice - bundle.bundlePrice).toFixed(2);
+            document.getElementById("bookCount").textContent = bundle.books.length;
+
+            // Calculate and display weight and courier charge
+            const weight = bundle.weight || bundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0);
+            const courierCharge = calculateCourierCharge(weight);
+            document.getElementById("bundleWeight").textContent = `${weight.toFixed(2)} kg`;
+            document.getElementById("bundleCourierCharge").textContent = `₹${courierCharge.toFixed(2)}`;
+
+            // Display books
+            const grid = document.getElementById("booksGrid");
+            grid.innerHTML = bundle.books.map(book => `
+                <div class="book-item">
+                    <img src="${book.cover_image || 'https://via.placeholder.com/200x300?text=Book'}" alt="${book.title}">
+                    <h4>${book.title}</h4>
+                    <p style="color: #666; font-size: 14px;">${book.author}</p>
+                    <p style="font-weight: bold;">₹${book.price}</p>
+                </div>
+            `).join('');
+        }
+
+        function addToCart() {
+            if (!currentBundle) return;
+
+            let cart = getCart();
+
+            // Check if bundle already in cart
+            if (cart.find(item => item.bundleId === currentBundle._id)) {
+                return alert("This bundle is already in your cart!");
+            }
+
+            // Calculate bundle weight
+            const weight = currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0);
+
+            // Add bundle to cart
+            cart.push({
+                bundleId: currentBundle._id,
+                isBundle: true,
+                title: currentBundle.name,
+                price: currentBundle.bundlePrice,
+                originalPrice: currentBundle.originalPrice,
+                books: currentBundle.books,
+                quantity: 1,
+                weight: weight,
+                coverImage: currentBundle.image || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="250" height="300"%3E%3Crect fill="%23ddd" width="250" height="300"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="20" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EBundle%3C/text%3E%3C/svg%3E'
+            });
+
+            saveCart(cart);
+            alert(`Bundle "${currentBundle.name}" added to cart!`);
+            window.location.href = "/cart.html";
+        }
+
+        function buyNow() {
+            addToCart();
+            // Cart page will handle the purchase
+        }
+
+        function showError() {
+            document.getElementById("loadingSpinner").style.display = "none";
+            document.getElementById("errorState").style.display = "block";
+        }
+    </script>
+</body>
+</html>
