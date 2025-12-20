@@ -10,7 +10,7 @@ const { authenticateToken, isAdmin } = require("../middleware/auth");
 const router = express.Router();
 
 /* -------------------------------------------
-   CLOUDINARY STORAGE SETUP
+   CLOUDINARY STORAGE SETUP WITH RENDER OPTIMIZATIONS
 ------------------------------------------- */
 // Use memory storage and upload directly to Cloudinary
 const storage = multer.memoryStorage();
@@ -18,16 +18,28 @@ const storage = multer.memoryStorage();
 const upload = multer({ 
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB per file
+    fileSize: 5 * 1024 * 1024, // Reduced to 5MB per file for Render
+    files: 10, // Limit total files
+    fieldSize: 2 * 1024 * 1024, // 2MB field size limit
+    fieldNameSize: 100, // Field name size limit
+    fields: 20 // Limit number of fields
+  },
+  fileFilter: (req, file, cb) => {
+    // Only allow image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
   }
 });
 
 const uploadImages = upload.fields([
   { name: "coverImage", maxCount: 1 },
-  { name: "previewImages" } // No limit on preview images
+  { name: "previewImages", maxCount: 8 } // Reduced from unlimited to 8 for Render
 ]);
 
-// Helper function to upload buffer to Cloudinary with fresh config
+// Helper function to upload buffer to Cloudinary with Render optimizations
 async function uploadToCloudinary(buffer, filename) {
   return new Promise((resolve, reject) => {
     try {
@@ -48,11 +60,18 @@ async function uploadToCloudinary(buffer, filename) {
         bufferSize: buffer.length
       });
 
-      // Try the simplest possible upload first
+      // Render-optimized upload with shorter timeout and compression
       cloudinaryFresh.uploader.upload_stream(
         {
           resource_type: "auto",
-          timeout: 60000 // 60 second timeout
+          timeout: 25000, // 25 second timeout for Render (less than 30s limit)
+          quality: "auto:low", // Compress images for faster upload
+          fetch_format: "auto", // Auto-optimize format
+          flags: "progressive", // Progressive JPEG for faster loading
+          transformation: [
+            { width: 1000, height: 1500, crop: "limit" }, // Limit max dimensions
+            { quality: "auto:good" } // Good quality but compressed
+          ]
         },
         (error, result) => {
           if (error) {
@@ -254,9 +273,27 @@ router.put("/:id", authenticateToken, isAdmin, (req, res, next) => {
   });
 }, async (req, res) => {
   try {
+    console.log('📝 Book update request received for ID:', req.params.id);
+    console.log('📝 Content-Type:', req.headers['content-type']);
+    console.log('📝 Body keys:', Object.keys(req.body));
+    console.log('📝 Files:', req.files ? Object.keys(req.files) : 'No files');
+    
+    // Validate ObjectId format
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log('❌ Invalid ObjectId format:', req.params.id);
+      return res.status(400).json({ error: "Invalid book ID format" });
+    }
+    
     const book = await Book.findById(req.params.id);
-    if (!book) return res.status(404).json({ error: "Book not found" });
+    console.log('📚 Book found:', book ? `Yes - ${book.title}` : 'No');
+    
+    if (!book) {
+      console.log('❌ Book not found with ID:', req.params.id);
+      return res.status(404).json({ error: "Book not found" });
+    }
 
+    console.log('📝 Updating book fields...');
     book.title = req.body.title || book.title;
     book.author = req.body.author || book.author;
     book.price = req.body.price || book.price;
@@ -268,32 +305,50 @@ router.put("/:id", authenticateToken, isAdmin, (req, res, next) => {
     book.rewardPoints = req.body.rewardPoints !== undefined ? req.body.rewardPoints : book.rewardPoints;
 
     if (req.body.cover_image) {
+      console.log('📝 Updating cover image from body');
       book.cover_image = req.body.cover_image;
     }
     if (req.body.preview_images) {
+      console.log('📝 Updating preview images from body');
       book.preview_images = req.body.preview_images;
     }
 
     // Handle file uploads for updates
     if (req.files && req.files["coverImage"]) {
       console.log('📤 Uploading new cover image to Cloudinary...');
-      book.cover_image = await uploadToCloudinary(
-        req.files["coverImage"][0].buffer, 
-        req.files["coverImage"][0].originalname
-      );
+      try {
+        book.cover_image = await uploadToCloudinary(
+          req.files["coverImage"][0].buffer, 
+          req.files["coverImage"][0].originalname
+        );
+        console.log('✅ Cover image updated:', book.cover_image);
+      } catch (error) {
+        console.error('❌ Cover image upload failed:', error);
+        return res.status(500).json({ error: "Cover image upload failed", details: error.message });
+      }
     }
+    
     if (req.files && req.files["previewImages"]) {
       console.log('📤 Uploading new preview images to Cloudinary...');
-      const uploadPromises = req.files["previewImages"].map(file => 
-        uploadToCloudinary(file.buffer, file.originalname)
-      );
-      book.preview_images = await Promise.all(uploadPromises);
+      try {
+        const uploadPromises = req.files["previewImages"].map((file, index) => {
+          console.log(`📤 Uploading preview image ${index + 1}:`, file.originalname);
+          return uploadToCloudinary(file.buffer, file.originalname);
+        });
+        book.preview_images = await Promise.all(uploadPromises);
+        console.log('✅ Preview images updated:', book.preview_images.length, 'images');
+      } catch (error) {
+        console.error('❌ Preview images upload failed:', error);
+        return res.status(500).json({ error: "Preview images upload failed", details: error.message });
+      }
     }
 
+    console.log('💾 Saving updated book...');
     await book.save();
+    console.log('✅ Book updated successfully:', book._id);
     res.json({ message: "Book updated successfully", book });
   } catch (err) {
-    console.error("Error updating book:", err);
+    console.error("❌ Error updating book:", err);
     res.status(500).json({ error: "Error updating book", details: err.message });
   }
 });

@@ -107,10 +107,8 @@ function setupEventListeners() {
     document.getElementById('cancelBtn').addEventListener('click', resetForm);
 
     document.getElementById('previewImages').addEventListener('change', (e) => {
-        if (e.target.files.length > 4) {
-            alert('Maximum 4 preview images allowed');
-            e.target.value = '';
-        }
+        // No limit on preview images - removed the 4 image limit
+        console.log(`📷 Selected ${e.target.files.length} preview images`);
     });
 
     document.getElementById("adminApplyFilter").addEventListener("click", () => {
@@ -272,35 +270,57 @@ function displayBooks(books) {
 
 /* EDIT BOOK */
 async function editBook(bookId) {
-    const res = await fetch(`${API}/books/${bookId}`);
-    const data = await res.json();
-
-    const book = data.book;
-
-    isEditMode = true;
-    editingBookId = bookId;
-
-    const titleEl = document.getElementById('title');
-    const authorEl = document.getElementById('author');
-    const priceEl = document.getElementById('price');
-    const weightEl = document.getElementById('weight');
-    const rewardPointsEl = document.getElementById('rewardPoints');
-    const descriptionEl = document.getElementById('description');
-    const bookClassEl = document.getElementById('bookClass');
-    const subjectEl = document.getElementById('subject');
+    console.log('📝 Edit book called with ID:', bookId);
+    console.log('📝 ID type:', typeof bookId);
+    console.log('📝 ID length:', bookId ? bookId.length : 'null');
     
-    if (titleEl) titleEl.value = book.title;
-    if (authorEl) authorEl.value = book.author;
-    if (priceEl) priceEl.value = book.price;
-    if (weightEl) weightEl.value = book.weight || 0.5;
-    if (rewardPointsEl) rewardPointsEl.value = book.rewardPoints || 0;
-    if (descriptionEl) descriptionEl.value = book.description;
-    if (bookClassEl) bookClassEl.value = book.class || '';
-    if (subjectEl) subjectEl.value = book.subject || '';
+    try {
+        const res = await fetch(`${API}/books/${bookId}`);
+        console.log('📝 Fetch book response status:', res.status);
+        
+        if (!res.ok) {
+            console.error('❌ Failed to fetch book for editing:', res.status, res.statusText);
+            alert(`Failed to load book for editing: ${res.status} ${res.statusText}`);
+            return;
+        }
+        
+        const data = await res.json();
+        console.log('📝 Book data received:', data);
 
-    document.getElementById('addBookForm').style.display = "block";
-    document.getElementById('toggleFormBtn').textContent = "Hide Form";
-    document.getElementById('submitBtn').textContent = "Update Book";
+        const book = data.book;
+
+        isEditMode = true;
+        editingBookId = bookId;
+        
+        console.log('📝 Setting edit mode - bookId:', editingBookId);
+
+        const titleEl = document.getElementById('title');
+        const authorEl = document.getElementById('author');
+        const priceEl = document.getElementById('price');
+        const weightEl = document.getElementById('weight');
+        const rewardPointsEl = document.getElementById('rewardPoints');
+        const descriptionEl = document.getElementById('description');
+        const bookClassEl = document.getElementById('bookClass');
+        const subjectEl = document.getElementById('subject');
+        
+        if (titleEl) titleEl.value = book.title;
+        if (authorEl) authorEl.value = book.author;
+        if (priceEl) priceEl.value = book.price;
+        if (weightEl) weightEl.value = book.weight || 0.5;
+        if (rewardPointsEl) rewardPointsEl.value = book.rewardPoints || 0;
+        if (descriptionEl) descriptionEl.value = book.description;
+        if (bookClassEl) bookClassEl.value = book.class || '';
+        if (subjectEl) subjectEl.value = book.subject || '';
+
+        document.getElementById('addBookForm').style.display = "block";
+        document.getElementById('toggleFormBtn').textContent = "Hide Form";
+        document.getElementById('submitBtn').textContent = "Update Book";
+        
+        console.log('📝 Edit form populated and shown');
+    } catch (error) {
+        console.error('❌ Error in editBook:', error);
+        alert(`Error loading book for editing: ${error.message}`);
+    }
 }
 
 /* DELETE BOOK */
