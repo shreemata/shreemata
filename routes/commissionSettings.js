@@ -18,19 +18,52 @@ router.get("/commission-settings", authenticateToken, isAdmin, async (req, res) 
 });
 
 /* -------------------------------------------
+   GET /api/shipping-settings (PUBLIC)
+   Get shipping settings for cart calculations
+--------------------------------------------*/
+router.get("/shipping-settings", async (req, res) => {
+  try {
+    const settings = await CommissionSettings.getSettings();
+    // Only return shipping-related settings, not commission data
+    res.json({ 
+      shippingSettings: {
+        baseShippingCharge: settings.baseShippingCharge,
+        shippingRatePerKg: settings.shippingRatePerKg,
+        freeShippingThreshold: settings.freeShippingThreshold
+      }
+    });
+  } catch (err) {
+    console.error("Error fetching shipping settings:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+/* -------------------------------------------
    PUT /api/admin/commission-settings
    Update commission settings
 --------------------------------------------*/
 router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) => {
   try {
+    console.log('🔍 Commission settings update request received');
+    console.log('📦 Request body:', req.body);
+    
     const {
       directCommissionPercent,
       treeCommissionPoolPercent,
       trustFundPercent,
       developmentFundPercent,
       minimumWithdrawalAmount,
+      baseShippingCharge,
+      shippingRatePerKg,
+      freeShippingThreshold,
       treeCommissionLevels
     } = req.body;
+    
+    console.log('🚚 Shipping fields received:', {
+      baseShippingCharge,
+      shippingRatePerKg,
+      freeShippingThreshold
+    });
     
     let settings = await CommissionSettings.getSettings();
     
@@ -53,6 +86,22 @@ router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) 
     if (minimumWithdrawalAmount !== undefined) {
       settings.minimumWithdrawalAmount = minimumWithdrawalAmount;
     }
+    if (baseShippingCharge !== undefined) {
+      settings.baseShippingCharge = baseShippingCharge;
+    }
+    if (shippingRatePerKg !== undefined) {
+      settings.shippingRatePerKg = shippingRatePerKg;
+    }
+    if (freeShippingThreshold !== undefined) {
+      settings.freeShippingThreshold = freeShippingThreshold;
+    }
+    
+    console.log('💾 Settings after update:', {
+      baseShippingCharge: settings.baseShippingCharge,
+      shippingRatePerKg: settings.shippingRatePerKg,
+      freeShippingThreshold: settings.freeShippingThreshold,
+      minimumWithdrawalAmount: settings.minimumWithdrawalAmount
+    });
     
     // Validate total doesn't exceed 10%
     if (!settings.validateTotal()) {

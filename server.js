@@ -63,6 +63,7 @@ app.use("/api/admin", require("./routes/adminTrustFunds"));
 app.use("/api/admin", require("./routes/adminUsers"));
 app.use("/api/admin/referral-tree", require("./routes/adminReferralTree"));
 app.use("/api/admin", require("./routes/commissionSettings"));
+app.use("/api", require("./routes/commissionSettings")); // Also mount publicly for shipping settings
 app.use("/api/bundles", require("./routes/bundles"));
 app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/points", require("./routes/points"));

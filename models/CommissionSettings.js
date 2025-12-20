@@ -62,6 +62,28 @@ const commissionSettingsSchema = new mongoose.Schema({
     min: 1
   },
   
+  // Shipping Settings
+  // Base shipping charge (default ₹50)
+  baseShippingCharge: {
+    type: Number,
+    default: 50,
+    min: 0
+  },
+  
+  // Shipping rate per kg (default ₹25)
+  shippingRatePerKg: {
+    type: Number,
+    default: 25,
+    min: 0
+  },
+  
+  // Free shipping threshold (default ₹500, 0 = disabled)
+  freeShippingThreshold: {
+    type: Number,
+    default: 500,
+    min: 0
+  },
+  
   // Last updated by
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -84,6 +106,10 @@ commissionSettingsSchema.statics.getSettings = async function() {
       trustFundPercent: 3,
       developmentFundPercent: 1,
       totalAllocationPercent: 10,
+      minimumWithdrawalAmount: 100,
+      baseShippingCharge: 50,
+      shippingRatePerKg: 25,
+      freeShippingThreshold: 500,
       treeCommissionLevels: [
         { level: 1, percentage: 1.5 },
         { level: 2, percentage: 0.75 },

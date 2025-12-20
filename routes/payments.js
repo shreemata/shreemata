@@ -150,7 +150,8 @@ router.post("/create-order", authenticateToken, async (req, res) => {
     // 🚨 MANDATORY DELIVERY ADDRESS VALIDATION
     if (!deliveryAddress || 
         !deliveryAddress.street || 
-        !deliveryAddress.city || 
+        !deliveryAddress.taluk || 
+        !deliveryAddress.district || 
         !deliveryAddress.state || 
         !deliveryAddress.pincode || 
         !deliveryAddress.phone) {
@@ -162,7 +163,8 @@ router.post("/create-order", authenticateToken, async (req, res) => {
         message: "Please set your complete delivery address before proceeding with payment",
         missingFields: {
           street: !deliveryAddress?.street,
-          city: !deliveryAddress?.city,
+          taluk: !deliveryAddress?.taluk,
+          district: !deliveryAddress?.district,
           state: !deliveryAddress?.state,
           pincode: !deliveryAddress?.pincode,
           phone: !deliveryAddress?.phone
@@ -172,7 +174,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
     }
 
     // Validate address fields are not empty strings
-    const addressFields = ['street', 'city', 'state', 'pincode', 'phone'];
+    const addressFields = ['street', 'taluk', 'district', 'state', 'pincode', 'phone'];
     const emptyFields = addressFields.filter(field => 
       !deliveryAddress[field] || deliveryAddress[field].trim() === ''
     );
@@ -222,7 +224,8 @@ router.post("/create-order", authenticateToken, async (req, res) => {
     // Prepare delivery address with defaults
     const addressData = deliveryAddress ? {
       street: deliveryAddress.street || "",
-      city: deliveryAddress.city || "",
+      taluk: deliveryAddress.taluk || "",
+      district: deliveryAddress.district || "",
       state: deliveryAddress.state || "",
       pincode: deliveryAddress.pincode || "",
       phone: deliveryAddress.phone || ""

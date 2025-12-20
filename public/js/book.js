@@ -371,7 +371,13 @@ async function saveAddressFromModal() {
 function calculateCourierCharge(totalWeight) {
     if (totalWeight <= 0) return 0;
     
-    // ₹25 per kg (rounded up), max ₹100
+    // Use the new shipping calculator if available
+    if (window.shippingCalculator) {
+        const shippingResult = window.shippingCalculator.calculateShipping(totalWeight, 0);
+        return shippingResult.cost;
+    }
+    
+    // Fallback to old calculation
     const charge = Math.ceil(totalWeight) * 25;
     return Math.min(charge, 100);
 }

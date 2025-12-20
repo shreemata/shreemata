@@ -105,8 +105,14 @@ async function loadCart() {
         container.appendChild(row);
     });
 
-    // Calculate courier charge
-    const courierCharge = calculateCourierCharge(totalWeight);
+    // Calculate shipping using the new shipping calculator
+    let shippingResult = { cost: 50, isFree: false }; // Default fallback
+    
+    if (window.shippingCalculator) {
+        shippingResult = window.shippingCalculator.calculateCartShipping(cart);
+    }
+    
+    const courierCharge = shippingResult.cost;
     const grandTotal = total + courierCharge;
 
     // Update cart summary with breakdown
@@ -123,17 +129,29 @@ async function loadCart() {
            </div>`
         : '';
     
+    // Shipping info display
+    const shippingInfo = shippingResult.isFree 
+        ? `<span style="color: #28a745; font-weight: 600;">FREE 🎉</span>`
+        : `<span>₹${courierCharge.toFixed(2)}</span>`;
+    
+    const shippingDetails = shippingResult.breakdown 
+        ? `<small style="color: #666; display: block; margin-top: 2px;">${shippingResult.breakdown.calculation || shippingResult.breakdown.reason || ''}</small>`
+        : '';
+    
     cartTotalEl.innerHTML = `
         <div class="summary-row">
             <span>Subtotal (${cart.length} items)</span>
             <span>₹${total.toFixed(2)}</span>
         </div>
         <div class="summary-row">
-            <span>📦 Shipping (${totalWeight.toFixed(2)} kg)</span>
-            <span>₹${courierCharge.toFixed(2)}</span>
+            <div>
+                <span>📦 Shipping (${totalWeight.toFixed(2)} kg)</span>
+                ${shippingDetails}
+            </div>
+            ${shippingInfo}
         </div>
         ${pointsDisplay}
-        <div class="summary-row">
+        <div class="summary-row total-row" style="border-top: 2px solid #eee; padding-top: 10px; margin-top: 10px; font-weight: 700; font-size: 18px;">
             <span>Total Amount</span>
             <span>₹${grandTotal.toFixed(2)}</span>
         </div>
@@ -415,16 +433,20 @@ async function showAddressModal() {
     const token = localStorage.getItem("token");
     const API = window.API_URL || '';
 
+    console.log('🔍 showAddressModal called, loading fresh address data...');
+
     try {
-        // Fetch user address
+        // Always fetch fresh user address from server
         const res = await fetch(`${API}/users/profile`, {
             headers: { "Authorization": "Bearer " + token }
         });
 
         const data = await res.json();
+        console.log('📡 Profile response:', data);
         
         if (data.user && data.user.address) {
             userAddress = data.user.address;
+            console.log('✅ Address loaded from server:', userAddress);
             
             document.getElementById("modalStreet").textContent = userAddress.street || "Not set";
             document.getElementById("modalTaluk").textContent = userAddress.taluk || "Not set";
@@ -440,6 +462,25 @@ async function showAddressModal() {
             document.getElementById("editState").value = userAddress.state || "";
             document.getElementById("editPincode").value = userAddress.pincode || "";
             document.getElementById("editPhone").value = userAddress.phone || "";
+        } else {
+            console.log('⚠️ No address found in user profile');
+            userAddress = null;
+            
+            // Set display to "Not set"
+            document.getElementById("modalStreet").textContent = "Not set";
+            document.getElementById("modalTaluk").textContent = "Not set";
+            document.getElementById("modalDistrict").textContent = "Not set";
+            document.getElementById("modalState").textContent = "Not set";
+            document.getElementById("modalPincode").textContent = "Not set";
+            document.getElementById("modalPhone").textContent = "Not set";
+
+            // Clear edit form
+            document.getElementById("editStreet").value = "";
+            document.getElementById("editTaluk").value = "";
+            document.getElementById("editDistrict").value = "";
+            document.getElementById("editState").value = "";
+            document.getElementById("editPincode").value = "";
+            document.getElementById("editPhone").value = "";
         }
 
         // Show modal with animation
@@ -448,7 +489,7 @@ async function showAddressModal() {
         setTimeout(() => modal.classList.add("show"), 10);
 
     } catch (err) {
-        console.error("Error loading address:", err);
+        console.error("❌ Error loading address:", err);
         alert("Error loading address. Please try again.");
     }
 }
@@ -500,26 +541,46 @@ async function saveAddressFromModal() {
         phone: document.getElementById("editPhone").value.trim()
     };
 
+    console.log('🔍 Frontend: Preparing to send address data');
+    console.log('📦 Address object:', JSON.stringify(address, null, 2));
+    
+    // Check if any fields are empty
+    const emptyFields = Object.keys(address).filter(key => !address[key]);
+    if (emptyFields.length > 0) {
+        console.log('❌ Frontend: Empty fields detected:', emptyFields);
+        alert(`Please fill in all fields: ${emptyFields.join(', ')}`);
+        return;
+    }
+
+    console.log('✅ Frontend: All fields have values, sending request');
+
     try {
+        const requestBody = { address };
+        console.log('📤 Frontend: Request body:', JSON.stringify(requestBody, null, 2));
+        
         const res = await fetch(`${API}/users/update-address`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer " + token
             },
-            body: JSON.stringify({ address })
+            body: JSON.stringify(requestBody)
         });
 
+        console.log('📡 Frontend: Response status:', res.status);
         const data = await res.json();
+        console.log('📡 Frontend: Response data:', data);
 
         if (!res.ok) {
+            console.log('❌ Frontend: Request failed with error:', data.error);
             alert(data.error || "Failed to update address");
             return;
         }
 
+        console.log('✅ Frontend: Address updated successfully');
         userAddress = address;
         
-        // Update display
+        // Update display with the saved address
         document.getElementById("modalStreet").textContent = address.street;
         document.getElementById("modalTaluk").textContent = address.taluk;
         document.getElementById("modalDistrict").textContent = address.district;
@@ -527,6 +588,7 @@ async function saveAddressFromModal() {
         document.getElementById("modalPincode").textContent = address.pincode;
         document.getElementById("modalPhone").textContent = address.phone;
 
+        console.log('✅ Address display updated');
         alert("Address updated successfully!");
         toggleAddressForm();
 
@@ -543,8 +605,31 @@ async function proceedToPayment() {
     const token = localStorage.getItem("token");
     const API = window.API_URL || '';
 
+    console.log('🔍 proceedToPayment called');
+    console.log('📍 Current userAddress:', userAddress);
+
+    // If userAddress is not set, try to load it from server first
+    if (!userAddress) {
+        console.log('⚠️ userAddress not set, loading from server...');
+        try {
+            const res = await fetch(`${API}/users/profile`, {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            const data = await res.json();
+            if (data.user && data.user.address) {
+                userAddress = data.user.address;
+                console.log('✅ Loaded address from server:', userAddress);
+            }
+        } catch (err) {
+            console.error('❌ Error loading address from server:', err);
+        }
+    }
+
     // 🚨 MANDATORY ADDRESS VALIDATION
     if (!userAddress || !userAddress.street || !userAddress.taluk || !userAddress.district || !userAddress.state || !userAddress.pincode || !userAddress.phone) {
+        console.log('❌ Address validation failed - missing userAddress or required fields');
+        console.log('   userAddress:', userAddress);
+        
         alert("❌ Delivery address is required!\n\nPlease set your complete delivery address before proceeding with payment.\n\nYou will be redirected to your account page to set the address.");
         
         // Redirect to account page to set address
@@ -558,7 +643,15 @@ async function proceedToPayment() {
         !userAddress[field] || userAddress[field].toString().trim() === ''
     );
 
+    console.log('🔍 Address field validation:');
+    requiredFields.forEach(field => {
+        const value = userAddress[field];
+        const isEmpty = !value || value.toString().trim() === '';
+        console.log(`   ${field}: "${value}" ${isEmpty ? '❌ EMPTY' : '✅ OK'}`);
+    });
+
     if (emptyFields.length > 0) {
+        console.log('❌ Empty fields detected:', emptyFields);
         alert(`❌ Please complete your delivery address!\n\nMissing: ${emptyFields.join(', ')}\n\nYou will be redirected to your account page to complete the address.`);
         window.location.href = "/account.html?tab=address&redirect=cart";
         return;
@@ -567,6 +660,7 @@ async function proceedToPayment() {
     // Validate phone number format (Indian mobile numbers)
     const phoneRegex = /^[6-9]\d{9}$/;
     if (!phoneRegex.test(userAddress.phone)) {
+        console.log('❌ Invalid phone format:', userAddress.phone);
         alert("❌ Please enter a valid 10-digit Indian mobile number in your delivery address.");
         window.location.href = "/account.html?tab=address&redirect=cart";
         return;
@@ -575,10 +669,14 @@ async function proceedToPayment() {
     // Validate pincode format
     const pincodeRegex = /^\d{6}$/;
     if (!pincodeRegex.test(userAddress.pincode)) {
+        console.log('❌ Invalid pincode format:', userAddress.pincode);
         alert("❌ Please enter a valid 6-digit pincode in your delivery address.");
         window.location.href = "/account.html?tab=address&redirect=cart";
         return;
     }
+
+    console.log('✅ Address validation passed, proceeding to payment');
+    console.log('📍 userAddress being sent to server:', JSON.stringify(userAddress, null, 2));
 
     console.log("✅ Address validation passed", userAddress);
 
@@ -667,20 +765,29 @@ async function proceedToPayment() {
         }
         
         // 1) Create order on backend with address, offer, and courier info
+        const requestPayload = { 
+            amount: finalAmount, 
+            items: orderItems,
+            deliveryAddress: userAddress,
+            appliedOffer: appliedOffer,
+            courierCharge: courierCharge,
+            totalWeight: totalWeight
+        };
+        
+        console.log('📤 Sending create-order request with payload:');
+        console.log('   Amount:', finalAmount);
+        console.log('   Items count:', orderItems.length);
+        console.log('   DeliveryAddress:', JSON.stringify(userAddress, null, 2));
+        console.log('   CourierCharge:', courierCharge);
+        console.log('   TotalWeight:', totalWeight);
+        
         const createRes = await fetch(`${API}/payments/create-order`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer " + token
             },
-            body: JSON.stringify({ 
-                amount: finalAmount, 
-                items: orderItems,
-                deliveryAddress: userAddress,
-                appliedOffer: appliedOffer,
-                courierCharge: courierCharge,
-                totalWeight: totalWeight
-            })
+            body: JSON.stringify(requestPayload)
         });
 
         const createData = await createRes.json();
@@ -848,4 +955,12 @@ function checkAuth() {
             window.location.reload();
         });
     }
+}
+/* ------------------------------
+    Setup Mobile Features
+------------------------------ */
+function setupMobileFeatures() {
+    // Add any mobile-specific functionality here
+    // For now, just a placeholder function to prevent the error
+    console.log('Mobile features initialized');
 }

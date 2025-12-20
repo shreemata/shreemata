@@ -604,33 +604,97 @@ router.get("/users/profile", authenticateToken, async (req, res) => {
 // UPDATE DELIVERY ADDRESS
 router.put("/users/update-address", authenticateToken, async (req, res) => {
   try {
+    console.log('🔍 Address update request received');
+    console.log('👤 User from token:', req.user);
+    console.log('📦 Full request body:', JSON.stringify(req.body, null, 2));
+    
     const { address } = req.body;
+    console.log('📍 Extracted address:', JSON.stringify(address, null, 2));
 
-    if (!address || !address.street || !address.city || !address.state || !address.pincode || !address.phone)
-      return res.status(400).json({ error: "All address fields are required" });
+    // Check each field individually for better debugging
+    const fieldChecks = {
+      address: !!address,
+      street: address && !!address.street && address.street.trim() !== '',
+      taluk: address && !!address.taluk && address.taluk.trim() !== '',
+      district: address && !!address.district && address.district.trim() !== '',
+      state: address && !!address.state && address.state.trim() !== '',
+      pincode: address && !!address.pincode && address.pincode.trim() !== '',
+      phone: address && !!address.phone && address.phone.trim() !== ''
+    };
+    
+    console.log('🔍 Field validation checks:', fieldChecks);
+
+    if (!address) {
+      console.log('❌ No address object provided');
+      return res.status(400).json({ 
+        error: "Address object is required",
+        received: req.body
+      });
+    }
+
+    // Check each field with trimmed values
+    const street = address.street ? address.street.trim() : '';
+    const taluk = address.taluk ? address.taluk.trim() : '';
+    const district = address.district ? address.district.trim() : '';
+    const state = address.state ? address.state.trim() : '';
+    const pincode = address.pincode ? address.pincode.trim() : '';
+    const phone = address.phone ? address.phone.trim() : '';
+
+    if (!street || !taluk || !district || !state || !pincode || !phone) {
+      console.log('❌ Validation failed - missing or empty required fields');
+      const missingFields = [];
+      if (!street) missingFields.push('street');
+      if (!taluk) missingFields.push('taluk');
+      if (!district) missingFields.push('district');
+      if (!state) missingFields.push('state');
+      if (!pincode) missingFields.push('pincode');
+      if (!phone) missingFields.push('phone');
+      
+      return res.status(400).json({ 
+        error: `Missing or empty required fields: ${missingFields.join(', ')}`,
+        received: address,
+        fieldChecks: fieldChecks,
+        missingFields: missingFields
+      });
+    }
 
     // Validate pincode (6 digits)
-    if (!/^\d{6}$/.test(address.pincode))
-      return res.status(400).json({ error: "Invalid pincode format" });
+    if (!/^\d{6}$/.test(pincode)) {
+      console.log('❌ Invalid pincode format:', pincode);
+      return res.status(400).json({ error: "Invalid pincode format - must be 6 digits" });
+    }
 
     // Validate phone (10 digits)
-    if (!/^\d{10}$/.test(address.phone))
-      return res.status(400).json({ error: "Invalid phone number format" });
+    if (!/^\d{10}$/.test(phone)) {
+      console.log('❌ Invalid phone format:', phone);
+      return res.status(400).json({ error: "Invalid phone number format - must be 10 digits" });
+    }
 
-    const user = await User.findById(req.user.id);
-    if (!user)
+    const userId = req.user.id;
+    console.log('🔍 Looking for user with ID:', userId);
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log('❌ User not found:', userId);
       return res.status(404).json({ error: "User not found" });
+    }
 
+    console.log('✅ All validations passed, updating address');
+    
     user.address = {
-      street: address.street,
-      city: address.city,
-      state: address.state,
-      pincode: address.pincode,
-      phone: address.phone
+      street: street,
+      taluk: taluk,
+      district: district,
+      state: state,
+      pincode: pincode,
+      phone: phone
     };
 
     await user.save();
-
+    
+    console.log('✅ Address updated successfully');
+    console.log('📍 New address:', user.address);
+    
     res.json({ message: "Address updated successfully", user });
 
   } catch (err) {

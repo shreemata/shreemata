@@ -308,6 +308,25 @@
                             <small style="color: #666;">Minimum amount users can withdraw</small>
                         </div>
                     </div>
+
+                    <div class="setting-card">
+                        <h3>🚚 Shipping Settings</h3>
+                        <div class="form-group">
+                            <label>Base Shipping Charge (₹)</label>
+                            <input type="number" id="baseShipping" step="0.01" min="0" placeholder="50.00">
+                            <small style="color: #666;">Base shipping cost for orders</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Rate per KG (₹)</label>
+                            <input type="number" id="shippingPerKg" step="0.01" min="0" placeholder="25.00">
+                            <small style="color: #666;">Additional charge per kilogram</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Free Shipping Above (₹)</label>
+                            <input type="number" id="freeShippingThreshold" step="0.01" min="0" placeholder="500.00">
+                            <small style="color: #666;">Order value for free shipping (0 = disabled)</small>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="setting-card" style="margin: 20px 0;">
@@ -360,11 +379,24 @@
                 const data = await response.json();
                 currentSettings = data.settings;
 
+                console.log('📡 Settings loaded from server:', currentSettings);
+                
                 document.getElementById("directCommission").value = currentSettings.directCommissionPercent;
                 document.getElementById("trustFund").value = currentSettings.trustFundPercent;
                 document.getElementById("devFund").value = currentSettings.developmentFundPercent;
                 document.getElementById("treePool").value = currentSettings.treeCommissionPoolPercent;
                 document.getElementById("minWithdrawal").value = currentSettings.minimumWithdrawalAmount || 100;
+                
+                // Load shipping settings - handle 0 values properly
+                document.getElementById("baseShipping").value = currentSettings.baseShippingCharge !== undefined ? currentSettings.baseShippingCharge : 50;
+                document.getElementById("shippingPerKg").value = currentSettings.shippingRatePerKg !== undefined ? currentSettings.shippingRatePerKg : 25;
+                document.getElementById("freeShippingThreshold").value = currentSettings.freeShippingThreshold !== undefined ? currentSettings.freeShippingThreshold : 500;
+                
+                console.log('🚚 Shipping settings loaded:', {
+                    baseShipping: currentSettings.baseShippingCharge,
+                    shippingPerKg: currentSettings.shippingRatePerKg,
+                    freeShippingThreshold: currentSettings.freeShippingThreshold
+                });
 
                 renderTreeLevels();
             } catch (error) {
@@ -424,14 +456,28 @@
                     });
                 });
 
+                const baseShippingValue = document.getElementById("baseShipping").value;
+                const shippingPerKgValue = document.getElementById("shippingPerKg").value;
+                const freeShippingValue = document.getElementById("freeShippingThreshold").value;
+                
                 const settings = {
                     directCommissionPercent: parseFloat(document.getElementById("directCommission").value),
                     trustFundPercent: parseFloat(document.getElementById("trustFund").value),
                     developmentFundPercent: parseFloat(document.getElementById("devFund").value),
                     treeCommissionPoolPercent: parseFloat(document.getElementById("treePool").value),
                     minimumWithdrawalAmount: parseFloat(document.getElementById("minWithdrawal").value),
+                    baseShippingCharge: baseShippingValue !== '' ? parseFloat(baseShippingValue) : 50,
+                    shippingRatePerKg: shippingPerKgValue !== '' ? parseFloat(shippingPerKgValue) : 25,
+                    freeShippingThreshold: freeShippingValue !== '' ? parseFloat(freeShippingValue) : 0,
                     treeCommissionLevels: treeLevels
                 };
+
+                console.log('🔍 Settings being sent to server:', settings);
+                console.log('🚚 Shipping settings:', {
+                    baseShippingCharge: settings.baseShippingCharge,
+                    shippingRatePerKg: settings.shippingRatePerKg,
+                    freeShippingThreshold: settings.freeShippingThreshold
+                });
 
                 const response = await fetch(`${API_URL}/admin/commission-settings`, {
                     method: 'PUT',
@@ -442,15 +488,19 @@
                     body: JSON.stringify(settings)
                 });
 
+                console.log('📡 Server response status:', response.status);
+                const responseData = await response.json();
+                console.log('📡 Server response data:', responseData);
+
                 if (!response.ok) {
-                    const error = await response.json();
+                    const error = responseData;
                     throw new Error(error.error || "Failed to save settings");
                 }
-
-                const responseData = await response.json();
                 const minWithdrawal = settings.minimumWithdrawalAmount;
+                const baseShipping = settings.baseShippingCharge;
+                const shippingRate = settings.shippingRatePerKg;
                 
-                showAlert(`✅ Settings saved successfully! Minimum withdrawal amount updated to ₹${minWithdrawal}`, "success");
+                showAlert(`✅ Settings saved successfully! Minimum withdrawal: ₹${minWithdrawal}, Base shipping: ₹${baseShipping}, Rate per KG: ₹${shippingRate}`, "success");
                 loadSettings();
             } catch (error) {
                 console.error("Error saving settings:", error);
