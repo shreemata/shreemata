@@ -24,7 +24,7 @@ const upload = multer({
 
 const uploadImages = upload.fields([
   { name: "coverImage", maxCount: 1 },
-  { name: "previewImages", maxCount: 4 }
+  { name: "previewImages" } // No limit on preview images
 ]);
 
 // Helper function to upload buffer to Cloudinary with fresh config
@@ -72,11 +72,13 @@ router.get("/", async (req, res) => {
     const limit = Math.max(1, parseInt(req.query.limit || "12"));
     const skip = (page - 1) * limit;
 
-    const { category, author, minPrice, maxPrice, search } = req.query;
+    const { category, class: bookClass, subject, author, minPrice, maxPrice, search } = req.query;
 
     const query = {};
 
     if (category) query.category = category;
+    if (bookClass) query.class = bookClass;
+    if (subject) query.subject = new RegExp(subject, "i");
     if (author) query.author = new RegExp(author, "i");
     if (minPrice) query.price = { ...query.price, $gte: parseFloat(minPrice) };
     if (maxPrice) query.price = { ...query.price, $lte: parseFloat(maxPrice) };
@@ -86,7 +88,9 @@ router.get("/", async (req, res) => {
       query.$or = [
         { title: s },
         { author: s },
-        { description: s }
+        { description: s },
+        { class: s },
+        { subject: s }
       ];
     }
 
@@ -146,7 +150,7 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
   });
 }, async (req, res) => {
   try {
-    const { title, author, price, description, category, weight, rewardPoints, cover_image, preview_images } = req.body;
+    const { title, author, price, description, category, class: bookClass, subject, weight, rewardPoints, cover_image, preview_images } = req.body;
 
     if (!title || !author || !price) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -185,6 +189,8 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
       cover_image: coverImage,
       preview_images: previewImages,
       category: category || "uncategorized",
+      class: bookClass || "",
+      subject: subject || "",
       weight: weight || 0.5,
       rewardPoints: rewardPoints || 0
     });
@@ -223,6 +229,8 @@ router.put("/:id", authenticateToken, isAdmin, (req, res, next) => {
     book.price = req.body.price || book.price;
     book.description = req.body.description || book.description;
     book.category = req.body.category || book.category;
+    book.class = req.body.class !== undefined ? req.body.class : book.class;
+    book.subject = req.body.subject !== undefined ? req.body.subject : book.subject;
     book.weight = req.body.weight !== undefined ? req.body.weight : book.weight;
     book.rewardPoints = req.body.rewardPoints !== undefined ? req.body.rewardPoints : book.rewardPoints;
 
@@ -262,11 +270,19 @@ router.put("/:id", authenticateToken, isAdmin, (req, res, next) => {
 ------------------------------------------- */
 router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
   try {
-    const deleted = await Book.findByIdAndDelete(req.params.id);
+    const bookId = req.params.id;
+    console.log(`🗑️ DELETE request received for book ID: ${bookId}`);
+    
+    const deleted = await Book.findByIdAndDelete(bookId);
+    console.log(`📚 Book deletion result:`, deleted ? 'Found and deleted' : 'Not found');
 
-    if (!deleted) return res.status(404).json({ error: "Book not found" });
+    if (!deleted) {
+      console.log(`❌ Book with ID ${bookId} not found`);
+      return res.status(404).json({ error: "Book not found" });
+    }
 
-    res.json({ message: "Book deleted" });
+    console.log(`✅ Book "${deleted.title}" deleted successfully`);
+    res.json({ message: "Book deleted successfully", deletedBook: { id: deleted._id, title: deleted.title } });
   } catch (err) {
     console.error("Error deleting book:", err);
     res.status(500).json({ error: "Error deleting book" });

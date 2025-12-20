@@ -248,12 +248,21 @@ function displayBooks(books) {
         mobileContainer.appendChild(card);
     });
 
-    // Add event listeners for mobile cards
-    mobileContainer.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', () => editBook(btn.dataset.id));
-    });
-    mobileContainer.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', () => deleteBook(btn.dataset.id));
+    // Add event listeners for mobile cards using event delegation
+    mobileContainer.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-btn');
+        const deleteBtn = e.target.closest('.delete-btn');
+        
+        if (editBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            editBook(editBtn.dataset.id);
+        }
+        if (deleteBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            deleteBook(deleteBtn.dataset.id);
+        }
     });
 }
 
@@ -291,19 +300,49 @@ async function editBook(bookId) {
 }
 
 /* DELETE BOOK */
-async function deleteBook(bookId) {
-    if (!confirm("Are you sure?")) return;
+let isDeleting = false; // Flag to prevent multiple deletions
 
+async function deleteBook(bookId) {
+    // Prevent multiple simultaneous deletions
+    if (isDeleting) {
+        console.log('🚫 Delete already in progress, ignoring duplicate call');
+        return;
+    }
+    
+    if (!confirm("Are you sure you want to delete this book?")) return;
+
+    isDeleting = true; // Set flag to prevent multiple calls
     const token = localStorage.getItem('token');
 
-    const res = await fetch(`${API}/books/${bookId}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
-    });
+    try {
+        console.log(`🗑️ Attempting to delete book with ID: ${bookId}`);
+        console.log(`📡 DELETE request to: ${API}/books/${bookId}`);
+        
+        const res = await fetch(`${API}/books/${bookId}`, {
+            method: "DELETE",
+            headers: { 
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            }
+        });
 
-    if (res.ok) {
-        alert("Deleted");
-        loadBooks();
+        console.log(`📡 Delete response status: ${res.status}`);
+        
+        if (res.ok) {
+            const data = await res.json();
+            console.log('✅ Book deleted successfully:', data);
+            alert("Book deleted successfully!");
+            loadBooks(); // Reload the books list
+        } else {
+            const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+            console.error('❌ Delete failed:', errorData);
+            alert(`Failed to delete book: ${errorData.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('❌ Delete request failed:', error);
+        alert(`Error deleting book: ${error.message}`);
+    } finally {
+        isDeleting = false; // Reset flag when done
     }
 }
 

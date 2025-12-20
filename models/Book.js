@@ -8,7 +8,14 @@ const bookSchema = new mongoose.Schema({
   description: { type: String, default: '' },
   cover_image: { type: String, default: '' },
   preview_images: { type: [String], default: [] },
+  
+  // Updated fields for educational books
+  class: { type: String, default: '' }, // Class (1, 2, 3, etc.)
+  subject: { type: String, default: '' }, // Subject (Math, Science, etc.)
+  
+  // Keep category for backward compatibility
   category: { type: String, default: 'uncategorized' }, // store category slug
+  
   weight: { type: Number, default: 0.5 }, // weight in kg, default 0.5kg
   ratings_average: { type: Number, default: 0 }, // will be used later
   ratings_count: { type: Number, default: 0 },
