@@ -18,11 +18,11 @@ const storage = multer.memoryStorage();
 const upload = multer({ 
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // Reduced to 5MB per file for Render
-    files: 10, // Limit total files
-    fieldSize: 2 * 1024 * 1024, // 2MB field size limit
+    fileSize: 2 * 1024 * 1024, // Reduced to 2MB per file for Render stability
+    files: 6, // Reduced total files
+    fieldSize: 1 * 1024 * 1024, // 1MB field size limit
     fieldNameSize: 100, // Field name size limit
-    fields: 20 // Limit number of fields
+    fields: 15 // Limit number of fields
   },
   fileFilter: (req, file, cb) => {
     // Only allow image files
@@ -36,7 +36,7 @@ const upload = multer({
 
 const uploadImages = upload.fields([
   { name: "coverImage", maxCount: 1 },
-  { name: "previewImages", maxCount: 8 } // Reduced from unlimited to 8 for Render
+  { name: "previewImages", maxCount: 4 } // Reduced to 4 for Render stability
 ]);
 
 // Helper function to upload buffer to Cloudinary with Render optimizations
@@ -60,17 +60,17 @@ async function uploadToCloudinary(buffer, filename) {
         bufferSize: buffer.length
       });
 
-      // Render-optimized upload with shorter timeout and compression
+      // Render-optimized upload with very short timeout and aggressive compression
       cloudinaryFresh.uploader.upload_stream(
         {
           resource_type: "auto",
-          timeout: 25000, // 25 second timeout for Render (less than 30s limit)
-          quality: "auto:low", // Compress images for faster upload
+          timeout: 15000, // 15 second timeout for Render (much shorter)
+          quality: "auto:low", // More aggressive compression
           fetch_format: "auto", // Auto-optimize format
           flags: "progressive", // Progressive JPEG for faster loading
           transformation: [
-            { width: 1000, height: 1500, crop: "limit" }, // Limit max dimensions
-            { quality: "auto:good" } // Good quality but compressed
+            { width: 800, height: 1200, crop: "limit" }, // Smaller max dimensions
+            { quality: "auto:low" } // Lower quality but faster upload
           ]
         },
         (error, result) => {
@@ -199,10 +199,20 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
       if (req.files["coverImage"]) {
         console.log('📤 Uploading cover image to Cloudinary...');
         try {
-          coverImage = await uploadToCloudinary(
+          // Set shorter timeout for individual upload
+          const uploadPromise = uploadToCloudinary(
             req.files["coverImage"][0].buffer, 
             req.files["coverImage"][0].originalname
           );
+          
+          // Shorter timeout wrapper for Render
+          coverImage = await Promise.race([
+            uploadPromise,
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Cover image upload timeout')), 15000)
+            )
+          ]);
+          
           console.log('✅ Cover image uploaded:', coverImage);
         } catch (error) {
           console.error('❌ Cover image upload failed:', error);
@@ -211,14 +221,47 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
       }
       
       if (req.files["previewImages"]) {
-        console.log('📤 Uploading preview images to Cloudinary...');
+        console.log('📤 Uploading preview images to Cloudinary (sequential for Render)...');
         try {
-          const uploadPromises = req.files["previewImages"].map((file, index) => {
-            console.log(`📤 Uploading preview image ${index + 1}:`, file.originalname);
-            return uploadToCloudinary(file.buffer, file.originalname);
-          });
-          previewImages = await Promise.all(uploadPromises);
-          console.log('✅ Preview images uploaded:', previewImages.length, 'images');
+          previewImages = [];
+          const maxImages = Math.min(req.files["previewImages"].length, 4); // Hard limit of 4
+          
+          // Upload preview images sequentially to avoid overwhelming Render
+          for (let i = 0; i < maxImages; i++) {
+            const file = req.files["previewImages"][i];
+            console.log(`📤 Uploading preview image ${i + 1}/${maxImages}:`, file.originalname);
+            
+            try {
+              const uploadPromise = uploadToCloudinary(file.buffer, file.originalname);
+              
+              // Shorter timeout for each image to prevent 502
+              const imageUrl = await Promise.race([
+                uploadPromise,
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Preview image ${i + 1} upload timeout`)), 10000)
+                )
+              ]);
+              
+              previewImages.push(imageUrl);
+              console.log(`✅ Preview image ${i + 1} uploaded:`, imageUrl);
+              
+              // Longer delay between uploads to prevent memory issues
+              if (i < maxImages - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Force garbage collection if available (helps with memory)
+                if (global.gc) {
+                  global.gc();
+                }
+              }
+            } catch (imageError) {
+              console.error(`❌ Preview image ${i + 1} upload failed:`, imageError);
+              // Continue with other images instead of failing completely
+              console.log(`⚠️ Skipping failed preview image ${i + 1}, continuing with others`);
+            }
+          }
+          
+          console.log('✅ Preview images uploaded:', previewImages.length, 'out of', maxImages);
         } catch (error) {
           console.error('❌ Preview images upload failed:', error);
           return res.status(500).json({ error: "Preview images upload failed", details: error.message });

@@ -506,13 +506,38 @@ async function handleFormSubmit(e) {
             let compressedPreviewFiles = [];
 
             if (coverFile) {
-                console.log('📦 Compressing cover image...');
-                compressedCoverFile = await window.imageCompressor.compressImage(coverFile, 800, 1200, 0.8);
+                console.log('📦 Compressing cover image for Render...');
+                // Very aggressive compression for Render to avoid 502 errors
+                compressedCoverFile = await window.imageCompressor.compressImage(coverFile, 500, 750, 0.6);
+                console.log(`📦 Cover compressed: ${(coverFile.size/1024).toFixed(0)}KB → ${(compressedCoverFile.size/1024).toFixed(0)}KB`);
             }
 
             if (previewFiles.length > 0) {
-                console.log('� Codmpressing preview images...');
-                compressedPreviewFiles = await window.imageCompressor.compressMultipleImages(previewFiles);
+                console.log('📦 Compressing preview images for Render...');
+                // Strict limit for Render to avoid 502 errors
+                const maxPreviewImages = 4; // Reduced to 4 for better reliability
+                const filesToCompress = Array.from(previewFiles).slice(0, maxPreviewImages);
+                
+                if (previewFiles.length > maxPreviewImages) {
+                    console.log(`⚠️ Limiting preview images to ${maxPreviewImages} for Render compatibility`);
+                    alert(`Only the first ${maxPreviewImages} preview images will be uploaded to avoid server timeout errors.`);
+                }
+                
+                compressedPreviewFiles = [];
+                for (let i = 0; i < filesToCompress.length; i++) {
+                    const file = filesToCompress[i];
+                    console.log(`📦 Compressing preview image ${i + 1}/${filesToCompress.length}...`);
+                    const compressed = await window.imageCompressor.compressImage(file, 400, 600, 0.5);
+                    console.log(`📦 Preview ${i+1} compressed: ${(file.size/1024).toFixed(0)}KB → ${(compressed.size/1024).toFixed(0)}KB`);
+                    compressedPreviewFiles.push(compressed);
+                }
+                
+                const totalSize = compressedPreviewFiles.reduce((sum, f) => sum + f.size, 0) + (compressedCoverFile ? compressedCoverFile.size : 0);
+                console.log(`📦 Total upload size: ${(totalSize/1024).toFixed(0)}KB`);
+                
+                if (totalSize > 3 * 1024 * 1024) { // 3MB total limit
+                    alert('Warning: Total file size is large. Upload may take longer.');
+                }
             }
 
             submitBtn.textContent = 'Uploading images to server...';
@@ -546,13 +571,40 @@ async function handleFormSubmit(e) {
             console.log('🔍 Method:', method);
             console.log('🔍 Token exists:', !!token);
 
-            res = await fetch(url, {
-                method,
-                headers: { "Authorization": `Bearer ${token}` },
-                body: formData
-            });
+            // Add timeout for the entire request to detect 502 errors early
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => {
+                console.log('⏰ Request timeout - aborting to prevent 502');
+                controller.abort();
+            }, 25000); // 25 second timeout
 
-            console.log('📥 Server response:', res.status, res.statusText);
+            try {
+                res = await fetch(url, {
+                    method,
+                    headers: { "Authorization": `Bearer ${token}` },
+                    body: formData,
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                console.log('📥 Server response:', res.status, res.statusText);
+                
+                // Handle 502 Bad Gateway specifically
+                if (res.status === 502) {
+                    throw new Error('Server timeout (502 Bad Gateway). Try uploading fewer or smaller images.');
+                }
+                
+            } catch (fetchError) {
+                clearTimeout(timeoutId);
+                
+                if (fetchError.name === 'AbortError') {
+                    throw new Error('Upload timeout. The server took too long to respond. Try uploading fewer or smaller images.');
+                } else if (fetchError.message.includes('502')) {
+                    throw new Error('Server overloaded (502 error). Please try again with fewer images or wait a moment.');
+                } else {
+                    throw fetchError;
+                }
+            }
         } else if (!isEditMode) {
             // No images and not edit mode
             alert('Please upload a cover image');
@@ -588,7 +640,13 @@ async function handleFormSubmit(e) {
         if (!contentType || !contentType.includes('application/json')) {
             const text = await res.text();
             console.error('Non-JSON response:', text.substring(0, 200));
-            alert('Server error: Received invalid response. Check console for details.');
+            
+            // Check if it's a 502 error page
+            if (text.includes('502') || text.includes('Bad Gateway') || text.includes('no-js')) {
+                alert('Server timeout error (502). This usually happens when uploading large files. Please try:\n\n1. Upload fewer preview images (max 3-4)\n2. Use smaller image files\n3. Try again in a few minutes');
+            } else {
+                alert('Server error: Received invalid response. Please try again or contact support.');
+            }
             return;
         }
 
