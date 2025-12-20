@@ -30,36 +30,44 @@ const uploadImages = upload.fields([
 // Helper function to upload buffer to Cloudinary with fresh config
 async function uploadToCloudinary(buffer, filename) {
   return new Promise((resolve, reject) => {
-    // Create fresh Cloudinary instance with explicit config
-    const { v2: cloudinaryFresh } = require('cloudinary');
-    
-    cloudinaryFresh.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME_NEW || process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY_NEW || process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET_NEW || process.env.CLOUDINARY_API_SECRET,
-      secure: true
-    });
+    try {
+      // Create fresh Cloudinary instance with explicit config
+      const { v2: cloudinaryFresh } = require('cloudinary');
+      
+      cloudinaryFresh.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME_NEW || process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY_NEW || process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET_NEW || process.env.CLOUDINARY_API_SECRET,
+        secure: true
+      });
 
-    console.log('🔧 Using fresh Cloudinary config for upload:', {
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME_NEW || process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: (process.env.CLOUDINARY_API_KEY_NEW || process.env.CLOUDINARY_API_KEY) ? '***' + (process.env.CLOUDINARY_API_KEY_NEW || process.env.CLOUDINARY_API_KEY).slice(-4) : 'NOT SET'
-    });
+      console.log('🔧 Using fresh Cloudinary config for upload:', {
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME_NEW || process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: (process.env.CLOUDINARY_API_KEY_NEW || process.env.CLOUDINARY_API_KEY) ? '***' + (process.env.CLOUDINARY_API_KEY_NEW || process.env.CLOUDINARY_API_KEY).slice(-4) : 'NOT SET',
+        filename: filename,
+        bufferSize: buffer.length
+      });
 
-    // Try the simplest possible upload first
-    cloudinaryFresh.uploader.upload_stream(
-      {
-        resource_type: "auto"
-      },
-      (error, result) => {
-        if (error) {
-          console.error('❌ Cloudinary upload error:', error);
-          reject(error);
-        } else {
-          console.log('✅ Cloudinary upload success:', result.secure_url);
-          resolve(result.secure_url);
+      // Try the simplest possible upload first
+      cloudinaryFresh.uploader.upload_stream(
+        {
+          resource_type: "auto",
+          timeout: 60000 // 60 second timeout
+        },
+        (error, result) => {
+          if (error) {
+            console.error('❌ Cloudinary upload error:', error);
+            reject(new Error(`Cloudinary upload failed: ${error.message}`));
+          } else {
+            console.log('✅ Cloudinary upload success:', result.secure_url);
+            resolve(result.secure_url);
+          }
         }
-      }
-    ).end(buffer);
+      ).end(buffer);
+    } catch (error) {
+      console.error('❌ Cloudinary setup error:', error);
+      reject(new Error(`Cloudinary setup failed: ${error.message}`));
+    }
   });
 }
 
@@ -150,9 +158,15 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
   });
 }, async (req, res) => {
   try {
+    console.log('📝 Book creation request received');
+    console.log('📝 Content-Type:', req.headers['content-type']);
+    console.log('📝 Body keys:', Object.keys(req.body));
+    console.log('📝 Files:', req.files ? Object.keys(req.files) : 'No files');
+    
     const { title, author, price, description, category, class: bookClass, subject, weight, rewardPoints, cover_image, preview_images } = req.body;
 
     if (!title || !author || !price) {
+      console.log('❌ Missing required fields:', { title: !!title, author: !!author, price: !!price });
       return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -161,26 +175,44 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
 
     // Handle file uploads
     if (req.files) {
+      console.log('📤 Processing file uploads...');
+      
       if (req.files["coverImage"]) {
         console.log('📤 Uploading cover image to Cloudinary...');
-        coverImage = await uploadToCloudinary(
-          req.files["coverImage"][0].buffer, 
-          req.files["coverImage"][0].originalname
-        );
+        try {
+          coverImage = await uploadToCloudinary(
+            req.files["coverImage"][0].buffer, 
+            req.files["coverImage"][0].originalname
+          );
+          console.log('✅ Cover image uploaded:', coverImage);
+        } catch (error) {
+          console.error('❌ Cover image upload failed:', error);
+          return res.status(500).json({ error: "Cover image upload failed", details: error.message });
+        }
       }
+      
       if (req.files["previewImages"]) {
         console.log('📤 Uploading preview images to Cloudinary...');
-        const uploadPromises = req.files["previewImages"].map(file => 
-          uploadToCloudinary(file.buffer, file.originalname)
-        );
-        previewImages = await Promise.all(uploadPromises);
+        try {
+          const uploadPromises = req.files["previewImages"].map((file, index) => {
+            console.log(`📤 Uploading preview image ${index + 1}:`, file.originalname);
+            return uploadToCloudinary(file.buffer, file.originalname);
+          });
+          previewImages = await Promise.all(uploadPromises);
+          console.log('✅ Preview images uploaded:', previewImages.length, 'images');
+        } catch (error) {
+          console.error('❌ Preview images upload failed:', error);
+          return res.status(500).json({ error: "Preview images upload failed", details: error.message });
+        }
       }
     }
 
     if (!coverImage) {
+      console.log('❌ No cover image provided');
       return res.status(400).json({ error: "Cover image is required" });
     }
 
+    console.log('💾 Creating book in database...');
     const book = await Book.create({
       title,
       author,
@@ -195,9 +227,10 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
       rewardPoints: rewardPoints || 0
     });
 
+    console.log('✅ Book created successfully:', book._id);
     res.status(201).json({ message: "Book added successfully", book });
   } catch (err) {
-    console.error("Error adding book:", err);
+    console.error("❌ Error adding book:", err);
     res.status(500).json({ error: "Error adding book", details: err.message });
   }
 });

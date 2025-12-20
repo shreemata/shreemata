@@ -4,6 +4,10 @@ let isEditMode = false;
 let editingBookId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔍 Admin.js loaded - API URL:', API);
+    console.log('🔍 window.API_URL:', window.API_URL);
+    console.log('🔍 window.location.origin:', window.location.origin);
+    
     checkAdminAuth();
     loadClassesAndSubjectsForFilters();
     loadBooks();
@@ -434,6 +438,12 @@ async function handleFormSubmit(e) {
         const token = localStorage.getItem('token');
         const url = isEditMode ? `${API}/books/${editingBookId}` : `${API}/books`;
         const method = isEditMode ? "PUT" : "POST";
+        
+        console.log('🔍 Debug URL construction:');
+        console.log('API variable:', API);
+        console.log('isEditMode:', isEditMode);
+        console.log('editingBookId:', editingBookId);
+        console.log('Final URL:', url);
 
         let res;
 
@@ -513,6 +523,8 @@ async function handleFormSubmit(e) {
             }
 
             console.log('🚀 Sending to:', url);
+            console.log('🔍 Method:', method);
+            console.log('🔍 Token exists:', !!token);
 
             res = await fetch(url, {
                 method,
