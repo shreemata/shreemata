@@ -283,6 +283,45 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// LOGIN (Phone & Password)
+router.post("/login-phone", async (req, res) => {
+  try {
+    const { phone, password } = req.body;
+
+    if (!phone || !password)
+      return res.status(400).json({ error: "Phone number and password are required" });
+
+    // Validate phone format
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      return res.status(400).json({ error: "Invalid phone number format" });
+    }
+
+    const user = await User.findOne({ phone });
+    if (!user)
+      return res.status(400).json({ error: "Invalid phone or password" });
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword)
+      return res.status(400).json({ error: "Invalid phone or password" });
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      message: "Login successful",
+      token,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+    });
+
+  } catch (err) {
+    console.error("Phone login error:", err);
+    res.status(500).json({ error: "Error logging in" });
+  }
+});
+
 // PHONE LOGIN - Send OTP
 router.post("/login-send-otp", async (req, res) => {
   try {
@@ -501,6 +540,237 @@ router.post("/login-verify-otp", async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: "Error verifying OTP. Please try again." 
+    });
+  }
+});
+
+// FORGOT PASSWORD - Send OTP
+router.post("/forgot-password-send-otp", async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Phone number is required" 
+      });
+    }
+
+    // Validate phone format
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid phone number format" 
+      });
+    }
+
+    // Check if user exists
+    const user = await User.findOne({ phone });
+    if (!user) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "No account found with this phone number" 
+      });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(`🔐 Generated forgot password OTP for ${phone}: ${otp}`);
+
+    // Store OTP for password reset
+    global.otpStore = global.otpStore || new Map();
+    global.otpStore.set(phone, {
+      otp: otp,
+      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
+      attempts: 0,
+      userId: user._id,
+      isPasswordReset: true
+    });
+
+    // Send OTP via Twilio
+    try {
+      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+        const twilio = require('twilio');
+        const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        
+        const formattedPhone = `+91${phone}`;
+        
+        await client.messages.create({
+          body: `Your password reset OTP is: ${otp}. Valid for 5 minutes. Do not share this code.`,
+          to: formattedPhone,
+          from: process.env.TWILIO_PHONE_NUMBER
+        });
+
+        console.log(`Password reset OTP sent to ${formattedPhone}: ${otp}`);
+      }
+    } catch (twilioError) {
+      console.error("Twilio error:", twilioError);
+      // Continue without failing - OTP is still stored for testing
+    }
+
+    res.json({
+      success: true,
+      message: "OTP sent successfully",
+      userName: user.name
+    });
+
+  } catch (error) {
+    console.error("Forgot password OTP send error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Failed to send OTP" 
+    });
+  }
+});
+
+// FORGOT PASSWORD - Verify OTP
+router.post("/forgot-password-verify-otp", async (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+
+    if (!phone || !otp) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Phone number and OTP are required" 
+      });
+    }
+
+    // Check OTP store
+    const storedData = global.otpStore?.get(phone);
+    if (!storedData) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "OTP not found or expired" 
+      });
+    }
+
+    // Check if OTP is for password reset
+    if (!storedData.isPasswordReset) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid OTP type" 
+      });
+    }
+
+    // Check expiration
+    if (Date.now() > storedData.expiresAt) {
+      global.otpStore.delete(phone);
+      return res.status(400).json({ 
+        success: false, 
+        error: "OTP has expired" 
+      });
+    }
+
+    // Check attempts
+    if (storedData.attempts >= 3) {
+      global.otpStore.delete(phone);
+      return res.status(400).json({ 
+        success: false, 
+        error: "Too many failed attempts" 
+      });
+    }
+
+    // Verify OTP
+    if (storedData.otp !== otp) {
+      storedData.attempts++;
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid OTP" 
+      });
+    }
+
+    // Generate reset token
+    const resetToken = jwt.sign(
+      { userId: storedData.userId, phone, type: 'password-reset' },
+      process.env.JWT_SECRET,
+      { expiresIn: '10m' } // 10 minutes to reset password
+    );
+
+    // Clear OTP from store
+    global.otpStore.delete(phone);
+
+    console.log(`Password reset OTP verified for ${phone}`);
+
+    res.json({
+      success: true,
+      message: "OTP verified successfully",
+      resetToken
+    });
+
+  } catch (error) {
+    console.error("Forgot password OTP verify error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Failed to verify OTP" 
+    });
+  }
+});
+
+// RESET PASSWORD
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { resetToken, newPassword } = req.body;
+
+    if (!resetToken || !newPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Reset token and new password are required" 
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Password must be at least 6 characters long" 
+      });
+    }
+
+    // Verify reset token
+    let decoded;
+    try {
+      decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid or expired reset token" 
+      });
+    }
+
+    if (decoded.type !== 'password-reset') {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid token type" 
+      });
+    }
+
+    // Find user
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "User not found" 
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password
+    user.password = hashedPassword;
+    await user.save();
+
+    console.log(`Password reset successfully for user ${user.email}`);
+
+    res.json({
+      success: true,
+      message: "Password reset successfully"
+    });
+
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Failed to reset password" 
     });
   }
 });
