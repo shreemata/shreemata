@@ -268,13 +268,7 @@
             }
         }
 
-        #sendOtpBtn, #verifyOtpBtn {
-    font-size: 13px;
-    border-radius: 8px;
-    height: 42px;
-}
-
-#otpStatus.success {
+        #phoneStatus.success {
     color: #2b9348;
     font-weight: 600;
     background-color: #eafaf1;
@@ -283,7 +277,7 @@
     border-left: 3px solid #2b9348;
 }
 
-#otpStatus.error {
+#phoneStatus.error {
     color: #d90429;
     font-weight: 600;
     background-color: #ffeaea;
@@ -346,34 +340,12 @@
                             <input type="email" id="email" name="email" required placeholder="Enter your email">
                         </div>
 
-                        <!-- Phone Number + OTP -->
-<!-- Phone Number + OTP -->
-<div class="form-group">
-    <label for="phone">Mobile Number</label>
-    <div style="display: flex; gap: 10px;">
-        <input type="text" id="phone" name="phone" placeholder="Enter 10-digit mobile number" required maxlength="10" pattern="[6-9][0-9]{9}">
-        <button type="button" class="btn-primary" id="sendOtpBtn" style="padding: 0 12px; width: 130px;">
-            Send OTP
-        </button>
-    </div>
-    <!-- Status message always visible -->
-    <div id="otpStatus" style="margin-top: 5px; font-size: 13px;"></div>
-</div>
-
-<div class="form-group" id="otpSection" style="display: none;">
-    <label for="otp">Enter OTP</label>
-    <div style="display: flex; gap: 10px;">
-        <input type="text" id="otp" name="otp" placeholder="Enter OTP">
-        <button type="button" class="btn-primary" id="verifyOtpBtn" style="padding: 0 12px; width: 130px;">
-            Verify OTP
-        </button>
-    </div>
-    <div style="margin-top: 8px;">
-        <button type="button" id="resendOtpBtn" style="background: none; border: none; color: #ff6f61; font-size: 13px; cursor: pointer; text-decoration: underline;">
-            Resend OTP
-        </button>
-    </div>
-</div>
+                        <!-- Phone Number (no OTP) -->
+                        <div class="form-group">
+                            <label for="phone">Mobile Number</label>
+                            <input type="text" id="phone" name="phone" placeholder="Enter 10-digit mobile number" required maxlength="10" pattern="[6-9][0-9]{9}">
+                            <div id="phoneStatus" style="margin-top: 5px; font-size: 13px;"></div>
+                        </div>
 
 
                         <div class="form-group">
