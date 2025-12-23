@@ -182,7 +182,7 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
     console.log('📝 Body keys:', Object.keys(req.body));
     console.log('📝 Files:', req.files ? Object.keys(req.files) : 'No files');
     
-    const { title, author, price, description, category, class: bookClass, subject, weight, rewardPoints, cover_image, preview_images } = req.body;
+    const { title, author, price, description, category, class: bookClass, subject, weight, rewardPoints, cover_image, preview_images, trackStock, stockQuantity, lowStockThreshold, stockStatus } = req.body;
 
     if (!title || !author || !price) {
       console.log('❌ Missing required fields:', { title: !!title, author: !!author, price: !!price });
@@ -286,7 +286,11 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
       class: bookClass || "",
       subject: subject || "",
       weight: weight || 0.5,
-      rewardPoints: rewardPoints || 0
+      rewardPoints: rewardPoints || 0,
+      trackStock: trackStock === 'true' || trackStock === true,
+      stockQuantity: parseInt(stockQuantity) || 10,
+      lowStockThreshold: parseInt(lowStockThreshold) || 5,
+      stockStatus: stockStatus || 'in_stock'
     });
 
     console.log('✅ Book created successfully:', book._id);
@@ -346,6 +350,31 @@ router.put("/:id", authenticateToken, isAdmin, (req, res, next) => {
     book.subject = req.body.subject !== undefined ? req.body.subject : book.subject;
     book.weight = req.body.weight !== undefined ? req.body.weight : book.weight;
     book.rewardPoints = req.body.rewardPoints !== undefined ? req.body.rewardPoints : book.rewardPoints;
+
+    // Update stock fields
+    if (req.body.trackStock !== undefined) {
+      console.log('📦 Updating trackStock:', req.body.trackStock);
+      book.trackStock = req.body.trackStock === 'true' || req.body.trackStock === true;
+    }
+    if (req.body.stockQuantity !== undefined) {
+      console.log('📦 Updating stockQuantity:', req.body.stockQuantity);
+      book.stockQuantity = parseInt(req.body.stockQuantity) || 0;
+    }
+    if (req.body.lowStockThreshold !== undefined) {
+      console.log('📦 Updating lowStockThreshold:', req.body.lowStockThreshold);
+      book.lowStockThreshold = parseInt(req.body.lowStockThreshold) || 5;
+    }
+    if (req.body.stockStatus !== undefined) {
+      console.log('📦 Updating stockStatus:', req.body.stockStatus);
+      book.stockStatus = req.body.stockStatus;
+    }
+    
+    console.log('📦 Final stock values before save:', {
+      trackStock: book.trackStock,
+      stockQuantity: book.stockQuantity,
+      lowStockThreshold: book.lowStockThreshold,
+      stockStatus: book.stockStatus
+    });
 
     if (req.body.cover_image) {
       console.log('📝 Updating cover image from body');

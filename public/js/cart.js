@@ -5,7 +5,93 @@ document.addEventListener("DOMContentLoaded", () => {
     setupCartActions();
     checkAuth();
     setupMobileFeatures();
+    loadStoreDetails(); // Load store details for pickup option
+    
+    // Set up delivery method listeners after a short delay to ensure HTML is loaded
+    setTimeout(() => {
+        setupDeliveryMethodListeners();
+    }, 500);
 });
+
+/* ------------------------------
+    Load Store Details for Pickup
+------------------------------ */
+async function loadStoreDetails() {
+    console.log('🔍 Loading store details...');
+    
+    // Default fallback values
+    const defaultStoreDetails = {
+        storeAddress: 'Main Road, Your City',
+        storeHours: 'Mon-Sat 10AM-8PM, Sun 11AM-6PM',
+        storePhone: '+91 9449171605',
+        pickupInstructions: "We'll call you when your order is ready for pickup!",
+        storeMapLink: ''
+    };
+    
+    try {
+        const API = window.API_URL || '';
+        console.log('🔍 API URL:', API);
+        console.log('🔍 Fetching from:', `${API}/store-details`);
+        
+        const response = await fetch(`${API}/store-details`);
+        console.log('🔍 Response status:', response.status);
+        
+        if (response.ok) {
+            const storeDetails = await response.json();
+            console.log('🏪 Store details received:', storeDetails);
+            
+            // Update store details in the pickup section
+            const addressEl = document.getElementById('storeAddressDisplay');
+            const hoursEl = document.getElementById('storeHoursDisplay');
+            const phoneEl = document.getElementById('storePhoneDisplay');
+            const instructionsEl = document.getElementById('pickupInstructionsDisplay');
+            
+            if (addressEl) addressEl.textContent = storeDetails.storeAddress || defaultStoreDetails.storeAddress;
+            if (hoursEl) hoursEl.textContent = storeDetails.storeHours || defaultStoreDetails.storeHours;
+            if (phoneEl) phoneEl.textContent = storeDetails.storePhone || defaultStoreDetails.storePhone;
+            if (instructionsEl) instructionsEl.textContent = storeDetails.pickupInstructions || defaultStoreDetails.pickupInstructions;
+            
+            // Handle map link
+            const mapLinkContainer = document.getElementById('mapLinkContainer');
+            const mapLinkButton = document.getElementById('mapLinkButton');
+            
+            if (mapLinkContainer && mapLinkButton) {
+                if (storeDetails.storeMapLink && storeDetails.storeMapLink.trim()) {
+                    mapLinkButton.href = storeDetails.storeMapLink;
+                    mapLinkContainer.style.display = 'block';
+                } else {
+                    mapLinkContainer.style.display = 'none';
+                }
+            }
+            
+            console.log('✅ Store details loaded successfully');
+        } else {
+            console.warn('⚠️ Failed to load store details, response not ok:', response.status);
+            loadDefaultStoreDetails(defaultStoreDetails);
+        }
+    } catch (error) {
+        console.error('❌ Error loading store details:', error);
+        loadDefaultStoreDetails(defaultStoreDetails);
+    }
+}
+
+function loadDefaultStoreDetails(defaultStoreDetails) {
+    console.log('🔄 Loading default store details...');
+    
+    const addressEl = document.getElementById('storeAddressDisplay');
+    const hoursEl = document.getElementById('storeHoursDisplay');
+    const phoneEl = document.getElementById('storePhoneDisplay');
+    const instructionsEl = document.getElementById('pickupInstructionsDisplay');
+    const mapLinkContainer = document.getElementById('mapLinkContainer');
+    
+    if (addressEl) addressEl.textContent = defaultStoreDetails.storeAddress;
+    if (hoursEl) hoursEl.textContent = defaultStoreDetails.storeHours;
+    if (phoneEl) phoneEl.textContent = defaultStoreDetails.storePhone;
+    if (instructionsEl) instructionsEl.textContent = defaultStoreDetails.pickupInstructions;
+    if (mapLinkContainer) mapLinkContainer.style.display = 'none';
+    
+    console.log('✅ Default store details loaded');
+}
 
 /* ------------------------------
     Load Cart Items
@@ -112,7 +198,20 @@ async function loadCart() {
         shippingResult = window.shippingCalculator.calculateCartShipping(cart);
     }
     
-    const courierCharge = shippingResult.cost;
+    // Update delivery method display with actual shipping costs
+    updateDeliveryChargeDisplay(shippingResult.cost);
+    
+    // Get selected delivery method
+    const deliveryMethod = getSelectedDeliveryMethod();
+    let courierCharge = deliveryMethod === 'pickup' ? 0 : shippingResult.cost;
+    
+    console.log('📦 Shipping calculation:', {
+        deliveryMethod,
+        originalShippingCost: shippingResult.cost,
+        finalCourierCharge: courierCharge,
+        isPickup: deliveryMethod === 'pickup'
+    });
+    
     const grandTotal = total + courierCharge;
 
     // Update cart summary with breakdown
@@ -129,14 +228,20 @@ async function loadCart() {
            </div>`
         : '';
     
-    // Shipping info display
-    const shippingInfo = shippingResult.isFree 
-        ? `<span style="color: #28a745; font-weight: 600;">FREE 🎉</span>`
-        : `<span>₹${courierCharge.toFixed(2)}</span>`;
+    // Shipping info display based on delivery method
+    let shippingInfo, shippingDetails;
     
-    const shippingDetails = shippingResult.breakdown 
-        ? `<small style="color: #666; display: block; margin-top: 2px;">${shippingResult.breakdown.calculation || shippingResult.breakdown.reason || ''}</small>`
-        : '';
+    if (deliveryMethod === 'pickup') {
+        shippingInfo = `<span style="color: #28a745; font-weight: 600;">FREE 🎉</span>`;
+        shippingDetails = `<small style="color: #28a745; display: block; margin-top: 2px;">Store pickup - No delivery charge!</small>`;
+    } else {
+        shippingInfo = shippingResult.isFree 
+            ? `<span style="color: #28a745; font-weight: 600;">FREE 🎉</span>`
+            : `<span>₹${courierCharge.toFixed(2)}</span>`;
+        shippingDetails = shippingResult.breakdown 
+            ? `<small style="color: #666; display: block; margin-top: 2px;">${shippingResult.breakdown.calculation || shippingResult.breakdown.reason || ''}</small>`
+            : '';
+    }
     
     cartTotalEl.innerHTML = `
         <div class="summary-row">
@@ -145,7 +250,7 @@ async function loadCart() {
         </div>
         <div class="summary-row">
             <div>
-                <span>📦 Shipping (${totalWeight.toFixed(2)} kg)</span>
+                <span>${deliveryMethod === 'pickup' ? '🏪 Store Pickup' : '📦 Shipping'} (${totalWeight.toFixed(2)} kg)</span>
                 ${shippingDetails}
             </div>
             ${shippingInfo}
@@ -161,8 +266,180 @@ async function loadCart() {
     localStorage.setItem("courierInfo", JSON.stringify({
         totalWeight,
         courierCharge,
-        grandTotal
+        grandTotal,
+        deliveryMethod
     }));
+}
+
+/* ------------------------------
+    Update Cart Totals Only (without reloading items)
+------------------------------ */
+function updateCartTotals() {
+    const cart = getCart();
+    if (cart.length === 0) return;
+
+    let total = 0;
+    let totalWeight = 0;
+    let totalPoints = 0;
+
+    cart.forEach(item => {
+        total += item.price * item.quantity;
+        const itemWeight = (item.weight || 0.5) * item.quantity;
+        totalWeight += itemWeight;
+        totalPoints += (item.rewardPoints || 0) * item.quantity;
+    });
+
+    // Calculate shipping using the new shipping calculator
+    let shippingResult = { cost: 50, isFree: false }; // Default fallback
+    
+    if (window.shippingCalculator) {
+        shippingResult = window.shippingCalculator.calculateCartShipping(cart);
+    }
+    
+    // Update delivery method display with actual shipping costs
+    updateDeliveryChargeDisplay(shippingResult.cost);
+    
+    // Get selected delivery method
+    const deliveryMethod = getSelectedDeliveryMethod();
+    let courierCharge = deliveryMethod === 'pickup' ? 0 : shippingResult.cost;
+    
+    console.log('📦 Shipping calculation (totals only):', {
+        deliveryMethod,
+        originalShippingCost: shippingResult.cost,
+        finalCourierCharge: courierCharge,
+        isPickup: deliveryMethod === 'pickup'
+    });
+    
+    const grandTotal = total + courierCharge;
+
+    // Update cart summary with breakdown
+    const cartTotalEl = document.getElementById("cartTotal");
+    const pointsDisplay = totalPoints > 0 
+        ? `<div class="points-summary">
+               <div class="points-summary-content">
+                   <span style="font-size: 24px;">🎁</span>
+                   <span class="points-summary-title">You'll earn ${totalPoints} Points!</span>
+               </div>
+               <div class="points-summary-note">
+                   Redeem 100 points for a virtual referral
+               </div>
+           </div>`
+        : '';
+    
+    // Shipping info display based on delivery method
+    let shippingInfo, shippingDetails;
+    
+    if (deliveryMethod === 'pickup') {
+        shippingInfo = `<span style="color: #28a745; font-weight: 600;">FREE 🎉</span>`;
+        shippingDetails = `<small style="color: #28a745; display: block; margin-top: 2px;">Store pickup - No delivery charge!</small>`;
+    } else {
+        shippingInfo = shippingResult.isFree 
+            ? `<span style="color: #28a745; font-weight: 600;">FREE 🎉</span>`
+            : `<span>₹${courierCharge.toFixed(2)}</span>`;
+        shippingDetails = shippingResult.breakdown 
+            ? `<small style="color: #666; display: block; margin-top: 2px;">${shippingResult.breakdown.calculation || shippingResult.breakdown.reason || ''}</small>`
+            : '';
+    }
+    
+    if (cartTotalEl) {
+        cartTotalEl.innerHTML = `
+            <div class="summary-row">
+                <span>Subtotal (${cart.length} items)</span>
+                <span>₹${total.toFixed(2)}</span>
+            </div>
+            <div class="summary-row">
+                <div>
+                    <span>${deliveryMethod === 'pickup' ? '🏪 Store Pickup' : '📦 Shipping'} (${totalWeight.toFixed(2)} kg)</span>
+                    ${shippingDetails}
+                </div>
+                ${shippingInfo}
+            </div>
+            ${pointsDisplay}
+            <div class="summary-row total-row" style="border-top: 2px solid #eee; padding-top: 10px; margin-top: 10px; font-weight: 700; font-size: 18px;">
+                <span>Total Amount</span>
+                <span>₹${grandTotal.toFixed(2)}</span>
+            </div>
+        `;
+    }
+
+    // Store courier info for checkout
+    localStorage.setItem("courierInfo", JSON.stringify({
+        totalWeight,
+        courierCharge,
+        grandTotal,
+        deliveryMethod
+    }));
+}
+
+/* ------------------------------
+    Delivery Method Functions
+------------------------------ */
+function getSelectedDeliveryMethod() {
+    const selectedMethod = document.querySelector('input[name="deliveryMethod"]:checked');
+    const method = selectedMethod ? selectedMethod.value : 'home';
+    console.log('🚚 Selected delivery method:', method);
+    return method;
+}
+
+let deliveryListenersSetup = false; // Flag to prevent duplicate listeners
+
+function setupDeliveryMethodListeners() {
+    // Prevent setting up listeners multiple times
+    if (deliveryListenersSetup) {
+        console.log('🚚 Delivery listeners already set up, skipping...');
+        return;
+    }
+    
+    const deliveryOptions = document.querySelectorAll('input[name="deliveryMethod"]');
+    const storeInfo = document.getElementById('storeInfo');
+    
+    if (deliveryOptions.length === 0) {
+        console.log('🚚 No delivery options found, will retry later...');
+        return;
+    }
+    
+    console.log('🚚 Setting up delivery method listeners...');
+    
+    deliveryOptions.forEach(option => {
+        option.addEventListener('change', () => {
+            console.log('🚚 Delivery method changed to:', option.value);
+            
+            // Show/hide store info based on selection
+            if (option.value === 'pickup' && option.checked) {
+                if (storeInfo) storeInfo.style.display = 'block';
+            } else if (option.value === 'home' && option.checked) {
+                if (storeInfo) storeInfo.style.display = 'none';
+            }
+            
+            // Update only totals, don't reload entire cart
+            updateCartTotals();
+        });
+    });
+    
+    deliveryListenersSetup = true;
+    console.log('✅ Delivery method listeners set up successfully');
+}
+
+function updateDeliveryChargeDisplay(shippingCost) {
+    // Update the delivery method display with actual shipping costs
+    const homeDeliveryCharge = document.getElementById('homeDeliveryCharge');
+    const pickupSavings = document.getElementById('pickupSavings');
+    const homeDeliveryChargeDisplay = document.getElementById('homeDeliveryChargeDisplay');
+    const pickupSavingsDisplay = document.getElementById('pickupSavingsDisplay');
+    
+    if (homeDeliveryCharge && pickupSavings) {
+        homeDeliveryCharge.textContent = shippingCost.toFixed(0);
+        pickupSavings.textContent = shippingCost.toFixed(0);
+        
+        // Update display based on whether shipping is free
+        if (shippingCost === 0) {
+            homeDeliveryChargeDisplay.innerHTML = '<span style="color: #28a745; font-weight: 600;">FREE 🎉</span>';
+            pickupSavingsDisplay.innerHTML = '<span style="color: #28a745; font-weight: 600;">FREE</span>';
+        } else {
+            homeDeliveryChargeDisplay.innerHTML = `+ ₹<span id="homeDeliveryCharge">${shippingCost.toFixed(0)}</span>`;
+            pickupSavingsDisplay.innerHTML = `FREE (Save ₹<span id="pickupSavings">${shippingCost.toFixed(0)}</span>!)`;
+        }
+    }
 }
 
 /* ------------------------------
@@ -764,14 +1041,18 @@ async function proceedToPayment() {
             console.log("Final amount with courier:", finalAmount);
         }
         
-        // 1) Create order on backend with address, offer, and courier info
+        // Get delivery method
+        const deliveryMethod = getSelectedDeliveryMethod();
+        
+        // 1) Create order on backend with address, offer, courier info, and delivery method
         const requestPayload = { 
             amount: finalAmount, 
             items: orderItems,
             deliveryAddress: userAddress,
             appliedOffer: appliedOffer,
             courierCharge: courierCharge,
-            totalWeight: totalWeight
+            totalWeight: totalWeight,
+            deliveryMethod: deliveryMethod
         };
         
         console.log('📤 Sending create-order request with payload:');
@@ -780,6 +1061,7 @@ async function proceedToPayment() {
         console.log('   DeliveryAddress:', JSON.stringify(userAddress, null, 2));
         console.log('   CourierCharge:', courierCharge);
         console.log('   TotalWeight:', totalWeight);
+        console.log('   DeliveryMethod:', deliveryMethod);
         
         const createRes = await fetch(`${API}/payments/create-order`, {
             method: "POST",

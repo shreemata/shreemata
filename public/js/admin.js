@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadClassesAndSubjectsForFilters();
     loadBooks();
     setupEventListeners();
+    initializeStockFields(); // Initialize stock fields
 });
 
 /* AUTH CHECK */
@@ -111,6 +112,41 @@ function setupEventListeners() {
         console.log(`📷 Selected ${e.target.files.length} preview images`);
     });
 
+    // Stock tracking toggle
+    document.getElementById('trackStock').addEventListener('change', (e) => {
+        const stockFields = document.getElementById('stockFields');
+        const stockQuantity = document.getElementById('stockQuantity');
+        const lowStockThreshold = document.getElementById('lowStockThreshold');
+        
+        if (e.target.checked) {
+            stockFields.style.display = 'flex';
+            stockQuantity.required = true;
+        } else {
+            stockFields.style.display = 'none';
+            stockQuantity.required = false;
+            // Set default values for unlimited stock
+            stockQuantity.value = 999999;
+            lowStockThreshold.value = 0;
+        }
+    });
+
+    // Auto-update stock status based on quantity
+    document.getElementById('stockQuantity').addEventListener('input', (e) => {
+        const quantity = parseInt(e.target.value) || 0;
+        const threshold = parseInt(document.getElementById('lowStockThreshold').value) || 5;
+        const stockStatusEl = document.getElementById('stockStatus');
+        
+        if (quantity === 0) {
+            stockStatusEl.value = 'out_of_stock';
+        } else if (quantity <= threshold) {
+            stockStatusEl.value = 'limited_stock';
+        } else {
+            stockStatusEl.value = 'in_stock';
+        }
+        
+        console.log('📦 Auto-updated stock status:', stockStatusEl.value, 'for quantity:', quantity);
+    });
+
     document.getElementById("adminApplyFilter").addEventListener("click", () => {
         const filters = {
             class: document.getElementById("adminFilterClass").value,
@@ -120,6 +156,12 @@ function setupEventListeners() {
             maxPrice: document.getElementById("adminFilterMax").value
         };
         loadBooks(filters);
+    });
+
+    // Refresh books button
+    document.getElementById("refreshBooksBtn").addEventListener("click", () => {
+        console.log('🔄 Manual refresh triggered');
+        loadBooks();
     });
 
     document.getElementById('booksTableBody').addEventListener('click', (e) => {
@@ -212,6 +254,36 @@ function displayBooks(books) {
     mobileContainer.innerHTML = '';
 
     books.forEach(book => {
+        // Debug: Log stock data for each book
+        console.log(`📦 Book: ${book.title}`, {
+            trackStock: book.trackStock,
+            stockQuantity: book.stockQuantity,
+            stockStatus: book.stockStatus,
+            lowStockThreshold: book.lowStockThreshold
+        });
+        
+        // Get stock status display
+        const getStockStatusDisplay = (book) => {
+            if (!book.trackStock) return '<span style="color: #28a745; font-weight: 600;">✅ Available</span>';
+            
+            const quantity = book.stockQuantity || 0;
+            const threshold = book.lowStockThreshold || 5;
+            
+            switch (book.stockStatus) {
+                case 'out_of_stock':
+                    return '<span style="color: #dc3545; font-weight: 600;">❌ Out of Stock</span>';
+                case 'limited_stock':
+                    return `<span style="color: #ffc107; font-weight: 600;">⚠️ Limited (${quantity})</span>`;
+                case 'in_stock':
+                    if (quantity <= threshold) {
+                        return `<span style="color: #ffc107; font-weight: 600;">⚠️ Low Stock (${quantity})</span>`;
+                    }
+                    return `<span style="color: #28a745; font-weight: 600;">✅ In Stock (${quantity})</span>`;
+                default:
+                    return `<span style="color: #28a745; font-weight: 600;">✅ Available (${quantity})</span>`;
+            }
+        };
+
         // Desktop table row
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -221,6 +293,7 @@ function displayBooks(books) {
             <td>${book.class ? `Class ${book.class}` : 'N/A'}</td>
             <td>${book.subject || 'N/A'}</td>
             <td>₹${parseFloat(book.price).toFixed(2)}</td>
+            <td>${getStockStatusDisplay(book)}</td>
             <td>
                 <button class="btn-secondary edit-btn" data-id="${book._id}">Edit</button>
                 <button class="btn-danger delete-btn" data-id="${book._id}">Delete</button>
@@ -240,6 +313,7 @@ function displayBooks(books) {
                     <p><strong>Class:</strong> ${book.class ? `Class ${book.class}` : 'N/A'}</p>
                     <p><strong>Subject:</strong> ${book.subject || 'N/A'}</p>
                     <div class="mobile-book-price">₹${parseFloat(book.price).toFixed(2)}</div>
+                    <div style="margin-top: 8px;">${getStockStatusDisplay(book)}</div>
                 </div>
             </div>
             <div class="mobile-book-actions">
@@ -303,6 +377,13 @@ async function editBook(bookId) {
         const bookClassEl = document.getElementById('bookClass');
         const subjectEl = document.getElementById('subject');
         
+        // Stock management elements
+        const trackStockEl = document.getElementById('trackStock');
+        const stockQuantityEl = document.getElementById('stockQuantity');
+        const lowStockThresholdEl = document.getElementById('lowStockThreshold');
+        const stockStatusEl = document.getElementById('stockStatus');
+        const stockFieldsEl = document.getElementById('stockFields');
+        
         if (titleEl) titleEl.value = book.title;
         if (authorEl) authorEl.value = book.author;
         if (priceEl) priceEl.value = book.price;
@@ -311,6 +392,30 @@ async function editBook(bookId) {
         if (descriptionEl) descriptionEl.value = book.description;
         if (bookClassEl) bookClassEl.value = book.class || '';
         if (subjectEl) subjectEl.value = book.subject || '';
+
+        // Populate stock fields
+        if (trackStockEl) {
+            trackStockEl.checked = book.trackStock !== false; // Default to true if undefined
+            console.log('📦 Set trackStock checkbox to:', trackStockEl.checked);
+        }
+        if (stockQuantityEl) {
+            stockQuantityEl.value = book.stockQuantity || 10;
+            console.log('📦 Set stockQuantity to:', stockQuantityEl.value);
+        }
+        if (lowStockThresholdEl) {
+            lowStockThresholdEl.value = book.lowStockThreshold || 5;
+            console.log('📦 Set lowStockThreshold to:', lowStockThresholdEl.value);
+        }
+        if (stockStatusEl) {
+            stockStatusEl.value = book.stockStatus || 'in_stock';
+            console.log('📦 Set stockStatus to:', stockStatusEl.value);
+        }
+        
+        // Show/hide stock fields based on trackStock
+        if (stockFieldsEl && trackStockEl) {
+            stockFieldsEl.style.display = trackStockEl.checked ? 'flex' : 'none';
+            console.log('📦 Stock fields visibility:', trackStockEl.checked ? 'visible' : 'hidden');
+        }
 
         document.getElementById('addBookForm').style.display = "block";
         document.getElementById('toggleFormBtn').textContent = "Hide Form";
@@ -470,6 +575,13 @@ async function handleFormSubmit(e) {
         if (useDirectUpload && coverImageUrl) {
             // Send JSON with Cloudinary URLs
             submitBtn.textContent = 'Saving book...';
+            
+            // Get stock fields for JSON submission
+            const trackStockEl = document.getElementById('trackStock');
+            const stockQuantityEl = document.getElementById('stockQuantity');
+            const lowStockThresholdEl = document.getElementById('lowStockThreshold');
+            const stockStatusEl = document.getElementById('stockStatus');
+            
             const bookData = {
                 title,
                 author,
@@ -480,7 +592,12 @@ async function handleFormSubmit(e) {
                 weight,
                 rewardPoints,
                 cover_image: coverImageUrl,
-                preview_images: previewImageUrls
+                preview_images: previewImageUrls,
+                // Add stock fields
+                trackStock: trackStockEl ? trackStockEl.checked : true,
+                stockQuantity: stockQuantityEl ? parseInt(stockQuantityEl.value) || 0 : 10,
+                lowStockThreshold: lowStockThresholdEl ? parseInt(lowStockThresholdEl.value) || 5 : 5,
+                stockStatus: stockStatusEl ? stockStatusEl.value || 'in_stock' : 'in_stock'
             };
 
             res = await fetch(url, {
@@ -557,6 +674,24 @@ async function handleFormSubmit(e) {
             formData.append('weight', weight);
             formData.append('rewardPoints', rewardPoints);
 
+            // Add stock management fields
+            const trackStockEl = document.getElementById('trackStock');
+            const stockQuantityEl = document.getElementById('stockQuantity');
+            const lowStockThresholdEl = document.getElementById('lowStockThreshold');
+            const stockStatusEl = document.getElementById('stockStatus');
+            
+            console.log('📦 Stock fields being submitted:', {
+                trackStock: trackStockEl ? trackStockEl.checked : 'element not found',
+                stockQuantity: stockQuantityEl ? stockQuantityEl.value : 'element not found',
+                lowStockThreshold: lowStockThresholdEl ? lowStockThresholdEl.value : 'element not found',
+                stockStatus: stockStatusEl ? stockStatusEl.value : 'element not found'
+            });
+            
+            if (trackStockEl) formData.append('trackStock', trackStockEl.checked);
+            if (stockQuantityEl) formData.append('stockQuantity', stockQuantityEl.value || 0);
+            if (lowStockThresholdEl) formData.append('lowStockThreshold', lowStockThresholdEl.value || 5);
+            if (stockStatusEl) formData.append('stockStatus', stockStatusEl.value || 'in_stock');
+
             if (compressedCoverFile) {
                 console.log('📎 Adding compressed cover image:', compressedCoverFile.name, compressedCoverFile.size, 'bytes');
                 formData.append('coverImage', compressedCoverFile);
@@ -614,6 +749,13 @@ async function handleFormSubmit(e) {
         } else {
             // Edit mode without new images
             submitBtn.textContent = 'Saving book...';
+            
+            // Get stock fields for JSON submission
+            const trackStockEl = document.getElementById('trackStock');
+            const stockQuantityEl = document.getElementById('stockQuantity');
+            const lowStockThresholdEl = document.getElementById('lowStockThreshold');
+            const stockStatusEl = document.getElementById('stockStatus');
+            
             const bookData = {
                 title,
                 author,
@@ -622,8 +764,20 @@ async function handleFormSubmit(e) {
                 class: bookClass,
                 subject,
                 weight,
-                rewardPoints
+                rewardPoints,
+                // Add stock fields to JSON submission
+                trackStock: trackStockEl ? trackStockEl.checked : true,
+                stockQuantity: stockQuantityEl ? parseInt(stockQuantityEl.value) || 0 : 10,
+                lowStockThreshold: lowStockThresholdEl ? parseInt(lowStockThresholdEl.value) || 5 : 5,
+                stockStatus: stockStatusEl ? stockStatusEl.value || 'in_stock' : 'in_stock'
             };
+            
+            console.log('📦 JSON submission - stock fields included:', {
+                trackStock: bookData.trackStock,
+                stockQuantity: bookData.stockQuantity,
+                lowStockThreshold: bookData.lowStockThreshold,
+                stockStatus: bookData.stockStatus
+            });
 
             res = await fetch(url, {
                 method,
@@ -653,9 +807,19 @@ async function handleFormSubmit(e) {
         const data = await res.json();
 
         if (res.ok) {
+            console.log('✅ Book update successful:', data);
+            
             alert(data.message);
             resetForm();
-            loadBooks();
+            
+            // Force reload books to show updated stock status
+            console.log('🔄 Reloading books to show updated stock status...');
+            await loadBooks();
+            
+            // Also hide the form after successful update
+            document.getElementById('addBookForm').style.display = "none";
+            document.getElementById('toggleFormBtn').textContent = "Show Form";
+            
             // Refresh filters to include new class/subject
             loadClassesAndSubjectsForFilters();
         } else {
@@ -675,7 +839,40 @@ function resetForm() {
     isEditMode = false;
     editingBookId = null;
     document.getElementById('bookForm').reset();
+    
+    // Reset stock fields to defaults
+    const trackStockEl = document.getElementById('trackStock');
+    const stockQuantityEl = document.getElementById('stockQuantity');
+    const lowStockThresholdEl = document.getElementById('lowStockThreshold');
+    const stockStatusEl = document.getElementById('stockStatus');
+    const stockFieldsEl = document.getElementById('stockFields');
+    
+    if (trackStockEl) trackStockEl.checked = true;
+    if (stockQuantityEl) stockQuantityEl.value = 10;
+    if (lowStockThresholdEl) lowStockThresholdEl.value = 5;
+    if (stockStatusEl) stockStatusEl.value = 'in_stock';
+    if (stockFieldsEl) stockFieldsEl.style.display = 'flex';
+    
     document.getElementById('submitBtn').textContent = "Add Book";
+}
+
+/* INITIALIZE STOCK FIELDS */
+function initializeStockFields() {
+    console.log('📦 Initializing stock fields...');
+    
+    const trackStockEl = document.getElementById('trackStock');
+    const stockFieldsEl = document.getElementById('stockFields');
+    
+    if (trackStockEl && stockFieldsEl) {
+        // Set initial state based on checkbox
+        stockFieldsEl.style.display = trackStockEl.checked ? 'flex' : 'none';
+        console.log('📦 Stock fields initialized. Visible:', trackStockEl.checked);
+    } else {
+        console.warn('📦 Stock field elements not found:', {
+            trackStock: !!trackStockEl,
+            stockFields: !!stockFieldsEl
+        });
+    }
 }
 
 

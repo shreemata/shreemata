@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadOrders();
     loadAddress();
     loadPoints();
+    loadStoreDetailsForAccount(); // Load store details
 
     document.getElementById("logoutBtn").addEventListener("click", logout);
     document.getElementById("addressForm").addEventListener("submit", saveAddress);
@@ -392,4 +393,92 @@ async function redeemVirtualReferral() {
         console.error("Redeem error:", err);
         alert("Error redeeming points");
     }
+}
+/* ------------------------------
+    Load Store Details for Account Page
+------------------------------ */
+async function loadStoreDetailsForAccount() {
+    console.log('🔍 Loading store details for account page...');
+    
+    // Default fallback values
+    const defaultStoreDetails = {
+        storeName: 'Shri Mata Book Store',
+        storeAddress: 'Main Road, Your City',
+        storeHours: 'Mon-Sat 10AM-8PM, Sun 11AM-6PM',
+        storePhone: '+91 9449171605',
+        pickupInstructions: "We'll call you when your order is ready for pickup!",
+        storeMapLink: ''
+    };
+    
+    try {
+        const API = window.API_URL || '';
+        console.log('🔍 API URL:', API);
+        console.log('🔍 Fetching from:', `${API}/store-details`);
+        
+        const response = await fetch(`${API}/store-details`);
+        console.log('🔍 Response status:', response.status);
+        
+        if (response.ok) {
+            const storeDetails = await response.json();
+            console.log('🏪 Store details received:', storeDetails);
+            
+            // Update store details in the account page
+            const storeNameEl = document.getElementById('accountStoreName');
+            const storeAddressEl = document.getElementById('accountStoreAddress');
+            const storeHoursEl = document.getElementById('accountStoreHours');
+            const storePhoneEl = document.getElementById('accountStorePhone');
+            const storePhoneLinkEl = document.getElementById('accountStorePhoneLink');
+            const pickupInstructionsEl = document.getElementById('accountPickupInstructions');
+            
+            if (storeNameEl) storeNameEl.textContent = storeDetails.storeName || defaultStoreDetails.storeName;
+            if (storeAddressEl) storeAddressEl.textContent = storeDetails.storeAddress || defaultStoreDetails.storeAddress;
+            if (storeHoursEl) storeHoursEl.textContent = storeDetails.storeHours || defaultStoreDetails.storeHours;
+            if (storePhoneEl) storePhoneEl.textContent = storeDetails.storePhone || defaultStoreDetails.storePhone;
+            if (storePhoneLinkEl) storePhoneLinkEl.href = `tel:${storeDetails.storePhone || defaultStoreDetails.storePhone}`;
+            if (pickupInstructionsEl) pickupInstructionsEl.textContent = storeDetails.pickupInstructions || defaultStoreDetails.pickupInstructions;
+            
+            // Handle map link
+            const mapLinkContainer = document.getElementById('accountMapLinkContainer');
+            const mapLinkButton = document.getElementById('accountMapLinkButton');
+            
+            if (mapLinkContainer && mapLinkButton) {
+                if (storeDetails.storeMapLink && storeDetails.storeMapLink.trim()) {
+                    mapLinkButton.href = storeDetails.storeMapLink;
+                    mapLinkContainer.style.display = 'block';
+                } else {
+                    mapLinkContainer.style.display = 'none';
+                }
+            }
+            
+            console.log('✅ Store details loaded successfully for account page');
+        } else {
+            console.warn('⚠️ Failed to load store details for account page, response not ok:', response.status);
+            loadDefaultStoreDetailsForAccount(defaultStoreDetails);
+        }
+    } catch (error) {
+        console.error('❌ Error loading store details for account page:', error);
+        loadDefaultStoreDetailsForAccount(defaultStoreDetails);
+    }
+}
+
+function loadDefaultStoreDetailsForAccount(defaultStoreDetails) {
+    console.log('🔄 Loading default store details for account page...');
+    
+    const storeNameEl = document.getElementById('accountStoreName');
+    const storeAddressEl = document.getElementById('accountStoreAddress');
+    const storeHoursEl = document.getElementById('accountStoreHours');
+    const storePhoneEl = document.getElementById('accountStorePhone');
+    const storePhoneLinkEl = document.getElementById('accountStorePhoneLink');
+    const pickupInstructionsEl = document.getElementById('accountPickupInstructions');
+    const mapLinkContainer = document.getElementById('accountMapLinkContainer');
+    
+    if (storeNameEl) storeNameEl.textContent = defaultStoreDetails.storeName;
+    if (storeAddressEl) storeAddressEl.textContent = defaultStoreDetails.storeAddress;
+    if (storeHoursEl) storeHoursEl.textContent = defaultStoreDetails.storeHours;
+    if (storePhoneEl) storePhoneEl.textContent = defaultStoreDetails.storePhone;
+    if (storePhoneLinkEl) storePhoneLinkEl.href = `tel:${defaultStoreDetails.storePhone}`;
+    if (pickupInstructionsEl) pickupInstructionsEl.textContent = defaultStoreDetails.pickupInstructions;
+    if (mapLinkContainer) mapLinkContainer.style.display = 'none';
+    
+    console.log('✅ Default store details loaded for account page');
 }

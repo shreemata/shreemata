@@ -268,6 +268,83 @@ main {
     background-color: #d5d9dd;
 }
 
+.btn-disabled {
+    background-color: #6c757d !important;
+    color: #ffffff !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    transition: none;
+}
+
+.btn-disabled:hover {
+    background-color: #6c757d !important;
+    transform: none !important;
+}
+
+/* Stock Overlay Stickers */
+.book-image-container {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.stock-overlay {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    transform: rotate(15deg);
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(2px);
+    animation: stockPulse 2s infinite;
+}
+
+.stock-overlay.out-of-stock {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    border-color: #fff;
+}
+
+.stock-overlay.limited-stock {
+    background: linear-gradient(135deg, #ffc107, #e0a800);
+    color: #856404;
+    border-color: #fff;
+}
+
+.stock-overlay span {
+    display: block;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes stockPulse {
+    0%, 100% {
+        transform: rotate(15deg) scale(1);
+    }
+    50% {
+        transform: rotate(15deg) scale(1.05);
+    }
+}
+
+/* Hover effect for stock overlay */
+.book-card:hover .stock-overlay {
+    transform: rotate(0deg) scale(1.1);
+    transition: all 0.3s ease;
+}
+
 .btn-large {
     padding: 15px 30px;
     font-size: 16px;
@@ -1276,6 +1353,20 @@ footer {
     /* Add touch feedback */
     .btn:active, .btn-primary:active, .btn-secondary:active {
         transform: scale(0.98);
+    }
+
+    /* Mobile stock overlay adjustments */
+    .stock-overlay {
+        top: 6px;
+        right: 6px;
+        font-size: 9px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        transform: rotate(12deg);
+    }
+
+    .book-card:hover .stock-overlay {
+        transform: rotate(12deg) scale(1.05);
     }
 }
 

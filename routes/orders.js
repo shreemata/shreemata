@@ -99,6 +99,41 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
                 );
                 console.log("✅ Commission distribution completed:", commissionTransaction._id);
                 
+                // Reduce stock for completed orders
+                console.log("📦 Reducing stock for completed order items...");
+                const Book = require("../models/Book");
+                const Bundle = require("../models/Bundle");
+                
+                for (const item of order.items) {
+                    try {
+                        if (item.type === 'book') {
+                            const book = await Book.findById(item.id);
+                            if (book && book.trackStock) {
+                                book.reduceStock(item.quantity);
+                                await book.save();
+                                console.log(`📦 Reduced stock for book ${book.title}: ${item.quantity} units`);
+                            }
+                        } else if (item.type === 'bundle') {
+                            const bundle = await Bundle.findById(item.id);
+                            if (bundle && bundle.books) {
+                                // Reduce stock for each book in the bundle
+                                for (const bundleBook of bundle.books) {
+                                    const book = await Book.findById(bundleBook._id || bundleBook.id);
+                                    if (book && book.trackStock) {
+                                        book.reduceStock(item.quantity);
+                                        await book.save();
+                                        console.log(`📦 Reduced stock for bundle book ${book.title}: ${item.quantity} units`);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (stockError) {
+                        console.error(`❌ Error reducing stock for item ${item.id}:`, stockError);
+                        // Continue with other items even if one fails
+                    }
+                }
+                console.log("✅ Stock reduction completed for order:", order._id);
+                
                 // Mark reward as applied
                 order.rewardApplied = true;
                 await order.save();

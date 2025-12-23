@@ -319,6 +319,53 @@
             box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
         }
 
+        /* ---------- Delivery Method Styles ---------- */
+        .delivery-method-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .delivery-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .delivery-option:hover {
+            border-color: #ff6f61;
+            box-shadow: 0 2px 8px rgba(255, 111, 97, 0.1);
+        }
+
+        .delivery-option:has(input:checked) {
+            border-color: #ff6f61;
+            background: rgba(255, 111, 97, 0.05);
+        }
+
+        .delivery-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #ff6f61;
+        }
+
+        .delivery-option input[value="pickup"] {
+            accent-color: #28a745;
+        }
+
+        .delivery-option:has(input[value="pickup"]:checked) {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.05);
+        }
+
         /* ---------- Cart Summary ---------- */
         .cart-summary {
             background: rgba(255, 255, 255, 0.9);
@@ -1333,6 +1380,48 @@
             <!-- Right Side - Fixed Billing Summary -->
             <div class="cart-summary" id="cartSummary">
                 <h3 class="summary-title">📋 Order Summary</h3>
+                
+                <!-- Delivery Method Selection -->
+                <div class="delivery-method-section" style="margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 12px; border: 2px solid #e0e0e0;">
+                    <h4 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #333;">🚚 Delivery Method</h4>
+                    
+                    <div class="delivery-options">
+                        <label class="delivery-option" style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;">
+                            <input type="radio" name="deliveryMethod" value="home" checked style="width: 18px; height: 18px; accent-color: #ff6f61;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: #333; font-size: 14px;">🏠 Home Delivery</div>
+                                <div style="font-size: 12px; color: #666;">Delivered to your address</div>
+                            </div>
+                            <div style="font-weight: 600; color: #ff6f61;" id="homeDeliveryChargeDisplay">+ ₹<span id="homeDeliveryCharge">0</span></div>
+                        </label>
+                        
+                        <label class="delivery-option" style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; transition: all 0.3s ease;">
+                            <input type="radio" name="deliveryMethod" value="pickup" style="width: 18px; height: 18px; accent-color: #28a745;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: #333; font-size: 14px;">🏪 Store Pickup</div>
+                                <div style="font-size: 12px; color: #666;">Collect from our store</div>
+                            </div>
+                            <div style="font-weight: 600; color: #28a745;" id="pickupSavingsDisplay">FREE (Save ₹<span id="pickupSavings">0</span>!)</div>
+                        </label>
+                    </div>
+                    
+                    <!-- Store Information (shown when pickup is selected) -->
+                    <div id="storeInfo" style="display: none; margin-top: 15px; padding: 15px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #28a745;">
+                        <h5 style="margin: 0 0 8px 0; color: #155724; font-size: 14px; font-weight: 600;">📍 Store Details</h5>
+                        <div id="storeDetailsContent" style="font-size: 13px; color: #155724; line-height: 1.4;">
+                            <div><strong>Address:</strong> <span id="storeAddressDisplay">Loading...</span></div>
+                            <div><strong>Hours:</strong> <span id="storeHoursDisplay">Loading...</span></div>
+                            <div><strong>Phone:</strong> <span id="storePhoneDisplay">Loading...</span></div>
+                            <div style="margin-top: 8px; font-weight: 600;" id="pickupInstructionsDisplay">Loading...</div>
+                            <div id="mapLinkContainer" style="margin-top: 10px; display: none;">
+                                <a id="mapLinkButton" href="#" target="_blank" style="display: inline-block; background: #28a745; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; transition: all 0.3s ease;">
+                                    🗺️ View Store on Map
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div id="cartTotal"></div>
                 <button id="checkoutBtn" class="checkout-btn">
                     🔒 Secure Checkout

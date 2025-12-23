@@ -39,6 +39,29 @@ router.get("/shipping-settings", async (req, res) => {
 });
 
 /* -------------------------------------------
+   GET /api/store-details
+   Get store details for pickup (public endpoint)
+--------------------------------------------*/
+router.get("/store-details", async (req, res) => {
+  try {
+    const settings = await CommissionSettings.getSettings();
+    
+    // Only return store-related settings, not commission data
+    res.json({ 
+      storeName: settings.storeName,
+      storeAddress: settings.storeAddress,
+      storePhone: settings.storePhone,
+      storeHours: settings.storeHours,
+      pickupInstructions: settings.pickupInstructions,
+      storeMapLink: settings.storeMapLink
+    });
+  } catch (err) {
+    console.error("Error fetching store details:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+/* -------------------------------------------
    PUT /api/admin/commission-settings
    Update commission settings
 --------------------------------------------*/
@@ -56,6 +79,12 @@ router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) 
       baseShippingCharge,
       shippingRatePerKg,
       freeShippingThreshold,
+      storeName,
+      storeAddress,
+      storePhone,
+      storeHours,
+      pickupInstructions,
+      storeMapLink,
       treeCommissionLevels
     } = req.body;
     
@@ -94,6 +123,24 @@ router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) 
     }
     if (freeShippingThreshold !== undefined) {
       settings.freeShippingThreshold = freeShippingThreshold;
+    }
+    if (storeName !== undefined) {
+      settings.storeName = storeName;
+    }
+    if (storeAddress !== undefined) {
+      settings.storeAddress = storeAddress;
+    }
+    if (storePhone !== undefined) {
+      settings.storePhone = storePhone;
+    }
+    if (storeHours !== undefined) {
+      settings.storeHours = storeHours;
+    }
+    if (pickupInstructions !== undefined) {
+      settings.pickupInstructions = pickupInstructions;
+    }
+    if (storeMapLink !== undefined) {
+      settings.storeMapLink = storeMapLink;
     }
     
     console.log('💾 Settings after update:', {

@@ -246,16 +246,63 @@ function createBookCard(book) {
            </div>`
         : '';
 
+    // Create stock status overlay sticker
+    const getStockOverlay = (book) => {
+        console.log('🔍 Stock badge for book:', book.title, {
+            trackStock: book.trackStock,
+            stockQuantity: book.stockQuantity,
+            stockStatus: book.stockStatus,
+            lowStockThreshold: book.lowStockThreshold
+        });
+        
+        if (!book.trackStock) return ''; // No badge for unlimited stock
+        
+        const quantity = book.stockQuantity || 0;
+        const threshold = book.lowStockThreshold || 5;
+        
+        switch (book.stockStatus) {
+            case 'out_of_stock':
+                return `<div class="stock-overlay out-of-stock">
+                           <span>❌ OUT OF STOCK</span>
+                       </div>`;
+            case 'limited_stock':
+                return `<div class="stock-overlay limited-stock">
+                           <span>⚠️ ONLY ${quantity} LEFT!</span>
+                       </div>`;
+            case 'in_stock':
+                if (quantity <= threshold) {
+                    return `<div class="stock-overlay limited-stock">
+                               <span>⚠️ ONLY ${quantity} LEFT!</span>
+                           </div>`;
+                }
+                return ''; // No badge for normal stock levels
+            default:
+                return '';
+        }
+    };
+
+    const stockOverlay = getStockOverlay(book);
+    const isOutOfStock = book.trackStock && book.stockStatus === 'out_of_stock';
+
     card.innerHTML = `
-        <img src="${coverImage}" class="book-cover" />
+        <div class="book-image-container">
+            <img src="${coverImage}" class="book-cover" />
+            ${stockOverlay}
+        </div>
         <h3>${book.title}</h3>
         <p class="book-author">by ${book.author}</p>
         <p class="book-price">₹${parseFloat(book.price).toFixed(2)}</p>
         ${pointsBadge}
         <div class="book-actions">
             <button class="btn-secondary" onclick="previewBook('${book._id}')">Preview</button>
-            <button class="btn-primary" onclick="handleBuyClick('${book._id}')">Buy</button>
-            <button class="btn-secondary cart-btn" data-id="${book._id}">Add to Cart</button>
+            ${isOutOfStock 
+                ? '<button class="btn-disabled" disabled style="background: #6c757d; cursor: not-allowed;">Out of Stock</button>'
+                : `<button class="btn-primary" onclick="handleBuyClick('${book._id}')">Buy</button>`
+            }
+            ${isOutOfStock 
+                ? '<button class="btn-disabled cart-btn" disabled style="background: #6c757d; cursor: not-allowed;" data-id="' + book._id + '">Out of Stock</button>'
+                : `<button class="btn-secondary cart-btn" data-id="${book._id}">Add to Cart</button>`
+            }
         </div>
     `;
     return card;
@@ -417,6 +464,12 @@ function updateCartCount() {
 --------------------------------*/
 document.addEventListener("click", (e) => {
     if (e.target.classList.contains("cart-btn")) {
+        // Check if button is disabled (out of stock)
+        if (e.target.disabled) {
+            alert("This book is currently out of stock!");
+            return;
+        }
+
         const bookId = e.target.dataset.id;
         const card = e.target.closest(".book-card");
 
@@ -429,6 +482,13 @@ document.addEventListener("click", (e) => {
 
         if (cart.find((item) => item.id === bookId)) {
             return alert("Already in cart!");
+        }
+
+        // Additional stock validation by checking the book data
+        const book = allBooks.find(b => b._id === bookId);
+        if (book && book.trackStock && book.stockStatus === 'out_of_stock') {
+            alert("This book is currently out of stock!");
+            return;
         }
 
         cart.push({ id: bookId, title, author, price, coverImage, quantity: 1 });
@@ -678,6 +738,14 @@ async function loadBooksWithFilters() {
             allBooks = data.books;
             filteredBooks = [...allBooks];
             totalBooks = allBooks.length;
+            
+            console.log('📚 Books loaded:', totalBooks);
+            console.log('📦 Sample book stock data:', allBooks[0] ? {
+                title: allBooks[0].title,
+                trackStock: allBooks[0].trackStock,
+                stockQuantity: allBooks[0].stockQuantity,
+                stockStatus: allBooks[0].stockStatus
+            } : 'No books');
             
             displayPaginatedBooks();
             updatePaginationUI();

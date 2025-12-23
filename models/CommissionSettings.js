@@ -84,6 +84,37 @@ const commissionSettingsSchema = new mongoose.Schema({
     min: 0
   },
   
+  // Store Details for Pickup
+  storeName: {
+    type: String,
+    default: 'Shri Mata Book Store'
+  },
+  
+  storeAddress: {
+    type: String,
+    default: 'Main Road, Your City'
+  },
+  
+  storePhone: {
+    type: String,
+    default: '+91 9449171605'
+  },
+  
+  storeHours: {
+    type: String,
+    default: 'Mon-Sat 10AM-8PM, Sun 11AM-6PM'
+  },
+  
+  pickupInstructions: {
+    type: String,
+    default: "We'll call you when your order is ready for pickup!"
+  },
+  
+  storeMapLink: {
+    type: String,
+    default: ''
+  },
+  
   // Last updated by
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -110,6 +141,11 @@ commissionSettingsSchema.statics.getSettings = async function() {
       baseShippingCharge: 50,
       shippingRatePerKg: 25,
       freeShippingThreshold: 500,
+      storeName: 'Shri Mata Book Store',
+      storeAddress: 'Main Road, Your City',
+      storePhone: '+91 9449171605',
+      storeHours: 'Mon-Sat 10AM-8PM, Sun 11AM-6PM',
+      pickupInstructions: "We'll call you when your order is ready for pickup!",
       treeCommissionLevels: [
         { level: 1, percentage: 1.5 },
         { level: 2, percentage: 0.75 },

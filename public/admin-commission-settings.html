@@ -327,6 +327,40 @@
                             <small style="color: #666;">Order value for free shipping (0 = disabled)</small>
                         </div>
                     </div>
+
+                    <div class="setting-card">
+                        <h3>🏪 Store Details</h3>
+                        <div class="form-group">
+                            <label>Store Name</label>
+                            <input type="text" id="storeName" placeholder="Shri Mata Book Store">
+                            <small style="color: #666;">Name displayed to customers</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Store Address</label>
+                            <input type="text" id="storeAddress" placeholder="Main Road, Your City">
+                            <small style="color: #666;">Full store address for pickup</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Store Phone</label>
+                            <input type="text" id="storePhone" placeholder="+91 9449171605">
+                            <small style="color: #666;">Contact number for customers</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Store Hours</label>
+                            <input type="text" id="storeHours" placeholder="Mon-Sat 10AM-8PM, Sun 11AM-6PM">
+                            <small style="color: #666;">Operating hours for pickup</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Pickup Instructions</label>
+                            <input type="text" id="pickupInstructions" placeholder="We'll call you when your order is ready for pickup!">
+                            <small style="color: #666;">Message shown to customers choosing pickup</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Store Map Link</label>
+                            <input type="url" id="storeMapLink" placeholder="https://maps.google.com/...">
+                            <small style="color: #666;">Google Maps or other map link for customers to find your store</small>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="setting-card" style="margin: 20px 0;">
@@ -392,10 +426,24 @@
                 document.getElementById("shippingPerKg").value = currentSettings.shippingRatePerKg !== undefined ? currentSettings.shippingRatePerKg : 25;
                 document.getElementById("freeShippingThreshold").value = currentSettings.freeShippingThreshold !== undefined ? currentSettings.freeShippingThreshold : 500;
                 
+                // Load store details
+                document.getElementById("storeName").value = currentSettings.storeName || "Shri Mata Book Store";
+                document.getElementById("storeAddress").value = currentSettings.storeAddress || "Main Road, Your City";
+                document.getElementById("storePhone").value = currentSettings.storePhone || "+91 9449171605";
+                document.getElementById("storeHours").value = currentSettings.storeHours || "Mon-Sat 10AM-8PM, Sun 11AM-6PM";
+                document.getElementById("pickupInstructions").value = currentSettings.pickupInstructions || "We'll call you when your order is ready for pickup!";
+                document.getElementById("storeMapLink").value = currentSettings.storeMapLink || "";
+                
                 console.log('🚚 Shipping settings loaded:', {
                     baseShipping: currentSettings.baseShippingCharge,
                     shippingPerKg: currentSettings.shippingRatePerKg,
                     freeShippingThreshold: currentSettings.freeShippingThreshold
+                });
+                
+                console.log('🏪 Store details loaded:', {
+                    storeName: currentSettings.storeName,
+                    storeAddress: currentSettings.storeAddress,
+                    storePhone: currentSettings.storePhone
                 });
 
                 renderTreeLevels();
@@ -469,6 +517,12 @@
                     baseShippingCharge: baseShippingValue !== '' ? parseFloat(baseShippingValue) : 50,
                     shippingRatePerKg: shippingPerKgValue !== '' ? parseFloat(shippingPerKgValue) : 25,
                     freeShippingThreshold: freeShippingValue !== '' ? parseFloat(freeShippingValue) : 0,
+                    storeName: document.getElementById("storeName").value.trim() || "Shri Mata Book Store",
+                    storeAddress: document.getElementById("storeAddress").value.trim() || "Main Road, Your City",
+                    storePhone: document.getElementById("storePhone").value.trim() || "+91 9449171605",
+                    storeHours: document.getElementById("storeHours").value.trim() || "Mon-Sat 10AM-8PM, Sun 11AM-6PM",
+                    pickupInstructions: document.getElementById("pickupInstructions").value.trim() || "We'll call you when your order is ready for pickup!",
+                    storeMapLink: document.getElementById("storeMapLink").value.trim() || "",
                     treeCommissionLevels: treeLevels
                 };
 

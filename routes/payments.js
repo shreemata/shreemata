@@ -129,7 +129,7 @@ async function applyReferralRewardForOrder(order) {
 // =====================================================
 router.post("/create-order", authenticateToken, async (req, res) => {
   try {
-    const { amount, items, deliveryAddress, appliedOffer, courierCharge, totalWeight } = req.body;
+    const { amount, items, deliveryAddress, appliedOffer, courierCharge, totalWeight, deliveryMethod } = req.body;
 
     console.log("Create order request:", { 
       amount, 
@@ -212,6 +212,79 @@ router.post("/create-order", authenticateToken, async (req, res) => {
 
     console.log("✅ Delivery address validation passed");
 
+    // 📦 STOCK VALIDATION - Check if all items are available
+    console.log("📦 Validating stock availability for order items...");
+    const Book = require("../models/Book");
+    const Bundle = require("../models/Bundle");
+    
+    for (const item of items) {
+      try {
+        if (item.type === 'book') {
+          const book = await Book.findById(item.id);
+          if (!book) {
+            return res.status(400).json({ 
+              error: "Book not found",
+              message: `The book "${item.title}" is no longer available`
+            });
+          }
+          
+          // Check stock availability
+          if (book.trackStock) {
+            if (book.stockStatus === 'out_of_stock' || book.stockQuantity < item.quantity) {
+              return res.status(400).json({ 
+                error: "Insufficient stock",
+                message: `Sorry, "${book.title}" is ${book.stockStatus === 'out_of_stock' ? 'out of stock' : `only available in quantity of ${book.stockQuantity}`}. Please update your cart.`,
+                outOfStockItem: {
+                  id: book._id,
+                  title: book.title,
+                  availableQuantity: book.stockQuantity,
+                  requestedQuantity: item.quantity
+                }
+              });
+            }
+          }
+        } else if (item.type === 'bundle') {
+          const bundle = await Bundle.findById(item.id).populate('books');
+          if (!bundle) {
+            return res.status(400).json({ 
+              error: "Bundle not found",
+              message: `The bundle "${item.title}" is no longer available`
+            });
+          }
+          
+          // Check stock for each book in the bundle
+          if (bundle.books) {
+            for (const bundleBook of bundle.books) {
+              const book = await Book.findById(bundleBook._id || bundleBook.id);
+              if (book && book.trackStock) {
+                if (book.stockStatus === 'out_of_stock' || book.stockQuantity < item.quantity) {
+                  return res.status(400).json({ 
+                    error: "Insufficient stock in bundle",
+                    message: `Sorry, the book "${book.title}" in bundle "${bundle.title}" is ${book.stockStatus === 'out_of_stock' ? 'out of stock' : `only available in quantity of ${book.stockQuantity}`}. Please update your cart.`,
+                    outOfStockItem: {
+                      bundleId: bundle._id,
+                      bundleTitle: bundle.title,
+                      bookId: book._id,
+                      bookTitle: book.title,
+                      availableQuantity: book.stockQuantity,
+                      requestedQuantity: item.quantity
+                    }
+                  });
+                }
+              }
+            }
+          }
+        }
+      } catch (stockError) {
+        console.error(`❌ Error validating stock for item ${item.id}:`, stockError);
+        return res.status(500).json({ 
+          error: "Stock validation failed",
+          message: "Unable to verify stock availability. Please try again."
+        });
+      }
+    }
+    console.log("✅ Stock validation passed - all items available");
+
     const options = {
       amount: Math.round(amount * 100),
       currency: "INR",
@@ -265,6 +338,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       totalAmount: amount,
       courierCharge: courierCharge || 0,
       totalWeight: totalWeight || 0,
+      deliveryMethod: deliveryMethod || 'home', // Add delivery method
       appliedOffer: offerData,
       deliveryAddress: addressData,
       status: "pending",

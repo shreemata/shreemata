@@ -775,6 +775,45 @@
                                 </div>
                             </div>
 
+                            <!-- Stock Management Section -->
+                            <div class="form-section" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+                                <h3 style="margin: 0 0 15px 0; color: #155724; display: flex; align-items: center; gap: 8px;">
+                                    📦 Stock Management
+                                </h3>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="trackStock" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                            <input type="checkbox" id="trackStock" name="trackStock" checked style="width: 18px; height: 18px;">
+                                            Track Stock for this Book
+                                        </label>
+                                        <small>Uncheck if this book has unlimited availability</small>
+                                    </div>
+                                </div>
+                                
+                                <div id="stockFields" class="form-row">
+                                    <div class="form-group">
+                                        <label for="stockQuantity">Stock Quantity *</label>
+                                        <input type="number" id="stockQuantity" name="stockQuantity" min="0" value="10" placeholder="10">
+                                        <small>Current number of books available</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="lowStockThreshold">Low Stock Alert</label>
+                                        <input type="number" id="lowStockThreshold" name="lowStockThreshold" min="0" value="5" placeholder="5">
+                                        <small>Alert when stock falls below this number</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="stockStatus">Stock Status</label>
+                                        <select id="stockStatus" name="stockStatus" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                            <option value="in_stock">In Stock</option>
+                                            <option value="limited_stock">Limited Stock</option>
+                                            <option value="out_of_stock">Out of Stock</option>
+                                        </select>
+                                        <small>Manual override for stock status</small>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="form-group">
                                 <label for="description">Description</label>
                                 <textarea id="description" name="description" rows="4" placeholder="Enter book description"></textarea>
@@ -853,7 +892,12 @@
                 </div>
 
                 <div class="admin-section">
-                    <h2>All Books</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2>All Books</h2>
+                        <button id="refreshBooksBtn" class="btn-secondary" style="padding: 8px 16px; font-size: 14px;">
+                            🔄 Refresh
+                        </button>
+                    </div>
 
 <div class="admin-filter-row">
     <label>Class</label>
@@ -889,6 +933,7 @@
                                     <th>Class</th>
                                     <th>Subject</th>
                                     <th>Price</th>
+                                    <th>Stock Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>

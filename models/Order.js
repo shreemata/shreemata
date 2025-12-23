@@ -20,6 +20,13 @@ const orderSchema = new mongoose.Schema({
     // Courier Charges
     courierCharge: { type: Number, default: 0 },
     totalWeight: { type: Number, default: 0 },
+    
+    // Delivery Method
+    deliveryMethod: { 
+        type: String, 
+        enum: ["home", "pickup"], 
+        default: "home" 
+    },
 
     // Applied Offer Details
     appliedOffer: {
@@ -35,7 +42,8 @@ const orderSchema = new mongoose.Schema({
     // Delivery Address
     deliveryAddress: {
         street: String,
-        city: String,
+        taluk: String,
+        district: String,
         state: String,
         pincode: String,
         phone: String
