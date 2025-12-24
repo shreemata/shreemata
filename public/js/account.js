@@ -402,7 +402,7 @@ async function loadStoreDetailsForAccount() {
     
     // Default fallback values
     const defaultStoreDetails = {
-        storeName: 'Shri Mata Book Store',
+        storeName: 'Shree Mata',
         storeAddress: 'Main Road, Your City',
         storeHours: 'Mon-Sat 10AM-8PM, Sun 11AM-6PM',
         storePhone: '+91 9449171605',

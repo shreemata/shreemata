@@ -5,7 +5,7 @@
 
 // Admin navigation configuration
 const adminNavConfig = {
-    title: "📚 BookStore Admin",
+    title: "📚 Shree Mata Admin",
     links: [
         { href: "/", icon: "🏠", text: "Home" },
         { href: "/admin.html", icon: "📚", text: "Books", id: "books", title: "Manage Books" },
@@ -537,7 +537,7 @@ function setupBackButton(currentPageId) {
 function updatePageTitle(currentPageId) {
     const currentPage = adminNavConfig.links.find(link => link.id === currentPageId);
     if (currentPage && currentPage.title) {
-        document.title = `${currentPage.title} - BookStore Admin`;
+        document.title = `${currentPage.title} - Shree Mata Admin`;
         
         // Also update any existing page headers
         const pageHeaders = document.querySelectorAll('h1');

@@ -226,7 +226,7 @@
         <div class="container">
             <div class="nav-content">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 40px; height: 40px; border-radius: 50%;"
+                    <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 40px; height: 40px; border-radius: 50%;">
                     <h1 style="margin: 0;">Shree Mata Admin</h1>
                 </div>
                 <div class="user-info">
@@ -332,7 +332,7 @@
                         <h3>🏪 Store Details</h3>
                         <div class="form-group">
                             <label>Store Name</label>
-                            <input type="text" id="storeName" placeholder="Shri Mata Book Store">
+                            <input type="text" id="storeName" placeholder="Shree Mata">
                             <small style="color: #666;">Name displayed to customers</small>
                         </div>
                         <div class="form-group">
@@ -380,7 +380,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2024 BookStore. All rights reserved.</p>
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
         </div>
     </footer>
 
@@ -427,7 +427,7 @@
                 document.getElementById("freeShippingThreshold").value = currentSettings.freeShippingThreshold !== undefined ? currentSettings.freeShippingThreshold : 500;
                 
                 // Load store details
-                document.getElementById("storeName").value = currentSettings.storeName || "Shri Mata Book Store";
+                document.getElementById("storeName").value = currentSettings.storeName || "Shree Mata";
                 document.getElementById("storeAddress").value = currentSettings.storeAddress || "Main Road, Your City";
                 document.getElementById("storePhone").value = currentSettings.storePhone || "+91 9449171605";
                 document.getElementById("storeHours").value = currentSettings.storeHours || "Mon-Sat 10AM-8PM, Sun 11AM-6PM";
@@ -517,7 +517,7 @@
                     baseShippingCharge: baseShippingValue !== '' ? parseFloat(baseShippingValue) : 50,
                     shippingRatePerKg: shippingPerKgValue !== '' ? parseFloat(shippingPerKgValue) : 25,
                     freeShippingThreshold: freeShippingValue !== '' ? parseFloat(freeShippingValue) : 0,
-                    storeName: document.getElementById("storeName").value.trim() || "Shri Mata Book Store",
+                    storeName: document.getElementById("storeName").value.trim() || "Shree Mata",
                     storeAddress: document.getElementById("storeAddress").value.trim() || "Main Road, Your City",
                     storePhone: document.getElementById("storePhone").value.trim() || "+91 9449171605",
                     storeHours: document.getElementById("storeHours").value.trim() || "Mon-Sat 10AM-8PM, Sun 11AM-6PM",

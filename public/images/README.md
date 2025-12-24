@@ -27,4 +27,4 @@ If you want to use `logo.png` instead of `logo.svg`, find and replace:
 - `public/admin-commission-settings.html` - Admin navigation
 - `public/admin-referral-tree-visual.html` - Admin navigation
 
-Your beautiful circular logo with "SHRI MATA" text and the book design will look great across all pages!
+Your beautiful circular logo with "SHREE MATA" text and the book design will look great across all pages!

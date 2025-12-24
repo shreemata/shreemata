@@ -37,6 +37,6 @@
   <!-- Main "sm" text -->
   <text x="100" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="url(#textGradient)">sm</text>
   
-  <!-- "SHRI MATA" text -->
-  <text x="100" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#4a90e2" letter-spacing="2px">SHRI MATA</text>
+  <!-- "SHREE MATA" text -->
+  <text x="100" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#4a90e2" letter-spacing="2px">SHREE MATA</text>
 </svg>

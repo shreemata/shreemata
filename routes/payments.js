@@ -147,14 +147,20 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "Items must be an array" });
     }
 
-    // 🚨 MANDATORY DELIVERY ADDRESS VALIDATION
-    if (!deliveryAddress || 
+    // Check if order contains digital items
+    const hasDigitalItems = items.some(item => item.isDigital === true);
+    const isDigitalOnly = items.length > 0 && items.every(item => item.isDigital === true);
+    
+    console.log("Order type analysis:", { hasDigitalItems, isDigitalOnly });
+
+    // 🚨 MANDATORY DELIVERY ADDRESS VALIDATION (Skip for digital-only orders)
+    if (!isDigitalOnly && (!deliveryAddress || 
         !deliveryAddress.street || 
         !deliveryAddress.taluk || 
         !deliveryAddress.district || 
         !deliveryAddress.state || 
         !deliveryAddress.pincode || 
-        !deliveryAddress.phone) {
+        !deliveryAddress.phone)) {
       
       console.log("❌ Delivery address validation failed:", deliveryAddress);
       
@@ -173,52 +179,82 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       });
     }
 
-    // Validate address fields are not empty strings
-    const addressFields = ['street', 'taluk', 'district', 'state', 'pincode', 'phone'];
-    const emptyFields = addressFields.filter(field => 
-      !deliveryAddress[field] || deliveryAddress[field].trim() === ''
-    );
+    // Validate address fields are not empty strings (Skip for digital-only orders)
+    if (!isDigitalOnly && deliveryAddress) {
+      const addressFields = ['street', 'taluk', 'district', 'state', 'pincode', 'phone'];
+      const emptyFields = addressFields.filter(field => 
+        !deliveryAddress[field] || deliveryAddress[field].trim() === ''
+      );
 
-    if (emptyFields.length > 0) {
-      console.log("❌ Empty address fields found:", emptyFields);
-      
-      return res.status(400).json({ 
-        error: "All delivery address fields must be filled",
-        message: "Please complete your delivery address information",
-        emptyFields: emptyFields,
-        requiresAddressSetup: true
-      });
+      if (emptyFields.length > 0) {
+        console.log("❌ Empty address fields found:", emptyFields);
+        
+        return res.status(400).json({ 
+          error: "All delivery address fields must be filled",
+          message: "Please complete your delivery address information",
+          emptyFields: emptyFields,
+          requiresAddressSetup: true
+        });
+      }
+
+      // Validate phone number format (basic validation)
+      const phoneRegex = /^[6-9]\d{9}$/;
+      if (!phoneRegex.test(deliveryAddress.phone)) {
+        return res.status(400).json({ 
+          error: "Invalid phone number",
+          message: "Please enter a valid 10-digit Indian mobile number",
+          requiresAddressSetup: true
+        });
+      }
+
+      // Validate pincode format (basic validation)
+      const pincodeRegex = /^\d{6}$/;
+      if (!pincodeRegex.test(deliveryAddress.pincode)) {
+        return res.status(400).json({ 
+          error: "Invalid pincode",
+          message: "Please enter a valid 6-digit pincode",
+          requiresAddressSetup: true
+        });
+      }
     }
 
-    // Validate phone number format (basic validation)
-    const phoneRegex = /^[6-9]\d{9}$/;
-    if (!phoneRegex.test(deliveryAddress.phone)) {
-      return res.status(400).json({ 
-        error: "Invalid phone number",
-        message: "Please enter a valid 10-digit Indian mobile number",
-        requiresAddressSetup: true
-      });
+    if (!isDigitalOnly) {
+      console.log("✅ Delivery address validation passed");
+    } else {
+      console.log("✅ Digital-only order, skipping delivery address validation");
     }
 
-    // Validate pincode format (basic validation)
-    const pincodeRegex = /^\d{6}$/;
-    if (!pincodeRegex.test(deliveryAddress.pincode)) {
-      return res.status(400).json({ 
-        error: "Invalid pincode",
-        message: "Please enter a valid 6-digit pincode",
-        requiresAddressSetup: true
-      });
-    }
-
-    console.log("✅ Delivery address validation passed");
-
-    // 📦 STOCK VALIDATION - Check if all items are available
+    // 📦 STOCK VALIDATION - Check if all items are available (Skip for digital items)
     console.log("📦 Validating stock availability for order items...");
     const Book = require("../models/Book");
     const Bundle = require("../models/Bundle");
     
     for (const item of items) {
       try {
+        // Skip stock validation for digital items
+        if (item.isDigital) {
+          console.log(`📱 Skipping stock validation for digital item: ${item.title}`);
+          
+          // Validate digital content availability
+          if (item.type === 'book') {
+            const book = await Book.findById(item.id);
+            if (!book) {
+              return res.status(400).json({ 
+                error: "Book not found",
+                message: `The book "${item.title}" is no longer available`
+              });
+            }
+            
+            if (!book.hasDigitalContent()) {
+              return res.status(400).json({ 
+                error: "Digital content not available",
+                message: `Digital reading is not available for "${book.title}"`
+              });
+            }
+          }
+          continue;
+        }
+        
         if (item.type === 'book') {
           const book = await Book.findById(item.id);
           if (!book) {
@@ -294,15 +330,15 @@ router.post("/create-order", authenticateToken, async (req, res) => {
     const razorpayOrder = await razorpay.orders.create(options);
     console.log("Razorpay order created:", razorpayOrder.id);
 
-    // Prepare delivery address with defaults
-    const addressData = deliveryAddress ? {
+    // Prepare delivery address with defaults (null for digital-only orders)
+    const addressData = (!isDigitalOnly && deliveryAddress) ? {
       street: deliveryAddress.street || "",
       taluk: deliveryAddress.taluk || "",
       district: deliveryAddress.district || "",
       state: deliveryAddress.state || "",
       pincode: deliveryAddress.pincode || "",
       phone: deliveryAddress.phone || ""
-    } : undefined;
+    } : null;
 
     // Prepare items array properly
     const orderItems = items.map(item => ({
@@ -312,7 +348,9 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       price: Number(item.price),
       quantity: Number(item.quantity),
       coverImage: item.coverImage,
-      type: item.type || 'book'
+      type: item.type || 'book',
+      isDigital: Boolean(item.isDigital),
+      digitalPrice: item.isDigital ? Number(item.price) : null
     }));
 
     console.log("Prepared order items:", orderItems);
@@ -336,9 +374,9 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       user_id: req.user.id,
       items: orderItems,
       totalAmount: amount,
-      courierCharge: courierCharge || 0,
-      totalWeight: totalWeight || 0,
-      deliveryMethod: deliveryMethod || 'home', // Add delivery method
+      courierCharge: isDigitalOnly ? 0 : (courierCharge || 0), // No courier charge for digital-only
+      totalWeight: isDigitalOnly ? 0 : (totalWeight || 0), // No weight for digital-only
+      deliveryMethod: isDigitalOnly ? 'digital' : (deliveryMethod || 'home'), // Digital delivery method
       appliedOffer: offerData,
       deliveryAddress: addressData,
       status: "pending",

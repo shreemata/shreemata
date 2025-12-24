@@ -98,17 +98,20 @@ function displayBookDetails(book) {
     
     document.getElementById("bookTitle").textContent = book.title;
     document.getElementById("bookAuthor").textContent = book.author;
-    document.getElementById("bookPrice").textContent = `₹${parseFloat(book.price).toFixed(2)}`;
+    
+    // Display physical pricing
+    document.getElementById("physicalPrice").textContent = `₹${parseFloat(book.price).toFixed(2)}`;
+    
     document.getElementById("bookDescription").textContent =
         book.description || "No description available.";
     
     // Display reward points if available - BIG and PROMINENT
     if (book.rewardPoints && book.rewardPoints > 0) {
-        const priceElement = document.getElementById("bookPrice");
+        const pricingSection = document.querySelector(".pricing-section");
         const pointsBadge = document.createElement("div");
         pointsBadge.style.cssText = "background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 18px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;";
         pointsBadge.innerHTML = `<span style="font-size: 28px;">🎁</span><span>Earn ${book.rewardPoints} Points with this purchase!</span>`;
-        priceElement.parentNode.insertBefore(pointsBadge, priceElement.nextSibling);
+        pricingSection.parentNode.insertBefore(pointsBadge, pricingSection.nextSibling);
     }
 
     // Display weight and courier charge
@@ -267,14 +270,16 @@ async function showAddressModal() {
             userAddress = data.user.address;
             
             document.getElementById("modalStreet").textContent = userAddress.street || "Not set";
-            document.getElementById("modalCity").textContent = userAddress.city || "Not set";
+            document.getElementById("modalTaluk").textContent = userAddress.taluk || "Not set";
+            document.getElementById("modalDistrict").textContent = userAddress.district || "Not set";
             document.getElementById("modalState").textContent = userAddress.state || "Not set";
             document.getElementById("modalPincode").textContent = userAddress.pincode || "Not set";
             document.getElementById("modalPhone").textContent = userAddress.phone || "Not set";
 
             // Pre-fill edit form
             document.getElementById("editStreet").value = userAddress.street || "";
-            document.getElementById("editCity").value = userAddress.city || "";
+            document.getElementById("editTaluk").value = userAddress.taluk || "";
+            document.getElementById("editDistrict").value = userAddress.district || "";
             document.getElementById("editState").value = userAddress.state || "";
             document.getElementById("editPincode").value = userAddress.pincode || "";
             document.getElementById("editPhone").value = userAddress.phone || "";
@@ -324,7 +329,8 @@ async function saveAddressFromModal() {
 
     const address = {
         street: document.getElementById("editStreet").value.trim(),
-        city: document.getElementById("editCity").value.trim(),
+        taluk: document.getElementById("editTaluk").value.trim(),
+        district: document.getElementById("editDistrict").value.trim(),
         state: document.getElementById("editState").value.trim(),
         pincode: document.getElementById("editPincode").value.trim(),
         phone: document.getElementById("editPhone").value.trim()
@@ -351,7 +357,8 @@ async function saveAddressFromModal() {
         
         // Update display
         document.getElementById("modalStreet").textContent = address.street;
-        document.getElementById("modalCity").textContent = address.city;
+        document.getElementById("modalTaluk").textContent = address.taluk;
+        document.getElementById("modalDistrict").textContent = address.district;
         document.getElementById("modalState").textContent = address.state;
         document.getElementById("modalPincode").textContent = address.pincode;
         document.getElementById("modalPhone").textContent = address.phone;
@@ -389,7 +396,7 @@ async function proceedToPayment() {
     const token = localStorage.getItem("token");
 
     // Validate address
-    if (!userAddress || !userAddress.street || !userAddress.city || !userAddress.state || !userAddress.pincode || !userAddress.phone) {
+    if (!userAddress || !userAddress.street || !userAddress.taluk || !userAddress.district || !userAddress.state || !userAddress.pincode || !userAddress.phone) {
         const proceed = confirm("You haven't set a delivery address. Do you want to proceed anyway?");
         if (!proceed) {
             return;
@@ -466,7 +473,7 @@ async function proceedToPayment() {
             key: RZP_KEY,
             amount: orderData.order.amount,
             currency: "INR",
-            name: "BookStore",
+            name: "Shree Mata",
             description: currentBook.title,
             order_id: orderData.order.id,
 

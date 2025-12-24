@@ -396,7 +396,7 @@ router.post("/login-send-otp", async (req, res) => {
     
     try {
       await client.messages.create({
-        body: `Your BookStore login OTP is: ${otp}. Valid for 5 minutes. Do not share this code.`,
+        body: `Your Shree Mata login OTP is: ${otp}. Valid for 5 minutes. Do not share this code.`,
         from: process.env.TWILIO_PHONE_NUMBER,
         to: formattedPhone
       });

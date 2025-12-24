@@ -480,4 +480,10 @@ router.post("/:id/purchase", authenticateToken, async (req, res) => {
   }
 });
 
+/* -------------------------------------------
+   DIGITAL CONTENT MANAGEMENT ROUTES (ADMIN ONLY) - REMOVED
+------------------------------------------- */
+
+// Digital content functionality removed per user request
+
 module.exports = router;

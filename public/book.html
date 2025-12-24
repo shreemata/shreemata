@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>Book Details - BookStore</title>
+    <title>Book Details - Shree Mata</title>
     <link rel="stylesheet" href="css/styles.css">
     <style>
         /* Image Lightbox Styles */
@@ -191,7 +191,7 @@
         <div class="navbar">
             <div class="container navbar-content">
                 <div class="logo">
-                    <a href="/">📚 BookStore</a>
+                    <a href="/">📚 Shree Mata</a>
                 </div>
                 <div class="search-bar">
                     <input type="text" id="searchInput" placeholder="Search for books, authors...">
@@ -232,17 +232,30 @@
                     <div class="book-detail-left">
                         <img id="bookCover" src="" alt="Book Cover" class="book-detail-cover">
 
-                        <!-- 🔥 RAZORPAY CUSTOM BUY BUTTON (Works with your backend) -->
-                        <button id="buyBtn" class="btn-primary btn-large">Buy Now</button>
-
-                        <button id="cartBtn" class="btn-secondary btn-large">Add to Cart</button>
+                        <!-- Purchase Buttons -->
+                        <div class="purchase-buttons">
+                            <!-- Physical Book Purchase -->
+                            <div class="button-group physical-buttons">
+                                <button id="buyBtn" class="btn-primary btn-large">Buy Physical Book</button>
+                                <button id="cartBtn" class="btn-secondary btn-large">Add to Cart</button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- RIGHT SIDE -->
                     <div class="book-detail-right">
                         <h1 id="bookTitle"></h1>
                         <p class="book-author">by <span id="bookAuthor"></span></p>
-                        <p class="book-price" id="bookPrice"></p>
+                        
+                        <!-- Pricing Display -->
+                        <div class="pricing-section">
+                            <!-- Physical Book Pricing -->
+                            <div class="pricing-option physical-pricing">
+                                <h3 class="pricing-title">📦 Physical Book</h3>
+                                <p class="book-price" id="physicalPrice"></p>
+                                <p class="pricing-note">Includes shipping</p>
+                            </div>
+                        </div>
                         
                         <div style="background: #fff3e0; padding: 12px 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ff9800;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -296,7 +309,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2024 BookStore. All rights reserved.</p>
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
         </div>
     </footer>
 
@@ -315,7 +328,8 @@
 
             <div id="addressDisplay" style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                 <p style="margin: 10px 0;"><strong>Street:</strong> <span id="modalStreet">Not set</span></p>
-                <p style="margin: 10px 0;"><strong>City:</strong> <span id="modalCity">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>Taluk:</strong> <span id="modalTaluk">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>District:</strong> <span id="modalDistrict">Not set</span></p>
                 <p style="margin: 10px 0;"><strong>State:</strong> <span id="modalState">Not set</span></p>
                 <p style="margin: 10px 0;"><strong>Pincode:</strong> <span id="modalPincode">Not set</span></p>
                 <p style="margin: 10px 0;"><strong>Phone:</strong> <span id="modalPhone">Not set</span></p>
@@ -329,8 +343,12 @@
                     <input type="text" id="editStreet" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;">
                 </div>
                 <div style="margin: 15px 0;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">City *</label>
-                    <input type="text" id="editCity" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Taluk *</label>
+                    <input type="text" id="editTaluk" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;">
+                </div>
+                <div style="margin: 15px 0;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">District *</label>
+                    <input type="text" id="editDistrict" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;">
                 </div>
                 <div style="margin: 15px 0;">
                     <label style="display: block; margin-bottom: 5px; font-weight: 600;">State *</label>

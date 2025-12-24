@@ -1091,8 +1091,8 @@ async function proceedToPayment() {
             key: RZP_KEY,
             amount: rzpOrder.amount, // amount in paise
             currency: rzpOrder.currency || "INR",
-            name: "BookStore",
-            description: "Purchase from BookStore",
+            name: "Shree Mata",
+            description: "Purchase from Shree Mata",
             order_id: rzpOrder.id,
             handler: async function (response) {
                 console.log("🔍 Razorpay payment handler called");

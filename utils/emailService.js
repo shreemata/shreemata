@@ -69,7 +69,7 @@ async function sendOrderConfirmationEmail(order, user) {
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
                     <h3 style="margin: 0 0 10px 0; color: #333;">📍 Delivery Address</h3>
                     <p style="margin: 5px 0; color: #666;">${order.deliveryAddress.street}</p>
-                    <p style="margin: 5px 0; color: #666;">${order.deliveryAddress.city}, ${order.deliveryAddress.state}</p>
+                    <p style="margin: 5px 0; color: #666;">${order.deliveryAddress.taluk}, ${order.deliveryAddress.district}, ${order.deliveryAddress.state}</p>
                     <p style="margin: 5px 0; color: #666;">Pincode: ${order.deliveryAddress.pincode}</p>
                     <p style="margin: 5px 0; color: #666;">Phone: ${order.deliveryAddress.phone}</p>
                 </div>
@@ -77,7 +77,7 @@ async function sendOrderConfirmationEmail(order, user) {
         }
 
         const mailOptions = {
-            from: `"BookStore" <${process.env.MAIL_USER}>`,
+            from: `"Shree Mata" <${process.env.MAIL_USER}>`,
             to: user.email,
             subject: `Order Confirmation - Order #${order._id}`,
             html: `
@@ -89,7 +89,7 @@ async function sendOrderConfirmationEmail(order, user) {
                 </head>
                 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                        <h1 style="color: white; margin: 0;">📚 BookStore</h1>
+                        <h1 style="color: white; margin: 0;">📚 Shree Mata</h1>
                         <p style="color: white; margin: 10px 0 0 0;">Thank you for your order!</p>
                     </div>
                     
@@ -150,7 +150,7 @@ async function sendOrderConfirmationEmail(order, user) {
                     </div>
 
                     <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-                        <p>© ${new Date().getFullYear()} BookStore. All rights reserved.</p>
+                        <p>© ${new Date().getFullYear()} Shree Mata. All rights reserved.</p>
                     </div>
                 </body>
                 </html>
@@ -172,7 +172,7 @@ async function sendOrderConfirmationEmail(order, user) {
 async function sendAdminNotification(order, user) {
     try {
         const mailOptions = {
-            from: `"BookStore" <${process.env.MAIL_USER}>`,
+            from: `"Shree Mata" <${process.env.MAIL_USER}>`,
             to: process.env.MAIL_USER, // Send to admin email
             subject: `New Order Received - Order #${order._id}`,
             html: `
@@ -197,7 +197,7 @@ async function sendAdminNotification(order, user) {
                     ${order.deliveryAddress && order.deliveryAddress.street ? `
                         <h3>Delivery Address:</h3>
                         <p>${order.deliveryAddress.street}<br>
-                        ${order.deliveryAddress.city}, ${order.deliveryAddress.state}<br>
+                        ${order.deliveryAddress.taluk}, ${order.deliveryAddress.district}, ${order.deliveryAddress.state}<br>
                         Pincode: ${order.deliveryAddress.pincode}<br>
                         Phone: ${order.deliveryAddress.phone}</p>
                     ` : ''}
@@ -282,7 +282,7 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
         }
 
         const mailOptions = {
-            from: `"BookStore" <${process.env.MAIL_USER}>`,
+            from: `"Shree Mata" <${process.env.MAIL_USER}>`,
             to: user.email,
             subject: `${statusInfo.icon} ${statusInfo.title} - Order #${order._id}`,
             html: `
@@ -294,7 +294,7 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
                 </head>
                 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                        <h1 style="color: white; margin: 0;">📚 BookStore</h1>
+                        <h1 style="color: white; margin: 0;">📚 Shree Mata</h1>
                         <p style="color: white; margin: 10px 0 0 0; font-size: 18px;">${statusInfo.icon} ${statusInfo.title}</p>
                     </div>
                     
@@ -333,7 +333,7 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
                             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
                                 <h3 style="margin: 0 0 10px 0; color: #333;">📍 Delivery Address</h3>
                                 <p style="margin: 5px 0; color: #666;">${order.deliveryAddress.street}</p>
-                                <p style="margin: 5px 0; color: #666;">${order.deliveryAddress.city}, ${order.deliveryAddress.state}</p>
+                                <p style="margin: 5px 0; color: #666;">${order.deliveryAddress.taluk}, ${order.deliveryAddress.district}, ${order.deliveryAddress.state}</p>
                                 <p style="margin: 5px 0; color: #666;">Pincode: ${order.deliveryAddress.pincode}</p>
                                 <p style="margin: 5px 0; color: #666;">Phone: ${order.deliveryAddress.phone}</p>
                             </div>
@@ -352,7 +352,7 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
                     </div>
 
                     <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-                        <p>© ${new Date().getFullYear()} BookStore. All rights reserved.</p>
+                        <p>© ${new Date().getFullYear()} Shree Mata. All rights reserved.</p>
                     </div>
                 </body>
                 </html>

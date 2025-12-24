@@ -99,13 +99,19 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
                 );
                 console.log("✅ Commission distribution completed:", commissionTransaction._id);
                 
-                // Reduce stock for completed orders
+                // Reduce stock for completed orders (skip digital items)
                 console.log("📦 Reducing stock for completed order items...");
                 const Book = require("../models/Book");
                 const Bundle = require("../models/Bundle");
                 
                 for (const item of order.items) {
                     try {
+                        // Skip stock reduction for digital items
+                        if (item.isDigital) {
+                            console.log(`📱 Skipping stock reduction for digital item: ${item.title}`);
+                            continue;
+                        }
+                        
                         if (item.type === 'book') {
                             const book = await Book.findById(item.id);
                             if (book && book.trackStock) {

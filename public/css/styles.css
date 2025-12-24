@@ -395,6 +395,89 @@ main {
     color: #131921;
 }
 
+/* Dual Pricing Display Styles */
+.pricing-section {
+    display: flex;
+    gap: 20px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.pricing-option {
+    flex: 1;
+    min-width: 200px;
+    padding: 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    background: #fff;
+    transition: all 0.3s ease;
+}
+
+.pricing-option:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.physical-pricing {
+    border-color: #28a745;
+}
+
+.digital-pricing {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+}
+
+.pricing-title {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.digital-pricing .pricing-title {
+    color: #667eea;
+}
+
+.physical-pricing .pricing-title {
+    color: #28a745;
+}
+
+.pricing-note {
+    margin: 5px 0 0 0;
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+}
+
+.digital-price {
+    color: #667eea !important;
+}
+
+/* Purchase Buttons Styles */
+.purchase-buttons {
+    margin: 25px 0;
+}
+
+.button-group {
+    margin-bottom: 15px;
+}
+
+.button-group:last-child {
+    margin-bottom: 0;
+}
+
+.digital-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+}
+
+.digital-btn:hover {
+    background: linear-gradient(135deg, #5565d3 0%, #6a4190 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
 .book-description {
     margin-top: 30px;
 }
@@ -782,6 +865,21 @@ footer {
 
     .book-detail-right h1 {
         font-size: 24px;
+    }
+
+    /* Dual Pricing Mobile Styles */
+    .pricing-section {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .pricing-option {
+        min-width: auto;
+        padding: 15px;
+    }
+    
+    .pricing-title {
+        font-size: 16px;
     }
 
     /* Preview Grid */

@@ -87,7 +87,7 @@ const commissionSettingsSchema = new mongoose.Schema({
   // Store Details for Pickup
   storeName: {
     type: String,
-    default: 'Shri Mata Book Store'
+    default: 'Shree Mata'
   },
   
   storeAddress: {
@@ -141,7 +141,7 @@ commissionSettingsSchema.statics.getSettings = async function() {
       baseShippingCharge: 50,
       shippingRatePerKg: 25,
       freeShippingThreshold: 500,
-      storeName: 'Shri Mata Book Store',
+      storeName: 'Shree Mata',
       storeAddress: 'Main Road, Your City',
       storePhone: '+91 9449171605',
       storeHours: 'Mon-Sat 10AM-8PM, Sun 11AM-6PM',

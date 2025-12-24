@@ -1131,7 +1131,7 @@
                     <div class="stat-icon">💰</div>
                     <div class="stat-content">
                         <div class="stat-number" id="totalAmount">₹0</div>
-                        <div class="stat-label">Total Amount</div>
+                        <div class="stat-label">Total Paid Amount</div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -1345,7 +1345,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2024 BookStore. All rights reserved.</p>
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
         </div>
     </footer>
 
@@ -1407,7 +1407,10 @@
 
         function updateStatistics() {
             const totalOrders = allOrders.length;
-            const totalAmount = allOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+            // Only include completed (successfully paid) orders in total amount
+            const totalAmount = allOrders
+                .filter(order => order.status === 'completed')
+                .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
             
             const pending = allOrders.filter(order => (order.deliveryStatus || 'pending') === 'pending').length;
             const processing = allOrders.filter(order => (order.deliveryStatus || 'pending') === 'processing').length;
@@ -2058,7 +2061,7 @@
                 <div class="receipt-header">
                     <div class="company-name">SHREE MATA</div>
                     <div class="company-details">
-                        📚 Premium Book Store<br>
+                        📚 Premium Educational Store<br>
                         📞 +91-9876543210<br>
                         📧 info@shreemata.com<br>
                         🏠 123 Book Street, Knowledge City<br>

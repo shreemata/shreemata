@@ -130,6 +130,12 @@ function setupEventListeners() {
         }
     });
 
+    // Auto-calculate online price when physical price changes
+    document.getElementById('price').addEventListener('input', (e) => {
+        const physicalPrice = parseFloat(e.target.value) || 0;
+        // Remove digital content auto-calculation
+    });
+
     // Auto-update stock status based on quantity
     document.getElementById('stockQuantity').addEventListener('input', (e) => {
         const quantity = parseInt(e.target.value) || 0;
@@ -536,9 +542,11 @@ async function handleFormSubmit(e) {
 
         const coverImageEl = document.getElementById('coverImage');
         const previewImagesEl = document.getElementById('previewImages');
+        const digitalPDFEl = document.getElementById('digitalPDF');
         
         console.log('CoverImage element:', coverImageEl ? '✅' : '❌');
         console.log('PreviewImages element:', previewImagesEl ? '✅' : '❌');
+        console.log('DigitalPDF element:', digitalPDFEl ? '✅' : '❌');
         
         if (!coverImageEl) throw new Error('Cover image field not found');
         if (!previewImagesEl) throw new Error('Preview images field not found');
@@ -702,6 +710,9 @@ async function handleFormSubmit(e) {
                 formData.append('previewImages', compressedPreviewFiles[i]);
             }
 
+            // Note: PDF files are handled separately after book creation/update
+            // This prevents memory overload and timeout issues
+
             console.log('🚀 Sending to:', url);
             console.log('🔍 Method:', method);
             console.log('🔍 Token exists:', !!token);
@@ -772,12 +783,14 @@ async function handleFormSubmit(e) {
                 stockStatus: stockStatusEl ? stockStatusEl.value || 'in_stock' : 'in_stock'
             };
             
-            console.log('📦 JSON submission - stock fields included:', {
-                trackStock: bookData.trackStock,
-                stockQuantity: bookData.stockQuantity,
-                lowStockThreshold: bookData.lowStockThreshold,
-                stockStatus: bookData.stockStatus
-            });
+        // Validate form data size before submission
+        const formDataSize = new Blob([JSON.stringify(bookData)]).size;
+        console.log(`📊 Form data size: ${formDataSize} bytes`);
+        
+        if (formDataSize > 10 * 1024 * 1024) { // 10MB limit
+            alert('Form data is too large. Please reduce the amount of data and try again.');
+            return;
+        }
 
             res = await fetch(url, {
                 method,
@@ -809,7 +822,37 @@ async function handleFormSubmit(e) {
         if (res.ok) {
             console.log('✅ Book update successful:', data);
             
-            alert(data.message);
+            // Handle PDF upload separately if provided
+            if (digitalPDFFile && data.book && data.book._id) {
+                try {
+                    submitBtn.textContent = 'Uploading PDF...';
+                    console.log('📄 Uploading PDF file separately...');
+                    
+                    const pdfFormData = new FormData();
+                    pdfFormData.append('pdfFile', digitalPDFFile);
+                    
+                    const pdfRes = await fetch(`${API}/books/${data.book._id}/upload-pdf`, {
+                        method: 'POST',
+                        headers: { "Authorization": `Bearer ${token}` },
+                        body: pdfFormData
+                    });
+                    
+                    if (!pdfRes.ok) {
+                        const pdfError = await pdfRes.json();
+                        console.error('PDF upload failed:', pdfError);
+                        alert(`Book saved successfully, but PDF upload failed: ${pdfError.error || 'Unknown error'}`);
+                    } else {
+                        console.log('✅ PDF uploaded successfully');
+                        alert('Book and PDF uploaded successfully!');
+                    }
+                } catch (pdfErr) {
+                    console.error('PDF upload error:', pdfErr);
+                    alert(`Book saved successfully, but PDF upload failed: ${pdfErr.message}`);
+                }
+            } else {
+                alert(data.message);
+            }
+            
             resetForm();
             
             // Force reload books to show updated stock status
@@ -876,3 +919,237 @@ function initializeStockFields() {
 }
 
 
+
+
+/* DIGITAL CONTENT MANAGEMENT */
+let currentDigitalBookId = null;
+
+function openDigitalContentModal(bookId) {
+    currentDigitalBookId = bookId;
+    
+    // Fetch book details
+    fetch(`${API}/books/${bookId}`)
+        .then(res => res.json())
+        .then(data => {
+            const book = data.book;
+            
+            // Populate modal
+            document.getElementById('modalBookTitle').textContent = book.title;
+            document.getElementById('modalMaxPrice').textContent = book.price.toFixed(2);
+            document.getElementById('modalOnlinePrice').value = book.onlinePrice || '';
+            document.getElementById('modalEnableDigital').checked = book.digitalContent?.available || false;
+            
+            // Show modal
+            document.getElementById('digitalContentModal').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error loading book details:', error);
+            alert('Failed to load book details');
+        });
+}
+
+function closeDigitalContentModal() {
+    document.getElementById('digitalContentModal').style.display = 'none';
+    currentDigitalBookId = null;
+}
+
+async function saveDigitalContent() {
+    if (!currentDigitalBookId) return;
+    
+    const token = localStorage.getItem('token');
+    const pdfFile = document.getElementById('modalPdfFile').files[0];
+    const onlinePrice = parseFloat(document.getElementById('modalOnlinePrice').value);
+    const enableDigital = document.getElementById('modalEnableDigital').checked;
+    
+    // Validate PDF file size
+    if (pdfFile && pdfFile.size > 50 * 1024 * 1024) {
+        alert('PDF file is too large. Maximum size is 50MB.');
+        return;
+    }
+    
+    try {
+        // Step 1: Upload PDF if provided
+        if (pdfFile) {
+            console.log('📄 Uploading PDF file...');
+            console.log(`📊 PDF file size: ${pdfFile.size} bytes (${(pdfFile.size / 1024 / 1024).toFixed(2)} MB)`);
+            
+            const formData = new FormData();
+            formData.append('pdfFile', pdfFile);
+            
+            const uploadRes = await fetch(`${API}/books/${currentDigitalBookId}/upload-pdf`, {
+                method: 'POST',
+                headers: { "Authorization": `Bearer ${token}` },
+                body: formData
+            });
+            
+            if (!uploadRes.ok) {
+                const errorText = await uploadRes.text();
+                console.error('PDF upload failed:', errorText);
+                
+                let errorMessage = 'PDF upload failed';
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorMessage = errorJson.error || errorMessage;
+                } catch (e) {
+                    // If not JSON, use the text as is
+                    errorMessage = errorText.substring(0, 200);
+                }
+                
+                throw new Error(errorMessage);
+            }
+            
+            console.log('✅ PDF uploaded successfully');
+        }
+        
+        // Step 2: Update digital content settings
+        if (enableDigital && onlinePrice) {
+            console.log('⚙️ Updating digital content settings...');
+            const settingsRes = await fetch(`${API}/books/${currentDigitalBookId}/digital-content`, {
+                method: 'PUT',
+                headers: { 
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    available: enableDigital,
+                    onlinePrice: onlinePrice
+                })
+            });
+            
+            if (!settingsRes.ok) {
+                const error = await settingsRes.json();
+                throw new Error(error.error || 'Failed to update digital content settings');
+            }
+            
+            console.log('✅ Digital content settings updated');
+        }
+        
+        alert('Digital content updated successfully!');
+        closeDigitalContentModal();
+        loadBooks(); // Reload books to show updated status
+        
+    } catch (error) {
+        console.error('Error saving digital content:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+async function verifyPdfFile() {
+    if (!currentDigitalBookId) return;
+    
+    const token = localStorage.getItem('token');
+    
+    try {
+        const res = await fetch(`${API}/books/${currentDigitalBookId}/verify-pdf`, {
+            method: 'POST',
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            alert('PDF file verified successfully!');
+        } else {
+            alert(`Verification failed: ${data.error}`);
+        }
+        
+    } catch (error) {
+        console.error('Error verifying PDF:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+async function loadDigitalSalesReport() {
+    const token = localStorage.getItem('token');
+    
+    try {
+        const res = await fetch(`${API}/books/digital-sales-report`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        const report = await res.json();
+        
+        // Update statistics
+        document.getElementById('totalDigitalBooks').textContent = report.totalDigitalBooks;
+        document.getElementById('totalRevenue').textContent = `₹${report.totalRevenue.toFixed(2)}`;
+        document.getElementById('totalSales').textContent = report.totalSales;
+        
+        // Update table
+        const tbody = document.getElementById('digitalBooksTableBody');
+        tbody.innerHTML = '';
+        
+        if (report.books && report.books.length > 0) {
+            document.getElementById('digitalBooksTable').style.display = 'block';
+            document.getElementById('noDigitalBooks').style.display = 'none';
+            
+            report.books.forEach(book => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${book.title}</td>
+                    <td>${book.author}</td>
+                    <td>₹${book.physicalPrice.toFixed(2)}</td>
+                    <td>₹${book.onlinePrice.toFixed(2)}</td>
+                    <td>${book.discountPercentage}%</td>
+                    <td>${(book.fileSize / (1024 * 1024)).toFixed(2)} MB</td>
+                    <td><span style="color: #2196F3; font-weight: 600;">✅ Active</span></td>
+                    <td>
+                        <button class="btn-secondary" onclick="openDigitalContentModal('${book.id}')">Manage</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        } else {
+            document.getElementById('digitalBooksTable').style.display = 'none';
+            document.getElementById('noDigitalBooks').style.display = 'block';
+        }
+        
+    } catch (error) {
+        console.error('Error loading digital sales report:', error);
+        alert('Failed to load digital sales report');
+    }
+}
+
+function toggleDigitalReport() {
+    const booksSection = document.querySelector('.admin-section');
+    const digitalSection = document.getElementById('digitalSalesSection');
+    const toggleBtn = document.getElementById('toggleDigitalReportBtn');
+    
+    if (digitalSection.style.display === 'none' || !digitalSection.style.display) {
+        // Show digital report
+        booksSection.style.display = 'none';
+        digitalSection.style.display = 'block';
+        toggleBtn.textContent = '📚 Back to Books';
+        loadDigitalSalesReport();
+    } else {
+        // Show books
+        booksSection.style.display = 'block';
+        digitalSection.style.display = 'none';
+        toggleBtn.textContent = '📊 Digital Sales Report';
+    }
+}
+
+// Add event listeners for digital content modal
+document.addEventListener('DOMContentLoaded', () => {
+    // Digital content modal listeners
+    const closeModalBtn = document.getElementById('closeDigitalModal');
+    const cancelModalBtn = document.getElementById('cancelDigitalModal');
+    const saveBtn = document.getElementById('saveDigitalContent');
+    const verifyBtn = document.getElementById('verifyPdfFile');
+    const toggleReportBtn = document.getElementById('toggleDigitalReportBtn');
+    const refreshReportBtn = document.getElementById('refreshReportBtn');
+    
+    if (closeModalBtn) closeModalBtn.addEventListener('click', closeDigitalContentModal);
+    if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeDigitalContentModal);
+    if (saveBtn) saveBtn.addEventListener('click', saveDigitalContent);
+    if (verifyBtn) verifyBtn.addEventListener('click', verifyPdfFile);
+    if (toggleReportBtn) toggleReportBtn.addEventListener('click', toggleDigitalReport);
+    if (refreshReportBtn) refreshReportBtn.addEventListener('click', loadDigitalSalesReport);
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', (e) => {
+        const modal = document.getElementById('digitalContentModal');
+        if (e.target === modal) {
+            closeDigitalContentModal();
+        }
+    });
+});
