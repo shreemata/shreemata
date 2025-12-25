@@ -32,11 +32,19 @@ function setupEventListeners() {
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
-    const buyBtn = document.getElementById("buyBtn");
-    if (buyBtn) buyBtn.addEventListener("click", handlePurchase);
+    // Pickup (Book-stall) buttons
+    const buyPickupBtn = document.getElementById("buyPickupBtn");
+    if (buyPickupBtn) buyPickupBtn.addEventListener("click", () => handlePurchase("pickup"));
 
-    const cartBtn = document.getElementById("cartBtn");
-    if (cartBtn) cartBtn.addEventListener("click", addToCart);
+    const cartPickupBtn = document.getElementById("cartPickupBtn");
+    if (cartPickupBtn) cartPickupBtn.addEventListener("click", () => addToCart("pickup"));
+
+    // Courier buttons
+    const buyCourierBtn = document.getElementById("buyCourierBtn");
+    if (buyCourierBtn) buyCourierBtn.addEventListener("click", () => handlePurchase("courier"));
+
+    const cartCourierBtn = document.getElementById("cartCourierBtn");
+    if (cartCourierBtn) cartCourierBtn.addEventListener("click", () => addToCart("courier"));
 
     const searchBtn = document.getElementById("searchBtn");
     const searchInput = document.getElementById("searchInput");
@@ -99,8 +107,17 @@ function displayBookDetails(book) {
     document.getElementById("bookTitle").textContent = book.title;
     document.getElementById("bookAuthor").textContent = book.author;
     
-    // Display physical pricing
-    document.getElementById("physicalPrice").textContent = `₹${parseFloat(book.price).toFixed(2)}`;
+    // Calculate pricing
+    const basePrice = parseFloat(book.price);
+    const weight = book.weight || 0.5;
+    const courierCharge = calculateCourierCharge(weight);
+    
+    // Display pickup price (same as base price)
+    document.getElementById("pickupPrice").textContent = `₹${basePrice.toFixed(2)}`;
+    
+    // Display courier price (base price + courier charge)
+    const courierTotalPrice = basePrice + courierCharge;
+    document.getElementById("courierPrice").textContent = `₹${courierTotalPrice.toFixed(2)}`;
     
     document.getElementById("bookDescription").textContent =
         book.description || "No description available.";
@@ -115,8 +132,6 @@ function displayBookDetails(book) {
     }
 
     // Display weight and courier charge
-    const weight = book.weight || 0.5;
-    const courierCharge = calculateCourierCharge(weight);
     if (document.getElementById("bookWeight")) {
         document.getElementById("bookWeight").textContent = `${weight.toFixed(2)} kg`;
     }
@@ -229,7 +244,7 @@ document.addEventListener("keydown", (e) => {
 let userAddress = null;
 let currentBook = null;
 
-async function handlePurchase() {
+async function handlePurchase(deliveryMethod = "courier") {
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
 
@@ -247,8 +262,16 @@ async function handlePurchase() {
         const data = await res.json();
         currentBook = data.book;
 
-        // Show address modal
-        await showAddressModal();
+        // Store delivery method for later use
+        currentBook.selectedDeliveryMethod = deliveryMethod;
+
+        if (deliveryMethod === "pickup") {
+            // For pickup, proceed directly to payment without address
+            await proceedToPayment();
+        } else {
+            // For courier, show address modal
+            await showAddressModal();
+        }
     } catch (err) {
         console.error("Error:", err);
         alert("Error loading book details");
@@ -394,14 +417,17 @@ function calculateCourierCharge(totalWeight) {
 ----------------------------------- */
 async function proceedToPayment() {
     const token = localStorage.getItem("token");
+    const deliveryMethod = currentBook?.selectedDeliveryMethod || "courier";
 
-    // Validate address
-    if (!userAddress || !userAddress.street || !userAddress.taluk || !userAddress.district || !userAddress.state || !userAddress.pincode || !userAddress.phone) {
-        const proceed = confirm("You haven't set a delivery address. Do you want to proceed anyway?");
-        if (!proceed) {
-            return;
+    // Validate address only for courier delivery
+    if (deliveryMethod === "courier") {
+        if (!userAddress || !userAddress.street || !userAddress.taluk || !userAddress.district || !userAddress.state || !userAddress.pincode || !userAddress.phone) {
+            const proceed = confirm("You haven't set a delivery address. Do you want to proceed anyway?");
+            if (!proceed) {
+                return;
+            }
+            userAddress = null;
         }
-        userAddress = null;
     }
 
     if (!currentBook) {
@@ -409,19 +435,23 @@ async function proceedToPayment() {
         return;
     }
 
-    // Close modal
+    // Close modal if open
     closeAddressModal();
 
-    const buyBtn = document.getElementById("buyBtn");
-    
-    // Calculate courier charge based on book weight
-    const bookWeight = currentBook.weight || 0.5; // Default 0.5kg
-    const courierCharge = calculateCourierCharge(bookWeight);
+    // Calculate pricing based on delivery method
+    const bookWeight = currentBook.weight || 0.5;
     const itemsTotal = currentBook.price;
-    const totalAmount = itemsTotal + courierCharge;
+    let courierCharge = 0;
+    let totalAmount = itemsTotal;
+    let confirmMsg = "";
 
-    // Show confirmation with courier charge breakdown
-    const confirmMsg = `Order Summary:\n\nBook: ${currentBook.title}\nPrice: ₹${itemsTotal.toFixed(2)}\nWeight: ${bookWeight.toFixed(2)} kg\nCourier Charge: ₹${courierCharge.toFixed(2)}\n\nTotal Amount: ₹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
+    if (deliveryMethod === "pickup") {
+        confirmMsg = `Order Summary (Book-stall Pickup):\n\nBook: ${currentBook.title}\nPrice: ₹${itemsTotal.toFixed(2)}\nDelivery: Pickup at store (FREE)\n\nTotal Amount: ₹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
+    } else {
+        courierCharge = calculateCourierCharge(bookWeight);
+        totalAmount = itemsTotal + courierCharge;
+        confirmMsg = `Order Summary (Courier Delivery):\n\nBook: ${currentBook.title}\nPrice: ₹${itemsTotal.toFixed(2)}\nWeight: ${bookWeight.toFixed(2)} kg\nCourier Charge: ₹${courierCharge.toFixed(2)}\n\nTotal Amount: ₹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
+    }
     
     if (!confirm(confirmMsg)) {
         return;
@@ -444,7 +474,7 @@ async function proceedToPayment() {
             buyBtn.textContent = "Processing...";
         }
 
-        // 1️⃣ Create backend Razorpay order with address and courier charge
+        // 1️⃣ Create backend Razorpay order with delivery method and address
         const orderRes = await fetch(`${API}/payments/create-order`, {
             method: "POST",
             headers: {
@@ -454,7 +484,8 @@ async function proceedToPayment() {
             body: JSON.stringify({
                 amount: totalAmount,
                 items: items,
-                deliveryAddress: userAddress,
+                deliveryAddress: deliveryMethod === "courier" ? userAddress : null,
+                deliveryMethod: deliveryMethod,
                 courierCharge: courierCharge,
                 totalWeight: bookWeight
             })
@@ -492,7 +523,8 @@ async function proceedToPayment() {
                             razorpay_signature: response.razorpay_signature,
                             items: items,
                             totalAmount: totalAmount,
-                            deliveryAddress: userAddress,
+                            deliveryAddress: deliveryMethod === "courier" ? userAddress : null,
+                            deliveryMethod: deliveryMethod,
                             courierCharge: courierCharge,
                             totalWeight: bookWeight
                         })
@@ -584,13 +616,21 @@ modal: {
 /* -----------------------------------
    ADD TO CART
 ----------------------------------- */
-function addToCart() {
+function addToCart(deliveryMethod = "courier") {
     const bookId = new URLSearchParams(window.location.search).get("id");
 
     const cart = getCart();
 
-    if (cart.some((item) => item.id === bookId)) {
-        return alert("Already in cart!");
+    // Check if book with same delivery method already exists
+    const existingItemIndex = cart.findIndex(item => 
+        item.id === bookId && item.deliveryMethod === deliveryMethod
+    );
+
+    if (existingItemIndex !== -1) {
+        // If exists, increase quantity
+        cart[existingItemIndex].quantity += 1;
+        saveCart(cart);
+        return alert(`Book quantity updated in cart (${deliveryMethod === 'pickup' ? 'Pickup' : 'Courier'})!`);
     }
 
     // Use stored book data
@@ -599,19 +639,29 @@ function addToCart() {
         return alert("Book data not loaded. Please refresh the page.");
     }
 
+    // Calculate price based on delivery method
+    const basePrice = parseFloat(book.price);
+    const weight = book.weight || 0.5;
+    const courierCharge = deliveryMethod === "courier" ? calculateCourierCharge(weight) : 0;
+    const totalPrice = basePrice + courierCharge;
+
     cart.push({
         id: bookId,
         title: book.title,
         author: book.author,
-        price: parseFloat(book.price),
+        price: totalPrice,
+        basePrice: basePrice,
+        courierCharge: courierCharge,
         coverImage: book.cover_image,
         quantity: 1,
         weight: book.weight || 0.5,
-        type: 'book'
+        type: 'book',
+        deliveryMethod: deliveryMethod
     });
 
     saveCart(cart);
-    alert("Book added to cart!");
+    const methodText = deliveryMethod === 'pickup' ? 'Book-stall Pickup' : 'Courier Delivery';
+    alert(`Book added to cart for ${methodText}!`);
 }
 
 /* -----------------------------------

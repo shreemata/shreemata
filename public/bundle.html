@@ -89,6 +89,32 @@
             padding: 15px;
             font-size: 18px;
         }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .bundle-header {
+                flex-direction: column;
+                gap: 20px;
+            }
+            .bundle-image {
+                flex: none;
+                max-width: 300px;
+                margin: 0 auto;
+            }
+            .price-section > div:first-child {
+                grid-template-columns: 1fr !important;
+                gap: 8px !important;
+            }
+            .action-buttons > div {
+                flex-direction: column;
+                gap: 8px !important;
+            }
+            .action-buttons button {
+                margin-bottom: 5px;
+                font-size: 13px !important;
+                padding: 8px !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -120,9 +146,26 @@
                     <p id="bundleDescription" style="color: #666; font-size: 16px; margin: 20px 0;"></p>
                     
                     <div class="price-section">
-                        <p class="original-price">₹<span id="originalPrice"></span></p>
-                        <p class="bundle-price">₹<span id="bundlePrice"></span></p>
-                        <p class="savings">You Save: ₹<span id="savings"></span></p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                            <!-- Book-stall Purchase Option -->
+                            <div class="pricing-option pickup-pricing" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 12px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);">
+                                <h4 style="margin: 0 0 5px 0; font-size: 14px; font-weight: 600;">🏪 Book-stall</h4>
+                                <p style="font-size: 18px; font-weight: bold; margin: 5px 0;" id="pickupPrice">₹<span id="bundlePickupPrice"></span></p>
+                                <p style="margin: 0; font-size: 10px; opacity: 0.9;">Store pickup</p>
+                            </div>
+                            
+                            <!-- Courier Delivery Option -->
+                            <div class="pricing-option courier-pricing" style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; padding: 12px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);">
+                                <h4 style="margin: 0 0 5px 0; font-size: 14px; font-weight: 600;">🚚 Courier</h4>
+                                <p style="font-size: 18px; font-weight: bold; margin: 5px 0;" id="courierPrice">₹<span id="bundleCourierPrice"></span></p>
+                                <p style="margin: 0; font-size: 10px; opacity: 0.9;">Home delivery</p>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center;">
+                            <p class="original-price" style="margin: 5px 0;">Original: ₹<span id="originalPrice"></span></p>
+                            <p class="savings" style="margin: 5px 0;">You Save: ₹<span id="savings"></span></p>
+                        </div>
                     </div>
 
                     <div style="background: #fff3e0; padding: 12px 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ff9800;">
@@ -141,8 +184,17 @@
                     </p>
 
                     <div class="action-buttons">
-                        <button class="btn-primary" onclick="addToCart()">Add to Cart</button>
-                        <button class="btn-secondary" onclick="buyNow()">Buy Now</button>
+                        <!-- Book-stall Purchase Buttons -->
+                        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                            <button class="btn-primary" onclick="addToCart('pickup')" style="flex: 1; padding: 10px; font-size: 14px;">🏪 Cart (Pickup)</button>
+                            <button class="btn-secondary" onclick="buyNow('pickup')" style="flex: 1; padding: 10px; font-size: 14px;">🏪 Buy Now</button>
+                        </div>
+                        
+                        <!-- Courier Purchase Buttons -->
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-primary" onclick="addToCart('courier')" style="flex: 1; padding: 10px; font-size: 14px;">🚚 Cart (Courier)</button>
+                            <button class="btn-secondary" onclick="buyNow('courier')" style="flex: 1; padding: 10px; font-size: 14px;">🚚 Buy Now</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -209,14 +261,23 @@
             const discount = bundle.discount || Math.round(((bundle.originalPrice - bundle.bundlePrice) / bundle.originalPrice) * 100);
             document.getElementById("discountBadge").textContent = `${discount}% OFF`;
             
-            document.getElementById("originalPrice").textContent = bundle.originalPrice.toFixed(2);
-            document.getElementById("bundlePrice").textContent = bundle.bundlePrice.toFixed(2);
-            document.getElementById("savings").textContent = (bundle.originalPrice - bundle.bundlePrice).toFixed(2);
-            document.getElementById("bookCount").textContent = bundle.books.length;
-
-            // Calculate and display weight and courier charge
+            // Calculate pricing
+            const basePrice = bundle.bundlePrice;
             const weight = bundle.weight || bundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0);
             const courierCharge = calculateCourierCharge(weight);
+            
+            // Display pickup price (same as bundle price)
+            document.getElementById("bundlePickupPrice").textContent = basePrice.toFixed(2);
+            
+            // Display courier price (bundle price + courier charge)
+            const courierTotalPrice = basePrice + courierCharge;
+            document.getElementById("bundleCourierPrice").textContent = courierTotalPrice.toFixed(2);
+            
+            document.getElementById("originalPrice").textContent = bundle.originalPrice.toFixed(2);
+            document.getElementById("savings").textContent = (bundle.originalPrice - basePrice).toFixed(2);
+            document.getElementById("bookCount").textContent = bundle.books.length;
+
+            // Display weight and courier charge
             document.getElementById("bundleWeight").textContent = `${weight.toFixed(2)} kg`;
             document.getElementById("bundleCourierCharge").textContent = `₹${courierCharge.toFixed(2)}`;
 
@@ -232,40 +293,55 @@
             `).join('');
         }
 
-        function addToCart() {
+        function addToCart(deliveryMethod = "courier") {
             if (!currentBundle) return;
 
             let cart = getCart();
 
-            // Check if bundle already in cart
-            if (cart.find(item => item.bundleId === currentBundle._id)) {
-                return alert("This bundle is already in your cart!");
+            // Check if bundle with same delivery method already exists
+            const existingItemIndex = cart.findIndex(item => 
+                item.bundleId === currentBundle._id && item.deliveryMethod === deliveryMethod
+            );
+
+            if (existingItemIndex !== -1) {
+                // If exists, increase quantity
+                cart[existingItemIndex].quantity += 1;
+                saveCart(cart);
+                const methodText = deliveryMethod === 'pickup' ? 'Book-stall Pickup' : 'Courier Delivery';
+                return alert(`Bundle quantity updated in cart (${methodText})!`);
             }
 
-            // Calculate bundle weight
+            // Calculate pricing based on delivery method
+            const basePrice = currentBundle.bundlePrice;
             const weight = currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0);
+            const courierCharge = deliveryMethod === "courier" ? calculateCourierCharge(weight) : 0;
+            const totalPrice = basePrice + courierCharge;
 
             // Add bundle to cart
             cart.push({
                 bundleId: currentBundle._id,
                 isBundle: true,
                 title: currentBundle.name,
-                price: currentBundle.bundlePrice,
+                price: totalPrice,
+                basePrice: basePrice,
+                courierCharge: courierCharge,
                 originalPrice: currentBundle.originalPrice,
                 books: currentBundle.books,
                 quantity: 1,
                 weight: weight,
+                deliveryMethod: deliveryMethod,
                 coverImage: currentBundle.image || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="250" height="300"%3E%3Crect fill="%23ddd" width="250" height="300"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="20" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EBundle%3C/text%3E%3C/svg%3E'
             });
 
             saveCart(cart);
-            alert(`Bundle "${currentBundle.name}" added to cart!`);
-            window.location.href = "/cart.html";
+            const methodText = deliveryMethod === 'pickup' ? 'Book-stall Pickup' : 'Courier Delivery';
+            alert(`Bundle "${currentBundle.name}" added to cart for ${methodText}!`);
         }
 
-        function buyNow() {
-            addToCart();
+        function buyNow(deliveryMethod = "courier") {
+            addToCart(deliveryMethod);
             // Cart page will handle the purchase
+            window.location.href = "/cart.html";
         }
 
         function showError() {

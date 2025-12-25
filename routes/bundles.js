@@ -1,10 +1,71 @@
 // routes/bundles.js
 const express = require("express");
+const multer = require("multer");
+const cloudinary = require("../config/cloudinary");
 const Bundle = require("../models/Bundle");
 const Book = require("../models/Book");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 
 const router = express.Router();
+
+// Multer setup for image uploads
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2MB per file
+    files: 1
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  }
+});
+
+// Helper function to upload buffer to Cloudinary
+async function uploadToCloudinary(buffer, filename) {
+  return new Promise((resolve, reject) => {
+    try {
+      const { v2: cloudinaryFresh } = require('cloudinary');
+      
+      cloudinaryFresh.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME_NEW || process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY_NEW || process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET_NEW || process.env.CLOUDINARY_API_SECRET,
+        secure: true
+      });
+
+      const uploadStream = cloudinaryFresh.uploader.upload_stream(
+        {
+          resource_type: "image",
+          folder: "bundles",
+          public_id: `bundle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          transformation: [
+            { width: 800, height: 600, crop: "limit" },
+            { quality: "auto:good" },
+            { format: "auto" }
+          ]
+        },
+        (error, result) => {
+          if (error) {
+            console.error('Cloudinary upload error:', error);
+            reject(error);
+          } else {
+            resolve(result.secure_url);
+          }
+        }
+      );
+
+      uploadStream.end(buffer);
+    } catch (error) {
+      console.error('Upload setup error:', error);
+      reject(error);
+    }
+  });
+}
 
 // =====================================================
 // PUBLIC ROUTES
@@ -48,6 +109,52 @@ router.get("/:id", async (req, res) => {
     } catch (err) {
         console.error("Fetch bundle error:", err);
         res.status(500).json({ error: "Error fetching bundle" });
+    }
+});
+
+// =====================================================
+// IMAGE UPLOAD ROUTE
+// =====================================================
+
+/**
+ * TEST ENDPOINT - Check if bundles admin routes are working
+ */
+router.get("/admin/test", authenticateToken, isAdmin, (req, res) => {
+    console.log('🔍 Bundle admin test endpoint hit!');
+    res.json({ message: "Bundle admin routes are working!" });
+});
+
+/**
+ * UPLOAD BUNDLE IMAGE (Admin only)
+ */
+router.post("/admin/upload-image", authenticateToken, isAdmin, upload.single('image'), async (req, res) => {
+    console.log('🔍 Bundle image upload endpoint hit!');
+    console.log('📁 Request file:', req.file ? 'File received' : 'No file');
+    
+    try {
+        if (!req.file) {
+            console.log('❌ No file provided in request');
+            return res.status(400).json({ error: "No image file provided" });
+        }
+
+        console.log('📤 Uploading bundle image to Cloudinary...');
+        console.log('📄 File details:', {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size
+        });
+        
+        const imageUrl = await uploadToCloudinary(req.file.buffer, req.file.originalname);
+        console.log('✅ Bundle image uploaded:', imageUrl);
+
+        res.json({ 
+            message: "Image uploaded successfully",
+            url: imageUrl 
+        });
+
+    } catch (err) {
+        console.error("Bundle image upload error:", err);
+        res.status(500).json({ error: "Error uploading image: " + err.message });
     }
 });
 

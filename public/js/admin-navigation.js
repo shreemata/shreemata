@@ -12,10 +12,12 @@ const adminNavConfig = {
         { href: "/admin-bundles.html", icon: "📦", text: "Bundles", id: "bundles", title: "Manage Bundles" },
         { href: "/admin-orders.html", icon: "🛒", text: "Orders", id: "orders", title: "Manage Orders" },
         { href: "/admin-withdrawals.html", icon: "💰", text: "Withdrawals", id: "withdrawals", title: "Manage Withdrawals" },
+        { href: "/admin-bank-requests.html", icon: "🏦", text: "Bank Requests", id: "bank-requests", title: "Bank Change Requests" },
         { href: "/admin-notifications.html", icon: "📢", text: "Notifications", id: "notifications", title: "Manage Notifications" },
         { href: "/admin-income.html", icon: "💵", text: "Income", id: "income", title: "Income Dashboard" },
         { href: "/admin-users.html", icon: "👥", text: "Users", id: "users", title: "User Management" },
         { href: "/admin-commission-settings.html", icon: "⚙️", text: "Settings", id: "settings", title: "Commission Settings" },
+        { href: "/admin-receipt-settings.html", icon: "🧾", text: "Receipt Settings", id: "receipt-settings", title: "Receipt Settings" },
         { href: "/admin-referral-tree.html", icon: "🌳", text: "Referral Tree", id: "referral-tree", title: "Referral Tree" },
         { href: "/admin-referral-tree-visual.html", icon: "📊", text: "Tree Visual", id: "tree-visual", title: "Referral Tree Visual" },
         { href: "/", icon: "🚪", text: "Logout", id: "logout" }
@@ -561,6 +563,7 @@ function detectCurrentPage() {
     else if (path.includes('admin-income')) currentPageId = 'income';
     else if (path.includes('admin-users')) currentPageId = 'users';
     else if (path.includes('admin-commission-settings')) currentPageId = 'settings';
+    else if (path.includes('admin-receipt-settings')) currentPageId = 'receipt-settings';
     else if (path.includes('admin-referral-tree-visual')) currentPageId = 'tree-visual';
     else if (path.includes('admin-referral-tree')) currentPageId = 'referral-tree';
     else if (path.includes('admin.html') || path === '/admin') currentPageId = 'books';

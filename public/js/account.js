@@ -40,6 +40,7 @@ function showSection(section) {
     document.getElementById("profileSection").style.display = "none";
     document.getElementById("editSection").style.display = "none";
     document.getElementById("addressSection").style.display = "none";
+    document.getElementById("withdrawalSection").style.display = "none";
     document.getElementById("ordersSection").style.display = "none";
     document.getElementById("pointsSection").style.display = "none";
 
@@ -48,6 +49,12 @@ function showSection(section) {
     // Reload points when section is shown
     if (section === 'points') {
         loadPoints();
+    }
+    
+    // Load withdrawal data when section is shown
+    if (section === 'withdrawal') {
+        loadWithdrawalData();
+    }
     }
 }
 
@@ -482,3 +489,268 @@ function loadDefaultStoreDetailsForAccount(defaultStoreDetails) {
     
     console.log('✅ Default store details loaded for account page');
 }
+/* ---
+--------------------------------------
+   WITHDRAWAL FUNCTIONS
+----------------------------------------- */
+
+// Load withdrawal data and determine which section to show
+async function loadWithdrawalData() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+        const res = await fetch(`${API}/referral/withdrawal-settings`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.error || "Failed to load withdrawal settings");
+        }
+
+        // Update wallet balance
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        document.getElementById("walletBalance").textContent = `₹${user.wallet || 0}`;
+        document.getElementById("minWithdrawal").textContent = `₹${data.minimumWithdrawalAmount}`;
+
+        if (data.bankDetailsSetup) {
+            // Show withdrawal form section
+            document.getElementById("bankSetupSection").style.display = "none";
+            document.getElementById("withdrawalFormSection").style.display = "block";
+            
+            // Display masked bank details
+            displayMaskedBankDetails(data.maskedBankDetails);
+            
+            // Update limits
+            if (data.maskedBankDetails) {
+                document.getElementById("dailyLimit").textContent = `₹${data.maskedBankDetails.dailyLimit}`;
+                document.getElementById("monthlyLimit").textContent = `₹${data.maskedBankDetails.monthlyLimit}`;
+            }
+            
+            // Load withdrawal history
+            loadWithdrawalHistory();
+        } else {
+            // Show bank setup section
+            document.getElementById("bankSetupSection").style.display = "block";
+            document.getElementById("withdrawalFormSection").style.display = "none";
+        }
+
+    } catch (err) {
+        console.error("Error loading withdrawal data:", err);
+        alert("Error loading withdrawal data: " + err.message);
+    }
+}
+
+// Display masked bank details
+function displayMaskedBankDetails(bankDetails) {
+    if (!bankDetails) return;
+    
+    let html = '<div style="display: grid; gap: 8px;">';
+    
+    if (bankDetails.accountNumber) {
+        html += `<div><strong>Account:</strong> ${bankDetails.accountNumber}</div>`;
+        html += `<div><strong>Bank:</strong> ${bankDetails.bankName}</div>`;
+        html += `<div><strong>IFSC:</strong> ${bankDetails.ifscCode}</div>`;
+    }
+    
+    if (bankDetails.upiId) {
+        html += `<div><strong>UPI ID:</strong> ${bankDetails.upiId}</div>`;
+    }
+    
+    html += `<div><strong>Account Holder:</strong> ${bankDetails.accountHolderName}</div>`;
+    html += `<div><strong>Setup Date:</strong> ${new Date(bankDetails.setupDate).toLocaleDateString()}</div>`;
+    html += '</div>';
+    
+    document.getElementById("maskedBankDetails").innerHTML = html;
+}
+
+// Setup bank details (one-time)
+async function setupBankDetails(e) {
+    e.preventDefault();
+    
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("Login required");
+        return;
+    }
+
+    const accountHolderName = document.getElementById("accountHolderName").value.trim();
+    const accountNumber = document.getElementById("accountNumber").value.trim();
+    const ifscCode = document.getElementById("ifscCode").value.trim();
+    const bankName = document.getElementById("bankName").value.trim();
+    const upiId = document.getElementById("upiId").value.trim();
+
+    // Validation
+    if (!accountHolderName) {
+        alert("Account holder name is required");
+        return;
+    }
+
+    if (!upiId && (!accountNumber || !ifscCode || !bankName)) {
+        alert("Please provide either UPI ID or complete bank details (Account Number, IFSC, Bank Name)");
+        return;
+    }
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Setting up...";
+
+    try {
+        const res = await fetch(`${API}/referral/setup-bank-details`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                accountHolderName,
+                accountNumber: accountNumber || null,
+                ifscCode: ifscCode || null,
+                bankName: bankName || null,
+                upiId: upiId || null
+            })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || "Failed to setup bank details");
+        }
+
+        // Show success popup
+        alert("✅ Bank details setup successfully!\n\nYour bank details are now locked for security. You can now make withdrawal requests using only the amount.");
+        
+        // Reload withdrawal data to show withdrawal form
+        loadWithdrawalData();
+
+    } catch (err) {
+        console.error("Bank setup error:", err);
+        alert("Error: " + err.message);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "🔒 Setup Bank Details (One-Time)";
+    }
+}
+
+// Submit withdrawal request
+async function submitWithdrawal(e) {
+    e.preventDefault();
+    
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("Login required");
+        return;
+    }
+
+    const amount = parseFloat(document.getElementById("withdrawalAmount").value);
+    
+    if (!amount || amount <= 0) {
+        alert("Please enter a valid withdrawal amount");
+        return;
+    }
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Processing...";
+
+    try {
+        const res = await fetch(`${API}/referral/withdraw`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ amount })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || "Failed to submit withdrawal request");
+        }
+
+        // Show success popup
+        alert(`✅ Withdrawal request submitted successfully!\n\nAmount: ₹${amount}\nStatus: Pending Admin Approval\n\nYou will receive an email confirmation shortly.`);
+        
+        // Clear form and reload data
+        document.getElementById("withdrawalAmount").value = "";
+        
+        // Update wallet balance in localStorage
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        user.wallet = data.remainingBalance;
+        localStorage.setItem("user", JSON.stringify(user));
+        
+        // Reload withdrawal data
+        loadWithdrawalData();
+
+    } catch (err) {
+        console.error("Withdrawal error:", err);
+        alert("Error: " + err.message);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "💰 Submit Withdrawal Request";
+    }
+}
+
+// Load withdrawal history
+async function loadWithdrawalHistory() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+        const res = await fetch(`${API}/users/profile`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        const data = await res.json();
+        
+        if (res.ok && data.user && data.user.withdrawals) {
+            const withdrawals = data.user.withdrawals.slice(-5).reverse(); // Last 5 withdrawals
+            
+            const historyList = document.getElementById("withdrawalHistoryList");
+            
+            if (withdrawals.length === 0) {
+                historyList.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No withdrawal history yet.</p>';
+                return;
+            }
+            
+            historyList.innerHTML = withdrawals.map(w => {
+                const statusColor = w.status === 'approved' ? '#28a745' : 
+                                  w.status === 'pending' ? '#ffc107' : '#dc3545';
+                
+                return `
+                    <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: bold; font-size: 16px;">₹${w.amount}</div>
+                                <div style="font-size: 12px; color: #666;">${new Date(w.requestedAt || w.date).toLocaleDateString()}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: ${statusColor}; font-weight: bold; text-transform: capitalize;">${w.status}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+    } catch (err) {
+        console.error("Error loading withdrawal history:", err);
+    }
+}
+
+// Add event listeners when DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+    // Add withdrawal form event listeners
+    const bankDetailsForm = document.getElementById("bankDetailsForm");
+    if (bankDetailsForm) {
+        bankDetailsForm.addEventListener("submit", setupBankDetails);
+    }
+    
+    const withdrawalForm = document.getElementById("withdrawalForm");
+    if (withdrawalForm) {
+        withdrawalForm.addEventListener("submit", submitWithdrawal);
+    }
+});

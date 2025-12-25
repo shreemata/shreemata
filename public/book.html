@@ -9,6 +9,85 @@
     <title>Book Details - Shree Mata</title>
     <link rel="stylesheet" href="css/styles.css">
     <style>
+        /* Pricing Options Styles */
+        .pricing-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .pickup-pricing {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            transition: transform 0.3s ease;
+        }
+        
+        .pickup-pricing:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+        
+        .courier-pricing {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+            transition: transform 0.3s ease;
+        }
+        
+        .courier-pricing:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+        }
+        
+        .pricing-title {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .book-price {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .pricing-note {
+            margin: 0;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        /* Button Groups */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        .button-group button {
+            flex: 1;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .pricing-section {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+        
         /* Image Lightbox Styles */
         .lightbox {
             position: fixed;
@@ -234,10 +313,16 @@
 
                         <!-- Purchase Buttons -->
                         <div class="purchase-buttons">
-                            <!-- Physical Book Purchase -->
-                            <div class="button-group physical-buttons">
-                                <button id="buyBtn" class="btn-primary btn-large">Buy Physical Book</button>
-                                <button id="cartBtn" class="btn-secondary btn-large">Add to Cart</button>
+                            <!-- Book-stall Purchase -->
+                            <div class="button-group pickup-buttons">
+                                <button id="buyPickupBtn" class="btn-primary btn-large">🏪 Buy at Book-stall</button>
+                                <button id="cartPickupBtn" class="btn-secondary btn-large">Add to Cart (Pickup)</button>
+                            </div>
+                            
+                            <!-- Courier Purchase -->
+                            <div class="button-group courier-buttons" style="margin-top: 15px;">
+                                <button id="buyCourierBtn" class="btn-primary btn-large">🚚 Buy with Courier</button>
+                                <button id="cartCourierBtn" class="btn-secondary btn-large">Add to Cart (Courier)</button>
                             </div>
                         </div>
                     </div>
@@ -249,11 +334,18 @@
                         
                         <!-- Pricing Display -->
                         <div class="pricing-section">
-                            <!-- Physical Book Pricing -->
-                            <div class="pricing-option physical-pricing">
-                                <h3 class="pricing-title">📦 Physical Book</h3>
-                                <p class="book-price" id="physicalPrice"></p>
-                                <p class="pricing-note">Includes shipping</p>
+                            <!-- Book-stall Purchase Option -->
+                            <div class="pricing-option pickup-pricing">
+                                <h3 class="pricing-title">🏪 Purchase at Book-stall</h3>
+                                <p class="book-price" id="pickupPrice"></p>
+                                <p class="pricing-note">Visit our store for pickup</p>
+                            </div>
+                            
+                            <!-- Courier Delivery Option -->
+                            <div class="pricing-option courier-pricing">
+                                <h3 class="pricing-title">🚚 Through Courier</h3>
+                                <p class="book-price" id="courierPrice"></p>
+                                <p class="pricing-note">Home delivery included</p>
                             </div>
                         </div>
                         

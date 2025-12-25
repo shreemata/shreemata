@@ -115,10 +115,126 @@ const userSchema = new mongoose.Schema({
       transferError: String,     // Error message if transfer failed
       transferStatus: String     // queued, processing, processed, failed
     }
-  ]
+  ],
+
+  // Secure Bank Details (One-time setup)
+  bankDetails: {
+    isSetup: { type: Boolean, default: false },
+    setupDate: Date,
+    
+    // Bank Account Details
+    accountNumber: String,
+    accountHolderName: String,
+    bankName: String,
+    ifscCode: String,
+    
+    // UPI Details
+    upiId: String,
+    
+    // Security & Verification
+    isVerified: { type: Boolean, default: false },
+    verificationDate: Date,
+    lastModifiedBy: { type: String, default: 'user' }, // 'user' or 'admin'
+    
+    // Withdrawal Limits
+    dailyLimit: { type: Number, default: 5000 },
+    monthlyLimit: { type: Number, default: 50000 },
+    
+    // Admin Notes
+    adminNotes: String
+  },
+
+  // Bank Detail Change Request System
+  bankChangeRequest: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
+
+  // Withdrawal Statistics
+  withdrawalStats: {
+    totalWithdrawn: { type: Number, default: 0 },
+    lastWithdrawalDate: Date,
+    dailyWithdrawn: { type: Number, default: 0 },
+    monthlyWithdrawn: { type: Number, default: 0 },
+    lastResetDate: { type: Date, default: Date.now }
+  }
 }, { timestamps: true });
 
 // Compound index for efficient tree traversal and position queries
 userSchema.index({ treeParent: 1, treePosition: 1 });
+
+// Method to setup bank details (one-time only)
+userSchema.methods.setupBankDetails = function(bankData) {
+  if (this.bankDetails.isSetup) {
+    throw new Error('Bank details already setup. Contact admin to make changes.');
+  }
+  
+  this.bankDetails = {
+    ...bankData,
+    isSetup: true,
+    setupDate: new Date(),
+    lastModifiedBy: 'user'
+  };
+  
+  return this.save();
+};
+
+// Method to check withdrawal limits
+userSchema.methods.checkWithdrawalLimits = function(amount) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  // Reset daily/monthly counters if needed
+  if (!this.withdrawalStats.lastResetDate || this.withdrawalStats.lastResetDate < today) {
+    this.withdrawalStats.dailyWithdrawn = 0;
+    this.withdrawalStats.lastResetDate = today;
+  }
+  
+  if (!this.withdrawalStats.lastResetDate || this.withdrawalStats.lastResetDate < thisMonth) {
+    this.withdrawalStats.monthlyWithdrawn = 0;
+  }
+  
+  // Check limits
+  const dailyRemaining = this.bankDetails.dailyLimit - this.withdrawalStats.dailyWithdrawn;
+  const monthlyRemaining = this.bankDetails.monthlyLimit - this.withdrawalStats.monthlyWithdrawn;
+  
+  if (amount > dailyRemaining) {
+    throw new Error(`Daily withdrawal limit exceeded. Remaining: ₹${dailyRemaining}`);
+  }
+  
+  if (amount > monthlyRemaining) {
+    throw new Error(`Monthly withdrawal limit exceeded. Remaining: ₹${monthlyRemaining}`);
+  }
+  
+  return true;
+};
+
+// Method to update withdrawal stats
+userSchema.methods.updateWithdrawalStats = function(amount) {
+  this.withdrawalStats.totalWithdrawn += amount;
+  this.withdrawalStats.dailyWithdrawn += amount;
+  this.withdrawalStats.monthlyWithdrawn += amount;
+  this.withdrawalStats.lastWithdrawalDate = new Date();
+};
+
+// Method to get masked bank details for display
+userSchema.methods.getMaskedBankDetails = function() {
+  if (!this.bankDetails.isSetup) return null;
+  
+  return {
+    accountNumber: this.bankDetails.accountNumber ? 
+      'XXXX' + this.bankDetails.accountNumber.slice(-4) : null,
+    accountHolderName: this.bankDetails.accountHolderName,
+    bankName: this.bankDetails.bankName,
+    ifscCode: this.bankDetails.ifscCode,
+    upiId: this.bankDetails.upiId ? 
+      this.bankDetails.upiId.replace(/(.{2}).*(@.*)/, '$1****$2') : null,
+    isVerified: this.bankDetails.isVerified,
+    setupDate: this.bankDetails.setupDate,
+    dailyLimit: this.bankDetails.dailyLimit,
+    monthlyLimit: this.bankDetails.monthlyLimit
+  };
+};
 
 module.exports = mongoose.model("User", userSchema);

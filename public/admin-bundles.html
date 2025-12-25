@@ -384,6 +384,7 @@
                 <a href="/admin-bundles.html" class="active">Bundles</a>
                 <a href="/admin-orders.html">Orders</a>
                 <a href="/admin-withdrawals.html">Withdrawals</a>
+                <a href="/admin-bank-requests.html">Bank Requests</a>
                 <a href="/admin-notifications.html">Notifications</a>
                 <a href="/admin-income.html">Income</a>
                 <a href="/admin-users.html">Users</a>
@@ -614,6 +615,7 @@
                 <div class="bundle-card">
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <div style="flex: 1;">
+                            ${bundle.image ? `<img src="${bundle.image}" alt="${bundle.name}" style="width: 100%; max-width: 200px; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 15px;">` : ''}
                             <h3>${bundle.name}</h3>
                             <p>${bundle.description || ''}</p>
                             
@@ -657,6 +659,7 @@
                         </div>
 
                         <div style="display: flex; gap: 10px; flex-direction: column;">
+                            <button class="btn edit-bundle-btn" data-id="${bundle._id}" style="background: #2196F3;">Edit</button>
                             <button class="btn toggle-bundle-btn" data-id="${bundle._id}" style="background: ${bundle.isActive ? '#ff9800' : '#4CAF50'};">
                                 ${bundle.isActive ? 'Deactivate' : 'Activate'}
                             </button>
@@ -666,7 +669,11 @@
                 </div>
             `).join('');
             
-            // Add event listeners for toggle and delete buttons
+            // Add event listeners for edit, toggle and delete buttons
+            container.querySelectorAll('.edit-bundle-btn').forEach(btn => {
+                btn.addEventListener('click', () => openEditModal(btn.dataset.id));
+            });
+            
             container.querySelectorAll('.toggle-bundle-btn').forEach(btn => {
                 btn.addEventListener('click', () => toggleBundle(btn.dataset.id));
             });
@@ -687,6 +694,7 @@
             editingBundleId = null;
             document.getElementById("modalTitle").textContent = "Create Bundle";
             document.getElementById("bundleForm").reset();
+            document.getElementById("imagePreview").innerHTML = '';
             renderBookSelector();
             document.getElementById("bundleModal").style.display = "block";
             console.log("Modal opened");
@@ -694,6 +702,85 @@
 
         function closeModal() {
             document.getElementById("bundleModal").style.display = "none";
+        }
+
+        async function openEditModal(bundleId) {
+            console.log("Opening edit modal for bundle:", bundleId);
+            
+            if (allBooks.length === 0) {
+                alert("No books available! Please add books first from the Books admin page.");
+                return;
+            }
+            
+            try {
+                // Fetch bundle details
+                const token = localStorage.getItem("token");
+                const res = await fetch(`${API_URL}/bundles/${bundleId}`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                
+                if (!res.ok) {
+                    throw new Error("Failed to fetch bundle details");
+                }
+                
+                const data = await res.json();
+                const bundle = data.bundle;
+                
+                console.log("Loaded bundle for editing:", bundle);
+                
+                // Set editing mode
+                editingBundleId = bundleId;
+                document.getElementById("modalTitle").textContent = "Edit Bundle";
+                
+                // Populate form fields
+                document.getElementById("bundleName").value = bundle.name || '';
+                document.getElementById("bundleDescription").value = bundle.description || '';
+                document.getElementById("bundleImage").value = bundle.image || '';
+                document.getElementById("bundlePrice").value = bundle.bundlePrice || '';
+                document.getElementById("rewardPoints").value = bundle.rewardPoints || 0;
+                
+                // Set valid until date
+                if (bundle.validUntil) {
+                    const date = new Date(bundle.validUntil);
+                    document.getElementById("validUntil").value = date.toISOString().split('T')[0];
+                } else {
+                    document.getElementById("validUntil").value = '';
+                }
+                
+                // Show image preview if exists
+                const imagePreview = document.getElementById("imagePreview");
+                if (bundle.image) {
+                    imagePreview.innerHTML = `
+                        <img src="${bundle.image}" style="max-width: 200px; max-height: 200px; border-radius: 4px;">
+                        <p style="color: #666; font-size: 12px;">Current image</p>
+                    `;
+                } else {
+                    imagePreview.innerHTML = '';
+                }
+                
+                // Render book selector and select current books
+                renderBookSelector();
+                
+                // Select the books that are in this bundle
+                const bundleBookIds = bundle.books.map(book => book._id);
+                bundleBookIds.forEach(bookId => {
+                    const checkbox = document.querySelector(`#bookSelector input[value="${bookId}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+                
+                // Update prices to reflect current selection
+                updatePrices();
+                
+                // Show modal
+                document.getElementById("bundleModal").style.display = "block";
+                console.log("Edit modal opened");
+                
+            } catch (err) {
+                console.error("Error loading bundle for editing:", err);
+                alert("Error loading bundle details: " + err.message);
+            }
         }
 
         function renderBookSelector() {
@@ -822,7 +909,8 @@
 
             const submitBtn = e.target.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
-            submitBtn.textContent = "Saving...";
+            const isEditing = editingBundleId !== null;
+            submitBtn.textContent = isEditing ? "Updating..." : "Saving...";
 
             try {
                 let imageUrl = document.getElementById("bundleImage").value || null;
@@ -835,7 +923,7 @@
                     formData.append("image", imageFile);
 
                     const token = localStorage.getItem("token");
-                    const uploadRes = await fetch(`${API_URL}/books/upload-image`, {
+                    const uploadRes = await fetch(`${API_URL}/bundles/admin/upload-image`, {
                         method: "POST",
                         headers: {
                             "Authorization": "Bearer " + token
@@ -846,12 +934,14 @@
                     if (uploadRes.ok) {
                         const uploadData = await uploadRes.json();
                         imageUrl = uploadData.url;
+                        console.log("✅ Image uploaded successfully:", imageUrl);
                     } else {
-                        throw new Error("Image upload failed");
+                        const errorData = await uploadRes.json();
+                        throw new Error(errorData.error || "Image upload failed");
                     }
                 }
 
-                submitBtn.textContent = "Creating bundle...";
+                submitBtn.textContent = isEditing ? "Updating bundle..." : "Creating bundle...";
 
                 const bundleData = {
                     name: document.getElementById("bundleName").value,
@@ -866,8 +956,13 @@
                 console.log("Sending bundle data:", bundleData);
 
                 const token = localStorage.getItem("token");
-                const res = await fetch(`${API_URL}/bundles/admin/create`, {
-                    method: "POST",
+                const url = isEditing 
+                    ? `${API_URL}/bundles/admin/update/${editingBundleId}`
+                    : `${API_URL}/bundles/admin/create`;
+                const method = isEditing ? "PUT" : "POST";
+
+                const res = await fetch(url, {
+                    method: method,
                     headers: {
                         "Content-Type": "application/json",
                         "Authorization": "Bearer " + token
@@ -880,12 +975,12 @@
                 console.log("Response data:", data);
 
                 if (res.ok) {
-                    alert("Bundle created successfully!");
+                    alert(isEditing ? "Bundle updated successfully!" : "Bundle created successfully!");
                     closeModal();
                     loadBundles();
                 } else {
                     console.error("Error response:", data);
-                    alert(data.error || "Error creating bundle");
+                    alert(data.error || (isEditing ? "Error updating bundle" : "Error creating bundle"));
                 }
             } catch (err) {
                 console.error("Error:", err);

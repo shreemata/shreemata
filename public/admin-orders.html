@@ -943,7 +943,7 @@
                 margin: 0 !important;
                 padding: 0 !important;
                 background: white !important;
-                font-family: 'Courier New', monospace !important;
+                font-family: 'Arial', sans-serif !important;
                 height: auto !important;
                 overflow: visible !important;
             }
@@ -955,95 +955,98 @@
                 width: 100% !important;
                 height: auto !important;
                 margin: 0 !important;
-                padding: 0 !important;
-                transform: scale(0.7) !important;
-                transform-origin: top left !important;
+                padding: 20mm !important;
+                transform: none !important;
             }
             
             .receipt {
                 box-shadow: none !important;
                 border-radius: 0 !important;
-                max-width: none !important;
+                max-width: 170mm !important;
                 width: 100% !important;
                 max-height: none !important;
                 overflow: visible !important;
-                padding: 15px !important;
-                margin: 0 !important;
-                font-size: 12px !important;
-                line-height: 1.2 !important;
+                padding: 25mm !important;
+                margin: 0 auto !important;
+                font-size: 18px !important;
+                line-height: 1.6 !important;
                 color: #000 !important;
-                font-weight: bold !important;
-                font-family: 'Courier New', monospace !important;
+                font-weight: normal !important;
+                font-family: 'Arial', sans-serif !important;
+                border: 3px solid #000 !important;
             }
             
             .receipt-header {
-                margin-bottom: 10px !important;
-                padding-bottom: 8px !important;
-                border-bottom: 2px solid #000 !important;
+                margin-bottom: 30px !important;
+                padding-bottom: 20px !important;
+                border-bottom: 4px solid #000 !important;
             }
             
             .company-name {
-                font-size: 18px !important;
+                font-size: 32px !important;
                 font-weight: bold !important;
                 color: #000 !important;
                 text-align: center !important;
-                margin-bottom: 5px !important;
+                margin-bottom: 15px !important;
+                letter-spacing: 2px !important;
             }
             
             .company-details {
-                font-size: 10px !important;
+                font-size: 18px !important;
                 color: #000 !important;
-                font-weight: bold !important;
+                font-weight: normal !important;
                 text-align: center !important;
-                line-height: 1.2 !important;
+                line-height: 1.5 !important;
             }
             
             .receipt-section {
-                margin-bottom: 8px !important;
-                padding-bottom: 5px !important;
+                margin-bottom: 12px !important;
+                padding-bottom: 8px !important;
                 page-break-inside: avoid;
                 border-bottom: 1px dashed #000 !important;
             }
             
             .receipt-row {
-                font-size: 11px !important;
+                font-size: 16px !important;
                 color: #000 !important;
                 font-weight: bold !important;
-                margin-bottom: 2px !important;
+                margin-bottom: 4px !important;
                 display: flex !important;
                 justify-content: space-between !important;
+                line-height: 1.4 !important;
             }
             
             .receipt-total {
-                font-size: 13px !important;
+                font-size: 20px !important;
                 font-weight: bold !important;
                 color: #000 !important;
-                border-top: 2px solid #000 !important;
-                padding-top: 3px !important;
-                margin-top: 5px !important;
+                border-top: 3px solid #000 !important;
+                padding-top: 8px !important;
+                margin-top: 10px !important;
             }
             
             .receipt-footer {
-                font-size: 9px !important;
-                margin-top: 10px !important;
-                padding-top: 5px !important;
+                font-size: 14px !important;
+                margin-top: 15px !important;
+                padding-top: 10px !important;
                 color: #000 !important;
                 font-weight: bold !important;
                 text-align: center !important;
+                line-height: 1.4 !important;
             }
             
             .signature-section {
-                margin-top: 12px !important;
+                margin-top: 20px !important;
                 color: #000 !important;
                 font-weight: bold !important;
                 text-align: right !important;
-                font-size: 10px !important;
+                font-size: 14px !important;
             }
             
             .signature-line {
-                margin: 8px 0 3px auto !important;
-                border-top: 1px solid #000 !important;
-                width: 120px !important;
+                margin: 15px 0 8px auto !important;
+                border-top: 2px solid #000 !important;
+                width: 150px !important;
             }
             
             .receipt-buttons {
@@ -1090,10 +1093,12 @@
                 <a href="/admin-bundles.html">📦 Bundles</a>
                 <a href="/admin-orders.html" class="active">🛒 Orders</a>
                 <a href="/admin-withdrawals.html">💰 Withdrawals</a>
+                <a href="/admin-bank-requests.html">🏦 Bank Requests</a>
                 <a href="/admin-notifications.html">📢 Notifications</a>
                 <a href="/admin-income.html">💵 Income</a>
                 <a href="/admin-users.html">👥 Users</a>
                 <a href="/admin-commission-settings.html">⚙️ Settings</a>
+                <a href="/admin-receipt-settings.html">🧾 Receipt Settings</a>
                 <a href="/admin-referral-tree.html">🌳 Referral Tree</a>
                 <a href="admin-referral-tree-visual.html">📊 Tree Visual</a>
                 <a href="/" id="logoutBtn">🚪 Logout</a>
@@ -2024,8 +2029,33 @@
             generateReceipt(order);
         }
 
-        function generateReceipt(order) {
+        async function generateReceipt(order) {
             const receiptContent = document.getElementById('receiptContent');
+            
+            // Load receipt settings
+            let receiptSettings = {};
+            try {
+                const response = await fetch('/api/receipt-settings');
+                const data = await response.json();
+                if (data.success) {
+                    receiptSettings = data.settings;
+                }
+            } catch (error) {
+                console.error('Error loading receipt settings:', error);
+                // Use default values if settings can't be loaded
+                receiptSettings = {
+                    companyName: 'SHREE MATA',
+                    companyTagline: '📚 Premium Educational Store',
+                    phone: '+91-9876543210',
+                    email: 'info@shreemata.com',
+                    address: '123 Book Street, Knowledge City\nDelhi - 110001',
+                    gstin: '07AAACH7409R1ZZ',
+                    footerMessage: '⭐ Thank you for shopping with us! ⭐',
+                    contactFooter: 'For any queries, contact us at:\n📞 +91-9876543210 | 📧 support@shreemata.com',
+                    website: 'www.shreemata.com',
+                    disclaimer: 'This is a computer generated receipt'
+                };
+            }
             
             // Calculate totals
             let subtotal = 0;
@@ -2059,14 +2089,13 @@
 
             const receiptHtml = `
                 <div class="receipt-header">
-                    <div class="company-name">SHREE MATA</div>
+                    <div class="company-name">${receiptSettings.companyName}</div>
                     <div class="company-details">
-                        📚 Premium Educational Store<br>
-                        📞 +91-9876543210<br>
-                        📧 info@shreemata.com<br>
-                        🏠 123 Book Street, Knowledge City<br>
-                        Delhi - 110001<br>
-                        GSTIN: 07AAACH7409R1ZZ
+                        ${receiptSettings.companyTagline}<br>
+                        📞 ${receiptSettings.phone}<br>
+                        📧 ${receiptSettings.email}<br>
+                        🏠 ${receiptSettings.address.replace(/\n/g, '<br>')}<br>
+                        ${receiptSettings.gstin ? `GSTIN: ${receiptSettings.gstin}` : ''}
                     </div>
                 </div>
 
@@ -2144,20 +2173,19 @@
                 <div class="signature-section">
                     <div>Authorized Signatory</div>
                     <div class="signature-line"></div>
-                    <div style="font-size: 10px; margin-top: 5px;">SHREE MATA</div>
+                    <div style="font-size: 10px; margin-top: 5px;">${receiptSettings.companyName}</div>
                 </div>
 
                 <div class="receipt-footer">
                     <div style="margin-bottom: 8px;">
-                        ⭐ Thank you for shopping with us! ⭐
+                        ${receiptSettings.footerMessage}
                     </div>
                     <div style="font-size: 9px;">
-                        For any queries, contact us at:<br>
-                        📞 +91-9876543210 | 📧 support@shreemata.com<br>
-                        Visit us: www.shreemata.com
+                        ${receiptSettings.contactFooter.replace(/\n/g, '<br>')}<br>
+                        Visit us: ${receiptSettings.website}
                     </div>
                     <div style="margin-top: 10px; font-size: 8px;">
-                        This is a computer generated receipt.
+                        ${receiptSettings.disclaimer}
                     </div>
                 </div>
 

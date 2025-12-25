@@ -3,8 +3,90 @@ const User = require("../models/User");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 const sendMail = require("../utils/sendMail");
 
-
 const router = express.Router();
+
+/* -------------------------------------------
+   🔒 Admin — Update User Bank Details
+--------------------------------------------*/
+router.post("/update-bank-details/:userId", authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { accountNumber, accountHolderName, bankName, ifscCode, upiId, adminNotes } = req.body;
+        
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Update bank details (admin can override)
+        user.bankDetails = {
+            ...user.bankDetails,
+            accountNumber: accountNumber?.trim(),
+            accountHolderName: accountHolderName?.trim(),
+            bankName: bankName?.trim(),
+            ifscCode: ifscCode?.trim().toUpperCase(),
+            upiId: upiId?.trim().toLowerCase(),
+            adminNotes: adminNotes?.trim(),
+            lastModifiedBy: 'admin',
+            isSetup: true,
+            setupDate: user.bankDetails.setupDate || new Date()
+        };
+
+        await user.save();
+
+        // Send notification to user
+        await sendMail(
+            user.email,
+            "Bank Details Updated by Admin",
+            `
+            <h2>Hello ${user.name},</h2>
+            <p>Your bank details have been updated by our admin team.</p>
+            <p>If you did not request this change, please contact us immediately.</p>
+            ${adminNotes ? `<p><strong>Admin Notes:</strong> ${adminNotes}</p>` : ''}
+            <br>
+            <p>Shree Mata Team</p>
+            `
+        );
+
+        res.json({ 
+            message: "Bank details updated successfully",
+            maskedBankDetails: user.getMaskedBankDetails()
+        });
+
+    } catch (err) {
+        console.error("Admin bank details update error:", err);
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
+/* -------------------------------------------
+   🔒 Admin — Get User Bank Details
+--------------------------------------------*/
+router.get("/bank-details/:userId", authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = await User.findById(userId);
+        
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Admin can see full bank details
+        res.json({
+            bankDetails: user.bankDetails,
+            withdrawalStats: user.withdrawalStats,
+            userInfo: {
+                name: user.name,
+                email: user.email,
+                wallet: user.wallet
+            }
+        });
+
+    } catch (err) {
+        console.error("Admin get bank details error:", err);
+        res.status(500).json({ error: "Server error" });
+    }
+});
 
 /* -------------------------------------------
    1️⃣ Admin — Get all withdrawal requests
