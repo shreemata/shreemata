@@ -18,6 +18,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("logoutBtn").addEventListener("click", logout);
     document.getElementById("addressForm").addEventListener("submit", saveAddress);
+    
+    // Check for URL parameters to show specific section
+    const urlParams = new URLSearchParams(window.location.search);
+    const section = urlParams.get('section');
+    if (section) {
+        showSection(section);
+    }
 });
 
 /* -----------------------------------------
@@ -37,24 +44,31 @@ function loadProfile() {
    CHANGE PAGE SECTIONS
 ----------------------------------------- */
 function showSection(section) {
-    document.getElementById("profileSection").style.display = "none";
-    document.getElementById("editSection").style.display = "none";
-    document.getElementById("addressSection").style.display = "none";
-    document.getElementById("withdrawalSection").style.display = "none";
-    document.getElementById("ordersSection").style.display = "none";
-    document.getElementById("pointsSection").style.display = "none";
+    // List of all possible sections
+    const sections = ["profileSection", "editSection", "addressSection", "storeSection", "ordersSection", "pointsSection"];
+    
+    // Hide all sections that exist
+    sections.forEach(sectionId => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+            element.style.display = "none";
+        }
+    });
 
-    document.getElementById(section + "Section").style.display = "block";
+    // Show the requested section if it exists
+    const targetSection = document.getElementById(section + "Section");
+    if (targetSection) {
+        targetSection.style.display = "block";
+    }
     
     // Reload points when section is shown
     if (section === 'points') {
         loadPoints();
     }
     
-    // Load withdrawal data when section is shown
+    // Load withdrawal data when section is shown (if withdrawal section exists)
     if (section === 'withdrawal') {
         loadWithdrawalData();
-    }
     }
 }
 
@@ -205,15 +219,24 @@ async function loadAddress() {
         if (data.user && data.user.address) {
             const addr = data.user.address;
             
-            document.getElementById("displayStreet").textContent = addr.street || "Not set";
+            // Display detailed address fields
+            document.getElementById("displayHomeAddress1").textContent = addr.homeAddress1 || addr.street || "Not set";
+            document.getElementById("displayHomeAddress2").textContent = addr.homeAddress2 || "-";
+            document.getElementById("displayStreetName").textContent = addr.streetName || "-";
+            document.getElementById("displayLandmark").textContent = addr.landmark || "-";
+            document.getElementById("displayVillage").textContent = addr.village || "-";
             document.getElementById("displayTaluk").textContent = addr.taluk || "Not set";
             document.getElementById("displayDistrict").textContent = addr.district || "Not set";
             document.getElementById("displayState").textContent = addr.state || "Not set";
             document.getElementById("displayPincode").textContent = addr.pincode || "Not set";
             document.getElementById("displayPhone").textContent = addr.phone || "Not set";
-
-            // Pre-fill form
-            document.getElementById("street").value = addr.street || "";
+            
+            // Pre-fill form fields for editing
+            document.getElementById("homeAddress1").value = addr.homeAddress1 || addr.street || "";
+            document.getElementById("homeAddress2").value = addr.homeAddress2 || "";
+            document.getElementById("streetName").value = addr.streetName || "";
+            document.getElementById("landmark").value = addr.landmark || "";
+            document.getElementById("village").value = addr.village || "";
             document.getElementById("taluk").value = addr.taluk || "";
             document.getElementById("district").value = addr.district || "";
             document.getElementById("state").value = addr.state || "";
@@ -254,13 +277,21 @@ async function saveAddress(e) {
     }
 
     const address = {
-        street: document.getElementById("street").value.trim(),
+        homeAddress1: document.getElementById("homeAddress1").value.trim(),
+        homeAddress2: document.getElementById("homeAddress2").value.trim(),
+        streetName: document.getElementById("streetName").value.trim(),
+        landmark: document.getElementById("landmark").value.trim(),
+        village: document.getElementById("village").value.trim(),
         taluk: document.getElementById("taluk").value.trim(),
         district: document.getElementById("district").value.trim(),
         state: document.getElementById("state").value.trim(),
         pincode: document.getElementById("pincode").value.trim(),
-        phone: document.getElementById("phone").value.trim()
+        phone: document.getElementById("phone").value.trim(),
+        // Create legacy street field for backward compatibility
+        street: document.getElementById("homeAddress1").value.trim()
     };
+
+    console.log('🔍 Frontend: Address data being sent:', JSON.stringify(address, null, 2));
 
     try {
         const res = await fetch(`${API}/users/update-address`, {

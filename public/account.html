@@ -63,7 +63,11 @@
         <div id="addressSection" class="account-section" style="display:none;">
             <h2>Delivery Address</h2>
             <div id="addressDisplay" style="margin-bottom: 20px;">
-                <p><strong>Street Address:</strong> <span id="displayStreet">Not set</span></p>
+                <p><strong>Home Address 1:</strong> <span id="displayHomeAddress1">Not set</span></p>
+                <p><strong>Home Address 2:</strong> <span id="displayHomeAddress2">-</span></p>
+                <p><strong>Street Name:</strong> <span id="displayStreetName">Not set</span></p>
+                <p><strong>Landmark:</strong> <span id="displayLandmark">-</span></p>
+                <p><strong>Village/Area:</strong> <span id="displayVillage">Not set</span></p>
                 <p><strong>Taluk:</strong> <span id="displayTaluk">Not set</span></p>
                 <p><strong>District:</strong> <span id="displayDistrict">Not set</span></p>
                 <p><strong>State:</strong> <span id="displayState">Not set</span></p>
@@ -73,13 +77,57 @@
             <button class="btn-primary" onclick="toggleAddressEdit()">Edit Address</button>
             
             <form id="addressForm" style="display:none; margin-top: 20px;">
-                <input type="text" id="street" placeholder="Street Address" required>
-                <input type="text" id="taluk" placeholder="Taluk" required>
-                <input type="text" id="district" placeholder="District" required>
-                <input type="text" id="state" placeholder="State" required>
-                <input type="text" id="pincode" placeholder="Pincode" required pattern="[0-9]{6}">
-                <input type="tel" id="phone" placeholder="Phone Number" required pattern="[0-9]{10}">
-                <div style="display: flex; gap: 10px;">
+                <div style="display: grid; gap: 15px;">
+                    <div>
+                        <label for="homeAddress1" style="display: block; margin-bottom: 5px; font-weight: 600;">Home Address 1 *</label>
+                        <input type="text" id="homeAddress1" placeholder="House/Building number and name" required>
+                    </div>
+                    <div>
+                        <label for="homeAddress2" style="display: block; margin-bottom: 5px; font-weight: 600;">Home Address 2 (Optional)</label>
+                        <input type="text" id="homeAddress2" placeholder="Apartment, suite, floor, etc.">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label for="streetName" style="display: block; margin-bottom: 5px; font-weight: 600;">Street Name</label>
+                            <input type="text" id="streetName" placeholder="Street name">
+                        </div>
+                        <div>
+                            <label for="landmark" style="display: block; margin-bottom: 5px; font-weight: 600;">Landmark</label>
+                            <input type="text" id="landmark" placeholder="Near landmark">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label for="village" style="display: block; margin-bottom: 5px; font-weight: 600;">Village/Area</label>
+                            <input type="text" id="village" placeholder="Village or area name">
+                        </div>
+                        <div>
+                            <label for="taluk" style="display: block; margin-bottom: 5px; font-weight: 600;">Taluk *</label>
+                            <input type="text" id="taluk" placeholder="Taluk name" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label for="district" style="display: block; margin-bottom: 5px; font-weight: 600;">District *</label>
+                            <input type="text" id="district" placeholder="District name" required>
+                        </div>
+                        <div>
+                            <label for="state" style="display: block; margin-bottom: 5px; font-weight: 600;">State *</label>
+                            <input type="text" id="state" placeholder="State name" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label for="pincode" style="display: block; margin-bottom: 5px; font-weight: 600;">Pincode *</label>
+                            <input type="text" id="pincode" placeholder="6-digit pincode" required pattern="[0-9]{6}">
+                        </div>
+                        <div>
+                            <label for="phone" style="display: block; margin-bottom: 5px; font-weight: 600;">Phone Number *</label>
+                            <input type="tel" id="phone" placeholder="10-digit phone number" required pattern="[0-9]{10}">
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button class="btn-primary" type="submit">Save Address</button>
                     <button class="btn-secondary" type="button" onclick="toggleAddressEdit()">Cancel</button>
                 </div>

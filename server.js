@@ -69,6 +69,7 @@ app.use("/api/bundles", require("./routes/bundles"));
 app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/points", require("./routes/points"));
 app.use("/api", require("./routes/otp"));
+app.use("/api/password-reset", require("./routes/passwordReset"));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/sitemap.xml", (req, res) => {

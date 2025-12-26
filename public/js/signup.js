@@ -20,8 +20,64 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     setupPhoneValidation();
+    loadSecurityQuestions();
     setupSignupForm();
 });
+
+// Load security questions from API
+async function loadSecurityQuestions() {
+    try {
+        const response = await fetch(`${API_URL}/password-reset/security-questions`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const questions = data.questions;
+            const selects = ['securityQuestion1', 'securityQuestion2', 'securityQuestion3'];
+            
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                questions.forEach(question => {
+                    const option = document.createElement('option');
+                    option.value = question;
+                    option.textContent = question;
+                    select.appendChild(option);
+                });
+            });
+            
+            // Add change event listeners to prevent duplicate selections
+            selects.forEach((selectId, index) => {
+                document.getElementById(selectId).addEventListener('change', () => {
+                    validateSecurityQuestionSelection();
+                });
+            });
+        }
+    } catch (error) {
+        console.error('Error loading security questions:', error);
+    }
+}
+
+// Validate that all security questions are different
+function validateSecurityQuestionSelection() {
+    const q1 = document.getElementById('securityQuestion1').value;
+    const q2 = document.getElementById('securityQuestion2').value;
+    const q3 = document.getElementById('securityQuestion3').value;
+    
+    const errorMessage = document.getElementById('errorMessage');
+    
+    if (q1 && q2 && q3) {
+        if (q1 === q2 || q2 === q3 || q1 === q3) {
+            errorMessage.textContent = 'Please select different security questions';
+            errorMessage.style.display = 'block';
+            return false;
+        } else {
+            if (errorMessage.textContent.includes('security questions')) {
+                errorMessage.style.display = 'none';
+            }
+            return true;
+        }
+    }
+    return true;
+}
 
 function setupPhoneValidation() {
     const phoneInput = document.getElementById("phone");
@@ -111,6 +167,14 @@ function setupSignupForm() {
         const referralInputEl = document.getElementById('referralInput');
         const referralCode = referralInputEl ? referralInputEl.value.trim() : null;
 
+        // Security questions
+        const securityQuestion1 = document.getElementById('securityQuestion1').value;
+        const securityAnswer1 = document.getElementById('securityAnswer1').value.trim();
+        const securityQuestion2 = document.getElementById('securityQuestion2').value;
+        const securityAnswer2 = document.getElementById('securityAnswer2').value.trim();
+        const securityQuestion3 = document.getElementById('securityQuestion3').value;
+        const securityAnswer3 = document.getElementById('securityAnswer3').value.trim();
+
         const errorMessage = document.getElementById('errorMessage');
         const signupBtn = document.getElementById('signupBtn');
 
@@ -148,11 +212,29 @@ function setupSignupForm() {
             return;
         }
 
+        // Validate security questions
+        if (!securityQuestion1 || !securityAnswer1 || !securityQuestion2 || !securityAnswer2 || !securityQuestion3 || !securityAnswer3) {
+            errorMessage.textContent = 'Please complete all security questions and answers';
+            errorMessage.style.display = 'block';
+            return;
+        }
+
+        if (!validateSecurityQuestionSelection()) {
+            return;
+        }
+
+        if (securityAnswer1.length < 2 || securityAnswer2.length < 2 || securityAnswer3.length < 2) {
+            errorMessage.textContent = 'Security answers must be at least 2 characters long';
+            errorMessage.style.display = 'block';
+            return;
+        }
+
         signupBtn.disabled = true;
         signupBtn.textContent = 'Creating account...';
 
         try {
-            const response = await fetch(`${API_URL}/signup`, {
+            // Step 1: Create user account
+            const signupResponse = await fetch(`${API_URL}/signup`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -166,33 +248,65 @@ function setupSignupForm() {
                 })
             });
 
-            const data = await response.json();
+            const signupData = await signupResponse.json();
 
-            if (response.ok) {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-
-                // Migrate guest cart to user cart
-                if (typeof migrateGuestCartToUser === 'function') {
-                    migrateGuestCartToUser();
-                }
-
-                alert('Account created successfully!');
-                
-                // Check if there's a redirect URL stored
-                const redirectUrl = localStorage.getItem("redirectAfterLogin");
-                if (redirectUrl) {
-                    localStorage.removeItem("redirectAfterLogin");
-                    window.location.href = redirectUrl;
-                } else {
-                    window.location.href = '/';
-                }
-            } else {
-                errorMessage.textContent = data.error || 'Signup failed. Please try again.';
+            if (!signupResponse.ok) {
+                errorMessage.textContent = signupData.error || 'Signup failed. Please try again.';
                 errorMessage.style.display = 'block';
                 signupBtn.disabled = false;
                 signupBtn.textContent = 'Create Account';
+                return;
             }
+
+            // Step 2: Setup security questions
+            signupBtn.textContent = 'Setting up security...';
+            
+            const securityResponse = await fetch(`${API_URL}/password-reset/setup-security`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${signupData.token}`
+                },
+                body: JSON.stringify({
+                    question1: securityQuestion1,
+                    answer1: securityAnswer1,
+                    question2: securityQuestion2,
+                    answer2: securityAnswer2,
+                    question3: securityQuestion3,
+                    answer3: securityAnswer3
+                })
+            });
+
+            const securityData = await securityResponse.json();
+
+            if (!securityResponse.ok) {
+                errorMessage.textContent = securityData.error || 'Failed to setup security questions. Please try again.';
+                errorMessage.style.display = 'block';
+                signupBtn.disabled = false;
+                signupBtn.textContent = 'Create Account';
+                return;
+            }
+
+            // Success - store token and redirect
+            localStorage.setItem('token', signupData.token);
+            localStorage.setItem('user', JSON.stringify(signupData.user));
+
+            // Migrate guest cart to user cart
+            if (typeof migrateGuestCartToUser === 'function') {
+                migrateGuestCartToUser();
+            }
+
+            alert('Account created successfully with security questions setup!');
+            
+            // Check if there's a redirect URL stored
+            const redirectUrl = localStorage.getItem("redirectAfterLogin");
+            if (redirectUrl) {
+                localStorage.removeItem("redirectAfterLogin");
+                window.location.href = redirectUrl;
+            } else {
+                window.location.href = '/';
+            }
+
         } catch (error) {
             console.error('Signup error:', error);
             errorMessage.textContent = 'Network error. Please try again.';

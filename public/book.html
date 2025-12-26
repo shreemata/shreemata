@@ -313,16 +313,15 @@
 
                         <!-- Purchase Buttons -->
                         <div class="purchase-buttons">
-                            <!-- Book-stall Purchase -->
-                            <div class="button-group pickup-buttons">
-                                <button id="buyPickupBtn" class="btn-primary btn-large">🏪 Buy at Book-stall</button>
-                                <button id="cartPickupBtn" class="btn-secondary btn-large">Add to Cart (Pickup)</button>
+                            <!-- Buy Buttons -->
+                            <div class="button-group buy-buttons">
+                                <button id="buyPickupBtn" class="btn-primary btn-large">🏪 Buy through Store</button>
+                                <button id="buyCourierBtn" class="btn-primary btn-large">🚚 Buy by Courier</button>
                             </div>
                             
-                            <!-- Courier Purchase -->
-                            <div class="button-group courier-buttons" style="margin-top: 15px;">
-                                <button id="buyCourierBtn" class="btn-primary btn-large">🚚 Buy with Courier</button>
-                                <button id="cartCourierBtn" class="btn-secondary btn-large">Add to Cart (Courier)</button>
+                            <!-- Single Add to Cart Button -->
+                            <div class="button-group cart-buttons" style="margin-top: 15px;">
+                                <button id="addToCartBtn" class="btn-secondary btn-large" style="width: 100%;">🛒 Add to Cart</button>
                             </div>
                         </div>
                     </div>
@@ -407,6 +406,7 @@
 
     <!-- SCRIPTS -->
     <script src="js/config.js"></script>
+    <script src="js/dynamic-shipping.js"></script>
     <script src="js/shipping-calculator.js"></script>
     <script src="js/cartUtils.js"></script>
     <script src="js/global.js"></script>
@@ -419,46 +419,74 @@
             </div>
 
             <div id="addressDisplay" style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <p style="margin: 10px 0;"><strong>Street:</strong> <span id="modalStreet">Not set</span></p>
-                <p style="margin: 10px 0;"><strong>Taluk:</strong> <span id="modalTaluk">Not set</span></p>
-                <p style="margin: 10px 0;"><strong>District:</strong> <span id="modalDistrict">Not set</span></p>
-                <p style="margin: 10px 0;"><strong>State:</strong> <span id="modalState">Not set</span></p>
-                <p style="margin: 10px 0;"><strong>Pincode:</strong> <span id="modalPincode">Not set</span></p>
-                <p style="margin: 10px 0;"><strong>Phone:</strong> <span id="modalPhone">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>🏠 Home Address 1:</strong> <span id="modalHomeAddress1">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>🏠 Home Address 2:</strong> <span id="modalHomeAddress2">-</span></p>
+                <p style="margin: 10px 0;"><strong>🛣️ Street Name:</strong> <span id="modalStreetName">-</span></p>
+                <p style="margin: 10px 0;"><strong>📍 Landmark:</strong> <span id="modalLandmark">-</span></p>
+                <p style="margin: 10px 0;"><strong>🏘️ Village/Area:</strong> <span id="modalVillage">-</span></p>
+                <p style="margin: 10px 0;"><strong>🏘️ Taluk:</strong> <span id="modalTaluk">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>🏙️ District:</strong> <span id="modalDistrict">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>🗺️ State:</strong> <span id="modalState">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>📮 Pincode:</strong> <span id="modalPincode">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>📱 Phone:</strong> <span id="modalPhone">Not set</span></p>
             </div>
 
-            <button onclick="toggleAddressForm()" class="btn-secondary" style="margin-bottom: 15px;">Edit Address</button>
+            <button onclick="toggleAddressForm()" class="btn-secondary" style="margin-bottom: 15px;">✏️ Edit Address</button>
 
             <form id="addressEditForm" style="display: none; margin-bottom: 20px;">
                 <div style="margin: 15px 0;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Street Address *</label>
-                    <input type="text" id="editStreet" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Home Address 1 *</label>
+                    <input type="text" id="editHomeAddress1" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="House/Building number and name">
                 </div>
                 <div style="margin: 15px 0;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Taluk *</label>
-                    <input type="text" id="editTaluk" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Home Address 2 (Optional)</label>
+                    <input type="text" id="editHomeAddress2" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Apartment, suite, floor, etc.">
                 </div>
-                <div style="margin: 15px 0;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">District *</label>
-                    <input type="text" id="editDistrict" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Street Name</label>
+                        <input type="text" id="editStreetName" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Street name">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Landmark</label>
+                        <input type="text" id="editLandmark" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Near landmark">
+                    </div>
                 </div>
-                <div style="margin: 15px 0;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">State *</label>
-                    <input type="text" id="editState" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Village/Area</label>
+                        <input type="text" id="editVillage" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Village or area name">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Taluk *</label>
+                        <input type="text" id="editTaluk" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Taluk name">
+                    </div>
                 </div>
-                <div style="margin: 15px 0;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Pincode *</label>
-                    <input type="text" id="editPincode" required pattern="[0-9]{6}" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">District *</label>
+                        <input type="text" id="editDistrict" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="District name">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">State *</label>
+                        <input type="text" id="editState" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="State name">
+                    </div>
                 </div>
-                <div style="margin: 15px 0;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Phone Number *</label>
-                    <input type="tel" id="editPhone" required pattern="[0-9]{10}" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Pincode *</label>
+                        <input type="text" id="editPincode" required pattern="[0-9]{6}" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="6-digit pincode">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Phone Number *</label>
+                        <input type="tel" id="editPhone" required pattern="[0-9]{10}" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="10-digit phone number">
+                    </div>
                 </div>
-                <button type="submit" class="btn-primary">Save Address</button>
+                <button type="submit" class="btn-primary">💾 Save Address</button>
             </form>
 
             <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button onclick="proceedToPayment()" class="btn-primary" style="flex: 1;">Proceed to Payment</button>
+                <button onclick="proceedToPayment()" class="btn-primary" style="flex: 1;">🔒 Proceed to Payment</button>
                 <button onclick="closeAddressModal()" class="btn-secondary">Cancel</button>
             </div>
         </div>

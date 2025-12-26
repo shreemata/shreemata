@@ -26,6 +26,42 @@ const receiptSettingsSchema = new mongoose.Schema({
         type: String,
         default: '123 Book Street, Knowledge City\nDelhi - 110001'
     },
+    homeAddress1: {
+        type: String,
+        default: '123 Book Street'
+    },
+    homeAddress2: {
+        type: String,
+        default: ''
+    },
+    streetName: {
+        type: String,
+        default: 'Knowledge City'
+    },
+    landmark: {
+        type: String,
+        default: ''
+    },
+    village: {
+        type: String,
+        default: ''
+    },
+    taluk: {
+        type: String,
+        default: ''
+    },
+    district: {
+        type: String,
+        default: 'Delhi'
+    },
+    state: {
+        type: String,
+        default: 'Delhi'
+    },
+    pincode: {
+        type: String,
+        default: '110001'
+    },
     gstin: {
         type: String,
         default: '07AAACH7409R1ZZ'

@@ -24,7 +24,7 @@ const orderSchema = new mongoose.Schema({
     // Delivery Method
     deliveryMethod: { 
         type: String, 
-        enum: ["home", "pickup"], 
+        enum: ["home", "pickup", "courier"], 
         default: "home" 
     },
 

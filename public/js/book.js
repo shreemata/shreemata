@@ -32,19 +32,16 @@ function setupEventListeners() {
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
-    // Pickup (Book-stall) buttons
+    // Buy buttons
     const buyPickupBtn = document.getElementById("buyPickupBtn");
     if (buyPickupBtn) buyPickupBtn.addEventListener("click", () => handlePurchase("pickup"));
 
-    const cartPickupBtn = document.getElementById("cartPickupBtn");
-    if (cartPickupBtn) cartPickupBtn.addEventListener("click", () => addToCart("pickup"));
-
-    // Courier buttons
     const buyCourierBtn = document.getElementById("buyCourierBtn");
     if (buyCourierBtn) buyCourierBtn.addEventListener("click", () => handlePurchase("courier"));
 
-    const cartCourierBtn = document.getElementById("cartCourierBtn");
-    if (cartCourierBtn) cartCourierBtn.addEventListener("click", () => addToCart("courier"));
+    // Single Add to Cart button
+    const addToCartBtn = document.getElementById("addToCartBtn");
+    if (addToCartBtn) addToCartBtn.addEventListener("click", () => handleAddToCart());
 
     const searchBtn = document.getElementById("searchBtn");
     const searchInput = document.getElementById("searchInput");
@@ -292,7 +289,12 @@ async function showAddressModal() {
         if (data.user && data.user.address) {
             userAddress = data.user.address;
             
-            document.getElementById("modalStreet").textContent = userAddress.street || "Not set";
+            // Display detailed address fields
+            document.getElementById("modalHomeAddress1").textContent = userAddress.homeAddress1 || userAddress.street || "Not set";
+            document.getElementById("modalHomeAddress2").textContent = userAddress.homeAddress2 || "-";
+            document.getElementById("modalStreetName").textContent = userAddress.streetName || "-";
+            document.getElementById("modalLandmark").textContent = userAddress.landmark || "-";
+            document.getElementById("modalVillage").textContent = userAddress.village || "-";
             document.getElementById("modalTaluk").textContent = userAddress.taluk || "Not set";
             document.getElementById("modalDistrict").textContent = userAddress.district || "Not set";
             document.getElementById("modalState").textContent = userAddress.state || "Not set";
@@ -300,7 +302,11 @@ async function showAddressModal() {
             document.getElementById("modalPhone").textContent = userAddress.phone || "Not set";
 
             // Pre-fill edit form
-            document.getElementById("editStreet").value = userAddress.street || "";
+            document.getElementById("editHomeAddress1").value = userAddress.homeAddress1 || userAddress.street || "";
+            document.getElementById("editHomeAddress2").value = userAddress.homeAddress2 || "";
+            document.getElementById("editStreetName").value = userAddress.streetName || "";
+            document.getElementById("editLandmark").value = userAddress.landmark || "";
+            document.getElementById("editVillage").value = userAddress.village || "";
             document.getElementById("editTaluk").value = userAddress.taluk || "";
             document.getElementById("editDistrict").value = userAddress.district || "";
             document.getElementById("editState").value = userAddress.state || "";
@@ -351,12 +357,18 @@ async function saveAddressFromModal() {
     const token = localStorage.getItem("token");
 
     const address = {
-        street: document.getElementById("editStreet").value.trim(),
+        homeAddress1: document.getElementById("editHomeAddress1").value.trim(),
+        homeAddress2: document.getElementById("editHomeAddress2").value.trim(),
+        streetName: document.getElementById("editStreetName").value.trim(),
+        landmark: document.getElementById("editLandmark").value.trim(),
+        village: document.getElementById("editVillage").value.trim(),
         taluk: document.getElementById("editTaluk").value.trim(),
         district: document.getElementById("editDistrict").value.trim(),
         state: document.getElementById("editState").value.trim(),
         pincode: document.getElementById("editPincode").value.trim(),
-        phone: document.getElementById("editPhone").value.trim()
+        phone: document.getElementById("editPhone").value.trim(),
+        // Create legacy street field for backward compatibility
+        street: document.getElementById("editHomeAddress1").value.trim()
     };
 
     try {
@@ -379,7 +391,11 @@ async function saveAddressFromModal() {
         userAddress = address;
         
         // Update display
-        document.getElementById("modalStreet").textContent = address.street;
+        document.getElementById("modalHomeAddress1").textContent = address.homeAddress1;
+        document.getElementById("modalHomeAddress2").textContent = address.homeAddress2 || "-";
+        document.getElementById("modalStreetName").textContent = address.streetName || "-";
+        document.getElementById("modalLandmark").textContent = address.landmark || "-";
+        document.getElementById("modalVillage").textContent = address.village || "-";
         document.getElementById("modalTaluk").textContent = address.taluk;
         document.getElementById("modalDistrict").textContent = address.district;
         document.getElementById("modalState").textContent = address.state;
@@ -396,18 +412,21 @@ async function saveAddressFromModal() {
 }
 
 /* -----------------------------------
-   Calculate Courier Charge
+   Calculate Courier Charge (Dynamic)
 ----------------------------------- */
-function calculateCourierCharge(totalWeight) {
+async function calculateCourierCharge(totalWeight) {
     if (totalWeight <= 0) return 0;
     
-    // Use the new shipping calculator if available
-    if (window.shippingCalculator) {
-        const shippingResult = window.shippingCalculator.calculateShipping(totalWeight, 0);
-        return shippingResult.cost;
+    // Use dynamic shipping calculator
+    if (window.dynamicShipping) {
+        try {
+            return await window.dynamicShipping.calculateShippingCharge(totalWeight);
+        } catch (error) {
+            console.error('Error calculating dynamic shipping:', error);
+        }
     }
     
-    // Fallback to old calculation
+    // Fallback to hardcoded calculation
     const charge = Math.ceil(totalWeight) * 25;
     return Math.min(charge, 100);
 }
@@ -418,6 +437,11 @@ function calculateCourierCharge(totalWeight) {
 async function proceedToPayment() {
     const token = localStorage.getItem("token");
     const deliveryMethod = currentBook?.selectedDeliveryMethod || "courier";
+    
+    // Get the appropriate button based on delivery method
+    const buyBtn = deliveryMethod === "pickup" 
+        ? document.getElementById("buyPickupBtn")
+        : document.getElementById("buyCourierBtn");
 
     // Validate address only for courier delivery
     if (deliveryMethod === "courier") {
@@ -448,7 +472,7 @@ async function proceedToPayment() {
     if (deliveryMethod === "pickup") {
         confirmMsg = `Order Summary (Book-stall Pickup):\n\nBook: ${currentBook.title}\nPrice: ₹${itemsTotal.toFixed(2)}\nDelivery: Pickup at store (FREE)\n\nTotal Amount: ₹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
     } else {
-        courierCharge = calculateCourierCharge(bookWeight);
+        courierCharge = await calculateCourierCharge(bookWeight);
         totalAmount = itemsTotal + courierCharge;
         confirmMsg = `Order Summary (Courier Delivery):\n\nBook: ${currentBook.title}\nPrice: ₹${itemsTotal.toFixed(2)}\nWeight: ${bookWeight.toFixed(2)} kg\nCourier Charge: ₹${courierCharge.toFixed(2)}\n\nTotal Amount: ₹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
     }
@@ -541,8 +565,17 @@ async function proceedToPayment() {
                         return;
                     }
 
-                    alert("Payment successful! Thank you for your purchase. Check your email for order confirmation.");
-                    window.location.href = "/orders.html";
+                    // ✅ Payment verification successful!
+                    console.log("✅ Payment verified successfully!");
+                    
+                    // Show success popup
+                    if (confirm("🎉 Order Confirmed!\n\nYour payment has been processed successfully and your book order has been placed.\n\nWould you like to view your order in your account page?")) {
+                        // Redirect to account page orders section
+                        window.location.href = "/account.html?section=orders";
+                    } else {
+                        // Redirect to home
+                        window.location.href = "/";
+                    }
 
                 } catch (err) {
                     console.error("Verification error:", err);
@@ -614,9 +647,17 @@ modal: {
 }
 
 /* -----------------------------------
+   HANDLE ADD TO CART (SIMPLE)
+----------------------------------- */
+async function handleAddToCart() {
+    // Simply add to cart with pickup method (no charges)
+    await addToCart("pickup");
+}
+
+/* -----------------------------------
    ADD TO CART
 ----------------------------------- */
-function addToCart(deliveryMethod = "courier") {
+async function addToCart(deliveryMethod = "courier") {
     const bookId = new URLSearchParams(window.location.search).get("id");
 
     const cart = getCart();
@@ -642,7 +683,7 @@ function addToCart(deliveryMethod = "courier") {
     // Calculate price based on delivery method
     const basePrice = parseFloat(book.price);
     const weight = book.weight || 0.5;
-    const courierCharge = deliveryMethod === "courier" ? calculateCourierCharge(weight) : 0;
+    const courierCharge = deliveryMethod === "courier" ? await calculateCourierCharge(weight) : 0;
     const totalPrice = basePrice + courierCharge;
 
     cart.push({

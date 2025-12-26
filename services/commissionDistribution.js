@@ -219,28 +219,70 @@ async function distributeCommissions(orderId, purchaserId, orderAmount) {
           
           transaction.treeCommissions.push({
             recipient: parent._id,
-            level,
-            percentage,
-            amount: commissionAmount
-          });
-        } else {
-          // Validate wallet update
-          if (parent.wallet + commissionAmount < 0) {
-            throw new Error('Wallet update would result in negative balance');
-          }
-
-          parent.wallet += commissionAmount;
-          parent.treeCommissionEarned += commissionAmount;
-          await parent.save({ session });
-          
-          transaction.treeCommissions.push({
-            recipient: parent._id,
             level: levelIndex + 1,
             percentage,
             amount: commissionAmount
           });
-          
-          console.log(`Tree commission of ${commissionAmount} (${percentage}%) credited to ${parent.email} at level ${levelIndex + 1}`);
+        } else {
+          // Check if this is a virtual user - redirect commission to original user
+          if (parent.isVirtual && parent.originalUser) {
+            console.log(`Tree parent ${parent.email} is virtual, redirecting commission to original user`);
+            
+            // Get the original user
+            const originalUser = await User.findById(parent.originalUser).session(session);
+            if (originalUser) {
+              // Validate wallet update for original user
+              if (originalUser.wallet + commissionAmount < 0) {
+                throw new Error('Original user wallet update would result in negative balance');
+              }
+
+              // Credit commission to original user
+              originalUser.wallet += commissionAmount;
+              originalUser.treeCommissionEarned += commissionAmount;
+              await originalUser.save({ session });
+              
+              // Record transaction with virtual user as recipient but note the redirection
+              transaction.treeCommissions.push({
+                recipient: parent._id, // Virtual user ID for tracking
+                level: levelIndex + 1,
+                percentage,
+                amount: commissionAmount,
+                redirectedTo: originalUser._id // Track where money actually went
+              });
+              
+              console.log(`Tree commission of ${commissionAmount} (${percentage}%) credited to original user ${originalUser.email} (via virtual user ${parent.email}) at level ${levelIndex + 1}`);
+            } else {
+              console.log(`Original user not found for virtual user ${parent.email}, allocating to Trust Fund`);
+              await addToTrustFund('trust', commissionAmount, orderId, 'order_allocation', `Tree commission - virtual user original not found (${parent.email})`, session);
+              transaction.trustFundAmount += commissionAmount;
+              
+              transaction.treeCommissions.push({
+                recipient: parent._id,
+                level: levelIndex + 1,
+                percentage,
+                amount: commissionAmount
+              });
+            }
+          } else {
+            // Regular user - credit commission normally
+            // Validate wallet update
+            if (parent.wallet + commissionAmount < 0) {
+              throw new Error('Wallet update would result in negative balance');
+            }
+
+            parent.wallet += commissionAmount;
+            parent.treeCommissionEarned += commissionAmount;
+            await parent.save({ session });
+            
+            transaction.treeCommissions.push({
+              recipient: parent._id,
+              level: levelIndex + 1,
+              percentage,
+              amount: commissionAmount
+            });
+            
+            console.log(`Tree commission of ${commissionAmount} (${percentage}%) credited to ${parent.email} at level ${levelIndex + 1}`);
+          }
         }
         
         remainingPool -= commissionAmount;

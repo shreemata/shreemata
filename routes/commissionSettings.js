@@ -24,12 +24,19 @@ router.get("/commission-settings", authenticateToken, isAdmin, async (req, res) 
 router.get("/shipping-settings", async (req, res) => {
   try {
     const settings = await CommissionSettings.getSettings();
-    // Only return shipping-related settings, not commission data
+    // Return both legacy and new shipping settings
     res.json({ 
       shippingSettings: {
         baseShippingCharge: settings.baseShippingCharge,
         shippingRatePerKg: settings.shippingRatePerKg,
-        freeShippingThreshold: settings.freeShippingThreshold
+        freeShippingThreshold: settings.freeShippingThreshold,
+        shippingRates: settings.shippingRates || [
+          { minWeight: 0, maxWeight: 0.99, rate: 25 },
+          { minWeight: 1, maxWeight: 1.99, rate: 35 },
+          { minWeight: 2, maxWeight: 2.99, rate: 45 },
+          { minWeight: 3, maxWeight: 4.99, rate: 55 },
+          { minWeight: 5, maxWeight: 9.99, rate: 75 }
+        ]
       }
     });
   } catch (err) {
@@ -79,6 +86,7 @@ router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) 
       baseShippingCharge,
       shippingRatePerKg,
       freeShippingThreshold,
+      shippingRates,
       storeName,
       storeAddress,
       storePhone,
@@ -123,6 +131,10 @@ router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) 
     }
     if (freeShippingThreshold !== undefined) {
       settings.freeShippingThreshold = freeShippingThreshold;
+    }
+    if (shippingRates !== undefined) {
+      settings.shippingRates = shippingRates;
+      console.log('📦 Updated shipping rates:', shippingRates);
     }
     if (storeName !== undefined) {
       settings.storeName = storeName;

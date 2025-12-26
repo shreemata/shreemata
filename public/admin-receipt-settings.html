@@ -385,8 +385,51 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="address">Address</label>
-                        <textarea id="address" name="address" placeholder="Enter full address with line breaks"></textarea>
+                        <label for="homeAddress1">Home Address 1 *</label>
+                        <input type="text" id="homeAddress1" name="homeAddress1" placeholder="House/Building number and name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="homeAddress2">Home Address 2 (Optional)</label>
+                        <input type="text" id="homeAddress2" name="homeAddress2" placeholder="Apartment, suite, floor, etc.">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="streetName">Street Name</label>
+                            <input type="text" id="streetName" name="streetName" placeholder="Street name">
+                        </div>
+                        <div class="form-group">
+                            <label for="landmark">Landmark</label>
+                            <input type="text" id="landmark" name="landmark" placeholder="Near landmark">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="village">Village/Area</label>
+                            <input type="text" id="village" name="village" placeholder="Village or area name">
+                        </div>
+                        <div class="form-group">
+                            <label for="taluk">Taluk</label>
+                            <input type="text" id="taluk" name="taluk" placeholder="Taluk name">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="district">District *</label>
+                            <input type="text" id="district" name="district" placeholder="District name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="state">State *</label>
+                            <input type="text" id="state" name="state" placeholder="State name" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="pincode">Pincode *</label>
+                            <input type="text" id="pincode" name="pincode" placeholder="6-digit pincode" pattern="[0-9]{6}" required>
+                        </div>
+                        <div class="form-group">
+                            <!-- Empty div for spacing -->
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="gstin">GSTIN</label>
@@ -489,7 +532,34 @@
             document.getElementById('companyTagline').value = settings.companyTagline || '';
             document.getElementById('phone').value = settings.phone || '';
             document.getElementById('email').value = settings.email || '';
-            document.getElementById('address').value = settings.address || '';
+            
+            // Handle address fields - parse from existing address or use individual fields
+            if (settings.homeAddress1) {
+                // New format with individual fields
+                document.getElementById('homeAddress1').value = settings.homeAddress1 || '';
+                document.getElementById('homeAddress2').value = settings.homeAddress2 || '';
+                document.getElementById('streetName').value = settings.streetName || '';
+                document.getElementById('landmark').value = settings.landmark || '';
+                document.getElementById('village').value = settings.village || '';
+                document.getElementById('taluk').value = settings.taluk || '';
+                document.getElementById('district').value = settings.district || '';
+                document.getElementById('state').value = settings.state || '';
+                document.getElementById('pincode').value = settings.pincode || '';
+            } else if (settings.address) {
+                // Legacy format - try to parse the old address format
+                const addressLines = settings.address.split('\n');
+                if (addressLines.length >= 1) document.getElementById('homeAddress1').value = addressLines[0] || '';
+                if (addressLines.length >= 2) {
+                    // Try to extract district and state from last line
+                    const lastLine = addressLines[addressLines.length - 1];
+                    const parts = lastLine.split(' - ');
+                    if (parts.length >= 2) {
+                        document.getElementById('district').value = parts[0].trim();
+                        document.getElementById('pincode').value = parts[1].trim();
+                    }
+                }
+            }
+            
             document.getElementById('gstin').value = settings.gstin || '';
             document.getElementById('footerMessage').value = settings.footerMessage || '';
             document.getElementById('contactFooter').value = settings.contactFooter || '';
@@ -504,9 +574,25 @@
             const formData = new FormData(this);
             const settings = {};
             
+            // Collect all form data
             for (let [key, value] of formData.entries()) {
                 settings[key] = value;
             }
+            
+            // Combine address fields into a formatted address
+            const addressParts = [];
+            if (settings.homeAddress1) addressParts.push(settings.homeAddress1);
+            if (settings.homeAddress2) addressParts.push(settings.homeAddress2);
+            if (settings.streetName) addressParts.push(settings.streetName);
+            if (settings.landmark) addressParts.push(`Near ${settings.landmark}`);
+            if (settings.village) addressParts.push(settings.village);
+            if (settings.taluk) addressParts.push(settings.taluk);
+            if (settings.district) addressParts.push(settings.district);
+            if (settings.state) addressParts.push(settings.state);
+            if (settings.pincode) addressParts.push(`- ${settings.pincode}`);
+            
+            // Create formatted address for receipt display
+            settings.address = addressParts.join('\n');
 
             try {
                 document.getElementById('saveBtn').disabled = true;
@@ -546,13 +632,27 @@
             for (let [key, value] of formData.entries()) {
                 settings[key] = value || currentSettings[key] || '';
             }
+            
+            // Combine address fields for preview
+            const addressParts = [];
+            if (settings.homeAddress1) addressParts.push(settings.homeAddress1);
+            if (settings.homeAddress2) addressParts.push(settings.homeAddress2);
+            if (settings.streetName) addressParts.push(settings.streetName);
+            if (settings.landmark) addressParts.push(`Near ${settings.landmark}`);
+            if (settings.village) addressParts.push(settings.village);
+            if (settings.taluk) addressParts.push(settings.taluk);
+            if (settings.district) addressParts.push(settings.district);
+            if (settings.state) addressParts.push(settings.state);
+            if (settings.pincode) addressParts.push(`- ${settings.pincode}`);
+            
+            const formattedAddress = addressParts.join('<br>');
 
             const previewHtml = `
                 <div class="company-name">${settings.companyName}</div>
                 <div class="company-details">
                     ${settings.companyTagline}<br>
                     📞 ${settings.phone} 📧 ${settings.email}<br>
-                    🏠 ${settings.address.replace(/\n/g, '<br>')}<br>
+                    🏠 ${formattedAddress}<br>
                     ${settings.gstin ? `GSTIN: ${settings.gstin}` : ''}
                 </div>
                 

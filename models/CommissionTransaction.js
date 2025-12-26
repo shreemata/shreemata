@@ -49,6 +49,11 @@ const commissionTransactionSchema = new mongoose.Schema({
     amount: { 
       type: Number, 
       required: true 
+    },
+    redirectedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
     }
   }],
   

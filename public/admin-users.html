@@ -240,6 +240,7 @@
                 <a href="/admin-notifications.html">Notifications</a>
                 <a href="/admin-income.html">Income</a>
                 <a href="/admin-users.html" class="active">Users</a>
+                <a href="/admin-password-requests.html">Password Requests</a>
                 <a href="/admin-commission-settings.html">Settings</a>
                 <a href="/admin-referral-tree.html">Referral Tree</a>
                 <a href="/" id="logoutBtn">Logout</a>
@@ -312,6 +313,37 @@
                 <button class="btn" onclick="closeTreeModal()">Close</button>
             </div>
             <div id="treeContent" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <!-- Commission History Modal -->
+    <div id="commissionModal" class="modal">
+        <div class="modal-content" style="max-width: 95%; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0;">
+                <h2 style="margin: 0;">Commission History: <span id="commissionUserName"></span></h2>
+                <button class="btn" onclick="closeCommissionModal()">Close</button>
+            </div>
+            
+            <!-- User Summary -->
+            <div id="commissionSummary" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <!-- Summary will be populated by JavaScript -->
+            </div>
+            
+            <!-- Filters -->
+            <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                <select id="commissionTypeFilter">
+                    <option value="all">All Commissions</option>
+                    <option value="direct">Direct Commissions</option>
+                    <option value="tree">Tree Commissions</option>
+                </select>
+                <input type="date" id="commissionStartDate" placeholder="Start Date">
+                <input type="date" id="commissionEndDate" placeholder="End Date">
+                <button class="btn" onclick="loadUserCommissions()">Apply Filters</button>
+            </div>
+            
+            <div id="commissionContent" style="margin-top: 20px;">
+                <!-- Commission data will be populated by JavaScript -->
+            </div>
         </div>
     </div>
 
@@ -406,6 +438,19 @@
             background: #c0c0c0;
             transform: translateX(-50%);
         }
+
+        /* Commission Modal Styles */
+        #commissionTypeFilter, #commissionStartDate, #commissionEndDate {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        #commissionTypeFilter:focus, #commissionStartDate:focus, #commissionEndDate:focus {
+            outline: none;
+            border-color: #667eea;
+        }
     </style>
 
     <footer>
@@ -488,7 +533,8 @@
                             ${user.suspended ? `<br><small style="color: #666;">${user.suspendedReason}</small>` : ''}
                         </td>
                         <td>
-                            <button class="btn" onclick="viewUserTree('${user._id}', '${user.name}')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); margin-right: 5px;">View Tree</button>
+                            <button class="btn" onclick="viewUserTree('${user._id}', '${user.name}')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); margin-right: 5px; margin-bottom: 5px;">View Tree</button>
+                            <button class="btn" onclick="viewUserCommissions('${user._id}', '${user.name}')" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); margin-right: 5px; margin-bottom: 5px;">View Commissions</button>
                             ${user.suspended 
                                 ? `<button class="btn btn-success" onclick="activateUser('${user._id}', '${user.name}')">Activate</button>`
                                 : `<button class="btn btn-danger" onclick="openSuspendModal('${user._id}', '${user.name}')">Suspend</button>`
@@ -629,6 +675,140 @@
         // Close tree modal
         function closeTreeModal() {
             document.getElementById("treeModal").classList.remove("show");
+        }
+
+        let currentCommissionUserId = null;
+
+        // View user commissions
+        async function viewUserCommissions(userId, userName) {
+            currentCommissionUserId = userId;
+            document.getElementById("commissionUserName").textContent = userName;
+            document.getElementById("commissionContent").innerHTML = '<p style="text-align: center; color: #667eea;">Loading commissions...</p>';
+            document.getElementById("commissionModal").classList.add("show");
+
+            await loadUserCommissions();
+        }
+
+        // Load user commissions
+        async function loadUserCommissions() {
+            if (!currentCommissionUserId) return;
+
+            try {
+                const type = document.getElementById("commissionTypeFilter").value;
+                const startDate = document.getElementById("commissionStartDate").value;
+                const endDate = document.getElementById("commissionEndDate").value;
+
+                const params = new URLSearchParams({
+                    page: 1,
+                    limit: 50
+                });
+                
+                if (type && type !== 'all') params.append('type', type);
+                if (startDate) params.append('startDate', startDate);
+                if (endDate) params.append('endDate', endDate);
+
+                const response = await fetch(`${API_URL}/admin/users/${currentCommissionUserId}/commissions?${params}`, {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch commissions");
+                }
+
+                const data = await response.json();
+                renderCommissionData(data);
+
+            } catch (error) {
+                console.error("Error loading commissions:", error);
+                document.getElementById("commissionContent").innerHTML = `
+                    <p style="color: #f44336; text-align: center;">Error loading commissions. Please try again.</p>
+                `;
+            }
+        }
+
+        // Render commission data
+        function renderCommissionData(data) {
+            // Update summary
+            const summaryHtml = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #11998e;">₹${data.user.wallet.toFixed(2)}</div>
+                        <div style="color: #666; font-size: 14px;">Current Wallet</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #667eea;">₹${data.summary.totalDirectCommissions.toFixed(2)}</div>
+                        <div style="color: #666; font-size: 14px;">Direct Commissions (${data.summary.directCommissionCount})</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #764ba2;">₹${data.summary.totalTreeCommissions.toFixed(2)}</div>
+                        <div style="color: #666; font-size: 14px;">Tree Commissions (${data.summary.treeCommissionCount})</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #38ef7d;">₹${data.summary.totalCommissions.toFixed(2)}</div>
+                        <div style="color: #666; font-size: 14px;">Total Earned</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById("commissionSummary").innerHTML = summaryHtml;
+
+            // Render commission table
+            if (data.commissions.length === 0) {
+                document.getElementById("commissionContent").innerHTML = `
+                    <p style="text-align: center; color: #666; padding: 40px;">No commissions found for the selected criteria.</p>
+                `;
+                return;
+            }
+
+            const tableHtml = `
+                <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                    <thead>
+                        <tr style="background: #f8f9fa;">
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Date</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Type</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Purchaser</th>
+                            <th style="padding: 12px; text-align: right; border-bottom: 2px solid #e0e0e0;">Order Amount</th>
+                            <th style="padding: 12px; text-align: right; border-bottom: 2px solid #e0e0e0;">Commission</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.commissions.map(commission => `
+                            <tr style="border-bottom: 1px solid #f0f0f0;">
+                                <td style="padding: 12px;">${new Date(commission.processedAt).toLocaleDateString('en-IN')}</td>
+                                <td style="padding: 12px;">
+                                    <span style="background: ${commission.type === 'direct' ? '#667eea' : '#764ba2'}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                                        ${commission.type === 'direct' ? 'Direct' : `Tree L${commission.level}`}
+                                    </span>
+                                </td>
+                                <td style="padding: 12px;">
+                                    <div style="font-weight: 500;">${commission.purchaser.name}</div>
+                                    <div style="font-size: 12px; color: #666;">${commission.purchaser.email}</div>
+                                </td>
+                                <td style="padding: 12px; text-align: right;">₹${commission.orderAmount.toFixed(2)}</td>
+                                <td style="padding: 12px; text-align: right; font-weight: bold; color: #11998e;">
+                                    ₹${commission.amount.toFixed(2)}
+                                    <div style="font-size: 11px; color: #666;">(${commission.percentage}%)</div>
+                                </td>
+                                <td style="padding: 12px; text-align: center;">
+                                    <span style="background: ${commission.status === 'completed' ? '#28a745' : '#ffc107'}; color: white; padding: 3px 6px; border-radius: 3px; font-size: 11px;">
+                                        ${commission.status}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            document.getElementById("commissionContent").innerHTML = tableHtml;
+        }
+
+        // Close commission modal
+        function closeCommissionModal() {
+            document.getElementById("commissionModal").classList.remove("show");
+            currentCommissionUserId = null;
         }
 
         // Render tree

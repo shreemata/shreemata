@@ -135,6 +135,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       amount, 
       itemsCount: items?.length, 
       hasAddress: !!deliveryAddress, 
+      deliveryMethod: deliveryMethod,
       hasOffer: !!appliedOffer,
       courierCharge,
       totalWeight
@@ -153,9 +154,15 @@ router.post("/create-order", authenticateToken, async (req, res) => {
     
     console.log("Order type analysis:", { hasDigitalItems, isDigitalOnly });
 
-    // 🚨 MANDATORY DELIVERY ADDRESS VALIDATION (Skip for digital-only orders)
-    if (!isDigitalOnly && (!deliveryAddress || 
-        !deliveryAddress.street || 
+    // 🚨 MANDATORY DELIVERY ADDRESS VALIDATION (Skip for digital-only orders and pickup orders)
+    const isPickupOrder = deliveryMethod === 'pickup' || deliveryMethod === 'home';
+    
+    if (isPickupOrder) {
+      console.log("✅ Pickup order detected, skipping delivery address validation");
+    }
+    
+    if (!isDigitalOnly && !isPickupOrder && (!deliveryAddress || 
+        !deliveryAddress.homeAddress1 || 
         !deliveryAddress.taluk || 
         !deliveryAddress.district || 
         !deliveryAddress.state || 
@@ -168,7 +175,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
         error: "Complete delivery address is required",
         message: "Please set your complete delivery address before proceeding with payment",
         missingFields: {
-          street: !deliveryAddress?.street,
+          homeAddress1: !deliveryAddress?.homeAddress1,
           taluk: !deliveryAddress?.taluk,
           district: !deliveryAddress?.district,
           state: !deliveryAddress?.state,
@@ -179,9 +186,9 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       });
     }
 
-    // Validate address fields are not empty strings (Skip for digital-only orders)
-    if (!isDigitalOnly && deliveryAddress) {
-      const addressFields = ['street', 'taluk', 'district', 'state', 'pincode', 'phone'];
+    // Validate address fields are not empty strings (Skip for digital-only orders and pickup orders)
+    if (!isDigitalOnly && !isPickupOrder && deliveryAddress) {
+      const addressFields = ['homeAddress1', 'taluk', 'district', 'state', 'pincode', 'phone'];
       const emptyFields = addressFields.filter(field => 
         !deliveryAddress[field] || deliveryAddress[field].trim() === ''
       );
@@ -330,9 +337,14 @@ router.post("/create-order", authenticateToken, async (req, res) => {
     const razorpayOrder = await razorpay.orders.create(options);
     console.log("Razorpay order created:", razorpayOrder.id);
 
-    // Prepare delivery address with defaults (null for digital-only orders)
-    const addressData = (!isDigitalOnly && deliveryAddress) ? {
-      street: deliveryAddress.street || "",
+    // Prepare delivery address with defaults (null for digital-only orders and pickup orders)
+    const addressData = (!isDigitalOnly && !isPickupOrder && deliveryAddress) ? {
+      street: deliveryAddress.homeAddress1 || deliveryAddress.street || "", // Legacy compatibility
+      homeAddress1: deliveryAddress.homeAddress1 || "",
+      homeAddress2: deliveryAddress.homeAddress2 || "",
+      streetName: deliveryAddress.streetName || "",
+      landmark: deliveryAddress.landmark || "",
+      village: deliveryAddress.village || "",
       taluk: deliveryAddress.taluk || "",
       district: deliveryAddress.district || "",
       state: deliveryAddress.state || "",

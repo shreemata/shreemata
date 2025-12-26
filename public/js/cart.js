@@ -191,10 +191,23 @@ async function loadCart() {
         container.appendChild(row);
     });
 
-    // Calculate shipping using the new shipping calculator
+    // Calculate shipping using the dynamic shipping calculator
     let shippingResult = { cost: 50, isFree: false }; // Default fallback
     
-    if (window.shippingCalculator) {
+    if (window.dynamicShipping) {
+        try {
+            const dynamicResult = await window.dynamicShipping.calculateCartShipping(cart);
+            shippingResult = {
+                cost: dynamicResult.shippingCost,
+                isFree: dynamicResult.shippingCost === 0,
+                breakdown: {
+                    calculation: dynamicResult.breakdown
+                }
+            };
+        } catch (error) {
+            console.error('Error calculating dynamic cart shipping (loadCart):', error);
+        }
+    } else if (window.shippingCalculator) {
         shippingResult = window.shippingCalculator.calculateCartShipping(cart);
     }
     
@@ -274,7 +287,7 @@ async function loadCart() {
 /* ------------------------------
     Update Cart Totals Only (without reloading items)
 ------------------------------ */
-function updateCartTotals() {
+async function updateCartTotals() {
     const cart = getCart();
     if (cart.length === 0) return;
 
@@ -289,10 +302,23 @@ function updateCartTotals() {
         totalPoints += (item.rewardPoints || 0) * item.quantity;
     });
 
-    // Calculate shipping using the new shipping calculator
+    // Calculate shipping using the dynamic shipping calculator
     let shippingResult = { cost: 50, isFree: false }; // Default fallback
     
-    if (window.shippingCalculator) {
+    if (window.dynamicShipping) {
+        try {
+            const dynamicResult = await window.dynamicShipping.calculateCartShipping(cart);
+            shippingResult = {
+                cost: dynamicResult.shippingCost,
+                isFree: dynamicResult.shippingCost === 0,
+                breakdown: {
+                    calculation: dynamicResult.breakdown
+                }
+            };
+        } catch (error) {
+            console.error('Error calculating dynamic cart shipping (updateCartTotals):', error);
+        }
+    } else if (window.shippingCalculator) {
         shippingResult = window.shippingCalculator.calculateCartShipping(cart);
     }
     
@@ -401,7 +427,7 @@ function setupDeliveryMethodListeners() {
     console.log('🚚 Setting up delivery method listeners...');
     
     deliveryOptions.forEach(option => {
-        option.addEventListener('change', () => {
+        option.addEventListener('change', async () => {
             console.log('🚚 Delivery method changed to:', option.value);
             
             // Show/hide store info based on selection
@@ -412,7 +438,7 @@ function setupDeliveryMethodListeners() {
             }
             
             // Update only totals, don't reload entire cart
-            updateCartTotals();
+            await updateCartTotals();
         });
     });
     
@@ -511,12 +537,21 @@ async function fetchBookWeights(cart) {
 }
 
 /* ------------------------------
-    Calculate Courier Charge
+    Calculate Courier Charge (Dynamic)
 ------------------------------ */
-function calculateCourierCharge(totalWeight) {
+async function calculateCourierCharge(totalWeight) {
     if (totalWeight <= 0) return 0;
     
-    // ₹25 per kg (rounded up), max ₹100
+    // Use dynamic shipping calculator
+    if (window.dynamicShipping) {
+        try {
+            return await window.dynamicShipping.calculateShippingCharge(totalWeight);
+        } catch (error) {
+            console.error('Error calculating dynamic shipping:', error);
+        }
+    }
+    
+    // Fallback to hardcoded calculation
     const charge = Math.ceil(totalWeight) * 25;
     return Math.min(charge, 100);
 }
@@ -725,7 +760,12 @@ async function showAddressModal() {
             userAddress = data.user.address;
             console.log('✅ Address loaded from server:', userAddress);
             
-            document.getElementById("modalStreet").textContent = userAddress.street || "Not set";
+            // Display detailed address fields
+            document.getElementById("modalHomeAddress1").textContent = userAddress.homeAddress1 || userAddress.street || "Not set";
+            document.getElementById("modalHomeAddress2").textContent = userAddress.homeAddress2 || "-";
+            document.getElementById("modalStreetName").textContent = userAddress.streetName || "-";
+            document.getElementById("modalLandmark").textContent = userAddress.landmark || "-";
+            document.getElementById("modalVillage").textContent = userAddress.village || "-";
             document.getElementById("modalTaluk").textContent = userAddress.taluk || "Not set";
             document.getElementById("modalDistrict").textContent = userAddress.district || "Not set";
             document.getElementById("modalState").textContent = userAddress.state || "Not set";
@@ -733,7 +773,11 @@ async function showAddressModal() {
             document.getElementById("modalPhone").textContent = userAddress.phone || "Not set";
 
             // Pre-fill edit form
-            document.getElementById("editStreet").value = userAddress.street || "";
+            document.getElementById("editHomeAddress1").value = userAddress.homeAddress1 || userAddress.street || "";
+            document.getElementById("editHomeAddress2").value = userAddress.homeAddress2 || "";
+            document.getElementById("editStreetName").value = userAddress.streetName || "";
+            document.getElementById("editLandmark").value = userAddress.landmark || "";
+            document.getElementById("editVillage").value = userAddress.village || "";
             document.getElementById("editTaluk").value = userAddress.taluk || "";
             document.getElementById("editDistrict").value = userAddress.district || "";
             document.getElementById("editState").value = userAddress.state || "";
@@ -744,7 +788,11 @@ async function showAddressModal() {
             userAddress = null;
             
             // Set display to "Not set"
-            document.getElementById("modalStreet").textContent = "Not set";
+            document.getElementById("modalHomeAddress1").textContent = "Not set";
+            document.getElementById("modalHomeAddress2").textContent = "-";
+            document.getElementById("modalStreetName").textContent = "-";
+            document.getElementById("modalLandmark").textContent = "-";
+            document.getElementById("modalVillage").textContent = "-";
             document.getElementById("modalTaluk").textContent = "Not set";
             document.getElementById("modalDistrict").textContent = "Not set";
             document.getElementById("modalState").textContent = "Not set";
@@ -752,7 +800,11 @@ async function showAddressModal() {
             document.getElementById("modalPhone").textContent = "Not set";
 
             // Clear edit form
-            document.getElementById("editStreet").value = "";
+            document.getElementById("editHomeAddress1").value = "";
+            document.getElementById("editHomeAddress2").value = "";
+            document.getElementById("editStreetName").value = "";
+            document.getElementById("editLandmark").value = "";
+            document.getElementById("editVillage").value = "";
             document.getElementById("editTaluk").value = "";
             document.getElementById("editDistrict").value = "";
             document.getElementById("editState").value = "";
@@ -810,26 +862,33 @@ async function saveAddressFromModal() {
     const API = window.API_URL || '';
 
     const address = {
-        street: document.getElementById("editStreet").value.trim(),
+        homeAddress1: document.getElementById("editHomeAddress1").value.trim(),
+        homeAddress2: document.getElementById("editHomeAddress2").value.trim(),
+        streetName: document.getElementById("editStreetName").value.trim(),
+        landmark: document.getElementById("editLandmark").value.trim(),
+        village: document.getElementById("editVillage").value.trim(),
         taluk: document.getElementById("editTaluk").value.trim(),
         district: document.getElementById("editDistrict").value.trim(),
         state: document.getElementById("editState").value.trim(),
         pincode: document.getElementById("editPincode").value.trim(),
-        phone: document.getElementById("editPhone").value.trim()
+        phone: document.getElementById("editPhone").value.trim(),
+        // Create legacy street field for backward compatibility
+        street: document.getElementById("editHomeAddress1").value.trim()
     };
 
     console.log('🔍 Frontend: Preparing to send address data');
     console.log('📦 Address object:', JSON.stringify(address, null, 2));
     
-    // Check if any fields are empty
-    const emptyFields = Object.keys(address).filter(key => !address[key]);
+    // Check if required fields are empty
+    const requiredFields = ['homeAddress1', 'taluk', 'district', 'state', 'pincode', 'phone'];
+    const emptyFields = requiredFields.filter(key => !address[key]);
     if (emptyFields.length > 0) {
-        console.log('❌ Frontend: Empty fields detected:', emptyFields);
-        alert(`Please fill in all fields: ${emptyFields.join(', ')}`);
+        console.log('❌ Frontend: Empty required fields detected:', emptyFields);
+        alert(`Please fill in all required fields: ${emptyFields.join(', ')}`);
         return;
     }
 
-    console.log('✅ Frontend: All fields have values, sending request');
+    console.log('✅ Frontend: All required fields have values, sending request');
 
     try {
         const requestBody = { address };
@@ -858,7 +917,11 @@ async function saveAddressFromModal() {
         userAddress = address;
         
         // Update display with the saved address
-        document.getElementById("modalStreet").textContent = address.street;
+        document.getElementById("modalHomeAddress1").textContent = address.homeAddress1;
+        document.getElementById("modalHomeAddress2").textContent = address.homeAddress2 || "-";
+        document.getElementById("modalStreetName").textContent = address.streetName || "-";
+        document.getElementById("modalLandmark").textContent = address.landmark || "-";
+        document.getElementById("modalVillage").textContent = address.village || "-";
         document.getElementById("modalTaluk").textContent = address.taluk;
         document.getElementById("modalDistrict").textContent = address.district;
         document.getElementById("modalState").textContent = address.state;
@@ -1132,6 +1195,21 @@ async function proceedToPayment() {
                         }
                         return;
                     }
+
+                    // ✅ Payment verification successful!
+                    console.log("✅ Payment verified successfully!");
+                    
+                    // Show success popup
+                    if (confirm("🎉 Order Confirmed!\n\nYour payment has been processed successfully and your order has been placed.\n\nWould you like to view your order in your account page?")) {
+                        // Redirect to account page orders section
+                        window.location.href = "/account.html?section=orders";
+                    } else {
+                        // Clear cart and redirect to home
+                        localStorage.removeItem("cart");
+                        window.location.href = "/";
+                    }
+                    
+                    return; // Exit the handler
 
 if (!response.razorpay_payment_id) {
     alert("Payment failed or cancelled. Order not placed.");

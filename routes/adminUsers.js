@@ -228,4 +228,148 @@ router.get("/users/:userId/tree", authenticateToken, isAdmin, async (req, res) =
   }
 });
 
+/* -------------------------------------------
+   GET /api/admin/users/:userId/commissions
+   Get detailed commission history for a specific user
+--------------------------------------------*/
+router.get("/users/:userId/commissions", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { 
+      page = 1, 
+      limit = 20, 
+      type, // 'direct', 'tree', or 'all'
+      startDate, 
+      endDate 
+    } = req.query;
+    
+    // Verify user exists
+    const user = await User.findById(userId).select('name email referralCode wallet directCommissionEarned treeCommissionEarned');
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    const CommissionTransaction = require("../models/CommissionTransaction");
+    
+    // Build query for commission transactions
+    const query = {
+      $or: [
+        { directReferrer: userId }, // Direct commissions earned
+        { 'treeCommissions.recipient': userId } // Tree commissions earned
+      ]
+    };
+    
+    // Add date filtering if provided
+    if (startDate || endDate) {
+      query.processedAt = {};
+      if (startDate) {
+        query.processedAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        query.processedAt.$lte = new Date(endDate);
+      }
+    }
+    
+    const skip = (page - 1) * limit;
+    
+    // Get commission transactions
+    const transactions = await CommissionTransaction.find(query)
+      .populate('purchaser', 'name email')
+      .populate('orderId', 'totalAmount createdAt')
+      .sort({ processedAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+    
+    const total = await CommissionTransaction.countDocuments(query);
+    
+    // Process transactions to extract user-specific commission data
+    const commissions = [];
+    
+    for (const transaction of transactions) {
+      // Check for direct commission
+      if (transaction.directReferrer && transaction.directReferrer.toString() === userId) {
+        commissions.push({
+          id: transaction._id,
+          orderId: transaction.orderId._id,
+          orderAmount: transaction.orderAmount,
+          orderDate: transaction.orderId.createdAt,
+          purchaser: transaction.purchaser,
+          type: 'direct',
+          amount: transaction.directCommissionAmount,
+          percentage: ((transaction.directCommissionAmount / transaction.orderAmount) * 100).toFixed(2),
+          processedAt: transaction.processedAt,
+          status: transaction.status
+        });
+      }
+      
+      // Check for tree commissions
+      const treeCommission = transaction.treeCommissions.find(
+        tc => tc.recipient.toString() === userId
+      );
+      
+      if (treeCommission) {
+        commissions.push({
+          id: transaction._id,
+          orderId: transaction.orderId._id,
+          orderAmount: transaction.orderAmount,
+          orderDate: transaction.orderId.createdAt,
+          purchaser: transaction.purchaser,
+          type: 'tree',
+          level: treeCommission.level,
+          amount: treeCommission.amount,
+          percentage: treeCommission.percentage,
+          processedAt: transaction.processedAt,
+          status: transaction.status
+        });
+      }
+    }
+    
+    // Filter by commission type if specified
+    let filteredCommissions = commissions;
+    if (type && type !== 'all') {
+      filteredCommissions = commissions.filter(c => c.type === type);
+    }
+    
+    // Sort by processed date (newest first)
+    filteredCommissions.sort((a, b) => new Date(b.processedAt) - new Date(a.processedAt));
+    
+    // Calculate summary statistics
+    const directCommissions = commissions.filter(c => c.type === 'direct');
+    const treeCommissions = commissions.filter(c => c.type === 'tree');
+    
+    const summary = {
+      totalDirectCommissions: directCommissions.reduce((sum, c) => sum + c.amount, 0),
+      totalTreeCommissions: treeCommissions.reduce((sum, c) => sum + c.amount, 0),
+      directCommissionCount: directCommissions.length,
+      treeCommissionCount: treeCommissions.length,
+      totalCommissions: user.directCommissionEarned + user.treeCommissionEarned,
+      currentWallet: user.wallet
+    };
+    
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        referralCode: user.referralCode,
+        wallet: user.wallet,
+        directCommissionEarned: user.directCommissionEarned,
+        treeCommissionEarned: user.treeCommissionEarned
+      },
+      commissions: filteredCommissions,
+      summary,
+      pagination: {
+        total: filteredCommissions.length,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(filteredCommissions.length / limit)
+      }
+    });
+  } catch (err) {
+    console.error("Error fetching user commissions:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 module.exports = router;

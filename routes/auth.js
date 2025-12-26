@@ -881,19 +881,6 @@ router.put("/users/update-address", authenticateToken, async (req, res) => {
     const { address } = req.body;
     console.log('📍 Extracted address:', JSON.stringify(address, null, 2));
 
-    // Check each field individually for better debugging
-    const fieldChecks = {
-      address: !!address,
-      street: address && !!address.street && address.street.trim() !== '',
-      taluk: address && !!address.taluk && address.taluk.trim() !== '',
-      district: address && !!address.district && address.district.trim() !== '',
-      state: address && !!address.state && address.state.trim() !== '',
-      pincode: address && !!address.pincode && address.pincode.trim() !== '',
-      phone: address && !!address.phone && address.phone.trim() !== ''
-    };
-    
-    console.log('🔍 Field validation checks:', fieldChecks);
-
     if (!address) {
       console.log('❌ No address object provided');
       return res.status(400).json({ 
@@ -902,32 +889,43 @@ router.put("/users/update-address", authenticateToken, async (req, res) => {
       });
     }
 
-    // Check each field with trimmed values
-    const street = address.street ? address.street.trim() : '';
+    // Extract and trim all address fields (both new and legacy)
+    const homeAddress1 = address.homeAddress1 ? address.homeAddress1.trim() : (address.street ? address.street.trim() : '');
+    const homeAddress2 = address.homeAddress2 ? address.homeAddress2.trim() : '';
+    const streetName = address.streetName ? address.streetName.trim() : '';
+    const landmark = address.landmark ? address.landmark.trim() : '';
+    const village = address.village ? address.village.trim() : '';
     const taluk = address.taluk ? address.taluk.trim() : '';
     const district = address.district ? address.district.trim() : '';
     const state = address.state ? address.state.trim() : '';
     const pincode = address.pincode ? address.pincode.trim() : '';
     const phone = address.phone ? address.phone.trim() : '';
 
-    if (!street || !taluk || !district || !state || !pincode || !phone) {
+    // Check required fields
+    if (!homeAddress1 || !taluk || !district || !state || !pincode || !phone) {
       console.log('❌ Validation failed - missing or empty required fields');
       const missingFields = [];
-      if (!street) missingFields.push('street');
+      if (!homeAddress1) missingFields.push('homeAddress1');
       if (!taluk) missingFields.push('taluk');
       if (!district) missingFields.push('district');
       if (!state) missingFields.push('state');
       if (!pincode) missingFields.push('pincode');
       if (!phone) missingFields.push('phone');
       
+      console.log('❌ Missing fields:', missingFields);
       return res.status(400).json({ 
-        error: `Missing or empty required fields: ${missingFields.join(', ')}`,
-        received: address,
-        fieldChecks: fieldChecks,
-        missingFields: missingFields
+        error: "All required address fields must be provided",
+        missingFields: missingFields,
+        received: {
+          homeAddress1: homeAddress1,
+          taluk: taluk,
+          district: district,
+          state: state,
+          pincode: pincode,
+          phone: phone
+        }
       });
     }
-
     // Validate pincode (6 digits)
     if (!/^\d{6}$/.test(pincode)) {
       console.log('❌ Invalid pincode format:', pincode);
@@ -951,8 +949,14 @@ router.put("/users/update-address", authenticateToken, async (req, res) => {
 
     console.log('✅ All validations passed, updating address');
     
+    // Update address with all new fields
     user.address = {
-      street: street,
+      street: homeAddress1, // Legacy compatibility
+      homeAddress1: homeAddress1,
+      homeAddress2: homeAddress2,
+      streetName: streetName,
+      landmark: landmark,
+      village: village,
       taluk: taluk,
       district: district,
       state: state,

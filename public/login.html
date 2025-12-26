@@ -579,51 +579,53 @@
             `;
             
             modal.innerHTML = `
-                <div style="background: white; padding: 30px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
-                    <h2 style="margin: 0 0 20px 0; text-align: center; color: #333;">Reset Password</h2>
+                <div style="background: white; padding: 30px; border-radius: 16px; width: 100%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
+                    <h2 style="margin: 0 0 20px 0; text-align: center; color: #333;">🔐 Reset Password</h2>
                     
                     <div id="forgotStep1">
-                        <p style="color: #666; margin-bottom: 20px; text-align: center;">Enter your phone number to receive an OTP</p>
+                        <p style="color: #666; margin-bottom: 20px; text-align: center;">Enter your email to get your security questions</p>
                         <div style="margin-bottom: 15px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Phone Number</label>
-                            <input type="text" id="forgotPhone" placeholder="Enter your phone number" maxlength="10" 
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Email Address</label>
+                            <input type="email" id="forgotEmail" placeholder="Enter your email address" 
                                    style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
                         </div>
-                        <button onclick="sendResetOTP()" style="width: 100%; padding: 12px; background: #ff6f61; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                            Send OTP
+                        <button onclick="getSecurityQuestions()" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                            Get Security Questions
                         </button>
                     </div>
                     
                     <div id="forgotStep2" style="display: none;">
-                        <p style="color: #666; margin-bottom: 20px; text-align: center;">Enter the OTP sent to your phone</p>
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">OTP</label>
-                            <input type="text" id="forgotOTP" placeholder="Enter 6-digit OTP" maxlength="6"
-                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                        <p style="color: #666; margin-bottom: 20px; text-align: center;">Answer your security questions and set new password</p>
+                        
+                        <div id="securityQuestionsContainer">
+                            <!-- Questions will be loaded here -->
                         </div>
-                        <button onclick="verifyResetOTP()" style="width: 100%; padding: 12px; background: #ff6f61; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                            Verify OTP
+                        
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+                            <h4 style="margin: 0 0 10px 0; color: #28a745; font-size: 14px;">🔑 Set New Password</h4>
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">New Password</label>
+                                <input type="password" id="newPassword" placeholder="Enter new password (min 6 characters)"
+                                       style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Confirm Password</label>
+                                <input type="password" id="confirmPassword" placeholder="Confirm new password"
+                                       style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                            </div>
+                        </div>
+                        
+                        <button onclick="submitPasswordReset()" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                            Submit Password Reset Request
                         </button>
-                    </div>
-                    
-                    <div id="forgotStep3" style="display: none;">
-                        <p style="color: #666; margin-bottom: 20px; text-align: center;">Set your new password</p>
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">New Password</label>
-                            <input type="password" id="newPassword" placeholder="Enter new password"
-                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                        
+                        <div style="background: #fff3cd; padding: 10px; border-radius: 6px; margin: 15px 0; font-size: 12px; color: #856404;">
+                            <strong>Note:</strong> Your password reset request will be sent to admin for approval. You'll be notified once approved.
                         </div>
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Confirm Password</label>
-                            <input type="password" id="confirmPassword" placeholder="Confirm new password"
-                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
-                        </div>
-                        <button onclick="resetPassword()" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                            Reset Password
-                        </button>
                     </div>
                     
                     <div id="forgotError" style="display: none; color: #d90429; background: #ffeaea; padding: 10px; border-radius: 6px; margin: 15px 0; font-size: 14px;"></div>
+                    <div id="forgotSuccess" style="display: none; color: #155724; background: #d4edda; padding: 10px; border-radius: 6px; margin: 15px 0; font-size: 14px;"></div>
                     
                     <button onclick="closeForgotModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">&times;</button>
                 </div>
@@ -640,31 +642,57 @@
             }
         }
         
-        async function sendResetOTP() {
-            const phone = document.getElementById('forgotPhone').value.trim();
+        async function getSecurityQuestions() {
+            const email = document.getElementById('forgotEmail').value.trim();
             const errorDiv = document.getElementById('forgotError');
+            const successDiv = document.getElementById('forgotSuccess');
             
-            if (!/^[6-9]\d{9}$/.test(phone)) {
-                errorDiv.textContent = 'Please enter a valid 10-digit phone number';
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            if (!email || !email.includes('@')) {
+                errorDiv.textContent = 'Please enter a valid email address';
                 errorDiv.style.display = 'block';
                 return;
             }
             
             try {
-                const response = await fetch(`${API_URL}/forgot-password-send-otp`, {
+                const response = await fetch(`${API_URL}/password-reset/get-questions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone })
+                    body: JSON.stringify({ email })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
+                    // Store user ID for later use
+                    window.resetUserId = data.userId;
+                    
+                    // Display security questions
+                    const container = document.getElementById('securityQuestionsContainer');
+                    container.innerHTML = `
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Question 1: ${data.questions.question1}</label>
+                            <input type="text" id="answer1" placeholder="Enter your answer"
+                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Question 2: ${data.questions.question2}</label>
+                            <input type="text" id="answer2" placeholder="Enter your answer"
+                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Question 3: ${data.questions.question3}</label>
+                            <input type="text" id="answer3" placeholder="Enter your answer"
+                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                        </div>
+                    `;
+                    
                     document.getElementById('forgotStep1').style.display = 'none';
                     document.getElementById('forgotStep2').style.display = 'block';
-                    errorDiv.style.display = 'none';
                 } else {
-                    errorDiv.textContent = data.error || 'Failed to send OTP';
+                    errorDiv.textContent = data.error || 'Failed to get security questions';
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {
@@ -673,45 +701,25 @@
             }
         }
         
-        async function verifyResetOTP() {
-            const phone = document.getElementById('forgotPhone').value.trim();
-            const otp = document.getElementById('forgotOTP').value.trim();
-            const errorDiv = document.getElementById('forgotError');
+        async function submitPasswordReset() {
+            const answer1 = document.getElementById('answer1').value.trim();
+            const answer2 = document.getElementById('answer2').value.trim();
+            const answer3 = document.getElementById('answer3').value.trim();
+            const newPassword = document.getElementById('newPassword').value.trim();
+            const confirmPassword = document.getElementById('confirmPassword').value.trim();
             
-            if (!/^\d{6}$/.test(otp)) {
-                errorDiv.textContent = 'Please enter a valid 6-digit OTP';
+            const errorDiv = document.getElementById('forgotError');
+            const successDiv = document.getElementById('forgotSuccess');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            // Validate inputs
+            if (!answer1 || !answer2 || !answer3) {
+                errorDiv.textContent = 'Please answer all security questions';
                 errorDiv.style.display = 'block';
                 return;
             }
-            
-            try {
-                const response = await fetch(`${API_URL}/forgot-password-verify-otp`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, otp })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    document.getElementById('forgotStep2').style.display = 'none';
-                    document.getElementById('forgotStep3').style.display = 'block';
-                    errorDiv.style.display = 'none';
-                    window.resetToken = data.resetToken;
-                } else {
-                    errorDiv.textContent = data.error || 'Invalid OTP';
-                    errorDiv.style.display = 'block';
-                }
-            } catch (error) {
-                errorDiv.textContent = 'Network error. Please try again.';
-                errorDiv.style.display = 'block';
-            }
-        }
-        
-        async function resetPassword() {
-            const newPassword = document.getElementById('newPassword').value.trim();
-            const confirmPassword = document.getElementById('confirmPassword').value.trim();
-            const errorDiv = document.getElementById('forgotError');
             
             if (!newPassword || newPassword.length < 6) {
                 errorDiv.textContent = 'Password must be at least 6 characters long';
@@ -726,22 +734,33 @@
             }
             
             try {
-                const response = await fetch(`${API_URL}/reset-password`, {
+                const response = await fetch(`${API_URL}/password-reset/submit-request`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        resetToken: window.resetToken,
-                        newPassword 
+                        userId: window.resetUserId,
+                        answer1,
+                        answer2,
+                        answer3,
+                        newPassword,
+                        confirmPassword
                     })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert('Password reset successfully! You can now login with your new password.');
-                    closeForgotModal();
+                    successDiv.textContent = data.message;
+                    successDiv.style.display = 'block';
+                    
+                    // Hide the form and show success message
+                    document.getElementById('forgotStep2').style.display = 'none';
+                    
+                    setTimeout(() => {
+                        closeForgotModal();
+                    }, 3000);
                 } else {
-                    errorDiv.textContent = data.error || 'Failed to reset password';
+                    errorDiv.textContent = data.error || 'Failed to submit password reset request';
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {

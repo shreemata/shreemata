@@ -21,7 +21,12 @@ const userSchema = new mongoose.Schema({
 
   // Delivery Address
   address: {
-    street: { type: String, default: "" },
+    street: { type: String, default: "" }, // Legacy field for backward compatibility
+    homeAddress1: { type: String, default: "" },
+    homeAddress2: { type: String, default: "" },
+    streetName: { type: String, default: "" },
+    landmark: { type: String, default: "" },
+    village: { type: String, default: "" },
     taluk: { type: String, default: "" },
     district: { type: String, default: "" },
     state: { type: String, default: "" },
@@ -35,6 +40,23 @@ const userSchema = new mongoose.Schema({
   wallet: { type: Number, default: 0 },             // Referral earnings
   referrals: { type: Number, default: 0 },          // Number of users referred
   firstPurchaseDone: { type: Boolean, default: false }, // Locks referral after 1st purchase
+
+  // Security Questions for Password Reset
+  securityQuestions: {
+    question1: {
+      question: { type: String, default: "" },
+      answer: { type: String, default: "" }
+    },
+    question2: {
+      question: { type: String, default: "" },
+      answer: { type: String, default: "" }
+    },
+    question3: {
+      question: { type: String, default: "" },
+      answer: { type: String, default: "" }
+    },
+    isSetup: { type: Boolean, default: false }
+  },
 
   // Tree Placement System
   treeParent: { 

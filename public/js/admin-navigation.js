@@ -16,6 +16,7 @@ const adminNavConfig = {
         { href: "/admin-notifications.html", icon: "📢", text: "Notifications", id: "notifications", title: "Manage Notifications" },
         { href: "/admin-income.html", icon: "💵", text: "Income", id: "income", title: "Income Dashboard" },
         { href: "/admin-users.html", icon: "👥", text: "Users", id: "users", title: "User Management" },
+        { href: "/admin-password-requests.html", icon: "🔐", text: "Password Requests", id: "password-requests", title: "Password Reset Requests" },
         { href: "/admin-commission-settings.html", icon: "⚙️", text: "Settings", id: "settings", title: "Commission Settings" },
         { href: "/admin-receipt-settings.html", icon: "🧾", text: "Receipt Settings", id: "receipt-settings", title: "Receipt Settings" },
         { href: "/admin-referral-tree.html", icon: "🌳", text: "Referral Tree", id: "referral-tree", title: "Referral Tree" },
@@ -562,6 +563,7 @@ function detectCurrentPage() {
     else if (path.includes('admin-notifications')) currentPageId = 'notifications';
     else if (path.includes('admin-income')) currentPageId = 'income';
     else if (path.includes('admin-users')) currentPageId = 'users';
+    else if (path.includes('admin-password-requests')) currentPageId = 'password-requests';
     else if (path.includes('admin-commission-settings')) currentPageId = 'settings';
     else if (path.includes('admin-receipt-settings')) currentPageId = 'receipt-settings';
     else if (path.includes('admin-referral-tree-visual')) currentPageId = 'tree-visual';

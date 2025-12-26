@@ -84,6 +84,25 @@ const commissionSettingsSchema = new mongoose.Schema({
     min: 0
   },
   
+  // Weight-based shipping rates
+  shippingRates: [{
+    minWeight: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    maxWeight: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    rate: {
+      type: Number,
+      required: true,
+      min: 0
+    }
+  }],
+  
   // Store Details for Pickup
   storeName: {
     type: String,

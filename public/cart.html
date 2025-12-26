@@ -1497,8 +1497,24 @@
 
             <div id="addressDisplay" class="address-display">
                 <div class="address-field">
-                    <span class="address-label">🏠 Street:</span>
-                    <span class="address-value" id="modalStreet">Not set</span>
+                    <span class="address-label">🏠 Home Address 1:</span>
+                    <span class="address-value" id="modalHomeAddress1">Not set</span>
+                </div>
+                <div class="address-field">
+                    <span class="address-label">🏠 Home Address 2:</span>
+                    <span class="address-value" id="modalHomeAddress2">-</span>
+                </div>
+                <div class="address-field">
+                    <span class="address-label">🛣️ Street Name:</span>
+                    <span class="address-value" id="modalStreetName">-</span>
+                </div>
+                <div class="address-field">
+                    <span class="address-label">📍 Landmark:</span>
+                    <span class="address-value" id="modalLandmark">-</span>
+                </div>
+                <div class="address-field">
+                    <span class="address-label">🏘️ Village/Area:</span>
+                    <span class="address-value" id="modalVillage">-</span>
                 </div>
                 <div class="address-field">
                     <span class="address-label">🏘️ Taluk:</span>
@@ -1528,28 +1544,52 @@
 
             <form id="addressEditForm" class="address-form" style="display: none;">
                 <div class="form-group">
-                    <label class="form-label">🏠 Street Address *</label>
-                    <input type="text" id="editStreet" class="form-input" required placeholder="Enter your street address">
+                    <label class="form-label">🏠 Home Address 1 *</label>
+                    <input type="text" id="editHomeAddress1" class="form-input" required placeholder="House/Building number and name">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">🏘️ Taluk *</label>
-                    <input type="text" id="editTaluk" class="form-input" required placeholder="Enter your taluk">
+                    <label class="form-label">🏠 Home Address 2 (Optional)</label>
+                    <input type="text" id="editHomeAddress2" class="form-input" placeholder="Apartment, suite, floor, etc.">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">🏙️ District *</label>
-                    <input type="text" id="editDistrict" class="form-input" required placeholder="Enter your district">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label class="form-label">🛣️ Street Name</label>
+                        <input type="text" id="editStreetName" class="form-input" placeholder="Street name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">📍 Landmark</label>
+                        <input type="text" id="editLandmark" class="form-input" placeholder="Near landmark">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">🗺️ State *</label>
-                    <input type="text" id="editState" class="form-input" required placeholder="Enter your state">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label class="form-label">🏘️ Village/Area</label>
+                        <input type="text" id="editVillage" class="form-input" placeholder="Village or area name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">🏘️ Taluk *</label>
+                        <input type="text" id="editTaluk" class="form-input" required placeholder="Taluk name">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">📮 Pincode *</label>
-                    <input type="text" id="editPincode" class="form-input" required pattern="[0-9]{6}" placeholder="Enter 6-digit pincode">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label class="form-label">🏙️ District *</label>
+                        <input type="text" id="editDistrict" class="form-input" required placeholder="District name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">🗺️ State *</label>
+                        <input type="text" id="editState" class="form-input" required placeholder="State name">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">📱 Phone Number *</label>
-                    <input type="tel" id="editPhone" class="form-input" required pattern="[0-9]{10}" placeholder="Enter 10-digit mobile number">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label class="form-label">📮 Pincode *</label>
+                        <input type="text" id="editPincode" class="form-input" required pattern="[0-9]{6}" placeholder="6-digit pincode">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">📱 Phone Number *</label>
+                        <input type="tel" id="editPhone" class="form-input" required pattern="[0-9]{10}" placeholder="10-digit phone number">
+                    </div>
                 </div>
                 <button type="submit" class="save-address-btn">
                     💾 Save Address
@@ -1578,6 +1618,7 @@
 </footer>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="/js/config.js"></script>
+<script src="/js/dynamic-shipping.js"></script>
 <script src="/js/shipping-calculator.js"></script>
 <script src="/js/cartUtils.js"></script>
 <script src="/js/cart.js"></script>

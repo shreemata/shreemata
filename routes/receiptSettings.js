@@ -36,6 +36,15 @@ router.put('/admin/receipt-settings', authenticateToken, isAdmin, async (req, re
             phone,
             email,
             address,
+            homeAddress1,
+            homeAddress2,
+            streetName,
+            landmark,
+            village,
+            taluk,
+            district,
+            state,
+            pincode,
             gstin,
             footerMessage,
             contactFooter,
@@ -63,6 +72,15 @@ router.put('/admin/receipt-settings', authenticateToken, isAdmin, async (req, re
         settings.phone = phone;
         settings.email = email;
         settings.address = address;
+        settings.homeAddress1 = homeAddress1;
+        settings.homeAddress2 = homeAddress2;
+        settings.streetName = streetName;
+        settings.landmark = landmark;
+        settings.village = village;
+        settings.taluk = taluk;
+        settings.district = district;
+        settings.state = state;
+        settings.pincode = pincode;
         settings.gstin = gstin;
         settings.footerMessage = footerMessage;
         settings.contactFooter = contactFooter;
