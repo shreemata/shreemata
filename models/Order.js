@@ -63,8 +63,11 @@ const orderSchema = new mongoose.Schema({
         default: "pending"
     },
     trackingInfo: {
-        type: String,
-        default: ""
+        trackingWebsite: { type: String, default: "" },
+        trackingId: { type: String, default: "" },
+        trackingUrl: { type: String, default: "" }, // Full tracking URL
+        updatedAt: { type: Date, default: null },
+        updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
     },
 
     razorpay_order_id: { type: String },

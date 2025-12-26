@@ -24,6 +24,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const section = urlParams.get('section');
     if (section) {
         showSection(section);
+    } else {
+        // Default to profile section
+        showSection('profile');
     }
 });
 
@@ -60,6 +63,25 @@ function showSection(section) {
     if (targetSection) {
         targetSection.style.display = "block";
     }
+    
+    // Update active button states
+    const menuButtons = document.querySelectorAll('.account-menu button');
+    menuButtons.forEach(button => {
+        button.classList.remove('active');
+        
+        // Check if this button corresponds to the active section
+        const buttonText = button.textContent.toLowerCase();
+        if (
+            (section === 'profile' && buttonText.includes('profile') && !buttonText.includes('edit')) ||
+            (section === 'edit' && buttonText.includes('edit')) ||
+            (section === 'address' && buttonText.includes('address')) ||
+            (section === 'store' && buttonText.includes('store')) ||
+            (section === 'orders' && buttonText.includes('order')) ||
+            (section === 'points' && buttonText.includes('points'))
+        ) {
+            button.classList.add('active');
+        }
+    });
     
     // Reload points when section is shown
     if (section === 'points') {
@@ -118,6 +140,42 @@ async function loadOrders() {
             const deliveryColor = deliveryStatus === 'delivered' ? '#28a745' : 
                                  deliveryStatus === 'shipped' ? '#2196F3' : '#ffc107';
 
+            // Prepare tracking information display
+            let trackingDisplay = '';
+            if (order.trackingInfo && (order.trackingInfo.trackingId || order.trackingInfo.trackingWebsite)) {
+                const trackingInfo = order.trackingInfo;
+                trackingDisplay = `
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #2196F3;">
+                        <h4 style="margin: 0 0 10px 0; color: #2196F3; font-size: 16px;">📦 Tracking Information</h4>
+                        ${trackingInfo.trackingId ? `
+                            <p style="margin: 5px 0;"><strong>Tracking ID:</strong> 
+                                <span style="font-family: monospace; background: #e9ecef; padding: 2px 6px; border-radius: 4px;">${trackingInfo.trackingId}</span>
+                            </p>
+                        ` : ''}
+                        ${trackingInfo.trackingWebsite ? `
+                            <p style="margin: 5px 0;"><strong>Courier Website:</strong> 
+                                <a href="${trackingInfo.trackingWebsite}" target="_blank" style="color: #2196F3; text-decoration: none;">
+                                    ${trackingInfo.trackingWebsite} 🔗
+                                </a>
+                            </p>
+                        ` : ''}
+                        ${trackingInfo.trackingUrl ? `
+                            <div style="margin-top: 10px;">
+                                <a href="${trackingInfo.trackingUrl}" target="_blank" 
+                                   style="display: inline-block; background: #2196F3; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600;">
+                                    🔍 Track Your Order
+                                </a>
+                            </div>
+                        ` : ''}
+                        ${trackingInfo.updatedAt ? `
+                            <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">
+                                Updated: ${new Date(trackingInfo.updatedAt).toLocaleString('en-IN')}
+                            </p>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
             div.innerHTML = `
                 <h3>Order #${order._id.slice(-8)}</h3>
                 <p><strong>Items:</strong> ${itemsList}</p>
@@ -125,6 +183,7 @@ async function loadOrders() {
                 <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p>
                 <p><strong>Payment Status:</strong> <span style="color: ${statusColor}; font-weight: 600;">${order.status}</span></p>
                 <p><strong>Delivery Status:</strong> <span style="color: ${deliveryColor}; font-weight: 600;">${deliveryStatus}</span></p>
+                ${trackingDisplay}
                 ${order.deliveryAddress && order.deliveryAddress.street ? `
                     <p><strong>Delivery Address:</strong> ${order.deliveryAddress.street}, ${order.deliveryAddress.taluk || order.deliveryAddress.city}, ${order.deliveryAddress.district || ''}</p>
                 ` : ''}

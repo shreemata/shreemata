@@ -172,11 +172,43 @@ router.put("/admin/update-delivery/:orderId", authenticateToken, isAdmin, async 
             return res.status(400).json({ error: "Invalid delivery status" });
         }
 
+        // Prepare tracking info update
+        let trackingUpdate = {};
+        
+        if (trackingInfo && typeof trackingInfo === 'object') {
+            // New structure with website and ID
+            trackingUpdate = {
+                trackingWebsite: trackingInfo.trackingWebsite || '',
+                trackingId: trackingInfo.trackingId || '',
+                trackingUrl: trackingInfo.trackingUrl || '',
+                updatedAt: new Date(),
+                updatedBy: req.user.id
+            };
+        } else if (trackingInfo && typeof trackingInfo === 'string') {
+            // Legacy support for old string format
+            trackingUpdate = {
+                trackingWebsite: '',
+                trackingId: trackingInfo,
+                trackingUrl: '',
+                updatedAt: new Date(),
+                updatedBy: req.user.id
+            };
+        } else {
+            // No tracking info provided
+            trackingUpdate = {
+                trackingWebsite: '',
+                trackingId: '',
+                trackingUrl: '',
+                updatedAt: new Date(),
+                updatedBy: req.user.id
+            };
+        }
+
         const order = await Order.findByIdAndUpdate(
             orderId,
             {
                 deliveryStatus,
-                trackingInfo: trackingInfo || ""
+                trackingInfo: trackingUpdate
             },
             { new: true }
         );
@@ -191,12 +223,13 @@ router.put("/admin/update-delivery/:orderId", authenticateToken, isAdmin, async 
             if (user && user.email) {
                 console.log(`📧 Sending delivery status email to: ${user.email}`);
                 console.log(`   Status: ${deliveryStatus}`);
+                console.log(`   Tracking: ${JSON.stringify(trackingUpdate)}`);
                 
                 const emailResult = await sendDeliveryStatusEmail(
                     order, 
                     user, 
                     deliveryStatus, 
-                    trackingInfo || ''
+                    trackingUpdate
                 );
                 
                 if (emailResult.success) {

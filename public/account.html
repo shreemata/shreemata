@@ -36,32 +36,32 @@
         <h1>My Account</h1>
 
         <div class="account-menu">
-            <button onclick="showSection('profile')">Profile</button>
-            <button onclick="showSection('edit')">Edit Profile</button>
-            <button onclick="showSection('address')">Delivery Address</button>
-            <button onclick="showSection('store')">Store Details</button>
-            <button onclick="showSection('orders')">Order History</button>
-            <button onclick="showSection('points')">Points & Rewards</button>
-            <button onclick="logout()">Logout</button>
+            <button onclick="showSection('profile')">👤 Profile</button>
+            <button onclick="showSection('edit')">✏️ Edit Profile</button>
+            <button onclick="showSection('address')">🏠 Delivery Address</button>
+            <button onclick="showSection('store')">🏪 Store Details</button>
+            <button onclick="showSection('orders')">📦 Order History</button>
+            <button onclick="showSection('points')">🎁 Points & Rewards</button>
+            <button onclick="logout()">🚪 Logout</button>
         </div>
 
         <div id="profileSection" class="account-section">
-            <h2>Profile</h2>
+            <h2>👤 Profile</h2>
             <p><strong>Name:</strong> <span id="accName"></span></p>
             <p><strong>Email:</strong> <span id="accEmail"></span></p>
         </div>
 
         <div id="editSection" class="account-section" style="display:none;">
-            <h2>Edit Profile</h2>
+            <h2>✏️ Edit Profile</h2>
             <form id="editForm">
                 <input type="text" id="editName" placeholder="New Name">
                 <input type="email" id="editEmail" placeholder="New Email">
-                <button class="btn-primary" type="submit">Update</button>
+                <button class="btn-primary" type="submit">💾 Update Profile</button>
             </form>
         </div>
 
         <div id="addressSection" class="account-section" style="display:none;">
-            <h2>Delivery Address</h2>
+            <h2>🏠 Delivery Address</h2>
             <div id="addressDisplay" style="margin-bottom: 20px;">
                 <p><strong>Home Address 1:</strong> <span id="displayHomeAddress1">Not set</span></p>
                 <p><strong>Home Address 2:</strong> <span id="displayHomeAddress2">-</span></p>
@@ -74,7 +74,7 @@
                 <p><strong>Pincode:</strong> <span id="displayPincode">Not set</span></p>
                 <p><strong>Phone:</strong> <span id="displayPhone">Not set</span></p>
             </div>
-            <button class="btn-primary" onclick="toggleAddressEdit()">Edit Address</button>
+            <button class="action-btn" onclick="toggleAddressEdit()">✏️ Edit Address</button>
             
             <form id="addressForm" style="display:none; margin-top: 20px;">
                 <div style="display: grid; gap: 15px;">
@@ -127,9 +127,9 @@
                         </div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button class="btn-primary" type="submit">Save Address</button>
-                    <button class="btn-secondary" type="button" onclick="toggleAddressEdit()">Cancel</button>
+                <div class="button-group">
+                    <button class="action-btn" type="submit">💾 Save Address</button>
+                    <button class="action-btn cancel-btn" type="button" onclick="toggleAddressEdit()">❌ Cancel</button>
                 </div>
             </form>
         </div>
@@ -181,12 +181,12 @@
         </div>
 
         <div id="ordersSection" class="account-section" style="display:none;">
-            <h2>Order History</h2>
+            <h2>📦 Order History</h2>
             <div id="ordersList">Loading...</div>
         </div>
 
         <div id="pointsSection" class="account-section" style="display:none;">
-            <h2>Points & Rewards</h2>
+            <h2>🎁 Points & Rewards</h2>
             
             <div class="points-summary">
                 <div class="points-card">
@@ -207,7 +207,7 @@
                 <h3>Redeem Points</h3>
                 <p>You can redeem 100 points to create a virtual referral in your tree.</p>
                 <button class="btn-primary" id="redeemBtn" onclick="redeemVirtualReferral()">
-                    Redeem 100 Points for Virtual Referral
+                    🎁 Redeem 100 Points for Virtual Referral
                 </button>
             </div>
 
