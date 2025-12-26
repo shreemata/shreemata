@@ -41,6 +41,7 @@
             <button onclick="showSection('address')">🏠 Delivery Address</button>
             <button onclick="showSection('store')">🏪 Store Details</button>
             <button onclick="showSection('orders')">📦 Order History</button>
+            <button onclick="showSection('wallet')">💰 Wallet & Cashback</button>
             <button onclick="showSection('points')">🎁 Points & Rewards</button>
             <button onclick="logout()">🚪 Logout</button>
         </div>
@@ -183,6 +184,45 @@
         <div id="ordersSection" class="account-section" style="display:none;">
             <h2>📦 Order History</h2>
             <div id="ordersList">Loading...</div>
+        </div>
+
+        <div id="walletSection" class="account-section" style="display:none;">
+            <h2>💰 Wallet & Cashback</h2>
+            
+            <div class="wallet-summary">
+                <div class="wallet-card">
+                    <h3>💰 Available Balance</h3>
+                    <p class="wallet-value" id="walletBalance">₹0</p>
+                    <small>Includes cashback and referral earnings</small>
+                </div>
+                <div class="wallet-card">
+                    <h3>🎯 Total Cashback Earned</h3>
+                    <p class="wallet-value" id="totalCashbackEarned">₹0</p>
+                    <small>From all your purchases</small>
+                </div>
+                <div class="wallet-card">
+                    <h3>👥 Total Referral Earnings</h3>
+                    <p class="wallet-value" id="totalReferralEarnings">₹0</p>
+                    <small>From your referral network</small>
+                </div>
+            </div>
+
+            <div class="withdrawal-section">
+                <h3>💸 Withdraw Money</h3>
+                <p>Minimum withdrawal: <span id="minWithdrawal">₹100</span></p>
+                <div class="withdrawal-form">
+                    <input type="number" id="withdrawalAmount" placeholder="Enter amount" min="100" step="1">
+                    <button class="btn-primary" onclick="requestWithdrawal()">Request Withdrawal</button>
+                </div>
+                <small style="color: #666; margin-top: 10px; display: block;">
+                    Withdrawals are processed within 24-48 hours to your registered bank account.
+                </small>
+            </div>
+
+            <div class="wallet-history">
+                <h3>💳 Transaction History</h3>
+                <div id="walletHistoryList">Loading...</div>
+            </div>
         </div>
 
         <div id="pointsSection" class="account-section" style="display:none;">

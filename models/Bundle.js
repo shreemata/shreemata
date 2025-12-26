@@ -52,11 +52,34 @@ const bundleSchema = new mongoose.Schema({
         min: 0
     },
     
+    // Cashback System
+    cashbackAmount: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    cashbackPercentage: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
+    },
+    
     validUntil: { 
         type: Date // Optional expiry date
     }
 
 }, { timestamps: true });
+
+// Method to calculate actual cashback amount
+bundleSchema.methods.getCashbackAmount = function() {
+  if (this.cashbackAmount > 0) {
+    return this.cashbackAmount;
+  } else if (this.cashbackPercentage > 0) {
+    return (this.bundlePrice * this.cashbackPercentage) / 100;
+  }
+  return 0;
+};
 
 // Calculate discount percentage and weight before saving
 bundleSchema.pre('save', async function(next) {

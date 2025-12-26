@@ -513,6 +513,49 @@ router.post("/verify", authenticateToken, async (req, res) => {
       // Log error but don't fail the payment verification
     }
 
+    // AWARD CASHBACK FOR PURCHASED ITEMS
+    try {
+      console.log("💰 Processing cashback for order:", order._id);
+      let totalCashback = 0;
+      
+      for (const item of order.items) {
+        let itemCashback = 0;
+        
+        if (item.type === 'book') {
+          const book = await Book.findById(item.id);
+          if (book) {
+            itemCashback = book.getCashbackAmount() * item.quantity;
+          }
+        } else if (item.type === 'bundle') {
+          const bundle = await Bundle.findById(item.id);
+          if (bundle) {
+            itemCashback = bundle.getCashbackAmount() * item.quantity;
+          }
+        }
+        
+        if (itemCashback > 0) {
+          totalCashback += itemCashback;
+          console.log(`💰 Cashback for ${item.title}: ₹${itemCashback.toFixed(2)}`);
+        }
+      }
+      
+      if (totalCashback > 0) {
+        // Add cashback to user's wallet
+        const user = await User.findById(order.user_id);
+        if (user) {
+          const previousBalance = user.wallet || 0;
+          user.wallet = previousBalance + totalCashback;
+          await user.save();
+          
+          console.log(`✅ Added ₹${totalCashback.toFixed(2)} cashback to user wallet`);
+          console.log(`💰 User wallet balance: ₹${previousBalance.toFixed(2)} → ₹${user.wallet.toFixed(2)}`);
+        }
+      }
+    } catch (cashbackError) {
+      console.error("❌ Cashback processing error:", cashbackError);
+      // Log error but don't fail the payment verification
+    }
+
     // OLD REFERRAL SYSTEM DISABLED - Using new commission distribution system only
     // The old system was causing double payments by adding to wallet twice
     // const result = await applyReferralRewardForOrder(order);
@@ -755,6 +798,48 @@ router.post("/webhook", async (req, res) => {
           }
         } catch (pointsError) {
           console.error("❌ Webhook: Points awarding error:", pointsError);
+        }
+
+        // AWARD CASHBACK FOR PURCHASED ITEMS
+        try {
+          console.log("💰 Webhook: Processing cashback for order:", order._id);
+          let totalCashback = 0;
+          
+          for (const item of order.items) {
+            let itemCashback = 0;
+            
+            if (item.type === 'book') {
+              const book = await Book.findById(item.id);
+              if (book) {
+                itemCashback = book.getCashbackAmount() * item.quantity;
+              }
+            } else if (item.type === 'bundle') {
+              const bundle = await Bundle.findById(item.id);
+              if (bundle) {
+                itemCashback = bundle.getCashbackAmount() * item.quantity;
+              }
+            }
+            
+            if (itemCashback > 0) {
+              totalCashback += itemCashback;
+              console.log(`💰 Webhook: Cashback for ${item.title}: ₹${itemCashback.toFixed(2)}`);
+            }
+          }
+          
+          if (totalCashback > 0) {
+            // Add cashback to user's wallet
+            const user = await User.findById(order.user_id);
+            if (user) {
+              const previousBalance = user.wallet || 0;
+              user.wallet = previousBalance + totalCashback;
+              await user.save();
+              
+              console.log(`✅ Webhook: Added ₹${totalCashback.toFixed(2)} cashback to user wallet`);
+              console.log(`💰 Webhook: User wallet balance: ₹${previousBalance.toFixed(2)} → ₹${user.wallet.toFixed(2)}`);
+            }
+          }
+        } catch (cashbackError) {
+          console.error("❌ Webhook: Cashback processing error:", cashbackError);
         }
         
         // OLD REFERRAL SYSTEM DISABLED - Using new commission distribution system only

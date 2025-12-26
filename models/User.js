@@ -126,7 +126,7 @@ const userSchema = new mongoose.Schema({
       bank: String,
       bankName: String,  // Added bank name field
       ifsc: String,
-      status: { type: String, default: "pending" }, // pending, approved, approved_pending_transfer, rejected
+      status: { type: String, default: "pending" }, // pending, approved, rejected
       requestedAt: { type: Date, default: Date.now },
       approvedAt: Date,
       

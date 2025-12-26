@@ -10,6 +10,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Set up delivery method listeners after a short delay to ensure HTML is loaded
     setTimeout(() => {
         setupDeliveryMethodListeners();
+        // Also update cart summary to ensure delivery charges are calculated
+        setTimeout(() => {
+            updateCartSummary();
+        }, 1000);
     }, 500);
 });
 
@@ -140,12 +144,22 @@ async function loadCart() {
     let total = 0;
     let totalWeight = 0;
     let totalPoints = 0;
+    let totalCashback = 0;
 
     cart.forEach(item => {
         total += item.price * item.quantity;
         const itemWeight = (item.weight || 0.5) * item.quantity;
         totalWeight += itemWeight;
         totalPoints += (item.rewardPoints || 0) * item.quantity;
+        
+        // Calculate cashback for this item
+        let itemCashback = 0;
+        if (item.cashbackAmount > 0) {
+            itemCashback = item.cashbackAmount * item.quantity;
+        } else if (item.cashbackPercentage > 0) {
+            itemCashback = (item.price * item.cashbackPercentage / 100) * item.quantity;
+        }
+        totalCashback += itemCashback;
 
         const row = document.createElement("div");
         row.className = "cart-item";
@@ -177,9 +191,9 @@ async function loadCart() {
                 ${pointsBadge}
                 
                 <div class="cart-qty">
-                    <button class="qty-btn" data-id="${item.id || item.bundleId}" data-action="minus">-</button>
-                    <span>${item.quantity}</span>
-                    <button class="qty-btn" data-id="${item.id || item.bundleId}" data-action="plus">+</button>
+                    <button class="qty-btn" data-id="${item.id || item.bundleId}" data-action="minus" onclick="handleQuantityClick(this)">-</button>
+                    <input type="number" class="qty-input" data-id="${item.id || item.bundleId}" value="${item.quantity}" min="1" max="99">
+                    <button class="qty-btn" data-id="${item.id || item.bundleId}" data-action="plus" onclick="handleQuantityClick(this)">+</button>
                 </div>
 
                 <button class="remove-btn" data-id="${item.id || item.bundleId}">
@@ -269,6 +283,7 @@ async function loadCart() {
             ${shippingInfo}
         </div>
         ${pointsDisplay}
+        ${cashbackDisplay}
         <div class="summary-row total-row" style="border-top: 2px solid #eee; padding-top: 10px; margin-top: 10px; font-weight: 700; font-size: 18px;">
             <span>Total Amount</span>
             <span>₹${grandTotal.toFixed(2)}</span>
@@ -294,12 +309,22 @@ async function updateCartTotals() {
     let total = 0;
     let totalWeight = 0;
     let totalPoints = 0;
+    let totalCashback = 0;
 
     cart.forEach(item => {
         total += item.price * item.quantity;
         const itemWeight = (item.weight || 0.5) * item.quantity;
         totalWeight += itemWeight;
         totalPoints += (item.rewardPoints || 0) * item.quantity;
+        
+        // Calculate cashback for this item
+        let itemCashback = 0;
+        if (item.cashbackAmount > 0) {
+            itemCashback = item.cashbackAmount * item.quantity;
+        } else if (item.cashbackPercentage > 0) {
+            itemCashback = (item.price * item.cashbackPercentage / 100) * item.quantity;
+        }
+        totalCashback += itemCashback;
     });
 
     // Calculate shipping using the dynamic shipping calculator
@@ -367,6 +392,18 @@ async function updateCartTotals() {
             : '';
     }
     
+    const cashbackDisplay = totalCashback > 0 
+        ? `<div class="cashback-summary">
+               <div class="cashback-summary-content">
+                   <span style="font-size: 24px;">💰</span>
+                   <span class="cashback-summary-title">You'll get ₹${totalCashback.toFixed(0)} Cashback!</span>
+               </div>
+               <div class="cashback-summary-note">
+                   Instant cashback to your wallet
+               </div>
+           </div>`
+        : '';
+    
     if (cartTotalEl) {
         cartTotalEl.innerHTML = `
             <div class="summary-row">
@@ -381,6 +418,7 @@ async function updateCartTotals() {
                 ${shippingInfo}
             </div>
             ${pointsDisplay}
+            ${cashbackDisplay}
             <div class="summary-row total-row" style="border-top: 2px solid #eee; padding-top: 10px; margin-top: 10px; font-weight: 700; font-size: 18px;">
                 <span>Total Amount</span>
                 <span>₹${grandTotal.toFixed(2)}</span>
@@ -459,12 +497,36 @@ function updateDeliveryChargeDisplay(shippingCost) {
         
         // Update display based on whether shipping is free
         if (shippingCost === 0) {
-            homeDeliveryChargeDisplay.innerHTML = '<span style="color: #28a745; font-weight: 600;">FREE 🎉</span>';
-            pickupSavingsDisplay.innerHTML = '<span style="color: #28a745; font-weight: 600;">FREE</span>';
+            if (homeDeliveryChargeDisplay) {
+                homeDeliveryChargeDisplay.innerHTML = '<span style="color: #28a745; font-weight: 600;">FREE 🎉</span>';
+            }
+            if (pickupSavingsDisplay) {
+                pickupSavingsDisplay.innerHTML = '<span style="color: #28a745; font-weight: 600;">FREE</span>';
+            }
         } else {
-            homeDeliveryChargeDisplay.innerHTML = `+ ₹<span id="homeDeliveryCharge">${shippingCost.toFixed(0)}</span>`;
-            pickupSavingsDisplay.innerHTML = `FREE (Save ₹<span id="pickupSavings">${shippingCost.toFixed(0)}</span>!)`;
+            if (homeDeliveryChargeDisplay) {
+                homeDeliveryChargeDisplay.innerHTML = `+ ₹<span id="homeDeliveryCharge">${shippingCost.toFixed(0)}</span>`;
+            }
+            if (pickupSavingsDisplay) {
+                pickupSavingsDisplay.innerHTML = `FREE (Save ₹<span id="pickupSavings">${shippingCost.toFixed(0)}</span>!)`;
+            }
         }
+    }
+}
+
+function updateDeliveryMethodDisplay() {
+    const selectedMethod = document.querySelector('input[name="deliveryMethod"]:checked');
+    const storeInfo = document.getElementById('storeInfo');
+    
+    if (!selectedMethod) return;
+    
+    console.log('🚚 Delivery method changed to:', selectedMethod.value);
+    
+    // Show/hide store info based on selection
+    if (selectedMethod.value === 'pickup' && storeInfo) {
+        storeInfo.style.display = 'block';
+    } else if (selectedMethod.value === 'home' && storeInfo) {
+        storeInfo.style.display = 'none';
     }
 }
 
@@ -564,9 +626,13 @@ function setupCartActions() {
 
         // Quantity buttons
         if (e.target.classList.contains("qty-btn")) {
+            e.preventDefault(); // Prevent any default behavior
             const id = e.target.dataset.id;
             const action = e.target.dataset.action;
-            updateQuantity(id, action);
+            
+            if (id && action) {
+                updateQuantity(id, action);
+            }
         }
 
         // Remove button
@@ -580,6 +646,70 @@ function setupCartActions() {
             checkout();
         }
     });
+
+    // Add event listener for quantity input changes
+    document.addEventListener("change", function (e) {
+        if (e.target.classList.contains("qty-input")) {
+            const id = e.target.dataset.id;
+            const newQuantity = parseInt(e.target.value);
+            updateQuantityDirect(id, newQuantity);
+        }
+    });
+
+    // Add event listener for real-time quantity input changes (as user types)
+    let inputTimeout;
+    document.addEventListener("input", function (e) {
+        if (e.target.classList.contains("qty-input")) {
+            const id = e.target.dataset.id;
+            const newQuantity = parseInt(e.target.value);
+            
+            // Clear previous timeout
+            clearTimeout(inputTimeout);
+            
+            // Only update if it's a valid number, with a small delay to avoid too many updates
+            if (!isNaN(newQuantity) && newQuantity > 0) {
+                inputTimeout = setTimeout(() => {
+                    updateQuantityDirect(id, newQuantity);
+                }, 300); // 300ms delay
+            }
+        }
+    });
+
+    // Add event listener for quantity input blur (when user clicks away)
+    document.addEventListener("blur", function (e) {
+        if (e.target.classList.contains("qty-input")) {
+            const id = e.target.dataset.id;
+            const newQuantity = parseInt(e.target.value);
+            updateQuantityDirect(id, newQuantity);
+        }
+    }, true);
+
+    // Add event listener for Enter key on quantity input
+    document.addEventListener("keypress", function (e) {
+        if (e.target.classList.contains("qty-input") && e.key === "Enter") {
+            e.target.blur(); // This will trigger the blur event above
+        }
+    });
+
+    // Add event listener for delivery method changes
+    document.addEventListener("change", function (e) {
+        if (e.target.name === "deliveryMethod") {
+            updateDeliveryMethodDisplay();
+            updateCartSummary(); // Update prices when delivery method changes
+        }
+    });
+}
+
+/* ------------------------------
+    Handle Quantity Click (Fallback)
+------------------------------ */
+window.handleQuantityClick = function(button) {
+    const id = button.dataset.id;
+    const action = button.dataset.action;
+    
+    if (id && action) {
+        updateQuantity(id, action);
+    }
 }
 
 /* ------------------------------
@@ -589,13 +719,244 @@ async function updateQuantity(itemId, action) {
     let cart = getCart();
 
     const item = cart.find(i => i.id === itemId || i.bundleId === itemId);
-    if (!item) return;
+    if (!item) {
+        return;
+    }
 
     if (action === "plus") item.quantity++;
     if (action === "minus" && item.quantity > 1) item.quantity--;
 
     saveCart(cart);
-    await loadCart();
+    
+    // Update display in real-time without full reload
+    await updateCartDisplayRealTime();
+}
+
+/* ------------------------------
+    Update Quantity Direct Input
+------------------------------ */
+async function updateQuantityDirect(itemId, newQuantity) {
+    let cart = getCart();
+
+    const item = cart.find(i => i.id === itemId || i.bundleId === itemId);
+    if (!item) return;
+
+    // Validate quantity
+    if (isNaN(newQuantity) || newQuantity < 1) {
+        newQuantity = 1;
+    } else if (newQuantity > 99) {
+        newQuantity = 99;
+    }
+
+    // Only update if quantity actually changed
+    if (item.quantity !== newQuantity) {
+        item.quantity = newQuantity;
+        saveCart(cart);
+        
+        // Update the input field to show corrected value
+        const inputField = document.querySelector(`.qty-input[data-id="${itemId}"]`);
+        if (inputField) {
+            inputField.value = newQuantity;
+        }
+        
+        // Update display in real-time without full reload
+        await updateCartDisplayRealTime();
+    }
+}
+
+/* ------------------------------
+    Update Cart Display Real-Time
+------------------------------ */
+async function updateCartDisplayRealTime() {
+    const cart = getCart();
+    
+    if (cart.length === 0) {
+        // If cart is empty, reload to show empty state
+        await loadCart();
+        return;
+    }
+
+    // Update individual item displays
+    cart.forEach(item => {
+        const itemId = item.id || item.bundleId;
+        const itemWeight = (item.weight || 0.5) * item.quantity;
+        
+        // Update quantity input field
+        const quantityInput = document.querySelector(`.qty-input[data-id="${itemId}"]`);
+        if (quantityInput) {
+            quantityInput.value = item.quantity;
+        }
+        
+        // Update weight display
+        const weightDisplay = document.querySelector(`[data-id="${itemId}"]`)?.closest('.cart-item')?.querySelector('.weight-info');
+        if (weightDisplay) {
+            weightDisplay.innerHTML = `📦 ${(item.weight || 0.5).toFixed(2)} kg × ${item.quantity} = ${itemWeight.toFixed(2)} kg`;
+        }
+        
+        // Update points display if exists
+        const itemPoints = (item.rewardPoints || 0) * item.quantity;
+        const pointsBadge = document.querySelector(`[data-id="${itemId}"]`)?.closest('.cart-item')?.querySelector('.points-badge');
+        if (pointsBadge && itemPoints > 0) {
+            pointsBadge.innerHTML = `🎁 +${itemPoints} Points`;
+        }
+    });
+
+    // Update cart summary and totals
+    await updateCartSummary();
+}
+
+/* ------------------------------
+    Update Cart Summary
+------------------------------ */
+async function updateCartSummary() {
+    const cart = getCart();
+    let total = 0;
+    let totalWeight = 0;
+    let totalPoints = 0;
+    let totalCashback = 0;
+
+    // Calculate totals
+    cart.forEach(item => {
+        total += item.price * item.quantity;
+        const itemWeight = (item.weight || 0.5) * item.quantity;
+        totalWeight += itemWeight;
+        totalPoints += (item.rewardPoints || 0) * item.quantity;
+        
+        // Calculate cashback for this item
+        let itemCashback = 0;
+        if (item.cashbackAmount > 0) {
+            itemCashback = item.cashbackAmount * item.quantity;
+        } else if (item.cashbackPercentage > 0) {
+            itemCashback = (item.price * item.cashbackPercentage / 100) * item.quantity;
+        }
+        totalCashback += itemCashback;
+    });
+
+    // Calculate courier charge for the selected method
+    let courierCharge = 0;
+    const selectedDeliveryMethod = document.querySelector('input[name="deliveryMethod"]:checked')?.value;
+    
+    // Always calculate home delivery cost for pickup savings display
+    let homeDeliveryCost = 0;
+    try {
+        homeDeliveryCost = await calculateCourierCharge(totalWeight);
+        
+        // Ensure minimum charge for pickup savings display (if there are items)
+        if (cart.length > 0 && homeDeliveryCost < 25) {
+            homeDeliveryCost = 25; // Minimum ₹25 shipping charge
+        }
+    } catch (error) {
+        console.error('Error calculating courier charge:', error);
+        // Fallback minimum charge if there are items
+        homeDeliveryCost = cart.length > 0 ? 25 : 0;
+    }
+    
+    // Set actual courier charge based on selected method
+    if (selectedDeliveryMethod === 'home') {
+        courierCharge = homeDeliveryCost;
+    } else {
+        courierCharge = 0; // Free for pickup
+    }
+
+    // Update delivery method displays - always show what home delivery would cost
+    // Find elements again in case they were recreated
+    const homeDeliveryChargeElement = document.getElementById('homeDeliveryCharge');
+    const pickupSavingsElement = document.getElementById('pickupSavings');
+    
+    if (homeDeliveryChargeElement) {
+        homeDeliveryChargeElement.textContent = homeDeliveryCost.toFixed(0);
+    }
+    if (pickupSavingsElement) {
+        pickupSavingsElement.textContent = homeDeliveryCost.toFixed(0);
+    }
+    
+    // Also update the display containers if they exist
+    const homeDeliveryChargeDisplay = document.getElementById('homeDeliveryChargeDisplay');
+    const pickupSavingsDisplay = document.getElementById('pickupSavingsDisplay');
+    
+    if (homeDeliveryCost === 0) {
+        if (homeDeliveryChargeDisplay) {
+            homeDeliveryChargeDisplay.innerHTML = '<span style="color: #28a745; font-weight: 600;">FREE 🎉</span>';
+        }
+        if (pickupSavingsDisplay) {
+            pickupSavingsDisplay.innerHTML = '<span style="color: #28a745; font-weight: 600;">FREE</span>';
+        }
+    } else {
+        if (homeDeliveryChargeDisplay) {
+            homeDeliveryChargeDisplay.innerHTML = `+ ₹<span id="homeDeliveryCharge">${homeDeliveryCost.toFixed(0)}</span>`;
+        }
+        if (pickupSavingsDisplay) {
+            pickupSavingsDisplay.innerHTML = `FREE (Save ₹<span id="pickupSavings">${homeDeliveryCost.toFixed(0)}</span>!)`;
+        }
+    }
+
+    // Calculate final total
+    const finalTotal = total + courierCharge;
+
+    // Update cart total display
+    const cartTotalElement = document.getElementById('cartTotal');
+    if (cartTotalElement) {
+        cartTotalElement.innerHTML = `
+            <div class="summary-row">
+                <span>Items Total:</span>
+                <span>₹${total.toFixed(2)}</span>
+            </div>
+            <div class="summary-row">
+                <span>Delivery Charge:</span>
+                <span>₹${courierCharge.toFixed(2)}</span>
+            </div>
+            <div class="summary-row">
+                <span>Total Amount:</span>
+                <span>₹${finalTotal.toFixed(2)}</span>
+            </div>
+        `;
+    }
+
+    // Update points summary if exists
+    if (totalPoints > 0) {
+        let pointsSummary = document.querySelector('.points-summary');
+        if (!pointsSummary) {
+            pointsSummary = document.createElement('div');
+            pointsSummary.className = 'points-summary';
+            cartTotalElement.parentNode.insertBefore(pointsSummary, cartTotalElement);
+        }
+        pointsSummary.innerHTML = `
+            <div class="points-summary-content">
+                <span style="font-size: 24px;">🎁</span>
+                <span class="points-summary-title">Earn ${totalPoints} Points</span>
+            </div>
+            <div class="points-summary-note">Points will be added to your account after order delivery</div>
+        `;
+    } else {
+        // Remove points summary if no points
+        const pointsSummary = document.querySelector('.points-summary');
+        if (pointsSummary) {
+            pointsSummary.remove();
+        }
+    }
+
+    // Update cashback summary if exists
+    if (totalCashback > 0) {
+        let cashbackSummary = document.querySelector('.cashback-summary');
+        if (!cashbackSummary) {
+            cashbackSummary = document.createElement('div');
+            cashbackSummary.className = 'cashback-summary';
+            cartTotalElement.parentNode.insertBefore(cashbackSummary, cartTotalElement);
+        }
+        cashbackSummary.innerHTML = `
+            <div class="cashback-summary-content">
+                <span style="font-size: 24px;">💰</span>
+                <span class="cashback-summary-title">₹${totalCashback.toFixed(0)} Cashback</span>
+            </div>
+            <div class="cashback-summary-note">Cashback will be credited to your wallet instantly</div>
+        `;
+    } else {
+        // Remove cashback summary if no cashback
+        const cashbackSummary = document.querySelector('.cashback-summary');
+        if (cashbackSummary) {
+            cashbackSummary.remove();
+        }
+    }
 }
 
 /* ------------------------------
@@ -614,6 +975,46 @@ async function removeFromCart(itemId) {
     Checkout Button (Check Offers First)
 ------------------------------ */
 let currentOffer = null;
+
+/* -----------------------------------
+   RESET CHECKOUT BUTTON
+----------------------------------- */
+function resetCheckoutButton() {
+    const checkoutBtn = document.getElementById("checkoutBtn");
+    if (checkoutBtn) {
+        checkoutBtn.disabled = false;
+        checkoutBtn.textContent = "🔒 Secure Checkout";
+    }
+}
+
+// Reset checkout button when page becomes visible again
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        const checkoutBtn = document.getElementById("checkoutBtn");
+        if (checkoutBtn && checkoutBtn.disabled && checkoutBtn.textContent === "Processing...") {
+            // If button has been processing for more than 5 seconds, reset it
+            setTimeout(() => {
+                if (checkoutBtn.disabled && checkoutBtn.textContent === "Processing...") {
+                    resetCheckoutButton();
+                    console.log("⚠️ Checkout button reset on page visibility change");
+                }
+            }, 1000);
+        }
+    }
+});
+
+// Also reset on window focus
+window.addEventListener('focus', () => {
+    const checkoutBtn = document.getElementById("checkoutBtn");
+    if (checkoutBtn && checkoutBtn.disabled && checkoutBtn.textContent === "Processing...") {
+        setTimeout(() => {
+            if (checkoutBtn.disabled && checkoutBtn.textContent === "Processing...") {
+                resetCheckoutButton();
+                console.log("⚠️ Checkout button reset on window focus");
+            }
+        }, 1000);
+    }
+});
 
 async function checkout() {
     const token = localStorage.getItem("token");
@@ -1048,6 +1449,14 @@ async function proceedToPayment() {
     if (checkoutBtn) {
         checkoutBtn.disabled = true;
         checkoutBtn.textContent = "Processing...";
+        
+        // Safety timeout to reset button after 30 seconds
+        setTimeout(() => {
+            if (checkoutBtn.disabled && checkoutBtn.textContent === "Processing...") {
+                resetCheckoutButton();
+                console.log("⚠️ Checkout button reset by timeout");
+            }
+        }, 30000);
     }
 
     try {
@@ -1189,23 +1598,25 @@ async function proceedToPayment() {
                         const msg = verifyData.error || "Payment verification failed";
                         alert(msg);
                         console.error("❌ Verify failed:", verifyData);
-                        if (checkoutBtn) {
-                            checkoutBtn.disabled = false;
-                            checkoutBtn.textContent = "Checkout";
-                        }
+                        resetCheckoutButton();
                         return;
                     }
 
                     // ✅ Payment verification successful!
                     console.log("✅ Payment verified successfully!");
                     
+                    // Reset checkout button first
+                    resetCheckoutButton();
+                    
+                    // Clear cart immediately
+                    clearCart();
+                    
                     // Show success popup
                     if (confirm("🎉 Order Confirmed!\n\nYour payment has been processed successfully and your order has been placed.\n\nWould you like to view your order in your account page?")) {
                         // Redirect to account page orders section
                         window.location.href = "/account.html?section=orders";
                     } else {
-                        // Clear cart and redirect to home
-                        localStorage.removeItem("cart");
+                        // Redirect to home
                         window.location.href = "/";
                     }
                     
@@ -1220,10 +1631,7 @@ if (!response.razorpay_payment_id) {
                 } catch (err) {
                     console.error("Error during payment verification:", err);
                     alert("Payment succeeded but verification failed. We'll investigate.");
-                    if (checkoutBtn) {
-                        checkoutBtn.disabled = false;
-                        checkoutBtn.textContent = "Checkout";
-                    }
+                    resetCheckoutButton();
                 }
             },
             // if the user closes the popup without paying
@@ -1256,10 +1664,7 @@ if (!response.razorpay_payment_id) {
                     // Do NOT redirect, do NOT clear cart.
                     alert("Payment was cancelled. The order has NOT been placed.");
 
-                    if (checkoutBtn) {
-                        checkoutBtn.disabled = false;
-                        checkoutBtn.textContent = "Checkout";
-                    }
+                    resetCheckoutButton();
                 }
             },
             prefill: {
@@ -1279,10 +1684,7 @@ if (!response.razorpay_payment_id) {
     } catch (err) {
         console.error("Checkout error:", err);
         alert(err.message || "Error initiating payment");
-        if (checkoutBtn) {
-            checkoutBtn.disabled = false;
-            checkoutBtn.textContent = "Checkout";
-        }
+        resetCheckoutButton();
     }
 }
 

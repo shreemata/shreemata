@@ -57,10 +57,16 @@ function displayWithdrawals() {
     filteredWithdrawals.forEach((item, index) => {
         const tr = document.createElement("tr");
         const originalIndex = allWithdrawals.indexOf(item);
+        
+        // Calculate total earnings for display
+        const totalEarnings = item.purchaseEarnings ? item.purchaseEarnings.totalEarnings : 0;
 
         tr.innerHTML = `
             <td>${index + 1}</td>
-            <td>${item.name}</td>
+            <td>
+                ${item.name}
+                <br><small style="color: #28a745; font-weight: 600; font-size: 11px;">💰 Earned: ₹${totalEarnings}</small>
+            </td>
             <td>${item.email}</td>
             <td>₹${item.amount}</td>
             <td>${new Date(item.date).toLocaleString()}</td>
@@ -162,6 +168,19 @@ function viewUserDetails(index) {
         document.getElementById('modalUserEmail').textContent = item.email || 'N/A';
         document.getElementById('modalAmount').textContent = `₹${item.amount || 0}`;
         document.getElementById('modalDateTime').textContent = new Date(item.date).toLocaleString() || 'N/A';
+        
+        // Purchase Earnings Information
+        if (item.purchaseEarnings) {
+            document.getElementById('modalDirectCommission').textContent = `₹${item.purchaseEarnings.directCommission || 0}`;
+            document.getElementById('modalTreeCommission').textContent = `₹${item.purchaseEarnings.treeCommission || 0}`;
+            document.getElementById('modalTotalEarnings').textContent = `₹${item.purchaseEarnings.totalEarnings || 0}`;
+            document.getElementById('modalCurrentWallet').textContent = `₹${item.purchaseEarnings.currentWallet || 0}`;
+        } else {
+            document.getElementById('modalDirectCommission').textContent = '₹0';
+            document.getElementById('modalTreeCommission').textContent = '₹0';
+            document.getElementById('modalTotalEarnings').textContent = '₹0';
+            document.getElementById('modalCurrentWallet').textContent = '₹0';
+        }
         
         // UPI Details
         const upiElement = document.getElementById('modalUpi');

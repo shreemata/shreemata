@@ -13,8 +13,18 @@ router.get("/withdrawal-settings", authenticateToken, async (req, res) => {
         const settings = await CommissionSettings.getSettings();
         const user = await User.findById(req.user.id);
         
+        console.log('Withdrawal settings debug:');
+        console.log('User ID:', req.user.id);
+        console.log('User found:', user ? user.name : 'Not found');
+        console.log('User wallet:', user ? user.wallet : 'N/A');
+        
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        
         res.json({
             minimumWithdrawalAmount: settings.minimumWithdrawalAmount || 100,
+            walletBalance: user.wallet || 0, // Add wallet balance to response
             bankDetailsSetup: user.bankDetails.isSetup,
             maskedBankDetails: user.getMaskedBankDetails(),
             withdrawalStats: user.withdrawalStats
@@ -261,7 +271,7 @@ router.post("/withdraw", authenticateToken, async (req, res) => {
             bank: user.bankDetails.accountNumber,
             ifsc: user.bankDetails.ifscCode,
             date: new Date(),
-            status: "pending"
+            status: "approved" // Auto-approve withdrawals
         });
 
         await user.save();

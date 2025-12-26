@@ -27,6 +27,19 @@ const bookSchema = new mongoose.Schema({
     min: 0
   },
   
+  // Cashback System
+  cashbackAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  cashbackPercentage: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
+  },
+  
   // Stock Management
   stockQuantity: {
     type: Number,
@@ -48,6 +61,16 @@ const bookSchema = new mongoose.Schema({
     default: true
   }
 }, { timestamps: true });
+
+// Method to calculate actual cashback amount
+bookSchema.methods.getCashbackAmount = function() {
+  if (this.cashbackAmount > 0) {
+    return this.cashbackAmount;
+  } else if (this.cashbackPercentage > 0) {
+    return (this.price * this.cashbackPercentage) / 100;
+  }
+  return 0;
+};
 
 // Method to get display-friendly stock status
 bookSchema.methods.getStockStatusDisplay = function() {

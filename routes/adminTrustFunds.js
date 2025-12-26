@@ -1,6 +1,7 @@
 const express = require("express");
 const TrustFund = require("../models/TrustFund");
 const User = require("../models/User");
+const Order = require("../models/Order");
 const CommissionTransaction = require("../models/CommissionTransaction");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 
@@ -391,6 +392,79 @@ router.post("/trust-funds/reconcile", authenticateToken, isAdmin, async (req, re
             error: "Server error during reconciliation",
             code: "RECONCILIATION_ERROR" 
         });
+    }
+});
+
+/* -------------------------------------------
+   GET /api/admin/trust-funds/statistics
+   Get total income and withdrawal statistics for admin dashboard
+   Requirements: Admin overview
+--------------------------------------------*/
+router.get("/trust-funds/statistics", authenticateToken, isAdmin, async (req, res) => {
+    try {
+        console.log("📊 Statistics endpoint called");
+        
+        // Get all orders to calculate total income
+        const orders = await Order.find({ status: "delivered" });
+        console.log(`Found ${orders.length} delivered orders`);
+        
+        const totalIncome = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        const totalTransactions = orders.length;
+
+        // Get all approved withdrawals to calculate total withdrawals
+        const users = await User.find({
+            "withdrawals.status": "approved"
+        }).select("withdrawals");
+        
+        console.log(`Found ${users.length} users with approved withdrawals`);
+
+        let totalWithdrawals = 0;
+        let totalWithdrawalRequests = 0;
+
+        users.forEach(user => {
+            user.withdrawals.forEach(withdrawal => {
+                if (withdrawal.status === "approved") {
+                    totalWithdrawals += withdrawal.amount || 0;
+                    totalWithdrawalRequests++;
+                }
+            });
+        });
+
+        console.log(`Total withdrawals: ₹${totalWithdrawals}, Requests: ${totalWithdrawalRequests}`);
+
+        // Get trust fund data for existing cards
+        const trustFund = await TrustFund.findOne({ fundType: 'trust' });
+        const developmentFund = await TrustFund.findOne({ fundType: 'development' });
+
+        const response = {
+            totalIncome: {
+                amount: totalIncome,
+                transactions: totalTransactions
+            },
+            totalWithdrawals: {
+                amount: totalWithdrawals,
+                requests: totalWithdrawalRequests
+            },
+            trustFund: {
+                balance: trustFund?.balance || 0,
+                transactions: trustFund?.transactions?.length || 0
+            },
+            developmentFund: {
+                balance: developmentFund?.balance || 0,
+                transactions: developmentFund?.transactions?.length || 0
+            },
+            summary: {
+                totalAdminIncome: (trustFund?.balance || 0) + (developmentFund?.balance || 0),
+                totalTransactions: (trustFund?.transactions?.length || 0) + (developmentFund?.transactions?.length || 0)
+            }
+        };
+
+        console.log("📊 Statistics response:", response);
+        res.json(response);
+
+    } catch (err) {
+        console.error("Statistics fetch error:", err);
+        res.status(500).json({ error: "Server error", details: err.message });
     }
 });
 

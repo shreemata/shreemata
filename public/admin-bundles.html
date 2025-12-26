@@ -487,6 +487,18 @@
                     <input type="number" id="rewardPoints" min="0" value="0" placeholder="0">
                     <small>Points awarded to buyer on purchase</small>
                 </div>
+                
+                <div class="form-group">
+                    <label>Fixed Cashback Amount (₹)</label>
+                    <input type="number" id="cashbackAmount" step="0.01" min="0" value="0" placeholder="0.00">
+                    <small>Fixed cashback amount (takes priority over percentage)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Cashback Percentage (%)</label>
+                    <input type="number" id="cashbackPercentage" step="0.1" min="0" max="100" value="0" placeholder="0.0">
+                    <small>Percentage of bundle price as cashback (used if fixed amount is 0)</small>
+                </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="submit" class="btn">Save Bundle</button>
@@ -738,6 +750,8 @@
                 document.getElementById("bundleImage").value = bundle.image || '';
                 document.getElementById("bundlePrice").value = bundle.bundlePrice || '';
                 document.getElementById("rewardPoints").value = bundle.rewardPoints || 0;
+                document.getElementById("cashbackAmount").value = bundle.cashbackAmount || 0;
+                document.getElementById("cashbackPercentage").value = bundle.cashbackPercentage || 0;
                 
                 // Set valid until date
                 if (bundle.validUntil) {
@@ -950,7 +964,9 @@
                     bookIds,
                     bundlePrice: parseFloat(document.getElementById("bundlePrice").value),
                     validUntil: document.getElementById("validUntil").value || null,
-                    rewardPoints: parseInt(document.getElementById("rewardPoints").value) || 0
+                    rewardPoints: parseInt(document.getElementById("rewardPoints").value) || 0,
+                    cashbackAmount: parseFloat(document.getElementById("cashbackAmount").value) || 0,
+                    cashbackPercentage: parseFloat(document.getElementById("cashbackPercentage").value) || 0
                 };
 
                 console.log("Sending bundle data:", bundleData);

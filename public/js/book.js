@@ -19,8 +19,21 @@ function checkAuth() {
         document.getElementById("userLinks").style.display = "flex";
         document.getElementById("userName").textContent = `Hello, ${user.name}`;
 
+        // Show cart icon for logged in users
+        const cartIcon = document.getElementById("cartIcon");
+        if (cartIcon) {
+            cartIcon.style.display = "block";
+            updateCartCount();
+        }
+
         if (user.role === "admin") {
             document.getElementById("adminLink").style.display = "block";
+        }
+    } else {
+        // Hide cart icon for non-logged in users
+        const cartIcon = document.getElementById("cartIcon");
+        if (cartIcon) {
+            cartIcon.style.display = "none";
         }
     }
 }
@@ -86,7 +99,7 @@ async function loadBookDetails() {
         document.getElementById("loadingSpinner").style.display = "none";
         document.getElementById("bookDetails").style.display = "block";
 
-        displayBookDetails(data.book);
+        await displayBookDetails(data.book);
 
     } catch (err) {
         console.error("Error loading book:", err);
@@ -97,7 +110,7 @@ async function loadBookDetails() {
 /* -----------------------------------
    DISPLAY BOOK DETAILS
 ----------------------------------- */
-function displayBookDetails(book) {
+async function displayBookDetails(book) {
     // Store book globally for addToCart
     window.currentBook = book;
     
@@ -107,14 +120,30 @@ function displayBookDetails(book) {
     // Calculate pricing
     const basePrice = parseFloat(book.price);
     const weight = book.weight || 0.5;
-    const courierCharge = calculateCourierCharge(weight);
+    let courierCharge = 0; // Declare outside try block
     
-    // Display pickup price (same as base price)
-    document.getElementById("pickupPrice").textContent = `₹${basePrice.toFixed(2)}`;
-    
-    // Display courier price (base price + courier charge)
-    const courierTotalPrice = basePrice + courierCharge;
-    document.getElementById("courierPrice").textContent = `₹${courierTotalPrice.toFixed(2)}`;
+    try {
+        courierCharge = await calculateCourierCharge(weight);
+        
+        // Ensure courierCharge is a valid number
+        const validCourierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
+        courierCharge = validCourierCharge; // Update the outer variable
+        
+        // Display pickup price (same as base price)
+        document.getElementById("pickupPrice").textContent = `₹${basePrice.toFixed(2)}`;
+        
+        // Display courier price (base price + courier charge)
+        const courierTotalPrice = basePrice + validCourierCharge;
+        document.getElementById("courierPrice").textContent = `₹${courierTotalPrice.toFixed(2)}`;
+        
+    } catch (error) {
+        console.error('Error calculating courier charge:', error);
+        courierCharge = 0; // Set fallback value
+        
+        // Fallback to showing base price for both options
+        document.getElementById("pickupPrice").textContent = `₹${basePrice.toFixed(2)}`;
+        document.getElementById("courierPrice").textContent = `₹${basePrice.toFixed(2)}`;
+    }
     
     document.getElementById("bookDescription").textContent =
         book.description || "No description available.";
@@ -126,6 +155,22 @@ function displayBookDetails(book) {
         pointsBadge.style.cssText = "background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 18px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;";
         pointsBadge.innerHTML = `<span style="font-size: 28px;">🎁</span><span>Earn ${book.rewardPoints} Points with this purchase!</span>`;
         pricingSection.parentNode.insertBefore(pointsBadge, pricingSection.nextSibling);
+    }
+
+    // Display cashback if available - BIG and PROMINENT
+    let cashbackAmount = 0;
+    if (book.cashbackAmount > 0) {
+        cashbackAmount = book.cashbackAmount;
+    } else if (book.cashbackPercentage > 0) {
+        cashbackAmount = (basePrice * book.cashbackPercentage) / 100;
+    }
+    
+    if (cashbackAmount > 0) {
+        const pricingSection = document.querySelector(".pricing-section");
+        const cashbackBadge = document.createElement("div");
+        cashbackBadge.style.cssText = "background: linear-gradient(135deg, #ff6f61 0%, #ff9800 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 18px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(255, 111, 97, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;";
+        cashbackBadge.innerHTML = `<span style="font-size: 28px;">💰</span><span>Get ₹${cashbackAmount.toFixed(0)} Cashback instantly!</span>`;
+        pricingSection.parentNode.insertBefore(cashbackBadge, pricingSection.nextSibling);
     }
 
     // Display weight and courier charge
@@ -420,15 +465,17 @@ async function calculateCourierCharge(totalWeight) {
     // Use dynamic shipping calculator
     if (window.dynamicShipping) {
         try {
-            return await window.dynamicShipping.calculateShippingCharge(totalWeight);
+            const charge = await window.dynamicShipping.calculateShippingCharge(totalWeight);
+            return isNaN(charge) ? 0 : parseFloat(charge);
         } catch (error) {
             console.error('Error calculating dynamic shipping:', error);
         }
     }
     
     // Fallback to hardcoded calculation
-    const charge = Math.ceil(totalWeight) * 25;
-    return Math.min(charge, 100);
+    const charge = Math.ceil(totalWeight / 100);
+    const finalCharge = Math.max(charge, 50);
+    return isNaN(finalCharge) ? 0 : finalCharge;
 }
 
 /* -----------------------------------
@@ -655,6 +702,31 @@ async function handleAddToCart() {
 }
 
 /* -----------------------------------
+   UPDATE CART COUNT
+----------------------------------- */
+function updateCartCount() {
+    const cartIcon = document.getElementById("cartIcon");
+    const cartCount = document.getElementById("cartCount");
+    
+    if (!cartIcon) return;
+
+    const cart = getCart();
+    const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    
+    if (cartCount) {
+        // If there's a cartCount span, update it
+        cartCount.textContent = totalItems;
+    } else {
+        // Otherwise update the cart icon text
+        if (totalItems > 0) {
+            cartIcon.innerHTML = `🛒 Cart (${totalItems})`;
+        } else {
+            cartIcon.innerHTML = `🛒 Cart`;
+        }
+    }
+}
+
+/* -----------------------------------
    ADD TO CART
 ----------------------------------- */
 async function addToCart(deliveryMethod = "courier") {
@@ -671,7 +743,11 @@ async function addToCart(deliveryMethod = "courier") {
         // If exists, increase quantity
         cart[existingItemIndex].quantity += 1;
         saveCart(cart);
-        return alert(`Book quantity updated in cart (${deliveryMethod === 'pickup' ? 'Pickup' : 'Courier'})!`);
+        updateCartCount(); // Update cart count
+        
+        // Show success message with cart count
+        const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        return alert(`✅ Book quantity updated in cart!\n\nCart now has ${cartCount} item${cartCount > 1 ? 's' : ''} (${deliveryMethod === 'pickup' ? 'Pickup' : 'Courier'}).`);
     }
 
     // Use stored book data
@@ -701,8 +777,12 @@ async function addToCart(deliveryMethod = "courier") {
     });
 
     saveCart(cart);
+    updateCartCount(); // Update cart count
+    
+    // Show success message with cart count
+    const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
     const methodText = deliveryMethod === 'pickup' ? 'Book-stall Pickup' : 'Courier Delivery';
-    alert(`Book added to cart for ${methodText}!`);
+    alert(`✅ "${book.title}" added to cart!\n\nCart now has ${cartCount} item${cartCount > 1 ? 's' : ''} for ${methodText}.`);
 }
 
 /* -----------------------------------

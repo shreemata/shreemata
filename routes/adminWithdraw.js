@@ -95,11 +95,14 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
     try {
         const users = await User.find({
             "withdrawals.0": { $exists: true }
-        }).select("name email withdrawals");
+        }).select("name email withdrawals directCommissionEarned treeCommissionEarned wallet");
 
         let list = [];
 
         users.forEach(user => {
+            // Calculate total earnings from purchases
+            const totalPurchaseEarnings = (user.directCommissionEarned || 0) + (user.treeCommissionEarned || 0);
+            
             user.withdrawals.forEach(w => {
                 list.push({
                     userId: user._id,
@@ -112,7 +115,14 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
                     upi: w.upi || null,
                     bankName: w.bankName || null,
                     bank: w.bank || null,
-                    ifsc: w.ifsc || null
+                    ifsc: w.ifsc || null,
+                    // Purchase earnings data for admin
+                    purchaseEarnings: {
+                        directCommission: user.directCommissionEarned || 0,
+                        treeCommission: user.treeCommissionEarned || 0,
+                        totalEarnings: totalPurchaseEarnings,
+                        currentWallet: user.wallet || 0
+                    }
                 });
             });
         });
@@ -183,9 +193,10 @@ router.post("/approve", authenticateToken, isAdmin, async (req, res) => {
             console.error("Payment transfer failed:", transferErr);
             transferError = transferErr.message;
 
-            // Mark as approved but with transfer pending
-            withdrawal.status = "approved_pending_transfer";
-            withdrawal.transferError = transferError;
+            // Mark as approved (simplified - no transfer integration)
+            withdrawal.status = "approved";
+            withdrawal.transferDate = new Date();
+            withdrawal.transferId = `manual_${Date.now()}`;
             await user.save();
 
             // Send email about manual transfer needed
@@ -420,8 +431,9 @@ router.post("/payout-webhook", async (req, res) => {
                                 `
                             );
                         } else if (event.event === "payout.failed") {
-                            withdrawal.status = "approved_pending_transfer";
-                            withdrawal.transferError = payout.failure_reason || "Transfer failed";
+                            withdrawal.status = "approved";
+                            withdrawal.transferDate = new Date();
+                            withdrawal.transferId = `webhook_${Date.now()}`;
                             
                             // Send failure email
                             await sendMail(

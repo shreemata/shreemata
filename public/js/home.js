@@ -176,6 +176,7 @@ function checkAuth() {
         const ordersLink = document.getElementById("ordersLink");
         const referralLink = document.getElementById("referralLink");
         const adminLink = document.getElementById("adminLink");
+        const cartLink = document.getElementById("cartLink");
 
         if (authLinks) authLinks.style.display = "none";
         if (userLinks) userLinks.style.display = "flex";
@@ -183,11 +184,33 @@ function checkAuth() {
         if (accountLink) accountLink.style.display = "block";
         if (ordersLink) ordersLink.style.display = "block";
         if (referralLink) referralLink.style.display = "block";
+        
+        // Show cart and update count
+        if (cartLink) {
+            cartLink.style.display = "block";
+            updateCartCount();
+        }
 
         if (user.role === "admin" && adminLink) {
             adminLink.style.display = "block";
         }
+    } else {
+        // Hide cart for non-logged in users
+        const cartLink = document.getElementById("cartLink");
+        if (cartLink) cartLink.style.display = "none";
     }
+}
+
+/* ------------------------------
+   UPDATE CART COUNT
+--------------------------------*/
+function updateCartCount() {
+    const cartCount = document.getElementById("cartCount");
+    if (!cartCount) return;
+
+    const cart = getCart();
+    const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    cartCount.textContent = totalItems;
 }
 
 /* ------------------------------
@@ -281,13 +304,34 @@ function createBookCard(book) {
         }
     };
 
+    // Create cashback sticker
+    const getCashbackSticker = (book) => {
+        let cashbackAmount = 0;
+        
+        if (book.cashbackAmount > 0) {
+            cashbackAmount = book.cashbackAmount;
+        } else if (book.cashbackPercentage > 0) {
+            cashbackAmount = (book.price * book.cashbackPercentage) / 100;
+        }
+        
+        if (cashbackAmount > 0) {
+            return `<div class="cashback-sticker">
+                       <span class="cashback-icon">💰</span>
+                       <span class="cashback-text">₹${cashbackAmount.toFixed(0)} Cashback</span>
+                   </div>`;
+        }
+        return '';
+    };
+
     const stockOverlay = getStockOverlay(book);
+    const cashbackSticker = getCashbackSticker(book);
     const isOutOfStock = book.trackStock && book.stockStatus === 'out_of_stock';
 
     card.innerHTML = `
         <div class="book-image-container">
             <img src="${coverImage}" class="book-cover" />
             ${stockOverlay}
+            ${cashbackSticker}
         </div>
         <h3>${book.title}</h3>
         <p class="book-author">by ${book.author}</p>
@@ -493,8 +537,11 @@ document.addEventListener("click", (e) => {
 
         cart.push({ id: bookId, title, author, price, coverImage, quantity: 1 });
         saveCart(cart);
-        alert("Book added to cart!");
         updateCartCount();
+        
+        // Show success message with cart count
+        const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        alert(`✅ "${title}" added to cart!\n\nCart now has ${cartCount} item${cartCount > 1 ? 's' : ''}.`);
     }
 });
 

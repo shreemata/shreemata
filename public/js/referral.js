@@ -232,10 +232,10 @@ async function loadWithdrawalData() {
             throw new Error(data.error || "Failed to load withdrawal settings");
         }
 
-        // Update wallet balance
-        const userInfo = JSON.parse(localStorage.getItem("user") || "{}");
+        // Update wallet balance from API response (not localStorage)
+        const currentBalance = parseFloat(data.walletBalance || 0);
         const walletBalance = document.getElementById("walletBalance");
-        if (walletBalance) walletBalance.textContent = `₹${userInfo.wallet || 0}`;
+        if (walletBalance) walletBalance.textContent = `₹${currentBalance}`;
         
         const minWithdrawal = document.getElementById("minWithdrawal");
         if (minWithdrawal) minWithdrawal.textContent = `₹${data.minimumWithdrawalAmount}`;
@@ -247,8 +247,6 @@ async function loadWithdrawalData() {
         // Update the withdrawal form input minimum value
         const withdrawalAmountInput = document.getElementById("withdrawalAmount");
         const withdrawalSubmitBtn = document.querySelector('#withdrawalForm button[type="submit"]');
-        const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-        const currentBalance = parseFloat(currentUser.wallet || 0);
         
         if (withdrawalAmountInput) {
             withdrawalAmountInput.min = data.minimumWithdrawalAmount;
@@ -427,9 +425,20 @@ async function submitWithdrawal(e) {
     const minWithdrawalElement = document.getElementById("minWithdrawalInfo");
     const minWithdrawalAmount = minWithdrawalElement ? parseFloat(minWithdrawalElement.textContent) : 100;
     
-    // Get user's current wallet balance
-    const userBalance = JSON.parse(localStorage.getItem("user") || "{}");
-    const availableBalance = parseFloat(userBalance.wallet || 0);
+    // Get user's current wallet balance from API (not localStorage)
+    let availableBalance = 0;
+    try {
+        const balanceRes = await fetch(`${window.API_URL}/referral/withdrawal-settings`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const balanceData = await balanceRes.json();
+        availableBalance = parseFloat(balanceData.walletBalance || 0);
+        console.log('Current wallet balance from API:', availableBalance);
+    } catch (error) {
+        console.error('Error fetching current balance:', error);
+        showWithdrawMessage("Error checking balance. Please try again.", "error");
+        return;
+    }
     
     if (!amount || amount <= 0) {
         showWithdrawMessage("Please enter a valid withdrawal amount", "error");

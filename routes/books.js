@@ -182,7 +182,7 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
     console.log('📝 Body keys:', Object.keys(req.body));
     console.log('📝 Files:', req.files ? Object.keys(req.files) : 'No files');
     
-    const { title, author, price, description, category, class: bookClass, subject, weight, rewardPoints, cover_image, preview_images, trackStock, stockQuantity, lowStockThreshold, stockStatus } = req.body;
+    const { title, author, price, description, category, class: bookClass, subject, weight, rewardPoints, cashbackAmount, cashbackPercentage, cover_image, preview_images, trackStock, stockQuantity, lowStockThreshold, stockStatus } = req.body;
 
     if (!title || !author || !price) {
       console.log('❌ Missing required fields:', { title: !!title, author: !!author, price: !!price });
@@ -287,6 +287,8 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
       subject: subject || "",
       weight: weight || 0.5,
       rewardPoints: rewardPoints || 0,
+      cashbackAmount: cashbackAmount || 0,
+      cashbackPercentage: cashbackPercentage || 0,
       trackStock: trackStock === 'true' || trackStock === true,
       stockQuantity: parseInt(stockQuantity) || 10,
       lowStockThreshold: parseInt(lowStockThreshold) || 5,
@@ -350,6 +352,8 @@ router.put("/:id", authenticateToken, isAdmin, (req, res, next) => {
     book.subject = req.body.subject !== undefined ? req.body.subject : book.subject;
     book.weight = req.body.weight !== undefined ? req.body.weight : book.weight;
     book.rewardPoints = req.body.rewardPoints !== undefined ? req.body.rewardPoints : book.rewardPoints;
+    book.cashbackAmount = req.body.cashbackAmount !== undefined ? req.body.cashbackAmount : book.cashbackAmount;
+    book.cashbackPercentage = req.body.cashbackPercentage !== undefined ? req.body.cashbackPercentage : book.cashbackPercentage;
 
     // Update stock fields
     if (req.body.trackStock !== undefined) {

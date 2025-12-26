@@ -345,6 +345,46 @@ main {
     transition: all 0.3s ease;
 }
 
+/* Cashback Sticker */
+.cashback-sticker {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: linear-gradient(135deg, #ff6f61, #ff9800);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(255, 111, 97, 0.4);
+    transform: rotate(-8deg);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(4px);
+}
+
+.cashback-sticker .cashback-icon {
+    font-size: 14px;
+    filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.3));
+}
+
+.cashback-sticker .cashback-text {
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    font-size: 10px;
+}
+
+/* Hover effect for cashback sticker */
+.book-card:hover .cashback-sticker {
+    transform: rotate(0deg) scale(1.1);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(255, 111, 97, 0.6);
+}
+
 .btn-large {
     padding: 15px 30px;
     font-size: 16px;
@@ -1227,6 +1267,27 @@ footer {
     font-weight: bold;
 }
 
+/* Enhanced Cart Button Styles */
+.cart-btn {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    color: white !important;
+    border: none !important;
+    transition: all 0.3s ease !important;
+}
+
+.cart-btn:hover {
+    background: linear-gradient(135deg, #218838 0%, #1e7e34 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3) !important;
+}
+
+.cart-btn:disabled {
+    background: #6c757d !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
 
 /* Bundle Styles */
 .bundles-section {
@@ -1465,6 +1526,28 @@ footer {
 
     .book-card:hover .stock-overlay {
         transform: rotate(12deg) scale(1.05);
+    }
+
+    /* Mobile cashback sticker adjustments */
+    .cashback-sticker {
+        bottom: 6px;
+        left: 6px;
+        padding: 4px 8px;
+        font-size: 9px;
+        border-radius: 15px;
+        transform: rotate(-8deg);
+    }
+
+    .cashback-sticker .cashback-text {
+        font-size: 8px;
+    }
+
+    .cashback-sticker .cashback-icon {
+        font-size: 12px;
+    }
+
+    .book-card:hover .cashback-sticker {
+        transform: rotate(-4deg) scale(1.05);
     }
 }
 

@@ -379,6 +379,8 @@ async function editBook(bookId) {
         const priceEl = document.getElementById('price');
         const weightEl = document.getElementById('weight');
         const rewardPointsEl = document.getElementById('rewardPoints');
+        const cashbackAmountEl = document.getElementById('cashbackAmount');
+        const cashbackPercentageEl = document.getElementById('cashbackPercentage');
         const descriptionEl = document.getElementById('description');
         const bookClassEl = document.getElementById('bookClass');
         const subjectEl = document.getElementById('subject');
@@ -395,6 +397,8 @@ async function editBook(bookId) {
         if (priceEl) priceEl.value = book.price;
         if (weightEl) weightEl.value = book.weight || 0.5;
         if (rewardPointsEl) rewardPointsEl.value = book.rewardPoints || 0;
+        if (cashbackAmountEl) cashbackAmountEl.value = book.cashbackAmount || 0;
+        if (cashbackPercentageEl) cashbackPercentageEl.value = book.cashbackPercentage || 0;
         if (descriptionEl) descriptionEl.value = book.description;
         if (bookClassEl) bookClassEl.value = book.class || '';
         if (subjectEl) subjectEl.value = book.subject || '';
@@ -530,15 +534,23 @@ async function handleFormSubmit(e) {
         
         const weightEl = document.getElementById('weight');
         const rewardPointsEl = document.getElementById('rewardPoints');
+        const cashbackAmountEl = document.getElementById('cashbackAmount');
+        const cashbackPercentageEl = document.getElementById('cashbackPercentage');
         
         console.log('Weight element:', weightEl ? '✅' : '❌');
         console.log('RewardPoints element:', rewardPointsEl ? '✅' : '❌');
+        console.log('CashbackAmount element:', cashbackAmountEl ? '✅' : '❌');
+        console.log('CashbackPercentage element:', cashbackPercentageEl ? '✅' : '❌');
         
         if (!weightEl) throw new Error('Weight field not found');
         if (!rewardPointsEl) throw new Error('Reward points field not found');
+        if (!cashbackAmountEl) throw new Error('Cashback amount field not found');
+        if (!cashbackPercentageEl) throw new Error('Cashback percentage field not found');
         
         const weight = weightEl.value;
         const rewardPoints = rewardPointsEl.value;
+        const cashbackAmount = cashbackAmountEl.value;
+        const cashbackPercentage = cashbackPercentageEl.value;
 
         const coverImageEl = document.getElementById('coverImage');
         const previewImagesEl = document.getElementById('previewImages');
@@ -599,6 +611,8 @@ async function handleFormSubmit(e) {
                 subject,
                 weight,
                 rewardPoints,
+                cashbackAmount,
+                cashbackPercentage,
                 cover_image: coverImageUrl,
                 preview_images: previewImageUrls,
                 // Add stock fields
@@ -681,6 +695,8 @@ async function handleFormSubmit(e) {
             }
             formData.append('weight', weight);
             formData.append('rewardPoints', rewardPoints);
+            formData.append('cashbackAmount', cashbackAmount);
+            formData.append('cashbackPercentage', cashbackPercentage);
 
             // Add stock management fields
             const trackStockEl = document.getElementById('trackStock');
@@ -776,6 +792,8 @@ async function handleFormSubmit(e) {
                 subject,
                 weight,
                 rewardPoints,
+                cashbackAmount,
+                cashbackPercentage,
                 // Add stock fields to JSON submission
                 trackStock: trackStockEl ? trackStockEl.checked : true,
                 stockQuantity: stockQuantityEl ? parseInt(stockQuantityEl.value) || 0 : 10,

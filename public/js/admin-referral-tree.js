@@ -61,6 +61,57 @@ function setupEventListeners() {
     });
 }
 
+/* SETUP MODAL CLOSE HANDLERS */
+function setupModalCloseHandlers() {
+    const modal = document.getElementById('userDetailModal');
+    
+    // Ensure window click handler is set up (only once)
+    if (!window.modalClickHandlerSet) {
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+        
+        // Add keyboard support for closing modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.style.display === 'block') {
+                modal.style.display = 'none';
+            }
+        });
+        
+        window.modalClickHandlerSet = true;
+    }
+}
+
+/* CLOSE USER MODAL */
+function closeUserModal() {
+    const modal = document.getElementById('userDetailModal');
+    modal.style.display = 'none';
+}
+
+/* SWITCH TAB IN USER DETAIL MODAL */
+function switchTab(tabName) {
+    // Hide all tab contents
+    const tabs = ['basicTab', 'referralsTab', 'commissionsTab', 'pathTab'];
+    tabs.forEach(tab => {
+        const element = document.getElementById(tab);
+        if (element) element.style.display = 'none';
+    });
+    
+    // Remove active class from all buttons
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    // Show selected tab
+    const selectedTab = document.getElementById(tabName + 'Tab');
+    if (selectedTab) selectedTab.style.display = 'block';
+    
+    // Add active class to clicked button
+    const activeButton = Array.from(buttons).find(btn => btn.textContent.toLowerCase().includes(tabName.toLowerCase()));
+    if (activeButton) activeButton.classList.add('active');
+}
+
 /* LOGOUT */
 function logout() {
     localStorage.removeItem('token');
@@ -730,6 +781,9 @@ async function displayUserDetailModal(userData) {
             </div>
         `;
         
+        // Re-setup close handlers after content update
+        setupModalCloseHandlers();
+        
     } catch (error) {
         console.error('Error loading detailed user data:', error);
         content.innerHTML = `
@@ -744,6 +798,9 @@ async function displayUserDetailModal(userData) {
                 <p><strong>Wallet:</strong> ₹${(userData.wallet || 0).toFixed(2)}</p>
             </div>
         `;
+        
+        // Re-setup close handlers even on error
+        setupModalCloseHandlers();
     }
 }
 

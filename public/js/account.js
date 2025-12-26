@@ -48,7 +48,7 @@ function loadProfile() {
 ----------------------------------------- */
 function showSection(section) {
     // List of all possible sections
-    const sections = ["profileSection", "editSection", "addressSection", "storeSection", "ordersSection", "pointsSection"];
+    const sections = ["profileSection", "editSection", "addressSection", "storeSection", "ordersSection", "walletSection", "pointsSection"];
     
     // Hide all sections that exist
     sections.forEach(sectionId => {
@@ -64,6 +64,41 @@ function showSection(section) {
         targetSection.style.display = "block";
     }
     
+    // Load section-specific data
+    if (section === 'wallet') {
+        // Simple fallback wallet loading
+        setTimeout(() => {
+            if (typeof loadWalletData === 'function') {
+                loadWalletData();
+            } else {
+                console.error('loadWalletData function is not defined, using fallback');
+                // Simple fallback: load basic wallet info from localStorage
+                const user = JSON.parse(localStorage.getItem("user") || "{}");
+                const walletBalance = user.walletBalance || 0;
+                
+                if (document.getElementById("walletBalance")) {
+                    document.getElementById("walletBalance").textContent = `₹${walletBalance.toFixed(2)}`;
+                }
+                if (document.getElementById("totalCashbackEarned")) {
+                    document.getElementById("totalCashbackEarned").textContent = "₹0.00";
+                }
+                if (document.getElementById("totalReferralEarnings")) {
+                    document.getElementById("totalReferralEarnings").textContent = `₹${walletBalance.toFixed(2)}`;
+                }
+                if (document.getElementById("walletHistoryList")) {
+                    document.getElementById("walletHistoryList").innerHTML = "<p>Loading transaction history...</p>";
+                }
+                if (document.getElementById("minWithdrawal")) {
+                    document.getElementById("minWithdrawal").textContent = "₹100";
+                }
+            }
+        }, 100);
+    } else if (section === 'points') {
+        loadPoints();
+    } else if (section === 'orders') {
+        loadOrders();
+    }
+    
     // Update active button states
     const menuButtons = document.querySelectorAll('.account-menu button');
     menuButtons.forEach(button => {
@@ -77,6 +112,7 @@ function showSection(section) {
             (section === 'address' && buttonText.includes('address')) ||
             (section === 'store' && buttonText.includes('store')) ||
             (section === 'orders' && buttonText.includes('order')) ||
+            (section === 'wallet' && buttonText.includes('wallet')) ||
             (section === 'points' && buttonText.includes('points'))
         ) {
             button.classList.add('active');
@@ -450,6 +486,219 @@ async function loadPoints() {
     } catch (err) {
         console.error("Error loading points:", err);
         document.getElementById("pointsHistoryList").innerHTML = "<p style='color: #dc3545;'>Error loading points. Please try again.</p>";
+    }
+}
+
+/* -----------------------------------------
+   LOAD WALLET DATA
+----------------------------------------- */
+async function loadWalletData() {
+    console.log("loadWalletData function called");
+    const token = localStorage.getItem("token");
+    if (!token) {
+        console.error("No token found");
+        return;
+    }
+
+    try {
+        // Load user profile to get wallet balance from MongoDB
+        const profileRes = await fetch(`${API}/users/profile`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        if (!profileRes.ok) {
+            throw new Error(`Profile fetch failed: ${profileRes.status}`);
+        }
+        
+        const profileData = await profileRes.json();
+        console.log("Profile data received:", profileData);
+        
+        // Update localStorage with fresh user data
+        if (profileData.user) {
+            localStorage.setItem("user", JSON.stringify(profileData.user));
+            console.log("Updated user data in localStorage");
+        }
+        
+        const walletBalance = profileData.user?.wallet || 0;
+        document.getElementById("walletBalance").textContent = `₹${walletBalance.toFixed(2)}`;
+        console.log("Wallet balance displayed:", walletBalance);
+
+        // Load commission transactions including cashback from MongoDB
+        const transactionsRes = await fetch(`${API}/commission/transactions`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        if (!transactionsRes.ok) {
+            throw new Error(`Transactions fetch failed: ${transactionsRes.status}`);
+        }
+        
+        const transactionsData = await transactionsRes.json();
+        console.log("Transactions data received:", transactionsData);
+        
+        let totalCashback = 0;
+        let totalReferralEarnings = 0;
+        
+        if (transactionsData.transactions && transactionsData.transactions.length > 0) {
+            transactionsData.transactions.forEach(tx => {
+                console.log("Processing transaction:", tx.type, tx.amount);
+                if (tx.type === 'cashback') {
+                    totalCashback += tx.amount;
+                } else if (tx.type === 'referral_commission' || tx.type === 'level_commission') {
+                    totalReferralEarnings += tx.amount;
+                }
+            });
+            
+            // Display transaction history
+            displayWalletHistory(transactionsData.transactions);
+        } else {
+            // No transactions yet
+            document.getElementById("walletHistoryList").innerHTML = "<p style='text-align: center; color: #666; padding: 20px;'>No transactions yet. Start shopping to earn cashback!</p>";
+        }
+        
+        document.getElementById("totalCashbackEarned").textContent = `₹${totalCashback.toFixed(2)}`;
+        document.getElementById("totalReferralEarnings").textContent = `₹${totalReferralEarnings.toFixed(2)}`;
+        
+        console.log("Totals calculated - Cashback:", totalCashback, "Referral:", totalReferralEarnings);
+
+        // Load withdrawal settings from MongoDB
+        const settingsRes = await fetch(`${API}/commission/settings`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        if (settingsRes.ok) {
+            const settingsData = await settingsRes.json();
+            console.log("Settings data received:", settingsData);
+            if (settingsData.settings) {
+                document.getElementById("minWithdrawal").textContent = `₹${settingsData.settings.minimumWithdrawalAmount || 100}`;
+            } else {
+                document.getElementById("minWithdrawal").textContent = "₹100";
+            }
+        } else {
+            console.warn("Settings fetch failed, using default");
+            document.getElementById("minWithdrawal").textContent = "₹100";
+        }
+
+    } catch (err) {
+        console.error("Error loading wallet data:", err);
+        
+        // Show error message - no localStorage fallback for hosted website
+        document.getElementById("walletBalance").textContent = "Error loading";
+        document.getElementById("totalCashbackEarned").textContent = "Error loading";
+        document.getElementById("totalReferralEarnings").textContent = "Error loading";
+        document.getElementById("minWithdrawal").textContent = "₹100";
+        document.getElementById("walletHistoryList").innerHTML = `
+            <p style='color: #dc3545; text-align: center; padding: 20px;'>
+                Error loading wallet data from server.<br>
+                Please check your internet connection and refresh the page.<br>
+                <small>Error: ${err.message}</small>
+            </p>
+        `;
+    }
+}
+
+/* -----------------------------------------
+   DISPLAY WALLET HISTORY
+----------------------------------------- */
+function displayWalletHistory(transactions) {
+    const historyList = document.getElementById("walletHistoryList");
+    historyList.innerHTML = "";
+
+    if (!transactions || transactions.length === 0) {
+        historyList.innerHTML = "<p style='color: #666; text-align: center; padding: 20px;'>No transactions yet.</p>";
+        return;
+    }
+
+    // Sort transactions by date (newest first)
+    const sortedTransactions = transactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    sortedTransactions.forEach(tx => {
+        const date = new Date(tx.createdAt).toLocaleDateString();
+        const time = new Date(tx.createdAt).toLocaleTimeString();
+        
+        let typeDisplay = '';
+        let typeColor = '';
+        let sign = '+';
+        
+        switch (tx.type) {
+            case 'cashback':
+                typeDisplay = '💰 Cashback';
+                typeColor = '#ff6f61';
+                break;
+            case 'referral_commission':
+                typeDisplay = '👥 Referral Commission';
+                typeColor = '#28a745';
+                break;
+            case 'level_commission':
+                typeDisplay = '🏆 Level Commission';
+                typeColor = '#17a2b8';
+                break;
+            case 'withdrawal':
+                typeDisplay = '💸 Withdrawal';
+                typeColor = '#dc3545';
+                sign = '-';
+                break;
+            default:
+                typeDisplay = tx.type;
+                typeColor = '#6c757d';
+        }
+
+        const div = document.createElement("div");
+        div.className = "transaction-row";
+        div.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 20px; margin-bottom: 15px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-left: 4px solid " + typeColor + ";";
+        
+        div.innerHTML = `
+            <div>
+                <p style="font-weight: 600; color: ${typeColor}; margin: 0 0 5px 0;">${typeDisplay}</p>
+                <p style="font-size: 0.9em; color: #666; margin: 0;">${tx.description || 'Transaction'}</p>
+                <p style="font-size: 0.8em; color: #999; margin: 5px 0 0 0;">${date} at ${time}</p>
+            </div>
+            <div style="text-align: right;">
+                <p style="color: ${typeColor}; font-weight: 600; font-size: 1.2em;">${sign}₹${tx.amount.toFixed(2)}</p>
+                <p style="font-size: 0.9em; color: #666;">Status: ${tx.status}</p>
+            </div>
+        `;
+        historyList.appendChild(div);
+    });
+}
+
+/* -----------------------------------------
+   REQUEST WITHDRAWAL
+----------------------------------------- */
+async function requestWithdrawal() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("Login required");
+        return;
+    }
+
+    const amount = parseFloat(document.getElementById("withdrawalAmount").value);
+    if (!amount || amount <= 0) {
+        alert("Please enter a valid amount");
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API}/commission/withdraw`, {
+            method: 'POST',
+            headers: { 
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ amount })
+        });
+
+        const data = await res.json();
+        
+        if (res.ok) {
+            alert("Withdrawal request submitted successfully! You will receive the money within 24-48 hours.");
+            document.getElementById("withdrawalAmount").value = "";
+            loadWalletData(); // Reload wallet data
+        } else {
+            alert(data.error || "Error processing withdrawal request");
+        }
+    } catch (err) {
+        console.error("Error requesting withdrawal:", err);
+        alert("Error processing withdrawal request. Please try again.");
     }
 }
 
@@ -844,3 +1093,6 @@ document.addEventListener("DOMContentLoaded", () => {
         withdrawalForm.addEventListener("submit", submitWithdrawal);
     }
 });
+
+// Debug: Check if loadWalletData function is defined
+console.log("loadWalletData function defined:", typeof loadWalletData);
