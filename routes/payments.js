@@ -411,8 +411,10 @@ router.post("/create-order", authenticateToken, async (req, res) => {
 // =====================================================
 router.post("/verify", authenticateToken, async (req, res) => {
   console.log("\n🔍 ===== PAYMENT VERIFICATION STARTED =====");
+  console.log("   Environment:", process.env.NODE_ENV || 'development');
   console.log("   Razorpay Order ID:", req.body.razorpay_order_id);
   console.log("   Razorpay Payment ID:", req.body.razorpay_payment_id);
+  console.log("   Server Time:", new Date().toISOString());
   
   try {
     const {
@@ -463,6 +465,14 @@ router.post("/verify", authenticateToken, async (req, res) => {
     }
 
     console.log("✅ Verify: Order marked as processed, applying rewards...");
+    console.log("✅ Order details:", {
+      id: order._id,
+      user_id: order.user_id,
+      totalAmount: order.totalAmount,
+      itemsCount: order.items?.length,
+      status: order.status,
+      rewardApplied: order.rewardApplied
+    });
 
     // APPLY NEW COMMISSION DISTRIBUTION SYSTEM
     try {
@@ -515,44 +525,98 @@ router.post("/verify", authenticateToken, async (req, res) => {
 
     // AWARD CASHBACK FOR PURCHASED ITEMS
     try {
+      console.log("💰 ===== CASHBACK PROCESSING STARTED =====");
       console.log("💰 Processing cashback for order:", order._id);
+      console.log("💰 Order items:", order.items.map(item => ({ id: item.id, title: item.title, type: item.type, quantity: item.quantity })));
+      console.log("💰 Database connection status:", require('mongoose').connection.readyState); // 1 = connected
+      
       let totalCashback = 0;
       
       for (const item of order.items) {
         let itemCashback = 0;
         
+        console.log(`💰 Processing cashback for item: ${item.title} (${item.type})`);
+        
         if (item.type === 'book') {
           const book = await Book.findById(item.id);
+          console.log(`💰 Book found:`, book ? {
+            id: book._id,
+            title: book.title,
+            price: book.price,
+            cashbackAmount: book.cashbackAmount,
+            cashbackPercentage: book.cashbackPercentage
+          } : 'NOT FOUND');
+          
           if (book) {
-            itemCashback = book.getCashbackAmount() * item.quantity;
+            const bookCashback = book.getCashbackAmount();
+            itemCashback = bookCashback * item.quantity;
+            console.log(`💰 Book cashback calculation: ₹${bookCashback} × ${item.quantity} = ₹${itemCashback}`);
           }
         } else if (item.type === 'bundle') {
           const bundle = await Bundle.findById(item.id);
+          console.log(`💰 Bundle found:`, bundle ? {
+            id: bundle._id,
+            title: bundle.title,
+            bundlePrice: bundle.bundlePrice,
+            cashbackAmount: bundle.cashbackAmount,
+            cashbackPercentage: bundle.cashbackPercentage
+          } : 'NOT FOUND');
+          
           if (bundle) {
-            itemCashback = bundle.getCashbackAmount() * item.quantity;
+            const bundleCashback = bundle.getCashbackAmount();
+            itemCashback = bundleCashback * item.quantity;
+            console.log(`💰 Bundle cashback calculation: ₹${bundleCashback} × ${item.quantity} = ₹${itemCashback}`);
           }
         }
         
         if (itemCashback > 0) {
           totalCashback += itemCashback;
-          console.log(`💰 Cashback for ${item.title}: ₹${itemCashback.toFixed(2)}`);
+          console.log("Cashback for " + item.title + ": " + itemCashback.toFixed(2));
+        } else {
+          console.log("No cashback for " + item.title);
         }
       }
       
+      console.log("Total cashback calculated: " + totalCashback.toFixed(2));
+      
       if (totalCashback > 0) {
         // Add cashback to user's wallet
+        console.log("Attempting to add cashback to user wallet...");
         const user = await User.findById(order.user_id);
+        console.log("User lookup result:", user ? {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          currentWallet: user.wallet || 0
+        } : 'USER NOT FOUND');
+        
         if (user) {
           const previousBalance = user.wallet || 0;
           user.wallet = previousBalance + totalCashback;
-          await user.save();
           
-          console.log(`✅ Added ₹${totalCashback.toFixed(2)} cashback to user wallet`);
-          console.log(`💰 User wallet balance: ₹${previousBalance.toFixed(2)} → ₹${user.wallet.toFixed(2)}`);
+          console.log("Saving user with new wallet balance...");
+          const saveResult = await user.save();
+          console.log("User save result:", saveResult ? 'SUCCESS' : 'FAILED');
+          
+          console.log("Added " + totalCashback.toFixed(2) + " cashback to user wallet");
+          console.log("User wallet balance: " + previousBalance.toFixed(2) + " -> " + user.wallet.toFixed(2));
+          
+          // Verify the save by re-fetching the user
+          const verifyUser = await User.findById(order.user_id);
+          console.log("Verification - User wallet after save:", verifyUser ? verifyUser.wallet : 'USER NOT FOUND');
+          
+        } else {
+          console.log("User not found for cashback: " + order.user_id);
         }
+      } else {
+        console.log("No cashback to add (total: " + totalCashback.toFixed(2) + ")");
       }
+      
+      console.log("===== CASHBACK PROCESSING COMPLETED =====");
     } catch (cashbackError) {
-      console.error("❌ Cashback processing error:", cashbackError);
+      console.error("===== CASHBACK PROCESSING ERROR =====");
+      console.error("Cashback processing error:", cashbackError);
+      console.error("Error stack:", cashbackError.stack);
       // Log error but don't fail the payment verification
     }
 
@@ -803,28 +867,55 @@ router.post("/webhook", async (req, res) => {
         // AWARD CASHBACK FOR PURCHASED ITEMS
         try {
           console.log("💰 Webhook: Processing cashback for order:", order._id);
+          console.log("💰 Webhook: Order items:", order.items.map(item => ({ id: item.id, title: item.title, type: item.type, quantity: item.quantity })));
           let totalCashback = 0;
           
           for (const item of order.items) {
             let itemCashback = 0;
             
+            console.log(`💰 Webhook: Processing cashback for item: ${item.title} (${item.type})`);
+            
             if (item.type === 'book') {
               const book = await Book.findById(item.id);
+              console.log(`💰 Webhook: Book found:`, book ? {
+                id: book._id,
+                title: book.title,
+                price: book.price,
+                cashbackAmount: book.cashbackAmount,
+                cashbackPercentage: book.cashbackPercentage
+              } : 'NOT FOUND');
+              
               if (book) {
-                itemCashback = book.getCashbackAmount() * item.quantity;
+                const bookCashback = book.getCashbackAmount();
+                itemCashback = bookCashback * item.quantity;
+                console.log(`💰 Webhook: Book cashback calculation: ₹${bookCashback} × ${item.quantity} = ₹${itemCashback}`);
               }
             } else if (item.type === 'bundle') {
               const bundle = await Bundle.findById(item.id);
+              console.log(`💰 Webhook: Bundle found:`, bundle ? {
+                id: bundle._id,
+                title: bundle.title,
+                bundlePrice: bundle.bundlePrice,
+                cashbackAmount: bundle.cashbackAmount,
+                cashbackPercentage: bundle.cashbackPercentage
+              } : 'NOT FOUND');
+              
               if (bundle) {
-                itemCashback = bundle.getCashbackAmount() * item.quantity;
+                const bundleCashback = bundle.getCashbackAmount();
+                itemCashback = bundleCashback * item.quantity;
+                console.log(`💰 Webhook: Bundle cashback calculation: ₹${bundleCashback} × ${item.quantity} = ₹${itemCashback}`);
               }
             }
             
             if (itemCashback > 0) {
               totalCashback += itemCashback;
               console.log(`💰 Webhook: Cashback for ${item.title}: ₹${itemCashback.toFixed(2)}`);
+            } else {
+              console.log(`💰 Webhook: No cashback for ${item.title}`);
             }
           }
+          
+          console.log(`💰 Webhook: Total cashback calculated: ₹${totalCashback.toFixed(2)}`);
           
           if (totalCashback > 0) {
             // Add cashback to user's wallet
@@ -834,9 +925,13 @@ router.post("/webhook", async (req, res) => {
               user.wallet = previousBalance + totalCashback;
               await user.save();
               
-              console.log(`✅ Webhook: Added ₹${totalCashback.toFixed(2)} cashback to user wallet`);
-              console.log(`💰 Webhook: User wallet balance: ₹${previousBalance.toFixed(2)} → ₹${user.wallet.toFixed(2)}`);
+              console.log("Webhook: Added " + totalCashback.toFixed(2) + " cashback to user wallet");
+              console.log("Webhook: User wallet balance: " + previousBalance.toFixed(2) + " -> " + user.wallet.toFixed(2));
+            } else {
+              console.log(`❌ Webhook: User not found for cashback: ${order.user_id}`);
             }
+          } else {
+            console.log("Webhook: No cashback to add (total: " + totalCashback.toFixed(2) + ")");
           }
         } catch (cashbackError) {
           console.error("❌ Webhook: Cashback processing error:", cashbackError);
@@ -876,6 +971,80 @@ router.post("/webhook", async (req, res) => {
   } catch (err) {
     console.error("Webhook error:", err);
     res.status(500).send("Webhook error");
+  }
+});
+
+// =====================================================
+// TEST CASHBACK ENDPOINT (for debugging production)
+// =====================================================
+router.post("/test-cashback", authenticateToken, async (req, res) => {
+  try {
+    console.log("===== TESTING CASHBACK FUNCTIONALITY =====");
+    console.log("Environment:", process.env.NODE_ENV || 'development');
+    console.log("Database connection:", require('mongoose').connection.readyState);
+    console.log("User ID:", req.user.id);
+    
+    const { bookId, amount } = req.body;
+    
+    // Test book lookup
+    const book = await Book.findById(bookId);
+    console.log("Book found:", book ? {
+      id: book._id,
+      title: book.title,
+      price: book.price,
+      cashbackAmount: book.cashbackAmount,
+      cashbackPercentage: book.cashbackPercentage
+    } : 'NOT FOUND');
+    
+    if (!book) {
+      return res.status(404).json({ error: "Book not found" });
+    }
+    
+    // Test cashback calculation
+    const cashbackAmount = book.getCashbackAmount();
+    console.log("Cashback calculation:", cashbackAmount);
+    
+    if (cashbackAmount <= 0) {
+      return res.json({ 
+        message: "No cashback configured for this book",
+        book: { title: book.title, cashbackAmount: book.cashbackAmount, cashbackPercentage: book.cashbackPercentage }
+      });
+    }
+    
+    // Test user lookup and wallet update
+    const user = await User.findById(req.user.id);
+    console.log("User found:", user ? {
+      id: user._id,
+      name: user.name,
+      currentWallet: user.wallet || 0
+    } : 'NOT FOUND');
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    const previousBalance = user.wallet || 0;
+    user.wallet = previousBalance + cashbackAmount;
+    await user.save();
+    
+    console.log("Wallet updated:", previousBalance, "->", user.wallet);
+    
+    // Verify the update
+    const verifyUser = await User.findById(req.user.id);
+    console.log("Verification wallet:", verifyUser ? verifyUser.wallet : 'USER NOT FOUND');
+    
+    res.json({
+      success: true,
+      message: "Cashback test completed",
+      cashbackAmount: cashbackAmount,
+      previousBalance: previousBalance,
+      newBalance: user.wallet,
+      verified: verifyUser ? verifyUser.wallet : null
+    });
+    
+  } catch (error) {
+    console.error("Test cashback error:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
