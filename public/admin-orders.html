@@ -911,15 +911,27 @@
         .receipt-buttons {
             text-align: center;
             margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-top: 2px solid #e9ecef;
         }
 
         .receipt-buttons button {
             margin: 0 10px;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .receipt-buttons button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
         .print-btn {
@@ -927,9 +939,23 @@
             color: white;
         }
 
+        .print-btn:hover {
+            background: #218838;
+        }
+
+        .print-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .close-btn {
             background: #dc3545;
             color: white;
+        }
+
+        .close-btn:hover {
+            background: #c82333;
         }
 
         @media print {
@@ -955,120 +981,230 @@
                 width: 100% !important;
                 height: auto !important;
                 margin: 0 !important;
-                padding: 5mm !important;
+                padding: 10mm !important;
                 transform: none !important;
             }
             
             .receipt {
                 box-shadow: none !important;
                 border-radius: 0 !important;
-                max-width: 170mm !important;
+                max-width: 180mm !important;
                 width: 100% !important;
                 max-height: none !important;
                 overflow: visible !important;
-                padding: 10mm !important;
+                padding: 0 !important;
                 margin: 0 auto !important;
-                font-size: 22px !important;
-                line-height: 1.5 !important;
+                font-size: 14px !important;
+                line-height: 1.6 !important;
                 color: #000 !important;
                 font-weight: normal !important;
                 font-family: 'Arial', sans-serif !important;
-                border: 3px solid #000 !important;
+                border: 2px solid #000 !important;
+                background: white !important;
+                display: block !important;
+            }
+            
+            .receipt-content {
+                padding: 15mm !important;
+                display: block !important;
             }
             
             .receipt-header {
-                margin-bottom: 10px !important;
-                padding-bottom: 8px !important;
+                margin-bottom: 15mm !important;
+                padding-bottom: 10mm !important;
                 border-bottom: 3px solid #000 !important;
                 page-break-inside: avoid !important;
+                text-align: center !important;
             }
             
             .company-name {
-                font-size: 34px !important;
+                font-size: 28px !important;
                 font-weight: bold !important;
                 color: #000 !important;
                 text-align: center !important;
-                margin-bottom: 6px !important;
-                letter-spacing: 1px !important;
+                margin-bottom: 8px !important;
+                letter-spacing: 2px !important;
                 page-break-inside: avoid !important;
                 display: block !important;
                 visibility: visible !important;
+                text-transform: uppercase !important;
             }
             
             .company-details {
-                font-size: 18px !important;
+                font-size: 12px !important;
                 color: #000 !important;
                 font-weight: normal !important;
                 text-align: center !important;
-                line-height: 1.4 !important;
+                line-height: 1.5 !important;
                 page-break-inside: avoid !important;
                 display: block !important;
                 visibility: visible !important;
+                margin-top: 5mm !important;
             }
             
             .receipt-section {
-                margin-bottom: 6px !important;
-                padding-bottom: 4px !important;
+                margin-bottom: 8mm !important;
+                padding-bottom: 5mm !important;
                 page-break-inside: avoid;
-                border-bottom: 1px dashed #000 !important;
+                border-bottom: 1px solid #ccc !important;
             }
             
-            /* Special styling for delivery address section */
-            .receipt-section:has(div:contains("DELIVERY ADDRESS")),
-            .receipt-section div:contains("DELIVERY ADDRESS") {
-                background: #f0f8ff !important;
-                border: 2px solid #4169e1 !important;
-                border-radius: 6px !important;
-                padding: 8px !important;
-                margin: 8px 0 !important;
-                box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
+            .receipt-section:last-of-type {
+                border-bottom: none !important;
             }
             
-            /* Delivery address label styling */
-            .receipt-section div[style*="font-weight: bold"]:contains("DELIVERY ADDRESS") {
-                background: #4169e1 !important;
+            /* Enhanced delivery address section */
+            .delivery-address-section {
+                background: #f8f9fa !important;
+                border: 2px solid #007bff !important;
+                border-radius: 8px !important;
+                padding: 10mm !important;
+                margin: 8mm 0 !important;
+                page-break-inside: avoid !important;
+            }
+            
+            .delivery-address-header {
+                background: #007bff !important;
                 color: white !important;
-                padding: 6px 8px !important;
-                margin: -8px -8px 6px -8px !important;
-                border-radius: 4px 4px 0 0 !important;
-                font-size: 20px !important;
+                padding: 5mm !important;
+                margin: -10mm -10mm 5mm -10mm !important;
+                border-radius: 6px 6px 0 0 !important;
+                font-size: 14px !important;
                 font-weight: bold !important;
                 text-align: center !important;
+                text-transform: uppercase !important;
+                letter-spacing: 1px !important;
             }
             
-            /* Delivery address content styling */
-            .receipt-section div[style*="font-size: 10px"]:contains("${deliveryAddress}") {
-                font-size: 18px !important;
-                line-height: 1.4 !important;
+            .delivery-address-content {
+                font-size: 12px !important;
+                line-height: 1.6 !important;
                 color: #000 !important;
                 font-weight: bold !important;
                 background: white !important;
-                padding: 6px !important;
-                border-radius: 3px !important;
-                border: 1px solid #e0e0e0 !important;
+                padding: 5mm !important;
+                border-radius: 4px !important;
+                border: 1px solid #dee2e6 !important;
             }
             
             .receipt-row {
-                font-size: 20px !important;
+                font-size: 12px !important;
                 color: #000 !important;
-                font-weight: bold !important;
-                margin-bottom: 3px !important;
+                font-weight: normal !important;
+                margin-bottom: 2mm !important;
                 display: flex !important;
                 justify-content: space-between !important;
-                line-height: 1.4 !important;
+                line-height: 1.5 !important;
+                padding: 1mm 0 !important;
+            }
+            
+            .receipt-row span:first-child {
+                font-weight: 500 !important;
+            }
+            
+            .receipt-row span:last-child {
+                font-weight: bold !important;
+                text-align: right !important;
             }
             
             .receipt-total {
-                font-size: 24px !important;
+                font-size: 16px !important;
                 font-weight: bold !important;
                 color: #000 !important;
-                border-top: 3px solid #000 !important;
-                padding-top: 6px !important;
-                margin-top: 8px !important;
+                border-top: 2px solid #000 !important;
+                padding-top: 5mm !important;
+                margin-top: 5mm !important;
+                background: #f8f9fa !important;
+                padding: 5mm !important;
+                border-radius: 4px !important;
             }
             
             .receipt-footer {
-                font-size: 18px !important;
+                font-size: 10px !important;
+                color: #666 !important;
+                text-align: center !important;
+                margin-top: 10mm !important;
+                padding-top: 5mm !important;
+                border-top: 1px solid #ccc !important;
+                page-break-inside: avoid !important;
+            }
+            
+            .signature-section {
+                margin-top: 15mm !important;
+                text-align: right !important;
+                page-break-inside: avoid !important;
+            }
+            
+            .signature-line {
+                border-top: 2px solid #000 !important;
+                width: 40mm !important;
+                margin: 10mm 0 3mm auto !important;
+            }
+            
+            /* Hide buttons and non-essential elements during print only */
+            .receipt-buttons {
+                display: none !important;
+                visibility: hidden !important;
+            }
+            
+            button,
+            .close-btn,
+            .print-btn {
+                display: none !important;
+                visibility: hidden !important;
+            }
+            
+            /* Items section styling */
+            .items-header {
+                font-weight: bold !important;
+                font-size: 14px !important;
+                margin-bottom: 5mm !important;
+                text-transform: uppercase !important;
+                border-bottom: 1px solid #000 !important;
+                padding-bottom: 2mm !important;
+            }
+            
+            .item-row {
+                padding: 2mm 0 !important;
+                border-bottom: 1px dotted #ccc !important;
+            }
+            
+            .item-row:last-child {
+                border-bottom: none !important;
+            }
+            
+            /* Customer details section */
+            .customer-section {
+                background: #f8f9fa !important;
+                padding: 5mm !important;
+                border-radius: 4px !important;
+                border: 1px solid #dee2e6 !important;
+            }
+            
+            .customer-header {
+                font-weight: bold !important;
+                font-size: 12px !important;
+                margin-bottom: 3mm !important;
+                text-transform: uppercase !important;
+                color: #495057 !important;
+            }
+            
+            /* Payment section */
+            .payment-section {
+                background: #e8f5e9 !important;
+                padding: 5mm !important;
+                border-radius: 4px !important;
+                border: 1px solid #c3e6cb !important;
+            }
+            
+            .payment-header {
+                font-weight: bold !important;
+                font-size: 12px !important;
+                margin-bottom: 3mm !important;
+                text-transform: uppercase !important;
+                color: #155724 !important;
+            }
+        }
                 margin-top: 10px !important;
                 padding-top: 8px !important;
                 color: #000 !important;
@@ -2225,29 +2361,19 @@
         async function generateReceipt(order) {
             const receiptContent = document.getElementById('receiptContent');
             
-            // Load receipt settings
-            let receiptSettings = {};
-            try {
-                const response = await fetch('/api/receipt-settings');
-                const data = await response.json();
-                if (data.success) {
-                    receiptSettings = data.settings;
+            // Simple address handling
+            let deliveryAddress = 'Not provided';
+            if (order.deliveryAddress) {
+                const addr = order.deliveryAddress;
+                if (addr.street || addr.address || addr.city) {
+                    let parts = [];
+                    if (addr.street) parts.push(addr.street);
+                    if (addr.address) parts.push(addr.address);
+                    if (addr.city) parts.push(addr.city);
+                    if (addr.state) parts.push(addr.state);
+                    if (addr.pincode) parts.push(addr.pincode);
+                    deliveryAddress = parts.join(', ');
                 }
-            } catch (error) {
-                console.error('Error loading receipt settings:', error);
-                // Use default values if settings can't be loaded
-                receiptSettings = {
-                    companyName: 'SHREE MATA',
-                    companyTagline: '📚 Premium Educational Store',
-                    phone: '+91-9876543210',
-                    email: 'info@shreemata.com',
-                    address: '123 Book Street, Knowledge City\nDelhi - 110001',
-                    gstin: '07AAACH7409R1ZZ',
-                    footerMessage: '⭐ Thank you for shopping with us! ⭐',
-                    contactFooter: 'For any queries, contact us at:\n📞 +91-9876543210 | 📧 support@shreemata.com',
-                    website: 'www.shreemata.com',
-                    disclaimer: 'This is a computer generated receipt'
-                };
             }
             
             // Calculate totals
@@ -2259,13 +2385,9 @@
                 subtotal += total;
                 
                 return `
-                    <div class="receipt-row">
-                        <span>${item.title}</span>
-                        <span></span>
-                    </div>
-                    <div class="receipt-row">
-                        <span>  ${qty} x ₹${price}</span>
-                        <span>₹${total.toFixed(2)}</span>
+                    <div style="margin-bottom: 8px;">
+                        <div><strong>${item.title}</strong></div>
+                        <div style="font-size: 11px;">Qty: ${qty} x ₹${price} = ₹${total.toFixed(2)}</div>
                     </div>
                 `;
             }).join('');
@@ -2273,118 +2395,89 @@
             const courierCharge = order.courierCharge || 0;
             const totalAmount = order.totalAmount || (subtotal + courierCharge);
 
-            // Format delivery address
-            let deliveryAddress = 'Not provided';
-            if (order.deliveryAddress && order.deliveryAddress.street) {
-                const addr = order.deliveryAddress;
-                deliveryAddress = `${addr.street}, ${addr.taluk || addr.city}, ${addr.district || ''}, ${addr.state} - ${addr.pincode}`;
-            }
-
             const receiptHtml = `
-                <div class="receipt-header">
-                    <div class="company-name">${receiptSettings.companyName}</div>
-                    <div class="company-details">
-                        ${receiptSettings.companyTagline}<br>
-                        📞 ${receiptSettings.phone}<br>
-                        📧 ${receiptSettings.email}<br>
-                        🏠 ${receiptSettings.address.replace(/\n/g, '<br>')}<br>
-                        ${receiptSettings.gstin ? `GSTIN: ${receiptSettings.gstin}` : ''}
-                    </div>
+                <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
+                    <h2 style="margin: 0; font-size: 18px;">SHREE MATA</h2>
+                    <div style="font-size: 10px;">📚 Premium Educational Store</div>
+                    <div style="font-size: 10px;">📞 +91-9876543210 | 📧 info@shreemata.com</div>
                 </div>
 
-                <div class="receipt-section">
-                    <div style="text-align: center; font-weight: bold; margin-bottom: 10px;">
-                        SALES RECEIPT
-                    </div>
-                    <div class="receipt-row">
+                <div style="margin-bottom: 15px;">
+                    <div style="text-align: center; font-weight: bold; margin-bottom: 10px;">SALES RECEIPT</div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                         <span>Receipt No:</span>
-                        <span>${order._id.slice(-8).toUpperCase()}</span>
+                        <span>#${order._id.slice(-8).toUpperCase()}</span>
                     </div>
-                    <div class="receipt-row">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                         <span>Date:</span>
                         <span>${new Date(order.createdAt).toLocaleDateString('en-IN')}</span>
                     </div>
-                    <div class="receipt-row">
+                    <div style="display: flex; justify-content: space-between;">
                         <span>Time:</span>
                         <span>${new Date(order.createdAt).toLocaleTimeString('en-IN')}</span>
                     </div>
                 </div>
 
-                <div class="receipt-section">
-                    <div style="font-weight: bold; margin-bottom: 5px;">CUSTOMER DETAILS:</div>
+                <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
+                    <div style="font-weight: bold; margin-bottom: 5px;">CUSTOMER:</div>
                     <div>Name: ${order.user_id?.name || 'N/A'}</div>
                     <div>Email: ${order.user_id?.email || 'N/A'}</div>
                     <div>Phone: ${order.deliveryAddress?.phone || 'N/A'}</div>
                 </div>
 
-                <div class="receipt-section delivery-address-section">
-                    <div class="delivery-address-header" style="font-weight: bold; margin-bottom: 10px; background: #4169e1; color: white; padding: 10px; text-align: center; border-radius: 5px;">📍 DELIVERY ADDRESS</div>
-                    <div class="delivery-address-content" style="font-size: 14px; line-height: 1.5; background: #f0f8ff; padding: 15px; border: 2px solid #4169e1; border-radius: 5px; font-weight: bold;">
-                        ${deliveryAddress}
-                    </div>
+                <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
+                    <div style="font-weight: bold; margin-bottom: 5px;">DELIVERY ADDRESS:</div>
+                    <div style="font-size: 11px;">${deliveryAddress}</div>
                 </div>
 
-                <div class="receipt-section">
-                    <div style="font-weight: bold; margin-bottom: 8px;">ITEMS PURCHASED:</div>
+                <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
+                    <div style="font-weight: bold; margin-bottom: 8px;">ITEMS:</div>
                     ${itemsHtml}
-                    
-                    <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #ccc;">
-                        <div class="receipt-row">
-                            <span>Subtotal:</span>
-                            <span>₹${subtotal.toFixed(2)}</span>
-                        </div>
-                        ${courierCharge > 0 ? `
-                        <div class="receipt-row">
-                            <span>Delivery Charges:</span>
-                            <span>₹${courierCharge.toFixed(2)}</span>
-                        </div>
-                        ` : ''}
-                        <div class="receipt-row receipt-total">
-                            <span>TOTAL AMOUNT:</span>
-                            <span>₹${totalAmount.toFixed(2)}</span>
-                        </div>
-                    </div>
                 </div>
 
-                <div class="receipt-section">
-                    <div class="receipt-row">
-                        <span>Payment Method:</span>
-                        <span>Online Payment</span>
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                        <span>Subtotal:</span>
+                        <span>₹${subtotal.toFixed(2)}</span>
                     </div>
-                    <div class="receipt-row">
-                        <span>Payment Status:</span>
-                        <span style="text-transform: uppercase;">${order.status || 'PENDING'}</span>
-                    </div>
-                    ${order.razorpay_payment_id ? `
-                    <div class="receipt-row">
-                        <span>Payment ID:</span>
-                        <span style="font-size: 9px;">${order.razorpay_payment_id}</span>
+                    ${courierCharge > 0 ? `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                        <span>Delivery:</span>
+                        <span>₹${courierCharge.toFixed(2)}</span>
                     </div>
                     ` : ''}
-                </div>
-
-                <div class="signature-section">
-                    <div>Authorized Signatory</div>
-                    <div class="signature-line"></div>
-                    <div style="font-size: 10px; margin-top: 5px;">${receiptSettings.companyName}</div>
-                </div>
-
-                <div class="receipt-footer">
-                    <div style="margin-bottom: 8px;">
-                        ${receiptSettings.footerMessage}
-                    </div>
-                    <div style="font-size: 9px;">
-                        ${receiptSettings.contactFooter.replace(/\n/g, '<br>')}<br>
-                        Visit us: ${receiptSettings.website}
-                    </div>
-                    <div style="margin-top: 10px; font-size: 8px;">
-                        ${receiptSettings.disclaimer}
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; border-top: 1px solid #000; padding-top: 5px;">
+                        <span>TOTAL:</span>
+                        <span>₹${totalAmount.toFixed(2)}</span>
                     </div>
                 </div>
 
-                <div class="receipt-buttons">
-                    <button class="print-btn" onclick="printReceiptContent()">🖨️ Print</button>
-                    <button class="close-btn" onclick="closeReceipt()">❌ Close</button>
+                <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                        <span>Payment:</span>
+                        <span>Online Payment</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Status:</span>
+                        <span style="text-transform: uppercase;">${order.status || 'PENDING'}</span>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px; font-size: 10px;">
+                    <div>⭐ Thank you for shopping with us! ⭐</div>
+                    <div style="margin-top: 10px;">
+                        📞 +91-9876543210 | 📧 support@shreemata.com<br>
+                        🌐 www.shreemata.com
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="window.print()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-right: 10px;">
+                        🖨️ Print
+                    </button>
+                    <button onclick="closeReceipt()" style="background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                        ❌ Close
+                    </button>
                 </div>
             `;
 
@@ -2393,20 +2486,7 @@
         }
 
         function printReceiptContent() {
-            const receiptContainer = document.getElementById('receiptContainer');
-            const originalDisplay = receiptContainer.style.display;
-            
-            // Hide all other content
-            document.body.style.visibility = 'hidden';
-            receiptContainer.style.visibility = 'visible';
-            receiptContainer.style.display = 'block';
-            
-            // Print
             window.print();
-            
-            // Restore original state
-            document.body.style.visibility = 'visible';
-            receiptContainer.style.display = originalDisplay;
         }
 
         function closeReceipt() {

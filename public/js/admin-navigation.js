@@ -32,16 +32,7 @@ function initAdminNavigation(currentPageId = '') {
     // If no nav element exists, create one
     if (!nav) {
         nav = document.createElement('nav');
-        nav.style.cssText = `
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-        `;
+        nav.className = 'admin-nav'; // Add CSS class
         
         // Insert at the beginning of body
         document.body.insertBefore(nav, document.body.firstChild);
@@ -56,6 +47,9 @@ function initAdminNavigation(currentPageId = '') {
                 header.style.display = 'none';
             }
         });
+    } else {
+        // Add CSS class to existing nav
+        nav.className = 'admin-nav';
     }
 
     // Create navigation HTML
@@ -96,7 +90,7 @@ function createAdminNavHTML(currentPageId) {
                     </button>
                     <h1>${adminNavConfig.title}</h1>
                 </div>
-                <button id="mobileMenuToggle" class="mobile-menu-toggle" onclick="toggleAdminMobileMenu()">
+                <button id="mobileMenuToggle" class="mobile-menu-toggle" onclick="toggleAdminMobileMenu();">
                     <span id="adminMenuIcon">☰</span> Menu
                 </button>
             </div>
@@ -207,13 +201,16 @@ function setupMobileMenu() {
 
             /* Always show menu button for better UX */
             .mobile-menu-toggle {
-                display: block;
+                display: block !important;
+                cursor: pointer;
             }
             
-            @media (min-width: 1025px) {
+            @media (min-width: 769px) {
                 .mobile-menu-toggle {
                     background: rgba(255, 255, 255, 0.15);
                     border: 1px solid rgba(255, 255, 255, 0.2);
+                    display: block !important;
+                    cursor: pointer;
                 }
                 
                 .mobile-menu-toggle:hover {
@@ -221,7 +218,7 @@ function setupMobileMenu() {
                 }
             }
 
-            @media (max-width: 1024px) {
+            @media (max-width: 768px) {
 
                 nav .container {
                     flex-direction: column;
@@ -261,7 +258,7 @@ function setupMobileMenu() {
             }
             
             /* Desktop dropdown menu */
-            @media (min-width: 1025px) {
+            @media (min-width: 769px) {
                 nav .container {
                     flex-direction: row;
                     justify-content: space-between;
@@ -271,49 +268,71 @@ function setupMobileMenu() {
                 }
                 
                 .admin-nav-links {
-                    position: absolute;
-                    top: 100%;
-                    right: 0;
-                    left: auto;
-                    width: 300px;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    border-radius: 12px;
-                    padding: 20px;
-                    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-                    flex-direction: column;
-                    gap: 12px;
-                    max-height: 0;
-                    overflow: hidden;
-                    opacity: 0;
-                    transform: translateY(-10px);
-                    z-index: 1000;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    position: absolute !important;
+                    top: 100% !important;
+                    right: 0 !important;
+                    left: auto !important;
+                    width: 350px !important;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                    border-radius: 12px !important;
+                    padding: 20px !important;
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.5) !important;
+                    flex-direction: column !important;
+                    gap: 12px !important;
+                    max-height: 0 !important;
+                    overflow: hidden !important;
+                    opacity: 0 !important;
+                    transform: translateY(-10px) !important;
+                    z-index: 99999 !important;
+                    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+                    transition: all 0.3s ease !important;
+                    visibility: hidden !important;
+                    display: flex !important;
+                    pointer-events: none !important;
                 }
                 
                 .admin-nav-links a {
-                    padding: 10px 16px;
-                    font-size: 14px;
-                    border-radius: 8px;
-                    transition: all 0.3s ease;
-                    text-align: left;
+                    padding: 12px 16px !important;
+                    font-size: 14px !important;
+                    border-radius: 8px !important;
+                    transition: all 0.3s ease !important;
+                    text-align: left !important;
+                    color: white !important;
+                    text-decoration: none !important;
+                    display: block !important;
+                }
+                
+                .admin-nav-links a:hover, 
+                .admin-nav-links a.active {
+                    background: rgba(255, 255, 255, 0.2) !important;
+                    transform: translateX(5px) !important;
                 }
                 
                 #userName {
-                    text-align: left;
-                    padding: 10px 16px;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 8px;
-                    margin-bottom: 10px;
+                    text-align: left !important;
+                    padding: 10px 16px !important;
+                    background: rgba(255, 255, 255, 0.1) !important;
+                    border-radius: 8px !important;
+                    margin-bottom: 10px !important;
+                    color: white !important;
+                    display: block !important;
                 }
 
                 .admin-nav-links.mobile-menu-open {
-                    max-height: 600px !important;
+                    max-height: 800px !important;
                     opacity: 1 !important;
                     transform: translateY(0) !important;
                     visibility: visible !important;
                     display: flex !important;
                     pointer-events: auto !important;
+                    z-index: 99999 !important;
+                    position: absolute !important;
+                    top: 100% !important;
+                    right: 0 !important;
+                    left: auto !important;
+                    width: 350px !important;
                 }
+            }
 
                 .admin-nav-links a {
                     padding: 12px 16px;
@@ -414,35 +433,25 @@ function setupEventListeners() {
     }
 }
 
-// Mobile menu toggle function (global) - Simplified and more reliable
+// Mobile menu toggle function (global) - Enhanced desktop debugging
 window.toggleAdminMobileMenu = function() {
     console.log('🚨 toggleAdminMobileMenu called!');
     
     const navLinks = document.getElementById('adminNavLinks');
     const menuIcon = document.getElementById('adminMenuIcon');
     
-    console.log('🔍 Elements found:', {
-        navLinks: !!navLinks,
-        menuIcon: !!menuIcon,
-        navLinksClasses: navLinks ? navLinks.className : 'N/A'
-    });
-    
     if (!navLinks || !menuIcon) {
         console.error('❌ Menu elements not found');
-        // Try to find elements with alternative methods
-        const altNavLinks = document.querySelector('.admin-nav-links') || document.querySelector('[id*="adminNavLinks"]');
-        const altMenuIcon = document.querySelector('#mobileMenuToggle span') || document.querySelector('.mobile-menu-toggle span');
-        
-        console.log('🔍 Alternative elements:', {
-            altNavLinks: !!altNavLinks,
-            altMenuIcon: !!altMenuIcon
-        });
-        
         return false;
     }
     
     const isOpen = navLinks.classList.contains('mobile-menu-open');
-    console.log('📊 Current menu state:', isOpen ? 'OPEN' : 'CLOSED');
+    const screenWidth = window.innerWidth;
+    console.log('📊 Current state:', {
+        isOpen: isOpen,
+        screenWidth: screenWidth,
+        isDesktop: screenWidth >= 769
+    });
     
     if (isOpen) {
         // Close menu
@@ -452,15 +461,67 @@ window.toggleAdminMobileMenu = function() {
     } else {
         // Open menu
         navLinks.classList.add('mobile-menu-open');
+        
+        // Force desktop positioning if on desktop with enhanced styles
+        if (screenWidth >= 769) {
+            console.log('💻 Desktop detected - applying enhanced desktop styles');
+            navLinks.style.cssText = `
+                display: flex !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                max-height: 800px !important;
+                transform: translateY(0) !important;
+                z-index: 999999 !important;
+                position: absolute !important;
+                top: 100% !important;
+                right: 0 !important;
+                left: auto !important;
+                width: 350px !important;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                border-radius: 12px !important;
+                padding: 20px !important;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.8) !important;
+                border: 3px solid rgba(255, 255, 255, 0.3) !important;
+                flex-direction: column !important;
+                gap: 12px !important;
+                pointer-events: auto !important;
+                margin-top: 10px !important;
+            `;
+            
+            // Also ensure all links are visible
+            const links = navLinks.querySelectorAll('a, span');
+            links.forEach(link => {
+                link.style.cssText = `
+                    display: block !important;
+                    visibility: visible !important;
+                    color: white !important;
+                    padding: 12px 16px !important;
+                    text-decoration: none !important;
+                    border-radius: 8px !important;
+                    transition: all 0.3s ease !important;
+                `;
+            });
+        }
+        
         menuIcon.textContent = '✕';
         console.log('🔓 Menu OPENED');
+        
+        // Debug info
+        setTimeout(() => {
+            const computedStyle = window.getComputedStyle(navLinks);
+            console.log('🔍 Menu computed styles:', {
+                display: computedStyle.display,
+                visibility: computedStyle.visibility,
+                opacity: computedStyle.opacity,
+                zIndex: computedStyle.zIndex,
+                position: computedStyle.position,
+                top: computedStyle.top,
+                right: computedStyle.right,
+                width: computedStyle.width,
+                backgroundColor: computedStyle.backgroundColor
+            });
+        }, 100);
     }
-    
-    // Verify the change
-    setTimeout(() => {
-        const newState = navLinks.classList.contains('mobile-menu-open');
-        console.log('✅ Final state verification:', newState ? 'OPEN' : 'CLOSED');
-    }, 100);
     
     return true;
 };
@@ -604,6 +665,21 @@ document.addEventListener('touchstart', function(e) {
         toggleAdminMobileMenu();
     }
 }, { passive: false });
+
+// Simple test function to check if JavaScript is working (console only)
+window.testMenuButton = function() {
+    console.log('Menu button test called - JavaScript is working!');
+    
+    const button = document.getElementById('mobileMenuToggle');
+    if (button) {
+        console.log('Menu button found:', button);
+        button.style.backgroundColor = 'red';
+        button.style.border = '3px solid yellow';
+        console.log('Menu button found and highlighted!');
+    } else {
+        console.log('Menu button NOT found!');
+    }
+};
 
 // Debug function to test menu functionality
 window.testAdminMenu = function() {
