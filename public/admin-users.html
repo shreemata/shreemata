@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>User Management - Shree Mata Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        nav h1 {
+            color: white;
+            margin: 0;
+            font-size: 24px;
+        }
+        nav div {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        nav a:hover, nav a.active {
+            background: rgba(255,255,255,0.2);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .main-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 100px;
+        }
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filters input, .filters select {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .filters input:focus, .filters select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #e91e63 100%);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+        }
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .users-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .users-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .users-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .users-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-active {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .badge-suspended {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 16px;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .pagination button {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+        }
+        .modal-content h2 {
+            margin-top: 0;
+        }
+        .modal-content textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 100px;
+            box-sizing: border-box;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 60px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 40px; height: 40px; border-radius: 50%;">
+                <h1 style="margin: 0;">Shree Mata Admin</h1>
+            </div>
+            <div>
+                <span id="userName" style="color: white; margin-right: 10px;"></span>
+                <a href="/">🏠 Home</a>
+                <a href="/admin.html">Books</a>
+                <a href="/admin-bundles.html">Bundles</a>
+                <a href="/admin-orders.html">Orders</a>
+                <a href="/admin-withdrawals.html">Withdrawals</a>
+                <a href="/admin-bank-requests.html">Bank Requests</a>
+                <a href="/admin-notifications.html">Notifications</a>
+                <a href="/admin-income.html">Income</a>
+                <a href="/admin-users.html" class="active">Users</a>
+                <a href="/admin-password-requests.html">Password Requests</a>
+                <a href="/admin-commission-settings.html">Settings</a>
+                <a href="/admin-referral-tree.html">Referral Tree</a>
+                <a href="/" id="logoutBtn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            <div class="main-container">
+                <div style="margin-bottom: 30px;">
+                    <h1 style="margin: 0 0 5px 0;">👥 User Management</h1>
+                    <p style="color: #666; margin: 0;">Manage user accounts and suspensions</p>
+                </div>
+
+                <div class="filters">
+                    <input type="text" id="searchInput" placeholder="Search by name, email, or referral code">
+                    <select id="statusFilter">
+                        <option value="">All Users</option>
+                        <option value="false">Active Only</option>
+                        <option value="true">Suspended Only</option>
+                    </select>
+                    <button class="btn" onclick="loadUsers()">Apply Filters</button>
+                </div>
+
+                <div id="loadingSpinner" class="loading">Loading users...</div>
+
+                <div id="usersContent" style="display: none;">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Referral Code</th>
+                                <th>Wallet</th>
+                                <th>Referrals</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody"></tbody>
+                    </table>
+
+                    <div id="pagination" class="pagination"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Suspend Modal -->
+    <div id="suspendModal" class="modal">
+        <div class="modal-content">
+            <h2>Suspend User</h2>
+            <p>User: <strong id="suspendUserName"></strong></p>
+            <label for="suspendReason">Reason for suspension:</label>
+            <textarea id="suspendReason" placeholder="Enter reason for suspension..."></textarea>
+            <div class="modal-actions">
+                <button class="btn btn-danger" onclick="confirmSuspend()">Suspend User</button>
+                <button class="btn" onclick="closeSuspendModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tree Modal -->
+    <div id="treeModal" class="modal">
+        <div class="modal-content" style="max-width: 95%; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0;">
+                <h2 style="margin: 0;">Referral Tree: <span id="treeUserName"></span></h2>
+                <button class="btn" onclick="closeTreeModal()">Close</button>
+            </div>
+            <div id="treeContent" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <!-- Commission History Modal -->
+    <div id="commissionModal" class="modal">
+        <div class="modal-content" style="max-width: 95%; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0;">
+                <h2 style="margin: 0;">Commission History: <span id="commissionUserName"></span></h2>
+                <button class="btn" onclick="closeCommissionModal()">Close</button>
+            </div>
+            
+            <!-- User Summary -->
+            <div id="commissionSummary" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <!-- Summary will be populated by JavaScript -->
+            </div>
+            
+            <!-- Filters -->
+            <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                <select id="commissionTypeFilter">
+                    <option value="all">All Commissions</option>
+                    <option value="direct">Direct Commissions</option>
+                    <option value="tree">Tree Commissions</option>
+                </select>
+                <input type="date" id="commissionStartDate" placeholder="Start Date">
+                <input type="date" id="commissionEndDate" placeholder="End Date">
+                <button class="btn" onclick="loadUserCommissions()">Apply Filters</button>
+            </div>
+            
+            <div id="commissionContent" style="margin-top: 20px;">
+                <!-- Commission data will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .tree-level {
+            position: relative;
+            padding-top: 20px;
+        }
+
+        .tree-level::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 1px;
+            height: 20px;
+            background: #c0c0c0;
+            transform: translateX(-50%);
+        }
+
+        .tree-level:first-child::before {
+            display: none;
+        }
+
+        .tree-node {
+            background: #ffffff;
+            border: 1px solid #d0d0d0;
+            padding: 10px 16px;
+            border-radius: 6px;
+            min-width: 130px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            position: relative;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+
+        .tree-node:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            border-color: #4a90e2;
+        }
+
+        .tree-node.suspended {
+            border-color: #f44336;
+            background: #ffebee;
+        }
+
+        .tree-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: #1a1a1a;
+            margin-bottom: 3px;
+            letter-spacing: -0.2px;
+        }
+
+        .tree-meta {
+            font-size: 11px;
+            color: #666;
+            font-weight: 400;
+        }
+
+        .tree-children {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        .tree-children::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #c0c0c0;
+        }
+
+        .tree-children > div {
+            position: relative;
+        }
+
+        .tree-children > div::before {
+            content: "";
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            width: 1px;
+            height: 20px;
+            background: #c0c0c0;
+            transform: translateX(-50%);
+        }
+
+        /* Commission Modal Styles */
+        #commissionTypeFilter, #commissionStartDate, #commissionEndDate {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        #commissionTypeFilter:focus, #commissionStartDate:focus, #commissionEndDate:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+    </style>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script>
+        // Check authentication
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = "/login.html";
+        }
+
+        // Display user name
+        const userName = localStorage.getItem("userName");
+        if (userName) {
+            document.getElementById("userName").textContent = `Hello, ${userName}`;
+        }
+
+        // Logout functionality
+        document.getElementById("logoutBtn").addEventListener("click", (e) => {
+            e.preventDefault();
+            localStorage.removeItem("token");
+            localStorage.removeItem("userName");
+            localStorage.removeItem("userRole");
+            window.location.href = "/login.html";
+        });
+
+        let currentPage = 1;
+        let currentUserId = null;
+
+        // Load users
+        async function loadUsers(page = 1) {
+            try {
+                const search = document.getElementById("searchInput").value;
+                const suspended = document.getElementById("statusFilter").value;
+                
+                const params = new URLSearchParams({
+                    page,
+                    limit: 20
+                });
+                
+                if (search) params.append('search', search);
+                if (suspended) params.append('suspended', suspended);
+
+                const response = await fetch(`${API_URL}/admin/users?${params}`, {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch users");
+                }
+
+                const data = await response.json();
+                currentPage = page;
+
+                // Populate table
+                const tbody = document.getElementById("usersTableBody");
+                tbody.innerHTML = "";
+
+                data.users.forEach((user, index) => {
+                    const row = document.createElement("tr");
+                    const serialNumber = (currentPage - 1) * 10 + index + 1;
+                    row.innerHTML = `
+                        <td><strong>${serialNumber}</strong></td>
+                        <td>${user.name}</td>
+                        <td>${user.email}</td>
+                        <td>${user.referralCode || '-'}</td>
+                        <td>₹${user.wallet.toFixed(2)}</td>
+                        <td>${user.referrals}</td>
+                        <td>
+                            <span class="badge badge-${user.suspended ? 'suspended' : 'active'}">
+                                ${user.suspended ? 'Suspended' : 'Active'}
+                            </span>
+                            ${user.suspended ? `<br><small style="color: #666;">${user.suspendedReason}</small>` : ''}
+                        </td>
+                        <td>
+                            <button class="btn" onclick="viewUserTree('${user._id}', '${user.name}')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); margin-right: 5px; margin-bottom: 5px;">View Tree</button>
+                            <button class="btn" onclick="viewUserCommissions('${user._id}', '${user.name}')" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); margin-right: 5px; margin-bottom: 5px;">View Commissions</button>
+                            ${user.suspended 
+                                ? `<button class="btn btn-success" onclick="activateUser('${user._id}', '${user.name}')">Activate</button>`
+                                : `<button class="btn btn-danger" onclick="openSuspendModal('${user._id}', '${user.name}')">Suspend</button>`
+                            }
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                // Pagination
+                const pagination = document.getElementById("pagination");
+                pagination.innerHTML = "";
+                
+                for (let i = 1; i <= data.pagination.pages; i++) {
+                    const btn = document.createElement("button");
+                    btn.textContent = i;
+                    btn.className = i === currentPage ? 'active' : '';
+                    btn.onclick = () => loadUsers(i);
+                    pagination.appendChild(btn);
+                }
+
+                // Show content, hide loading
+                document.getElementById("loadingSpinner").style.display = "none";
+                document.getElementById("usersContent").style.display = "block";
+
+            } catch (error) {
+                console.error("Error loading users:", error);
+                document.getElementById("loadingSpinner").innerHTML = `
+                    <p style="color: #f44336;">Error loading users. Please try again.</p>
+                `;
+            }
+        }
+
+        // Open suspend modal
+        function openSuspendModal(userId, userName) {
+            currentUserId = userId;
+            document.getElementById("suspendUserName").textContent = userName;
+            document.getElementById("suspendReason").value = "";
+            document.getElementById("suspendModal").classList.add("show");
+        }
+
+        // Close suspend modal
+        function closeSuspendModal() {
+            document.getElementById("suspendModal").classList.remove("show");
+            currentUserId = null;
+        }
+
+        // Confirm suspend
+        async function confirmSuspend() {
+            const reason = document.getElementById("suspendReason").value.trim();
+            
+            if (!reason) {
+                alert("Please enter a reason for suspension");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/admin/users/${currentUserId}/suspend`, {
+                    method: 'POST',
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ reason })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || "Failed to suspend user");
+                }
+
+                alert("User suspended successfully");
+                closeSuspendModal();
+                loadUsers(currentPage);
+
+            } catch (error) {
+                console.error("Error suspending user:", error);
+                alert(error.message);
+            }
+        }
+
+        // Activate user
+        async function activateUser(userId, userName) {
+            if (!confirm(`Are you sure you want to activate ${userName}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/admin/users/${userId}/activate`, {
+                    method: 'POST',
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || "Failed to activate user");
+                }
+
+                alert("User activated successfully");
+                loadUsers(currentPage);
+
+            } catch (error) {
+                console.error("Error activating user:", error);
+                alert(error.message);
+            }
+        }
+
+        // View user tree
+        async function viewUserTree(userId, userName) {
+            document.getElementById("treeUserName").textContent = userName;
+            document.getElementById("treeContent").innerHTML = '<p style="text-align: center; color: #667eea;">Loading tree...</p>';
+            document.getElementById("treeModal").classList.add("show");
+
+            try {
+                const response = await fetch(`${API_URL}/admin/users/${userId}/tree`, {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch tree");
+                }
+
+                const data = await response.json();
+                renderTree(data.tree);
+
+            } catch (error) {
+                console.error("Error loading tree:", error);
+                document.getElementById("treeContent").innerHTML = `
+                    <p style="color: #f44336; text-align: center;">Error loading tree. Please try again.</p>
+                `;
+            }
+        }
+
+        // Close tree modal
+        function closeTreeModal() {
+            document.getElementById("treeModal").classList.remove("show");
+        }
+
+        let currentCommissionUserId = null;
+
+        // View user commissions
+        async function viewUserCommissions(userId, userName) {
+            currentCommissionUserId = userId;
+            document.getElementById("commissionUserName").textContent = userName;
+            document.getElementById("commissionContent").innerHTML = '<p style="text-align: center; color: #667eea;">Loading commissions...</p>';
+            document.getElementById("commissionModal").classList.add("show");
+
+            await loadUserCommissions();
+        }
+
+        // Load user commissions
+        async function loadUserCommissions() {
+            if (!currentCommissionUserId) return;
+
+            try {
+                const type = document.getElementById("commissionTypeFilter").value;
+                const startDate = document.getElementById("commissionStartDate").value;
+                const endDate = document.getElementById("commissionEndDate").value;
+
+                const params = new URLSearchParams({
+                    page: 1,
+                    limit: 50
+                });
+                
+                if (type && type !== 'all') params.append('type', type);
+                if (startDate) params.append('startDate', startDate);
+                if (endDate) params.append('endDate', endDate);
+
+                const response = await fetch(`${API_URL}/admin/users/${currentCommissionUserId}/commissions?${params}`, {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch commissions");
+                }
+
+                const data = await response.json();
+                renderCommissionData(data);
+
+            } catch (error) {
+                console.error("Error loading commissions:", error);
+                document.getElementById("commissionContent").innerHTML = `
+                    <p style="color: #f44336; text-align: center;">Error loading commissions. Please try again.</p>
+                `;
+            }
+        }
+
+        // Render commission data
+        function renderCommissionData(data) {
+            // Update summary
+            const summaryHtml = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #11998e;">₹${data.user.wallet.toFixed(2)}</div>
+                        <div style="color: #666; font-size: 14px;">Current Wallet</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #667eea;">₹${data.summary.totalDirectCommissions.toFixed(2)}</div>
+                        <div style="color: #666; font-size: 14px;">Direct Commissions (${data.summary.directCommissionCount})</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #764ba2;">₹${data.summary.totalTreeCommissions.toFixed(2)}</div>
+                        <div style="color: #666; font-size: 14px;">Tree Commissions (${data.summary.treeCommissionCount})</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #38ef7d;">₹${data.summary.totalCommissions.toFixed(2)}</div>
+                        <div style="color: #666; font-size: 14px;">Total Earned</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById("commissionSummary").innerHTML = summaryHtml;
+
+            // Render commission table
+            if (data.commissions.length === 0) {
+                document.getElementById("commissionContent").innerHTML = `
+                    <p style="text-align: center; color: #666; padding: 40px;">No commissions found for the selected criteria.</p>
+                `;
+                return;
+            }
+
+            const tableHtml = `
+                <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                    <thead>
+                        <tr style="background: #f8f9fa;">
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Date</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Type</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Purchaser</th>
+                            <th style="padding: 12px; text-align: right; border-bottom: 2px solid #e0e0e0;">Order Amount</th>
+                            <th style="padding: 12px; text-align: right; border-bottom: 2px solid #e0e0e0;">Commission</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.commissions.map(commission => `
+                            <tr style="border-bottom: 1px solid #f0f0f0;">
+                                <td style="padding: 12px;">${new Date(commission.processedAt).toLocaleDateString('en-IN')}</td>
+                                <td style="padding: 12px;">
+                                    <span style="background: ${commission.type === 'direct' ? '#667eea' : '#764ba2'}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                                        ${commission.type === 'direct' ? 'Direct' : `Tree L${commission.level}`}
+                                    </span>
+                                </td>
+                                <td style="padding: 12px;">
+                                    <div style="font-weight: 500;">${commission.purchaser.name}</div>
+                                    <div style="font-size: 12px; color: #666;">${commission.purchaser.email}</div>
+                                </td>
+                                <td style="padding: 12px; text-align: right;">₹${commission.orderAmount.toFixed(2)}</td>
+                                <td style="padding: 12px; text-align: right; font-weight: bold; color: #11998e;">
+                                    ₹${commission.amount.toFixed(2)}
+                                    <div style="font-size: 11px; color: #666;">(${commission.percentage}%)</div>
+                                </td>
+                                <td style="padding: 12px; text-align: center;">
+                                    <span style="background: ${commission.status === 'completed' ? '#28a745' : '#ffc107'}; color: white; padding: 3px 6px; border-radius: 3px; font-size: 11px;">
+                                        ${commission.status}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            document.getElementById("commissionContent").innerHTML = tableHtml;
+        }
+
+        // Close commission modal
+        function closeCommissionModal() {
+            document.getElementById("commissionModal").classList.remove("show");
+            currentCommissionUserId = null;
+        }
+
+        // Render tree
+        function renderTree(node) {
+            if (!node) {
+                document.getElementById("treeContent").innerHTML = '<p style="text-align: center; color: #999;">No tree data available</p>';
+                return;
+            }
+
+            const treeElement = buildTreeElement(node);
+            document.getElementById("treeContent").innerHTML = '';
+            document.getElementById("treeContent").appendChild(treeElement);
+        }
+
+        // Build tree element recursively (like referral-tree.html)
+        function buildTreeElement(node) {
+            const container = document.createElement("div");
+            container.className = "tree-level";
+            container.style.textAlign = "center";
+
+            // Create user node
+            const userNode = document.createElement("div");
+            userNode.className = `tree-node ${node.suspended ? 'suspended' : ''}`;
+            
+            userNode.innerHTML = `
+                <div class="tree-name">${escapeHtml(node.name)}</div>
+                <div class="tree-meta">${node.email}</div>
+                <div class="tree-meta">Wallet: ₹${node.wallet.toFixed(2)}</div>
+                <div class="tree-meta">${node.referrals} referrals</div>
+                ${node.suspended ? '<div class="tree-meta" style="color: #f44336; font-weight: 600;">SUSPENDED</div>' : ''}
+            `;
+            
+            container.appendChild(userNode);
+
+            // Add children if any
+            if (node.children && node.children.length > 0) {
+                const childWrap = document.createElement("div");
+                childWrap.className = "tree-children";
+
+                node.children.forEach(child => {
+                    childWrap.appendChild(buildTreeElement(child));
+                });
+
+                container.appendChild(childWrap);
+            }
+
+            return container;
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load users on page load
+        loadUsers();
+    </script>
+    <script src="js/admin-navigation.js"></script>
+</body>
+</html>

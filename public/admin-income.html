@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Admin Income - Shree Mata</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        nav h1 {
+            color: white;
+            margin: 0;
+            font-size: 24px;
+        }
+        nav div {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        nav a:hover, nav a.active {
+            background: rgba(255,255,255,0.2);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .main-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 100px;
+        }
+        .income-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .income-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .income-card.development {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+        }
+        .income-card.total {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
+        }
+        .income-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        .income-card .amount {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .income-card .transactions {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 10px;
+        }
+        .transactions-section {
+            margin-top: 40px;
+        }
+        .transactions-section h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .transaction-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+        .transaction-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .transaction-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .transaction-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .transaction-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-allocation {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .badge-remainder {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 16px;
+        }
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 60px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 40px; height: 40px; border-radius: 50%;">
+                <h1 style="margin: 0;">Shree Mata Admin</h1>
+            </div>
+            <div>
+                <span id="userName" style="color: white; margin-right: 10px;"></span>
+                <a href="/">🏠 Home</a>
+                <a href="/admin.html">Books</a>
+                <a href="/admin-bundles.html">Bundles</a>
+                <a href="/admin-orders.html">Orders</a>
+                <a href="/admin-withdrawals.html">Withdrawals</a>
+                <a href="/admin-notifications.html">Notifications</a>
+                <a href="/admin-income.html" class="active">Income</a>
+                <a href="/admin-users.html">Users</a>
+                <a href="/admin-commission-settings.html">Settings</a>
+                <a href="/admin-referral-tree.html">Referral Tree</a>
+                <a href="/" id="logoutBtn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            <div class="main-container">
+                <div style="margin-bottom: 30px;">
+                    <h1 style="margin: 0 0 5px 0;">📊 Admin Dashboard</h1>
+                    <p style="color: #666; margin: 0;">Complete overview of income, withdrawals, and trust funds</p>
+                </div>
+
+                <div id="loadingSpinner" class="loading">Loading income data...</div>
+
+                <div id="incomeContent" style="display: none;">
+                    <div class="income-cards">
+                        <div class="income-card">
+                            <h3>🏦 Trust Fund (3%)</h3>
+                            <div class="amount">₹<span id="trustFundBalance">0.00</span></div>
+                            <div class="transactions"><span id="trustFundTransactions">0</span> transactions</div>
+                        </div>
+
+                        <div class="income-card development">
+                            <h3>🚀 Development Fund (1%)</h3>
+                            <div class="amount">₹<span id="devFundBalance">0.00</span></div>
+                            <div class="transactions"><span id="devFundTransactions">0</span> transactions</div>
+                        </div>
+
+                        <div class="income-card total">
+                            <h3>💎 Total Admin Income</h3>
+                            <div class="amount">₹<span id="totalIncome">0.00</span></div>
+                            <div class="transactions"><span id="totalTransactions">0</span> total transactions</div>
+                        </div>
+
+                        <div class="income-card" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);">
+                            <h3>💰 Total User Income</h3>
+                            <div class="amount">₹<span id="totalUserIncome">0.00</span></div>
+                            <div class="transactions"><span id="totalUserTransactions">0</span> transactions</div>
+                        </div>
+
+                        <div class="income-card" style="background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%); box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);">
+                            <h3>💸 Total Withdrawals</h3>
+                            <div class="amount">₹<span id="totalWithdrawals">0.00</span></div>
+                            <div class="transactions"><span id="totalWithdrawalRequests">0</span> approved requests</div>
+                        </div>
+                    </div>
+
+                    <div class="transactions-section">
+                        <h2>Trust Fund Transactions</h2>
+                        <table class="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trustFundTransactionsTable"></tbody>
+                        </table>
+
+                        <h2>Development Fund Transactions</h2>
+                        <table class="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="devFundTransactionsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script>
+        // Check authentication
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = "/login.html";
+        }
+
+        // Display user name
+        const userName = localStorage.getItem("userName");
+        if (userName) {
+            document.getElementById("userName").textContent = `Hello, ${userName}`;
+        }
+
+        // Logout functionality
+        document.getElementById("logoutBtn").addEventListener("click", (e) => {
+            e.preventDefault();
+            localStorage.removeItem("token");
+            localStorage.removeItem("userName");
+            localStorage.removeItem("userRole");
+            window.location.href = "/login.html";
+        });
+
+        // Load income data
+        async function loadIncomeData() {
+            try {
+                // Load existing trust fund data first
+                const trustFundResponse = await fetch(`${API_URL}/admin/trust-funds`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                if (!trustFundResponse.ok) {
+                    throw new Error("Failed to fetch trust fund data");
+                }
+
+                const trustFundData = await trustFundResponse.json();
+
+                // Update existing trust fund cards
+                document.getElementById("trustFundBalance").textContent = trustFundData.trustFund.balance.toFixed(2);
+                document.getElementById("trustFundTransactions").textContent = trustFundData.trustFund.transactionCount;
+                
+                document.getElementById("devFundBalance").textContent = trustFundData.developmentFund.balance.toFixed(2);
+                document.getElementById("devFundTransactions").textContent = trustFundData.developmentFund.transactionCount;
+                
+                document.getElementById("totalIncome").textContent = trustFundData.summary.totalBalance.toFixed(2);
+                document.getElementById("totalTransactions").textContent = trustFundData.summary.totalTransactions;
+
+                // Try to load new statistics data
+                try {
+                    const statisticsResponse = await fetch(`${API_URL}/admin/trust-funds/statistics`, {
+                        headers: { "Authorization": `Bearer ${token}` }
+                    });
+
+                    if (statisticsResponse.ok) {
+                        const statisticsData = await statisticsResponse.json();
+                        
+                        // Update new statistics cards
+                        document.getElementById("totalUserIncome").textContent = statisticsData.totalIncome.amount.toFixed(2);
+                        document.getElementById("totalUserTransactions").textContent = statisticsData.totalIncome.transactions;
+                        
+                        document.getElementById("totalWithdrawals").textContent = statisticsData.totalWithdrawals.amount.toFixed(2);
+                        document.getElementById("totalWithdrawalRequests").textContent = statisticsData.totalWithdrawals.requests;
+                    } else {
+                        console.warn("Statistics endpoint not available, using fallback values");
+                        // Set fallback values
+                        document.getElementById("totalUserIncome").textContent = "0.00";
+                        document.getElementById("totalUserTransactions").textContent = "0";
+                        document.getElementById("totalWithdrawals").textContent = "0.00";
+                        document.getElementById("totalWithdrawalRequests").textContent = "0";
+                    }
+                } catch (statsError) {
+                    console.warn("Statistics endpoint error:", statsError);
+                    // Set fallback values
+                    document.getElementById("totalUserIncome").textContent = "0.00";
+                    document.getElementById("totalUserTransactions").textContent = "0";
+                    document.getElementById("totalWithdrawals").textContent = "0.00";
+                    document.getElementById("totalWithdrawalRequests").textContent = "0";
+                }
+
+                // Populate Trust Fund transactions
+                const trustFundTable = document.getElementById("trustFundTransactionsTable");
+                trustFundTable.innerHTML = "";
+                
+                if (trustFundData.trustFund.transactions.length === 0) {
+                    trustFundTable.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No transactions yet</td></tr>';
+                } else {
+                    trustFundData.trustFund.transactions.reverse().forEach(transaction => {
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td>${new Date(transaction.timestamp).toLocaleDateString()}</td>
+                            <td><span class="badge badge-${transaction.type === 'order_allocation' ? 'allocation' : 'remainder'}">${transaction.type.replace('_', ' ')}</span></td>
+                            <td>₹${transaction.amount.toFixed(2)}</td>
+                            <td>${transaction.description || '-'}</td>
+                        `;
+                        trustFundTable.appendChild(row);
+                    });
+                }
+
+                // Populate Development Fund transactions
+                const devFundTable = document.getElementById("devFundTransactionsTable");
+                devFundTable.innerHTML = "";
+                
+                if (trustFundData.developmentFund.transactions.length === 0) {
+                    devFundTable.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No transactions yet</td></tr>';
+                } else {
+                    trustFundData.developmentFund.transactions.reverse().forEach(transaction => {
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td>${new Date(transaction.timestamp).toLocaleDateString()}</td>
+                            <td><span class="badge badge-${transaction.type === 'order_allocation' ? 'allocation' : 'remainder'}">${transaction.type.replace('_', ' ')}</span></td>
+                            <td>₹${transaction.amount.toFixed(2)}</td>
+                            <td>${transaction.description || '-'}</td>
+                        `;
+                        devFundTable.appendChild(row);
+                    });
+                }
+
+                // Show content, hide loading
+                document.getElementById("loadingSpinner").style.display = "none";
+                document.getElementById("incomeContent").style.display = "block";
+
+            } catch (error) {
+                console.error("Error loading income data:", error);
+                document.getElementById("loadingSpinner").innerHTML = `
+                    <p style="color: #f44336;">Error loading income data. Please try again.</p>
+                `;
+            }
+        }
+
+        // Load data on page load
+        loadIncomeData();
+    </script>
+    <script src="js/admin-navigation.js"></script>
+</body>
+</html>

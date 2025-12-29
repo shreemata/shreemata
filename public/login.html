@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ff6f61">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Login - Shree Mata</title>
+
+    <style>
+        /* ---------- Page Background ---------- */
+        body {
+            margin: 0;
+            font-family: "Poppins", sans-serif;
+            background: linear-gradient(135deg, #f7ede2, #f5cac3);
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #333;
+        }
+
+        /* Decorative Book Illustration */
+        .books-bg {
+            background-image: url("https://cdn-icons-png.flaticon.com/512/3145/3145765.png");
+            background-size: 300px;
+            background-repeat: no-repeat;
+            opacity: 0.08;
+            position: absolute;
+            top: 20%;
+            left: 5%;
+            width: 300px;
+            height: 300px;
+            pointer-events: none;
+        }
+
+        /* ---------- Generic Container ---------- */
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* ---------- Navbar ---------- */
+        .navbar {
+            background: #fff;
+            padding: 15px 0;
+            box-shadow: 0px 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo a {
+            text-decoration: none;
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff6f61, #ff9800);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            padding: 8px 12px;
+            border-radius: 12px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .logo a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 111, 97, 0.1), rgba(255, 152, 0, 0.1));
+            border-radius: 12px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: -1;
+        }
+
+        .logo a:hover::before {
+            opacity: 1;
+        }
+
+        .logo a:hover {
+            transform: translateY(-2px);
+        }
+
+        .nav-links a {
+            margin-left: 20px;
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* ---------- Auth Layout ---------- */
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 140px);
+            padding: 20px 0;
+        }
+
+        .auth-box {
+            width: 100%;
+            max-width: 400px;
+            padding: 24px 24px;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.75);
+            box-shadow: 0 8px 26px rgba(0,0,0,0.12);
+            animation: fadeIn 0.9s ease;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 11px;
+            font-weight: 600;
+            color: #ff6f61;
+            margin-bottom: 8px;
+        }
+
+        .badge span {
+            font-size: 14px;
+        }
+
+        .auth-box h1 {
+            text-align: center;
+            margin: 4px 0 4px;
+            color: #333;
+            font-size: 22px;
+        }
+
+        .auth-subtitle {
+            text-align: center;
+            margin-bottom: 16px;
+            color: #666;
+            font-size: 13px;
+        }
+
+        /* Small progress / steps indicator */
+        .steps {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffe0da;
+        }
+
+        .step-dot.active {
+            background: #ff6f61;
+        }
+
+        /* ---------- Form Styling ---------- */
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            outline: none;
+            transition: 0.3s;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            border-color: #ff6f61;
+            box-shadow: 0 0 6px rgba(255,111,97,0.35);
+        }
+
+        /* ---------- Button ---------- */
+        .btn-primary {
+            background: #ff6f61;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 11px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.3s;
+            box-sizing: border-box;
+        }
+
+        .btn-primary:hover {
+            background: #ff3f34;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(255,63,52,0.35);
+        }
+
+        .btn-large {
+            font-size: 16px;
+        }
+
+        .error-message {
+            color: #d90429;
+            font-size: 12px;
+            margin-bottom: 8px;
+            background-color: #ffeaea;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border-left: 3px solid #d90429;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 12px;
+        }
+
+        .auth-footer a {
+            color: #ff6f61;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+
+
+        /* ---------- Footer ---------- */
+        footer {
+            text-align: center;
+            margin-top: 10px;
+            color: #444;
+            font-size: 13px;
+            padding-bottom: 16px;
+        }
+
+        /* Fade-in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Success state */
+        .btn-success {
+            background: #28a745 !important;
+        }
+
+        /* Checkbox styling */
+        input[type="checkbox"] {
+            width: auto !important;
+            margin: 0 !important;
+            accent-color: #ff6f61;
+        }
+
+        /* Password toggle button */
+        #togglePassword:hover {
+            color: #ff6f61;
+        }
+
+        /* Login method toggle */
+        .login-toggle {
+            display: flex;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            padding: 3px;
+            margin-bottom: 16px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .toggle-option {
+            flex: 1;
+            padding: 8px 12px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+
+        .toggle-option.active {
+            background: #ff6f61;
+            color: white;
+            box-shadow: 0 2px 4px rgba(255,111,97,0.3);
+        }
+
+        .toggle-option:hover:not(.active) {
+            background: rgba(255,111,97,0.1);
+            color: #ff6f61;
+        }
+
+        /* OTP Status styling */
+        .otp-status {
+            font-size: 11px;
+            margin-top: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .otp-status.success {
+            color: #2b9348;
+            background-color: #eafaf1;
+            border-left: 3px solid #2b9348;
+        }
+
+        .otp-status.error {
+            color: #d90429;
+            background-color: #ffeaea;
+            border-left: 3px solid #d90429;
+        }
+
+        /* Login section visibility - explicit control */
+        .login-section {
+            display: none;
+        }
+        
+        .login-section.active {
+            display: block !important;
+        }
+
+        /* Responsive tweaks */
+        @media (max-width: 768px) {
+            .auth-container {
+                padding: 15px;
+                min-height: calc(100vh - 120px);
+            }
+            
+            .auth-box {
+                max-width: 100%;
+                padding: 20px 18px;
+                margin: 0 10px;
+            }
+            
+            .auth-box h1 {
+                font-size: 20px;
+            }
+            
+            .books-bg {
+                display: none;
+            }
+            
+            .navbar-content {
+                padding: 0 10px;
+            }
+            
+            .nav-links a {
+                margin-left: 15px;
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .auth-box {
+                padding: 16px 14px;
+                margin: 0 5px;
+            }
+            
+            .auth-box h1 {
+                font-size: 18px;
+            }
+            
+            .auth-subtitle {
+                font-size: 12px;
+            }
+            
+            .badge {
+                font-size: 10px;
+                padding: 4px 10px;
+            }
+            
+            .badge span {
+                font-size: 12px;
+            }
+            
+            input {
+                padding: 9px 10px;
+                font-size: 13px;
+            }
+            
+            .btn-primary {
+                padding: 10px;
+                font-size: 13px;
+            }
+            
+            .nav-links a {
+                margin-left: 10px;
+                font-size: 12px;
+            }
+            
+            .logo a {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Decorative Book Background -->
+    <div class="books-bg"></div>
+
+    <header>
+        <div class="navbar">
+            <div class="container navbar-content">
+                <div class="logo">
+                    <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                        <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 32px; height: 32px; border-radius: 50%;">
+                        <span>Shree Mata</span>
+                    </a>
+                </div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="signup.html">Sign Up</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="auth-container">
+                <div class="auth-box">
+                    <div class="badge">
+                        👋 Welcome back! <span>Sign in to continue</span>
+                    </div>
+
+                    <div style="text-align: center; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center;">
+                        <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                        <h1 style="margin: 0; font-size: 24px;">Login to Shree Mata</h1>
+                    </div>
+                    <p class="auth-subtitle">Sign in to access your books and continue reading</p>
+
+                    <div class="steps">
+                        <div class="step-dot active"></div>
+                        <div class="step-dot active"></div>
+                        <div class="step-dot"></div>
+                    </div>
+
+                    <!-- Login Method Toggle -->
+                    <div class="login-toggle">
+                        <div class="toggle-option active" id="emailToggle">
+                            📧 Email & Password
+                        </div>
+                        <div class="toggle-option" id="phoneToggle">
+                            📱 Phone & Password
+                        </div>
+                    </div>
+
+                    <form id="loginForm">
+                        <!-- Email Login Section -->
+                        <div class="login-section active" id="emailLoginSection">
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" placeholder="Enter your email">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <div style="position: relative;">
+                                    <input type="password" id="password" name="password" placeholder="Enter your password">
+                                    <button type="button" id="togglePassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #666; cursor: pointer; font-size: 14px;">
+                                        👁️
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 11px;">
+                                <label style="display: flex; align-items: center; margin: 0; cursor: pointer;">
+                                    <input type="checkbox" id="rememberMe" style="width: auto; margin-right: 5px; transform: scale(0.9);">
+                                    Remember me
+                                </label>
+                                <a href="#" onclick="showForgotPassword()" style="color: #ff6f61; text-decoration: none; font-size: 11px;">
+                                    Forgot Password?
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Phone Login Section -->
+                        <div class="login-section" id="phoneLoginSection">
+                            <div class="form-group">
+                                <label for="loginPhone">Mobile Number</label>
+                                <input type="text" id="loginPhone" name="loginPhone" placeholder="Enter your mobile number" maxlength="10" pattern="[6-9][0-9]{9}">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="phonePassword">Password</label>
+                                <div style="position: relative;">
+                                    <input type="password" id="phonePassword" name="phonePassword" placeholder="Enter your password">
+                                    <button type="button" id="togglePhonePassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #666; cursor: pointer; font-size: 14px;">
+                                        👁️
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 11px;">
+                                <label style="display: flex; align-items: center; margin: 0; cursor: pointer;">
+                                    <input type="checkbox" id="rememberPhone" style="width: auto; margin-right: 5px; transform: scale(0.9);">
+                                    Remember me
+                                </label>
+                                <a href="#" onclick="showForgotPassword()" style="color: #ff6f61; text-decoration: none; font-size: 11px;">
+                                    Forgot Password?
+                                </a>
+                            </div>
+                        </div>
+
+                        <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+                        <button type="submit" class="btn-primary btn-large" id="loginBtn">
+                            Sign In
+                        </button>
+                    </form>
+
+                    <p class="auth-footer">
+                        Don't have an account? <a href="signup.html">Create one here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/login.js"></script>
+    <script>
+        function showForgotPassword() {
+            // Create forgot password modal
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.6); z-index: 1000; display: flex;
+                align-items: center; justify-content: center; padding: 20px;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 16px; width: 100%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
+                    <h2 style="margin: 0 0 20px 0; text-align: center; color: #333;">🔐 Reset Password</h2>
+                    
+                    <div id="forgotStep1">
+                        <p style="color: #666; margin-bottom: 20px; text-align: center;">Enter your email to get your security questions</p>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Email Address</label>
+                            <input type="email" id="forgotEmail" placeholder="Enter your email address" 
+                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                        </div>
+                        <button onclick="getSecurityQuestions()" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                            Get Security Questions
+                        </button>
+                    </div>
+                    
+                    <div id="forgotStep2" style="display: none;">
+                        <p style="color: #666; margin-bottom: 20px; text-align: center;">Answer your security questions and set new password</p>
+                        
+                        <div id="securityQuestionsContainer">
+                            <!-- Questions will be loaded here -->
+                        </div>
+                        
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+                            <h4 style="margin: 0 0 10px 0; color: #28a745; font-size: 14px;">🔑 Set New Password</h4>
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">New Password</label>
+                                <input type="password" id="newPassword" placeholder="Enter new password (min 6 characters)"
+                                       style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Confirm Password</label>
+                                <input type="password" id="confirmPassword" placeholder="Confirm new password"
+                                       style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                            </div>
+                        </div>
+                        
+                        <button onclick="submitPasswordReset()" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                            Submit Password Reset Request
+                        </button>
+                        
+                        <div style="background: #fff3cd; padding: 10px; border-radius: 6px; margin: 15px 0; font-size: 12px; color: #856404;">
+                            <strong>Note:</strong> Your password reset request will be sent to admin for approval. You'll be notified once approved.
+                        </div>
+                    </div>
+                    
+                    <div id="forgotError" style="display: none; color: #d90429; background: #ffeaea; padding: 10px; border-radius: 6px; margin: 15px 0; font-size: 14px;"></div>
+                    <div id="forgotSuccess" style="display: none; color: #155724; background: #d4edda; padding: 10px; border-radius: 6px; margin: 15px 0; font-size: 14px;"></div>
+                    
+                    <button onclick="closeForgotModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">&times;</button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            window.forgotModal = modal;
+        }
+        
+        function closeForgotModal() {
+            if (window.forgotModal) {
+                document.body.removeChild(window.forgotModal);
+                window.forgotModal = null;
+            }
+        }
+        
+        async function getSecurityQuestions() {
+            const email = document.getElementById('forgotEmail').value.trim();
+            const errorDiv = document.getElementById('forgotError');
+            const successDiv = document.getElementById('forgotSuccess');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            if (!email || !email.includes('@')) {
+                errorDiv.textContent = 'Please enter a valid email address';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/password-reset/get-questions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Store user ID for later use
+                    window.resetUserId = data.userId;
+                    
+                    // Display security questions
+                    const container = document.getElementById('securityQuestionsContainer');
+                    container.innerHTML = `
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Question 1: ${data.questions.question1}</label>
+                            <input type="text" id="answer1" placeholder="Enter your answer"
+                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Question 2: ${data.questions.question2}</label>
+                            <input type="text" id="answer2" placeholder="Enter your answer"
+                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Question 3: ${data.questions.question3}</label>
+                            <input type="text" id="answer3" placeholder="Enter your answer"
+                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                        </div>
+                    `;
+                    
+                    document.getElementById('forgotStep1').style.display = 'none';
+                    document.getElementById('forgotStep2').style.display = 'block';
+                } else {
+                    errorDiv.textContent = data.error || 'Failed to get security questions';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        }
+        
+        async function submitPasswordReset() {
+            const answer1 = document.getElementById('answer1').value.trim();
+            const answer2 = document.getElementById('answer2').value.trim();
+            const answer3 = document.getElementById('answer3').value.trim();
+            const newPassword = document.getElementById('newPassword').value.trim();
+            const confirmPassword = document.getElementById('confirmPassword').value.trim();
+            
+            const errorDiv = document.getElementById('forgotError');
+            const successDiv = document.getElementById('forgotSuccess');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            // Validate inputs
+            if (!answer1 || !answer2 || !answer3) {
+                errorDiv.textContent = 'Please answer all security questions';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (!newPassword || newPassword.length < 6) {
+                errorDiv.textContent = 'Password must be at least 6 characters long';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                errorDiv.textContent = 'Passwords do not match';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/password-reset/submit-request`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        userId: window.resetUserId,
+                        answer1,
+                        answer2,
+                        answer3,
+                        newPassword,
+                        confirmPassword
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    successDiv.textContent = data.message;
+                    successDiv.style.display = 'block';
+                    
+                    // Hide the form and show success message
+                    document.getElementById('forgotStep2').style.display = 'none';
+                    
+                    setTimeout(() => {
+                        closeForgotModal();
+                    }, 3000);
+                } else {
+                    errorDiv.textContent = data.error || 'Failed to submit password reset request';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

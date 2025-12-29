@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Combo Offers - Shree Mata</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            padding: 10px 0 !important;
+        }
+
+        .navbar-content {
+            gap: 10px !important;
+        }
+
+        .nav-links {
+            gap: 10px !important;
+        }
+
+        .nav-links a {
+            padding: 6px 12px !important;
+            font-size: 14px !important;
+        }
+
+        .page-header {
+            text-align: center;
+            padding: 20px 20px 30px;
+            color: white;
+            margin-top: 0;
+        }
+
+        .page-header h1 {
+            font-size: 48px;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .page-header p {
+            font-size: 20px;
+            opacity: 0.95;
+        }
+
+        .bundles-container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            margin: 20px auto;
+            max-width: 1400px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .bundles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 18px;
+            color: #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: #999;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .page-header {
+                padding: 20px 15px 25px;
+            }
+            
+            .page-header h1 {
+                font-size: 32px !important;
+            }
+            
+            .page-header p {
+                font-size: 16px !important;
+            }
+            
+            .bundles-container {
+                padding: 20px 15px;
+                margin: 15px;
+            }
+            
+            .bundles-grid {
+                grid-template-columns: 1fr !important;
+                gap: 15px !important;
+            }
+            
+            .back-btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <div class="container navbar-content">
+                <div class="logo">
+                    <a href="/">📚 Shree Mata</a>
+                </div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <span id="authLinks">
+                        <a href="/login.html">Login</a>
+                        <a href="signup.html">Sign Up</a>
+                    </span>
+                    <span id="userLinks" style="display: none;">
+                        <span id="userName"></span>
+                        <a href="#" id="logoutBtn">Logout</a>
+                    </span>
+                    <a href="account.html" id="accountLink">Account</a>
+                    <a href="referral.html" id="referralLink" style="display: none;">Referral💰</a>
+                    <a href="cart.html" class="cart-icon" id="cartLink">🛒 Cart (<span id="cartCount">0</span>)</a>
+                    <a href="admin.html" id="adminLink" style="display: none;">Admin</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="page-header">
+            <a href="/" class="back-btn">← Back to Home</a>
+            <h1>🎁 All Combo Offers</h1>
+            <p>Amazing discounts on book bundles - Save more when you buy together!</p>
+        </div>
+
+        <div class="container">
+            <div class="bundles-container">
+                <div id="loadingSpinner" class="loading">
+                    <div style="display: inline-block; animation: spin 1s linear infinite;">⏳</div>
+                    Loading offers...
+                </div>
+                <div id="bundlesGrid" class="bundles-grid"></div>
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    <div style="font-size: 64px; margin-bottom: 20px;">🎁</div>
+                    <p style="font-size: 18px;">No combo offers available at the moment.</p>
+                    <a href="/" class="btn-primary" style="margin-top: 20px;">Browse Books</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <style>
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+
+    <script src="js/config.js"></script>
+    <script src="js/cartUtils.js"></script>
+    <script>
+        // API_URL is already defined in config.js
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadAllBundles();
+        });
+
+        function checkAuth() {
+            const token = localStorage.getItem("token");
+            const user = JSON.parse(localStorage.getItem("user") || "null");
+
+            if (token && user) {
+                document.getElementById("authLinks").style.display = "none";
+                document.getElementById("userLinks").style.display = "flex";
+                document.getElementById("userName").textContent = `Hello, ${user.name}`;
+                document.getElementById("accountLink").style.display = "block";
+                document.getElementById("referralLink").style.display = "block";
+
+                if (user.role === "admin") {
+                    document.getElementById("adminLink").style.display = "block";
+                }
+            }
+
+            const logoutBtn = document.getElementById("logoutBtn");
+            if (logoutBtn) {
+                logoutBtn.addEventListener("click", () => {
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("user");
+                    window.location.href = "/";
+                });
+            }
+
+            updateCartCount();
+        }
+
+        function updateCartCount() {
+            const cart = typeof getCart === 'function' ? getCart() : JSON.parse(localStorage.getItem("cart_guest") || "[]");
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById("cartCount").textContent = count;
+        }
+
+        async function loadAllBundles() {
+            try {
+                const res = await fetch(`${API_URL}/bundles`);
+                const data = await res.json();
+
+                document.getElementById("loadingSpinner").style.display = "none";
+
+                if (data.bundles && data.bundles.length > 0) {
+                    displayBundles(data.bundles);
+                } else {
+                    document.getElementById("emptyState").style.display = "block";
+                }
+            } catch (err) {
+                console.error("Error loading bundles:", err);
+                document.getElementById("loadingSpinner").style.display = "none";
+                document.getElementById("emptyState").style.display = "block";
+            }
+        }
+
+        function displayBundles(bundles) {
+            const grid = document.getElementById("bundlesGrid");
+            grid.innerHTML = "";
+
+            bundles.forEach((bundle) => {
+                const card = document.createElement("div");
+                card.className = "book-card bundle-card";
+                card.style.border = "2px solid #ff4444";
+                card.style.position = "relative";
+
+                const discount = bundle.discount || Math.round(((bundle.originalPrice - bundle.bundlePrice) / bundle.originalPrice) * 100);
+
+                card.innerHTML = `
+                    <div style="position: absolute; top: 10px; right: 10px; background: #ff4444; color: white; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 11px;">
+                        ${discount}% OFF
+                    </div>
+                    <img src="${bundle.image || 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"250\" height=\"300\"%3E%3Crect fill=\"%23ddd\" width=\"250\" height=\"300\"/%3E%3Ctext fill=\"%23999\" font-family=\"Arial\" font-size=\"20\" x=\"50%25\" y=\"50%25\" text-anchor=\"middle\" dy=\".3em\"%3EBundle%3C/text%3E%3C/svg%3E'}" class="book-cover" />
+                    <h3>🎁 ${bundle.name}</h3>
+                    <p style="font-size: 12px; color: #666;">${bundle.books.length} Books</p>
+                    <p style="text-decoration: line-through; color: #999; font-size: 14px;">₹${bundle.originalPrice}</p>
+                    <p class="book-price" style="font-size: 20px; color: #ff4444;">₹${bundle.bundlePrice}</p>
+                    <div class="book-actions">
+                        <button class="btn-primary" onclick="viewBundle('${bundle._id}')">View Bundle</button>
+                        <button class="btn-secondary" onclick="addBundleToCart('${bundle._id}')">Add to Cart</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function viewBundle(bundleId) {
+            window.location.href = `/bundle.html?id=${bundleId}`;
+        }
+
+        async function addBundleToCart(bundleId) {
+            try {
+                const res = await fetch(`${API_URL}/bundles/${bundleId}`);
+                const data = await res.json();
+                const bundle = data.bundle;
+
+                let cart = getCart();
+
+                if (cart.find(item => item.bundleId === bundleId)) {
+                    return alert("This bundle is already in your cart!");
+                }
+
+                cart.push({
+                    bundleId: bundleId,
+                    isBundle: true,
+                    title: bundle.name,
+                    price: bundle.bundlePrice,
+                    originalPrice: bundle.originalPrice,
+                    books: bundle.books,
+                    quantity: 1,
+                    coverImage: bundle.image || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="250" height="300"%3E%3Crect fill="%23ddd" width="250" height="300"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="20" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EBundle%3C/text%3E%3C/svg%3E'
+                });
+
+                saveCart(cart);
+                alert(`Bundle "${bundle.name}" added to cart!`);
+                updateCartCount();
+            } catch (err) {
+                console.error("Error adding bundle to cart:", err);
+                alert("Error adding bundle to cart");
+            }
+        }
+    </script>
+</body>
+</html>

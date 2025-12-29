@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+
+
+# Logs
+*.log
+
+# Build & cache
+.cache/
+dist/
+tmp/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production

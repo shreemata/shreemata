@@ -1,0 +1,2475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Manage Orders - Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        nav { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            padding: 15px 0; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            z-index: 100;
+        }
+        nav .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 0 20px; 
+        }
+        nav .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        nav h1 { 
+            color: white; 
+            margin: 0; 
+            font-size: 20px; 
+        }
+        nav .user-info { 
+            color: white; 
+            font-weight: 500; 
+            font-size: 14px;
+        }
+        .mobile-menu-btn {
+            display: none;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .mobile-menu-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        nav .nav-grid { 
+            display: grid; 
+            grid-template-columns: repeat(6, 1fr); 
+            gap: 8px; 
+            width: 100%; 
+        }
+        nav a { 
+            color: white; 
+            text-decoration: none; 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            transition: all 0.3s ease; 
+            font-weight: 500; 
+            text-align: center;
+            font-size: 12px;
+            white-space: nowrap;
+            display: block;
+            min-height: 40px;
+            line-height: 1.2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        nav a:hover, nav a.active { 
+            background: rgba(255,255,255,0.2); 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Statistics Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .stat-icon {
+            font-size: 28px;
+            opacity: 0.9;
+        }
+        
+        .stat-content {
+            flex: 1;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+        
+        /* Filters Container */
+        .filters-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .filter-row {
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 1fr 1fr 0.8fr 0.8fr;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .date-filter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .date-filter input {
+            flex: 1;
+            padding: 8px 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        
+        .date-filter span {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .status-filter select,
+        .sort-filter select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .status-filter select:focus,
+        .sort-filter select:focus,
+        .date-filter input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .search-btn {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .search-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .clear-btn {
+            width: 100%;
+            padding: 10px 8px;
+            border: 2px solid #dc3545;
+            background: white;
+            color: #dc3545;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .clear-btn:hover {
+            background: #dc3545;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+        }
+        
+        .clear-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 4px rgba(220, 53, 69, 0.3);
+        }
+        
+        /* Pagination */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .pagination-info {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .pagination-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .pagination-btn {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            color: #333;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .pagination-btn:hover {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        
+        .pagination-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+        
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination-btn:disabled:hover {
+            border-color: #e0e0e0;
+            background: white;
+            color: #333;
+        }
+        
+        /* Export Modal Styles */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(3px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .export-modal {
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+            color: white;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+        
+        .close:hover {
+            opacity: 1;
+        }
+        
+        .modal-body {
+            padding: 25px;
+        }
+        
+        .export-options {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        .export-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .export-section h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .date-range-export {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .date-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .date-input-group label {
+            font-weight: 500;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .date-input-group input {
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .date-input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .status-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .checkbox-label:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .checkbox-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        
+        .checkbox-label span {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .export-type-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .export-type-btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+        }
+        
+        .export-type-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
+        }
+        
+        .export-type-btn.export-all {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .export-type-btn.export-all:hover {
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        .main-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 120px;
+        }
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .admin-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .admin-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .admin-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .admin-table th:nth-child(3),
+        .admin-table td:nth-child(3) {
+            width: 280px;
+        }
+        .admin-table th:nth-child(1),
+        .admin-table td:nth-child(1) {
+            width: 100px;
+            font-size: 11px;
+        }
+        .admin-table th:nth-child(5),
+        .admin-table td:nth-child(5) {
+            width: 180px;
+            font-size: 12px;
+        }
+        .admin-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 16px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 16px;
+        }
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .status-completed {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status-pending {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        .status-failed {
+            background: #ffebee;
+            color: #c62828;
+        }
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 60px;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+            nav .nav-grid { 
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+                grid-template-columns: 1fr;
+                gap: 8px;
+                z-index: 1000;
+            }
+            nav .nav-grid.mobile-menu-open {
+                display: grid;
+            }
+            nav a { 
+                font-size: 14px; 
+                padding: 12px 16px;
+                min-height: auto;
+                border-radius: 8px;
+                text-align: left;
+            }
+            nav a:hover, nav a.active {
+                background: rgba(255,255,255,0.2);
+                transform: translateX(5px);
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .main-container {
+                padding: 15px;
+                margin-top: 160px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            
+            .stat-card {
+                padding: 15px;
+            }
+            
+            .stat-icon {
+                font-size: 24px;
+            }
+            
+            .stat-number {
+                font-size: 20px;
+            }
+            
+            .stat-label {
+                font-size: 12px;
+            }
+            
+            .filter-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .search-btn,
+            .clear-btn {
+                padding: 12px 8px;
+                font-size: 12px;
+            }
+            
+            .filter-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            
+            .search-box,
+            .date-filter,
+            .status-filter,
+            .sort-filter {
+                grid-column: 1 / -1;
+                margin-bottom: 8px;
+            }
+            
+            .search-filter,
+            .clear-filter {
+                grid-column: auto;
+            }
+            
+            .export-modal {
+                width: 95%;
+                max-width: 95%;
+                max-height: 95vh;
+                margin: 0;
+            }
+            
+            .modal-header {
+                padding: 15px;
+            }
+            
+            .modal-header h2 {
+                font-size: 18px;
+            }
+            
+            .modal-body {
+                padding: 20px;
+            }
+            
+            .date-range-export {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-checkboxes {
+                grid-template-columns: 1fr;
+            }
+            
+            .export-type-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters-container {
+                padding: 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            nav h1 { 
+                font-size: 16px; 
+            }
+            nav .user-info {
+                font-size: 12px;
+            }
+            .mobile-menu-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            .main-container {
+                margin-top: 100px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .stat-card {
+                padding: 12px;
+            }
+            
+            .stat-icon {
+                font-size: 20px;
+            }
+            
+            .stat-number {
+                font-size: 18px;
+            }
+            
+            .main-container h1 {
+                font-size: 20px !important;
+            }
+            
+            .main-container > div:first-child {
+                flex-direction: column !important;
+                gap: 15px;
+                align-items: flex-start !important;
+            }
+            
+            #exportExcelBtn {
+                width: 100%;
+            }
+            
+            #searchInput {
+                font-size: 16px !important; /* Prevents zoom on iOS */
+            }
+            
+            /* Hide table on mobile, show cards instead */
+            .admin-table {
+                display: none !important;
+            }
+            
+            .mobile-orders {
+                display: block !important;
+            }
+        }
+        
+        /* Mobile Card Layout */
+        .mobile-orders {
+            display: none;
+        }
+        
+        .order-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .order-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .order-card-section {
+            margin-bottom: 12px;
+        }
+        
+        .order-card-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .order-card-value {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.5;
+        }
+        
+        .order-card-actions {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        /* Receipt Styles */
+        .receipt-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .receipt {
+            background: white;
+            width: 80mm;
+            max-width: 400px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.3;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+            color: #000;
+        }
+
+        .receipt-header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+
+        .company-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .company-details {
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        .receipt-section {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #ccc;
+        }
+
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+        }
+
+        .receipt-total {
+            font-weight: bold;
+            font-size: 14px;
+            border-top: 2px solid #000;
+            padding-top: 5px;
+            margin-top: 10px;
+        }
+
+        .receipt-footer {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+            font-size: 10px;
+        }
+
+        .signature-section {
+            margin-top: 30px;
+            text-align: right;
+        }
+
+        .signature-line {
+            border-top: 1px solid #000;
+            width: 150px;
+            margin: 20px 0 5px auto;
+        }
+
+        .receipt-buttons {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .receipt-buttons button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .print-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        .close-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+                font-family: 'Arial', sans-serif !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+            
+            .receipt-container {
+                display: block !important;
+                position: static !important;
+                background: white !important;
+                width: 100% !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 5mm !important;
+                transform: none !important;
+            }
+            
+            .receipt {
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                max-width: 170mm !important;
+                width: 100% !important;
+                max-height: none !important;
+                overflow: visible !important;
+                padding: 10mm !important;
+                margin: 0 auto !important;
+                font-size: 22px !important;
+                line-height: 1.5 !important;
+                color: #000 !important;
+                font-weight: normal !important;
+                font-family: 'Arial', sans-serif !important;
+                border: 3px solid #000 !important;
+            }
+            
+            .receipt-header {
+                margin-bottom: 10px !important;
+                padding-bottom: 8px !important;
+                border-bottom: 3px solid #000 !important;
+                page-break-inside: avoid !important;
+            }
+            
+            .company-name {
+                font-size: 34px !important;
+                font-weight: bold !important;
+                color: #000 !important;
+                text-align: center !important;
+                margin-bottom: 6px !important;
+                letter-spacing: 1px !important;
+                page-break-inside: avoid !important;
+                display: block !important;
+                visibility: visible !important;
+            }
+            
+            .company-details {
+                font-size: 18px !important;
+                color: #000 !important;
+                font-weight: normal !important;
+                text-align: center !important;
+                line-height: 1.4 !important;
+                page-break-inside: avoid !important;
+                display: block !important;
+                visibility: visible !important;
+            }
+            
+            .receipt-section {
+                margin-bottom: 6px !important;
+                padding-bottom: 4px !important;
+                page-break-inside: avoid;
+                border-bottom: 1px dashed #000 !important;
+            }
+            
+            /* Special styling for delivery address section */
+            .receipt-section:has(div:contains("DELIVERY ADDRESS")),
+            .receipt-section div:contains("DELIVERY ADDRESS") {
+                background: #f0f8ff !important;
+                border: 2px solid #4169e1 !important;
+                border-radius: 6px !important;
+                padding: 8px !important;
+                margin: 8px 0 !important;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
+            }
+            
+            /* Delivery address label styling */
+            .receipt-section div[style*="font-weight: bold"]:contains("DELIVERY ADDRESS") {
+                background: #4169e1 !important;
+                color: white !important;
+                padding: 6px 8px !important;
+                margin: -8px -8px 6px -8px !important;
+                border-radius: 4px 4px 0 0 !important;
+                font-size: 20px !important;
+                font-weight: bold !important;
+                text-align: center !important;
+            }
+            
+            /* Delivery address content styling */
+            .receipt-section div[style*="font-size: 10px"]:contains("${deliveryAddress}") {
+                font-size: 18px !important;
+                line-height: 1.4 !important;
+                color: #000 !important;
+                font-weight: bold !important;
+                background: white !important;
+                padding: 6px !important;
+                border-radius: 3px !important;
+                border: 1px solid #e0e0e0 !important;
+            }
+            
+            .receipt-row {
+                font-size: 20px !important;
+                color: #000 !important;
+                font-weight: bold !important;
+                margin-bottom: 3px !important;
+                display: flex !important;
+                justify-content: space-between !important;
+                line-height: 1.4 !important;
+            }
+            
+            .receipt-total {
+                font-size: 24px !important;
+                font-weight: bold !important;
+                color: #000 !important;
+                border-top: 3px solid #000 !important;
+                padding-top: 6px !important;
+                margin-top: 8px !important;
+            }
+            
+            .receipt-footer {
+                font-size: 18px !important;
+                margin-top: 10px !important;
+                padding-top: 8px !important;
+                color: #000 !important;
+                font-weight: bold !important;
+                text-align: center !important;
+                line-height: 1.4 !important;
+            }
+            
+            .signature-section {
+                margin-top: 12px !important;
+                color: #000 !important;
+                font-weight: bold !important;
+                text-align: right !important;
+                font-size: 18px !important;
+            }
+            
+            .signature-line {
+                margin: 10px 0 5px auto !important;
+                border-top: 2px solid #000 !important;
+                width: 120px !important;
+            }
+            
+            /* Enhanced Delivery Address Styles for Print */
+            .delivery-address-section {
+                background: #f0f8ff !important;
+                border: 2px solid #4169e1 !important;
+                border-radius: 6px !important;
+                padding: 10px !important;
+                margin: 10px 0 !important;
+                page-break-inside: avoid !important;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+            }
+            
+            .delivery-address-header {
+                background: #4169e1 !important;
+                color: white !important;
+                font-size: 22px !important;
+                font-weight: bold !important;
+                text-align: center !important;
+                padding: 8px 10px !important;
+                margin: -10px -10px 8px -10px !important;
+                border-radius: 4px 4px 0 0 !important;
+                letter-spacing: 0.5px !important;
+            }
+            
+            .delivery-address-content {
+                font-size: 20px !important;
+                line-height: 1.5 !important;
+                color: #000 !important;
+                font-weight: bold !important;
+                background: white !important;
+                padding: 8px !important;
+                border: 2px solid #e0e0e0 !important;
+                border-radius: 4px !important;
+                text-align: left !important;
+                word-wrap: break-word !important;
+            }
+            
+            .receipt-buttons {
+                display: none !important;
+            }
+            
+            /* Ensure all text is dark and bold */
+            .receipt * {
+                color: #000 !important;
+                font-weight: bold !important;
+            }
+            
+            /* Force single page */
+            @page {
+                size: A4;
+                margin: 0.15in;
+            }
+            
+            /* Prevent page breaks */
+            .receipt {
+                page-break-inside: avoid !important;
+                max-height: 260mm !important;
+                overflow: visible !important;
+            }
+            
+            /* Ensure header is always visible */
+            .receipt-header {
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            
+            .company-name, .company-details {
+                page-break-inside: avoid !important;
+                page-break-after: avoid !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <div class="nav-header">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 40px; height: 40px; border-radius: 50%;">
+                    <h1 style="margin: 0;">Shree Mata Admin</h1>
+                </div>
+                <div class="user-info">
+                    <span id="userName">Hello, Admin</span>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuToggle" onclick="toggleMobileMenu()">
+                    <span id="menuIcon">☰</span> Menu
+                </button>
+            </div>
+            <div class="nav-grid" id="adminNavLinks">
+                <a href="/">🏠 Home</a>
+                <a href="/admin.html">📚 Books</a>
+                <a href="/admin-bundles.html">📦 Bundles</a>
+                <a href="/admin-orders.html" class="active">🛒 Orders</a>
+                <a href="/admin-withdrawals.html">💰 Withdrawals</a>
+                <a href="/admin-bank-requests.html">🏦 Bank Requests</a>
+                <a href="/admin-notifications.html">📢 Notifications</a>
+                <a href="/admin-income.html">💵 Income</a>
+                <a href="/admin-users.html">👥 Users</a>
+                <a href="/admin-password-requests.html">🔐 Password Requests</a>
+                <a href="/admin-commission-settings.html">⚙️ Settings</a>
+                <a href="/admin-receipt-settings.html">🧾 Receipt Settings</a>
+                <a href="/admin-referral-tree.html">🌳 Referral Tree</a>
+                <a href="admin-referral-tree-visual.html">📊 Tree Visual</a>
+                <a href="/" id="logoutBtn">🚪 Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="main-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <div>
+                    <h1 style="margin: 0 0 5px 0;">Customer Orders</h1>
+                    <p style="color: #666; margin: 0;">View and manage all customer orders</p>
+                </div>
+                <div class="export-buttons" style="display: none;" id="exportButtons">
+                    <button id="exportFilteredBtn" class="btn" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); margin-right: 10px;">
+                        📊 Export Filtered
+                    </button>
+                    <button id="exportCustomBtn" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        📋 Custom Export
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalOrders">0</div>
+                        <div class="stat-label">Total Orders</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalAmount">₹0</div>
+                        <div class="stat-label">Total Paid Amount</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="pendingOrders">0</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⚙️</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="processingOrders">0</div>
+                        <div class="stat-label">Processing</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🚚</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="shippedOrders">0</div>
+                        <div class="stat-label">Shipped</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="deliveredOrders">0</div>
+                        <div class="stat-label">Delivered</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="filters-container">
+                <div class="filter-row">
+                    <div class="search-box">
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            placeholder="🔍 Search orders..." 
+                            onkeypress="handleSearchKeyPress(event)"
+                        />
+                    </div>
+                    <div class="date-filter">
+                        <input 
+                            type="date" 
+                            id="fromDate" 
+                            title="From Date"
+                            onchange="applyFilters()"
+                        />
+                        <span>to</span>
+                        <input 
+                            type="date" 
+                            id="toDate" 
+                            title="To Date"
+                            onchange="applyFilters()"
+                        />
+                    </div>
+                    <div class="status-filter">
+                        <select id="statusFilter" onchange="applyFilters()">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                        </select>
+                    </div>
+                    <div class="sort-filter">
+                        <select id="sortFilter" onchange="applyFilters()">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                        </select>
+                    </div>
+                    <div class="search-filter">
+                        <button id="searchFilterBtn" onclick="applyFilters()" class="search-btn">
+                            🔍 Search
+                        </button>
+                    </div>
+                    <div class="clear-filter">
+                        <button id="clearFiltersBtn" onclick="clearAllFilters()" class="clear-btn">
+                            🔄 Clear
+                        </button>
+                    </div>
+                </div>
+                <div id="searchResults" style="margin-top: 8px; color: #667eea; font-size: 13px; display: none;"></div>
+            </div>
+
+            <div id="ordersLoading" class="loading">Loading orders...</div>
+
+            <table class="admin-table" id="ordersTable" style="display:none;">
+                <thead>
+                    <tr>
+                        <th>S.No</th>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Amount</th>
+                        <th>Delivery Address</th>
+                        <th>Payment Status</th>
+                        <th>Delivery Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody"></tbody>
+            </table>
+
+            <div class="mobile-orders" id="mobileOrders"></div>
+            
+            <!-- Pagination -->
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    <span id="paginationInfo">Showing 0-0 of 0 orders</span>
+                </div>
+                <div class="pagination-controls" id="paginationControls">
+                    <!-- Pagination buttons will be added by JavaScript -->
+                </div>
+            </div>
+
+            <div id="ordersEmpty" class="empty-state" style="display:none;">
+                <p>No orders available.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal" style="display: none;">
+        <div class="modal-content export-modal">
+            <div class="modal-header">
+                <h2>📊 Custom Export Options</h2>
+                <span class="close" onclick="closeExportModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <div class="export-section">
+                        <h3>📅 Date Range</h3>
+                        <div class="date-range-export">
+                            <div class="date-input-group">
+                                <label>From Date:</label>
+                                <input type="date" id="exportFromDate" />
+                            </div>
+                            <div class="date-input-group">
+                                <label>To Date:</label>
+                                <input type="date" id="exportToDate" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="export-section">
+                        <h3>💳 Payment Status</h3>
+                        <div class="status-checkboxes">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportPending" checked>
+                                <span>Pending Orders</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportCompleted" checked>
+                                <span>Completed Orders</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportFailed" checked>
+                                <span>Failed Orders</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="export-section">
+                        <h3>🚚 Delivery Status</h3>
+                        <div class="status-checkboxes">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportDeliveryPending" checked>
+                                <span>Pending Delivery</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportProcessing" checked>
+                                <span>Processing</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportShipped" checked>
+                                <span>Shipped</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportDelivered" checked>
+                                <span>Delivered</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="export-section">
+                        <h3>📋 Export Options</h3>
+                        <div class="export-type-buttons">
+                            <button class="export-type-btn" onclick="exportCustomData()">
+                                📊 Export Selected Data
+                            </button>
+                            <button class="export-type-btn export-all" onclick="exportAllData()">
+                                📦 Export All Orders
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receipt Modal -->
+    <div id="receiptContainer" class="receipt-container">
+        <div class="receipt" id="receiptContent">
+            <!-- Receipt content will be generated here -->
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/config.js"></script>
+    <script>
+        const API = window.API_URL;
+        let allOrders = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAdminAuth();
+            loadOrders();
+            
+            document.getElementById('exportFilteredBtn').addEventListener('click', exportFilteredData);
+            document.getElementById('exportCustomBtn').addEventListener('click', openExportModal);
+        });
+
+        function checkAdminAuth() {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+            if (!token || !user || user.role !== 'admin') {
+                alert('Admin access required');
+                window.location.href = '/login.html';
+                return;
+            }
+        }
+
+        // Global variables for filtering and pagination
+        let filteredOrders = [];
+        let currentPage = 1;
+        const ordersPerPage = 12;
+
+        async function loadOrders() {
+            const token = localStorage.getItem("token");
+
+            document.getElementById("ordersLoading").style.display = "block";
+            document.getElementById("ordersTable").style.display = "none";
+            document.getElementById("ordersEmpty").style.display = "none";
+
+            try {
+                const res = await fetch(`${API}/orders/admin/all`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                const data = await res.json();
+                allOrders = data.orders || [];
+                filteredOrders = [...allOrders];
+                
+                updateStatistics();
+                applyFilters();
+                
+            } catch (err) {
+                console.error("Error loading orders:", err);
+                document.getElementById("ordersLoading").style.display = "none";
+                document.getElementById("ordersEmpty").style.display = "block";
+            }
+        }
+
+        function updateStatistics() {
+            const totalOrders = allOrders.length;
+            // Only include completed (successfully paid) orders in total amount
+            const totalAmount = allOrders
+                .filter(order => order.status === 'completed')
+                .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+            
+            const pending = allOrders.filter(order => (order.deliveryStatus || 'pending') === 'pending').length;
+            const processing = allOrders.filter(order => (order.deliveryStatus || 'pending') === 'processing').length;
+            const shipped = allOrders.filter(order => (order.deliveryStatus || 'pending') === 'shipped').length;
+            const delivered = allOrders.filter(order => (order.deliveryStatus || 'pending') === 'delivered').length;
+
+            document.getElementById('totalOrders').textContent = totalOrders;
+            document.getElementById('totalAmount').textContent = `₹${totalAmount.toLocaleString()}`;
+            document.getElementById('pendingOrders').textContent = pending;
+            document.getElementById('processingOrders').textContent = processing;
+            document.getElementById('shippedOrders').textContent = shipped;
+            document.getElementById('deliveredOrders').textContent = delivered;
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
+
+            // Filter orders
+            filteredOrders = allOrders.filter(order => {
+                // Search filter
+                const searchMatch = !searchTerm || 
+                    (order.user_id?.name || '').toLowerCase().includes(searchTerm) ||
+                    (order.user_id?.email || '').toLowerCase().includes(searchTerm) ||
+                    (order._id || '').toLowerCase().includes(searchTerm) ||
+                    (order.items || []).some(item => (item.title || '').toLowerCase().includes(searchTerm));
+
+                // Date filter
+                const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+                const dateMatch = (!fromDate || orderDate >= fromDate) && (!toDate || orderDate <= toDate);
+
+                // Status filter
+                const orderStatus = order.deliveryStatus || 'pending';
+                const statusMatch = !statusFilter || orderStatus === statusFilter;
+
+                return searchMatch && dateMatch && statusMatch;
+            });
+
+            // Sort orders
+            filteredOrders.sort((a, b) => {
+                const dateA = new Date(a.createdAt);
+                const dateB = new Date(b.createdAt);
+                return sortFilter === 'oldest' ? dateA - dateB : dateB - dateA;
+            });
+
+            currentPage = 1;
+            displayOrders();
+            updatePagination();
+        }
+
+        function displayOrders() {
+            const startIndex = (currentPage - 1) * ordersPerPage;
+            const endIndex = startIndex + ordersPerPage;
+            const ordersToShow = filteredOrders.slice(startIndex, endIndex);
+
+            const tbody = document.getElementById("ordersTableBody");
+            tbody.innerHTML = "";
+            const mobileContainer = document.getElementById("mobileOrders");
+            mobileContainer.innerHTML = "";
+
+            document.getElementById("ordersLoading").style.display = "none";
+
+            if (ordersToShow.length === 0) {
+                document.getElementById("ordersEmpty").style.display = "block";
+                document.getElementById("ordersTable").style.display = "none";
+                return;
+            }
+
+            document.getElementById("ordersTable").style.display = "table";
+            document.getElementById("ordersEmpty").style.display = "none";
+            document.getElementById("exportButtons").style.display = "flex";
+
+            ordersToShow.forEach((order, index) => {
+                    // Create mobile card
+                    createMobileOrderCard(order, mobileContainer);
+                    const tr = document.createElement("tr");
+
+                    const itemsList = order.items.map(item => {
+                        const qty = item.quantity || 1;
+                        const qtyText = qty > 1 ? ` <strong style="color: #667eea;">(x${qty})</strong>` : '';
+                        if (item.type === 'bundle') {
+                            return `${item.title} <span style="color: #28a745; font-size: 11px;">(Bundle)</span>${qtyText}`;
+                        }
+                        return `${item.title}${qtyText}`;
+                    }).join('<br>');
+
+                    const statusClass = order.status === 'completed' ? 'status-completed' : 
+                                       order.status === 'pending' ? 'status-pending' : 'status-failed';
+
+                    // Format delivery address
+                    let addressText = '<span style="color: #999;">Not provided</span>';
+                    if (order.deliveryAddress && order.deliveryAddress.street) {
+                        const addr = order.deliveryAddress;
+                        addressText = `
+                            <div style="font-size: 12px; line-height: 1.5;">
+                                <div style="margin-bottom: 3px;">${addr.street}</div>
+                                <div style="margin-bottom: 3px;">${addr.taluk || addr.city}, ${addr.district || ''}</div>
+                                <div style="margin-bottom: 3px;">${addr.state} - PIN: ${addr.pincode}</div>
+                                <div style="color: #667eea;">📞 ${addr.phone}</div>
+                            </div>
+                        `;
+                    }
+
+                    const paymentStatus = order.status || 'pending';
+                    const paymentStatusClass = paymentStatus === 'completed' ? 'status-completed' : 
+                                              paymentStatus === 'pending' ? 'status-pending' : 'status-failed';
+
+                    const deliveryStatus = order.deliveryStatus || 'pending';
+                    const deliveryStatusClass = deliveryStatus === 'delivered' ? 'status-completed' : 
+                                               deliveryStatus === 'shipped' ? 'status-pending' : 
+                                               deliveryStatus === 'processing' ? 'status-pending' : 'status-failed';
+
+                    // Prepare tracking info display
+                    let trackingDisplay = '';
+                    if (order.trackingInfo && (order.trackingInfo.trackingId || order.trackingInfo.trackingWebsite)) {
+                        const tracking = order.trackingInfo;
+                        trackingDisplay = `<br><small style="color: #2196F3; font-size: 10px;">
+                            📦 ${tracking.trackingId ? `ID: ${tracking.trackingId.substring(0, 10)}${tracking.trackingId.length > 10 ? '...' : ''}` : 'Tracking Available'}
+                        </small>`;
+                    }
+
+                    const serialNumber = (currentPage - 1) * ordersPerPage + index + 1;
+                    tr.innerHTML = `
+                        <td><strong>${serialNumber}</strong></td>
+                        <td><small>${order._id}</small></td>
+                        <td>
+                            <strong>${order.user_id?.name || "Unknown"}</strong><br>
+                            <small style="color: #666;">${order.user_id?.email || ""}</small>
+                        </td>
+                        <td>${itemsList}</td>
+                        <td><strong>₹${order.totalAmount}</strong></td>
+                        <td>${addressText}</td>
+                        <td>
+                            <span class="status-badge ${paymentStatusClass}">${paymentStatus}</span>
+                        </td>
+                        <td>
+                            <span class="status-badge ${deliveryStatusClass}">${deliveryStatus}</span>
+                            ${trackingDisplay}
+                        </td>
+                        <td>${new Date(order.createdAt).toLocaleDateString()}<br>
+                            <small style="color: #666;">${new Date(order.createdAt).toLocaleTimeString()}</small>
+                        </td>
+                        <td>
+                            <button class="btn" style="padding: 6px 12px; font-size: 12px; margin-right: 5px;" onclick="updateDelivery('${order._id}')">
+                                Update Delivery
+                            </button>
+                            <button class="btn" style="padding: 6px 12px; font-size: 12px; background: #28a745;" onclick="printReceipt('${order._id}')">
+                                📄 Print Receipt
+                            </button>
+                        </td>
+                    `;
+
+                    tbody.appendChild(tr);
+                });
+        }
+
+        function updatePagination() {
+            const totalOrders = filteredOrders.length;
+            const totalPages = Math.ceil(totalOrders / ordersPerPage);
+            const startIndex = (currentPage - 1) * ordersPerPage + 1;
+            const endIndex = Math.min(currentPage * ordersPerPage, totalOrders);
+
+            // Update pagination info
+            document.getElementById('paginationInfo').textContent = 
+                `Showing ${startIndex}-${endIndex} of ${totalOrders} orders`;
+
+            // Update pagination controls
+            const paginationControls = document.getElementById('paginationControls');
+            paginationControls.innerHTML = '';
+
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'pagination-btn';
+            prevBtn.textContent = '← Previous';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    displayOrders();
+                    updatePagination();
+                }
+            };
+            paginationControls.appendChild(prevBtn);
+
+            // Page numbers
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = `pagination-btn ${i === currentPage ? 'active' : ''}`;
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => {
+                    currentPage = i;
+                    displayOrders();
+                    updatePagination();
+                };
+                paginationControls.appendChild(pageBtn);
+            }
+
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'pagination-btn';
+            nextBtn.textContent = 'Next →';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    displayOrders();
+                    updatePagination();
+                }
+            };
+            paginationControls.appendChild(nextBtn);
+        }
+
+        function createMobileOrderCard(order, container) {
+            const itemsList = order.items.map(item => {
+                const qty = item.quantity || 1;
+                const qtyText = qty > 1 ? ` (x${qty})` : '';
+                if (item.type === 'bundle') {
+                    return `${item.title} <span style="color: #28a745; font-size: 11px;">(Bundle)</span>${qtyText}`;
+                }
+                return `${item.title}${qtyText}`;
+            }).join('<br>');
+
+            const paymentStatus = order.status || 'pending';
+            const paymentStatusClass = paymentStatus === 'completed' ? 'status-completed' : 
+                                      paymentStatus === 'pending' ? 'status-pending' : 'status-failed';
+
+            const deliveryStatus = order.deliveryStatus || 'pending';
+            const deliveryStatusClass = deliveryStatus === 'delivered' ? 'status-completed' : 
+                                       deliveryStatus === 'shipped' ? 'status-pending' : 
+                                       deliveryStatus === 'processing' ? 'status-pending' : 'status-failed';
+
+            let addressText = 'Not provided';
+            if (order.deliveryAddress && order.deliveryAddress.street) {
+                const addr = order.deliveryAddress;
+                addressText = `${addr.street}, ${addr.taluk || addr.city}, ${addr.district || ''}, ${addr.state} - ${addr.pincode}<br>📞 ${addr.phone}`;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'order-card';
+            card.innerHTML = `
+                <div class="order-card-header">
+                    <div>
+                        <div style="font-size: 11px; color: #999; margin-bottom: 5px;">ORDER ID</div>
+                        <div style="font-size: 12px; font-family: monospace; color: #667eea;">${order._id}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 20px; font-weight: 700; color: #28a745;">₹${order.totalAmount}</div>
+                        <div style="font-size: 11px; color: #999;">${new Date(order.createdAt).toLocaleDateString()}</div>
+                    </div>
+                </div>
+
+                <div class="order-card-section">
+                    <div class="order-card-label">👤 Customer</div>
+                    <div class="order-card-value">
+                        <strong>${order.user_id?.name || "Unknown"}</strong><br>
+                        <span style="color: #666; font-size: 13px;">${order.user_id?.email || ""}</span>
+                    </div>
+                </div>
+
+                <div class="order-card-section">
+                    <div class="order-card-label">📚 Items</div>
+                    <div class="order-card-value">${itemsList}</div>
+                </div>
+
+                <div class="order-card-section">
+                    <div class="order-card-label">📍 Delivery Address</div>
+                    <div class="order-card-value" style="font-size: 13px;">${addressText}</div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <div class="order-card-label">💳 Payment</div>
+                        <span class="status-badge ${paymentStatusClass}">${paymentStatus}</span>
+                    </div>
+                    <div style="flex: 1;">
+                        <div class="order-card-label">🚚 Delivery</div>
+                        <span class="status-badge ${deliveryStatusClass}">${deliveryStatus}</span>
+                        ${order.trackingInfo && (order.trackingInfo.trackingId || order.trackingInfo.trackingWebsite) ? `
+                            <div style="margin-top: 5px; font-size: 11px; color: #2196F3;">
+                                📦 ${order.trackingInfo.trackingId ? `ID: ${order.trackingInfo.trackingId}` : 'Tracking Available'}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <div class="order-card-actions">
+                    <button class="btn" style="width: 100%; padding: 10px; font-size: 14px; margin-bottom: 10px;" onclick="updateDelivery('${order._id}')">
+                        Update Delivery Status
+                    </button>
+                    <button class="btn" style="width: 100%; padding: 10px; font-size: 14px; background: #28a745;" onclick="printReceipt('${order._id}')">
+                        📄 Print Receipt
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(card);
+        }
+
+        function filterOrders() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const searchResults = document.getElementById('searchResults');
+
+            // Filter desktop table
+            const tbody = document.getElementById('ordersTableBody');
+            const rows = tbody.getElementsByTagName('tr');
+
+            // Filter mobile cards
+            const mobileContainer = document.getElementById('mobileOrders');
+            const cards = mobileContainer.getElementsByClassName('order-card');
+
+            let visibleCount = 0;
+            const totalCount = rows.length;
+
+            // Filter table rows
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const text = row.textContent.toLowerCase();
+
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+
+            // Filter mobile cards
+            for (let i = 0; i < cards.length; i++) {
+                const card = cards[i];
+                const text = card.textContent.toLowerCase();
+
+                if (text.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            }
+
+            // Show search results count
+            if (searchTerm !== '') {
+                searchResults.style.display = 'block';
+                if (visibleCount === 0) {
+                    searchResults.innerHTML = '❌ No orders found matching "' + searchTerm + '"';
+                    searchResults.style.color = '#dc3545';
+                } else {
+                    searchResults.innerHTML = '✅ Found ' + visibleCount + ' orders';
+                    searchResults.style.color = '#667eea';
+                }
+            } else {
+                searchResults.style.display = 'none';
+            }
+        }
+
+        // Legacy function - now redirects to applyFilters
+        function filterOrders() {
+            applyFilters();
+        }
+
+        function handleSearchKeyPress(event) {
+            // Trigger search when Enter key is pressed
+            if (event.key === 'Enter') {
+                applyFilters();
+            }
+        }
+
+        function clearAllFilters() {
+            // Clear all filter inputs
+            document.getElementById('searchInput').value = '';
+            document.getElementById('fromDate').value = '';
+            document.getElementById('toDate').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('sortFilter').value = 'newest';
+            
+            // Hide search results
+            document.getElementById('searchResults').style.display = 'none';
+            
+            // Reset to first page and apply filters
+            currentPage = 1;
+            applyFilters();
+            
+            // Show feedback
+            const searchResults = document.getElementById('searchResults');
+            searchResults.style.display = 'block';
+            searchResults.innerHTML = '🔄 All filters cleared';
+            searchResults.style.color = '#28a745';
+            
+            // Hide feedback after 2 seconds
+            setTimeout(() => {
+                searchResults.style.display = 'none';
+            }, 2000);
+        }
+
+
+
+        function exportFilteredData() {
+            if (!filteredOrders || filteredOrders.length === 0) {
+                alert('No filtered orders to export');
+                return;
+            }
+            
+            exportOrdersToExcel(filteredOrders, 'filtered_orders');
+        }
+
+        function openExportModal() {
+            const modal = document.getElementById('exportModal');
+            modal.style.display = 'flex';
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
+            
+            // Set default dates (last 30 days)
+            const today = new Date();
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            
+            document.getElementById('exportToDate').value = today.toISOString().split('T')[0];
+            document.getElementById('exportFromDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+        }
+
+        function closeExportModal() {
+            const modal = document.getElementById('exportModal');
+            modal.style.display = 'none';
+            // Restore body scroll when modal is closed
+            document.body.style.overflow = 'auto';
+        }
+
+        function exportCustomData() {
+            const fromDate = document.getElementById('exportFromDate').value;
+            const toDate = document.getElementById('exportToDate').value;
+            
+            // Get selected payment statuses
+            const paymentStatuses = [];
+            if (document.getElementById('exportPending').checked) paymentStatuses.push('pending');
+            if (document.getElementById('exportCompleted').checked) paymentStatuses.push('completed');
+            if (document.getElementById('exportFailed').checked) paymentStatuses.push('failed');
+            
+            // Get selected delivery statuses
+            const deliveryStatuses = [];
+            if (document.getElementById('exportDeliveryPending').checked) deliveryStatuses.push('pending');
+            if (document.getElementById('exportProcessing').checked) deliveryStatuses.push('processing');
+            if (document.getElementById('exportShipped').checked) deliveryStatuses.push('shipped');
+            if (document.getElementById('exportDelivered').checked) deliveryStatuses.push('delivered');
+            
+            // Filter orders based on criteria
+            const customFilteredOrders = allOrders.filter(order => {
+                // Date filter
+                const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+                const dateMatch = (!fromDate || orderDate >= fromDate) && (!toDate || orderDate <= toDate);
+                
+                // Payment status filter
+                const paymentStatus = order.status || 'pending';
+                const paymentMatch = paymentStatuses.length === 0 || paymentStatuses.includes(paymentStatus);
+                
+                // Delivery status filter
+                const deliveryStatus = order.deliveryStatus || 'pending';
+                const deliveryMatch = deliveryStatuses.length === 0 || deliveryStatuses.includes(deliveryStatus);
+                
+                return dateMatch && paymentMatch && deliveryMatch;
+            });
+            
+            if (customFilteredOrders.length === 0) {
+                alert('No orders match the selected criteria');
+                return;
+            }
+            
+            const dateRange = fromDate && toDate ? `_${fromDate}_to_${toDate}` : '';
+            exportOrdersToExcel(customFilteredOrders, `custom_orders${dateRange}`);
+            closeExportModal();
+        }
+
+        function exportAllData() {
+            if (!allOrders || allOrders.length === 0) {
+                alert('No orders to export');
+                return;
+            }
+            
+            exportOrdersToExcel(allOrders, 'all_orders');
+            closeExportModal();
+        }
+
+        function exportOrdersToExcel(orders, filename) {
+            // Prepare data for Excel
+            const excelData = orders.map((order, index) => {
+                const itemsList = order.items.map(item => {
+                    const qty = item.quantity || 1;
+                    const qtyText = qty > 1 ? ` (x${qty})` : '';
+                    if (item.type === 'bundle') {
+                        return `${item.title} (Bundle)${qtyText}`;
+                    }
+                    return `${item.title}${qtyText}`;
+                }).join(', ');
+
+                // Format delivery address for Excel
+                let deliveryAddress = 'Not provided';
+                if (order.deliveryAddress && order.deliveryAddress.street) {
+                    const addr = order.deliveryAddress;
+                    deliveryAddress = `${addr.street}, ${addr.taluk || addr.city}, ${addr.district || ''}, ${addr.state} - ${addr.pincode}`;
+                }
+
+                return {
+                    'S.No': index + 1,
+                    'Order ID': order._id,
+                    'Customer Name': order.user_id?.name || 'Unknown',
+                    'Customer Email': order.user_id?.email || '',
+                    'Items': itemsList,
+                    'Amount (₹)': order.totalAmount,
+                    'Payment Status': order.status || 'pending',
+                    'Delivery Status': order.deliveryStatus || 'pending',
+                    'Delivery Address': deliveryAddress,
+                    'Phone': order.deliveryAddress?.phone || '',
+                    'Order Date': new Date(order.createdAt).toLocaleDateString(),
+                    'Order Time': new Date(order.createdAt).toLocaleTimeString(),
+                    'Payment ID': order.razorpay_payment_id || '',
+                    'Razorpay Order ID': order.razorpay_order_id || ''
+                };
+            });
+
+            // Create worksheet
+            const ws = XLSX.utils.json_to_sheet(excelData);
+
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 8 },  // S.No
+                { wch: 25 }, // Order ID
+                { wch: 20 }, // Customer Name
+                { wch: 30 }, // Customer Email
+                { wch: 40 }, // Items
+                { wch: 12 }, // Amount
+                { wch: 15 }, // Payment Status
+                { wch: 15 }, // Delivery Status
+                { wch: 50 }, // Delivery Address
+                { wch: 15 }, // Phone
+                { wch: 15 }, // Order Date
+                { wch: 15 }, // Order Time
+                { wch: 25 }, // Payment ID
+                { wch: 25 }  // Razorpay Order ID
+            ];
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+
+            // Generate filename with current date
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const finalFilename = `${filename}_${dateStr}.xlsx`;
+
+            // Download file
+            XLSX.writeFile(wb, finalFilename);
+            
+            // Show success message
+            alert(`✅ Successfully exported ${orders.length} orders to ${finalFilename}`);
+        }
+
+        function updateDelivery(orderId) {
+            const statusInput = prompt("Enter delivery status:\n1. pending\n2. processing\n3. shipped\n4. delivered\n\nEnter number (1-4):");
+            if (!statusInput) return;
+
+            const statusMap = {
+                '1': 'pending',
+                '2': 'processing',
+                '3': 'shipped',
+                '4': 'delivered'
+            };
+
+            const status = statusMap[statusInput];
+            
+            if (!status) {
+                alert("Invalid status. Please enter 1, 2, 3, or 4");
+                return;
+            }
+
+            // Show tracking modal for shipped or delivered status
+            if (status === "shipped" || status === "delivered") {
+                showTrackingModal(orderId, status);
+            } else {
+                updateDeliveryStatus(orderId, status, null);
+            }
+        }
+
+        function showTrackingModal(orderId, deliveryStatus) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.6); z-index: 1000; display: flex;
+                align-items: center; justify-content: center; padding: 20px;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 16px; width: 100%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                    <h2 style="margin: 0 0 20px 0; text-align: center; color: #333;">📦 Add Tracking Information</h2>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #555;">Tracking Website URL:</label>
+                        <input type="url" id="trackingWebsite" placeholder="https://www.bluedart.com or https://www.dtdc.in" 
+                               style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;">
+                        <small style="color: #666; font-size: 12px;">Enter the courier company's tracking website</small>
+                    </div>
+                    
+                    <div style="margin-bottom: 25px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #555;">Tracking ID:</label>
+                        <input type="text" id="trackingId" placeholder="Enter tracking number (e.g., 12345678901)" 
+                               style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;">
+                        <small style="color: #666; font-size: 12px;">Enter the tracking number provided by courier</small>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="submitTracking('${orderId}', '${deliveryStatus}')" 
+                                style="flex: 1; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                            ✅ Update Status
+                        </button>
+                        <button onclick="closeTrackingModal()" 
+                                style="flex: 1; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                            ❌ Cancel
+                        </button>
+                    </div>
+                    
+                    <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 12px; color: #666;">
+                        <strong>💡 Tip:</strong> Both fields are optional, but providing tracking info helps customers track their orders.
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            window.trackingModal = modal;
+        }
+
+        function submitTracking(orderId, deliveryStatus) {
+            const trackingWebsite = document.getElementById('trackingWebsite').value.trim();
+            const trackingId = document.getElementById('trackingId').value.trim();
+            
+            // Validate URL if provided
+            if (trackingWebsite && !isValidUrl(trackingWebsite)) {
+                alert('Please enter a valid website URL (e.g., https://www.bluedart.com)');
+                return;
+            }
+            
+            const trackingInfo = {
+                trackingWebsite: trackingWebsite || '',
+                trackingId: trackingId || '',
+                trackingUrl: trackingWebsite && trackingId ? `${trackingWebsite}?trackingId=${trackingId}` : ''
+            };
+            
+            closeTrackingModal();
+            updateDeliveryStatus(orderId, deliveryStatus, trackingInfo);
+        }
+
+        function closeTrackingModal() {
+            if (window.trackingModal) {
+                document.body.removeChild(window.trackingModal);
+                window.trackingModal = null;
+            }
+        }
+
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        async function updateDeliveryStatus(orderId, deliveryStatus, trackingInfo) {
+            const token = localStorage.getItem("token");
+
+            console.log("Updating delivery:", { orderId, deliveryStatus, trackingInfo });
+
+            try {
+                const res = await fetch(`${window.API_URL}/orders/admin/update-delivery/${orderId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({ deliveryStatus, trackingInfo })
+                });
+
+                console.log("Response status:", res.status);
+                const data = await res.json();
+                console.log("Response data:", data);
+
+                if (res.ok) {
+                    alert("Delivery status updated successfully!");
+                    loadOrders();
+                } else {
+                    alert(data.error || "Error updating delivery status");
+                }
+            } catch (err) {
+                console.error("Error:", err);
+                alert("Error updating delivery status: " + err.message);
+            }
+        }
+
+        function printReceipt(orderId) {
+            const order = allOrders.find(o => o._id === orderId);
+            if (!order) {
+                alert('Order not found');
+                return;
+            }
+
+            generateReceipt(order);
+        }
+
+        async function generateReceipt(order) {
+            const receiptContent = document.getElementById('receiptContent');
+            
+            // Load receipt settings
+            let receiptSettings = {};
+            try {
+                const response = await fetch('/api/receipt-settings');
+                const data = await response.json();
+                if (data.success) {
+                    receiptSettings = data.settings;
+                }
+            } catch (error) {
+                console.error('Error loading receipt settings:', error);
+                // Use default values if settings can't be loaded
+                receiptSettings = {
+                    companyName: 'SHREE MATA',
+                    companyTagline: '📚 Premium Educational Store',
+                    phone: '+91-9876543210',
+                    email: 'info@shreemata.com',
+                    address: '123 Book Street, Knowledge City\nDelhi - 110001',
+                    gstin: '07AAACH7409R1ZZ',
+                    footerMessage: '⭐ Thank you for shopping with us! ⭐',
+                    contactFooter: 'For any queries, contact us at:\n📞 +91-9876543210 | 📧 support@shreemata.com',
+                    website: 'www.shreemata.com',
+                    disclaimer: 'This is a computer generated receipt'
+                };
+            }
+            
+            // Calculate totals
+            let subtotal = 0;
+            const itemsHtml = order.items.map(item => {
+                const qty = item.quantity || 1;
+                const price = item.price || 0;
+                const total = qty * price;
+                subtotal += total;
+                
+                return `
+                    <div class="receipt-row">
+                        <span>${item.title}</span>
+                        <span></span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>  ${qty} x ₹${price}</span>
+                        <span>₹${total.toFixed(2)}</span>
+                    </div>
+                `;
+            }).join('');
+
+            const courierCharge = order.courierCharge || 0;
+            const totalAmount = order.totalAmount || (subtotal + courierCharge);
+
+            // Format delivery address
+            let deliveryAddress = 'Not provided';
+            if (order.deliveryAddress && order.deliveryAddress.street) {
+                const addr = order.deliveryAddress;
+                deliveryAddress = `${addr.street}, ${addr.taluk || addr.city}, ${addr.district || ''}, ${addr.state} - ${addr.pincode}`;
+            }
+
+            const receiptHtml = `
+                <div class="receipt-header">
+                    <div class="company-name">${receiptSettings.companyName}</div>
+                    <div class="company-details">
+                        ${receiptSettings.companyTagline}<br>
+                        📞 ${receiptSettings.phone}<br>
+                        📧 ${receiptSettings.email}<br>
+                        🏠 ${receiptSettings.address.replace(/\n/g, '<br>')}<br>
+                        ${receiptSettings.gstin ? `GSTIN: ${receiptSettings.gstin}` : ''}
+                    </div>
+                </div>
+
+                <div class="receipt-section">
+                    <div style="text-align: center; font-weight: bold; margin-bottom: 10px;">
+                        SALES RECEIPT
+                    </div>
+                    <div class="receipt-row">
+                        <span>Receipt No:</span>
+                        <span>${order._id.slice(-8).toUpperCase()}</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Date:</span>
+                        <span>${new Date(order.createdAt).toLocaleDateString('en-IN')}</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Time:</span>
+                        <span>${new Date(order.createdAt).toLocaleTimeString('en-IN')}</span>
+                    </div>
+                </div>
+
+                <div class="receipt-section">
+                    <div style="font-weight: bold; margin-bottom: 5px;">CUSTOMER DETAILS:</div>
+                    <div>Name: ${order.user_id?.name || 'N/A'}</div>
+                    <div>Email: ${order.user_id?.email || 'N/A'}</div>
+                    <div>Phone: ${order.deliveryAddress?.phone || 'N/A'}</div>
+                </div>
+
+                <div class="receipt-section delivery-address-section">
+                    <div class="delivery-address-header" style="font-weight: bold; margin-bottom: 10px; background: #4169e1; color: white; padding: 10px; text-align: center; border-radius: 5px;">📍 DELIVERY ADDRESS</div>
+                    <div class="delivery-address-content" style="font-size: 14px; line-height: 1.5; background: #f0f8ff; padding: 15px; border: 2px solid #4169e1; border-radius: 5px; font-weight: bold;">
+                        ${deliveryAddress}
+                    </div>
+                </div>
+
+                <div class="receipt-section">
+                    <div style="font-weight: bold; margin-bottom: 8px;">ITEMS PURCHASED:</div>
+                    ${itemsHtml}
+                    
+                    <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #ccc;">
+                        <div class="receipt-row">
+                            <span>Subtotal:</span>
+                            <span>₹${subtotal.toFixed(2)}</span>
+                        </div>
+                        ${courierCharge > 0 ? `
+                        <div class="receipt-row">
+                            <span>Delivery Charges:</span>
+                            <span>₹${courierCharge.toFixed(2)}</span>
+                        </div>
+                        ` : ''}
+                        <div class="receipt-row receipt-total">
+                            <span>TOTAL AMOUNT:</span>
+                            <span>₹${totalAmount.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="receipt-section">
+                    <div class="receipt-row">
+                        <span>Payment Method:</span>
+                        <span>Online Payment</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Payment Status:</span>
+                        <span style="text-transform: uppercase;">${order.status || 'PENDING'}</span>
+                    </div>
+                    ${order.razorpay_payment_id ? `
+                    <div class="receipt-row">
+                        <span>Payment ID:</span>
+                        <span style="font-size: 9px;">${order.razorpay_payment_id}</span>
+                    </div>
+                    ` : ''}
+                </div>
+
+                <div class="signature-section">
+                    <div>Authorized Signatory</div>
+                    <div class="signature-line"></div>
+                    <div style="font-size: 10px; margin-top: 5px;">${receiptSettings.companyName}</div>
+                </div>
+
+                <div class="receipt-footer">
+                    <div style="margin-bottom: 8px;">
+                        ${receiptSettings.footerMessage}
+                    </div>
+                    <div style="font-size: 9px;">
+                        ${receiptSettings.contactFooter.replace(/\n/g, '<br>')}<br>
+                        Visit us: ${receiptSettings.website}
+                    </div>
+                    <div style="margin-top: 10px; font-size: 8px;">
+                        ${receiptSettings.disclaimer}
+                    </div>
+                </div>
+
+                <div class="receipt-buttons">
+                    <button class="print-btn" onclick="printReceiptContent()">🖨️ Print</button>
+                    <button class="close-btn" onclick="closeReceipt()">❌ Close</button>
+                </div>
+            `;
+
+            receiptContent.innerHTML = receiptHtml;
+            document.getElementById('receiptContainer').style.display = 'flex';
+        }
+
+        function printReceiptContent() {
+            const receiptContainer = document.getElementById('receiptContainer');
+            const originalDisplay = receiptContainer.style.display;
+            
+            // Hide all other content
+            document.body.style.visibility = 'hidden';
+            receiptContainer.style.visibility = 'visible';
+            receiptContainer.style.display = 'block';
+            
+            // Print
+            window.print();
+            
+            // Restore original state
+            document.body.style.visibility = 'visible';
+            receiptContainer.style.display = originalDisplay;
+        }
+
+        function closeReceipt() {
+            document.getElementById('receiptContainer').style.display = 'none';
+        }
+
+        // Close receipt when clicking outside
+        document.getElementById('receiptContainer').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeReceipt();
+            }
+        });
+
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+        });
+
+        // Mobile menu toggle function
+        function toggleMobileMenu() {
+            const navLinks = document.getElementById('adminNavLinks');
+            const menuIcon = document.getElementById('menuIcon');
+            
+            if (navLinks.classList.contains('mobile-menu-open')) {
+                navLinks.classList.remove('mobile-menu-open');
+                menuIcon.textContent = '☰';
+            } else {
+                navLinks.classList.add('mobile-menu-open');
+                menuIcon.textContent = '✕';
+            }
+        }
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(e) {
+            const navLinks = document.getElementById('adminNavLinks');
+            const menuToggle = document.getElementById('mobileMenuToggle');
+            
+            if (navLinks && menuToggle && 
+                navLinks.classList.contains('mobile-menu-open') &&
+                !navLinks.contains(e.target) && 
+                !menuToggle.contains(e.target)) {
+                navLinks.classList.remove('mobile-menu-open');
+                document.getElementById('menuIcon').textContent = '☰';
+            }
+        });
+
+        // Close mobile menu when clicking on a link
+        document.querySelectorAll('#adminNavLinks a').forEach(link => {
+            link.addEventListener('click', function() {
+                const navLinks = document.getElementById('adminNavLinks');
+                navLinks.classList.remove('mobile-menu-open');
+                document.getElementById('menuIcon').textContent = '☰';
+            });
+        });
+
+        // Close export modal when clicking outside
+        window.onclick = function(event) {
+            const exportModal = document.getElementById('exportModal');
+            if (event.target === exportModal) {
+                closeExportModal();
+            }
+        }
+    </script>
+    <script src="js/admin-navigation.js"></script>
+</body>
+</html>

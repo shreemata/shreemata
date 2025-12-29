@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#667eea">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Admin — Referral Tree (Visual)</title>
+
+<!-- html2canvas for Export PNG -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<style>
+/* --- Enhanced Modern Layout --- */
+body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    margin: 0;
+    color: #2c3e50;
+    padding-top: 140px;
+}
+
+/* Navigation Styles */
+nav { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+    padding: 15px 0; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15); 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    right: 0; 
+    z-index: 100;
+    max-height: 120px;
+}
+nav .container { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    padding: 0 20px; 
+}
+nav h1 { 
+    color: white; 
+    margin: 0 0 10px 0; 
+    font-size: 20px; 
+    text-align: center; 
+}
+nav .nav-content { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    width: 100%; 
+    position: relative;
+}
+nav .user-info { 
+    color: white; 
+    margin-bottom: 10px; 
+    font-weight: 500; 
+    font-size: 14px;
+}
+nav .nav-grid { 
+    display: grid; 
+    grid-template-columns: repeat(6, 1fr); 
+    gap: 5px; 
+    width: 100%; 
+    max-width: 800px;
+    margin: 0 auto;
+}
+nav a { 
+    color: white; 
+    text-decoration: none; 
+    padding: 6px 4px; 
+    border-radius: 4px; 
+    transition: all 0.3s ease; 
+    font-weight: 500; 
+    text-align: center;
+    font-size: 10px;
+    white-space: nowrap;
+    display: block;
+    min-height: 30px;
+    line-height: 30px;
+}
+nav a:hover, nav a.active { 
+    background: rgba(255,255,255,0.2); 
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Mobile Menu Button */
+.mobile-menu-btn {
+    display: none;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    position: absolute;
+    top: -5px;
+    right: 0;
+}
+.mobile-menu-btn:hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateY(-1px);
+}
+
+.container {
+    max-width: 1400px;
+    margin: 24px auto;
+    padding: 20px;
+}
+.tree-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    margin-top: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.tree-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e8ecf4;
+}
+.tree-header h2 { 
+    margin: 0; 
+    font-size: 28px; 
+    color: #2c3e50; 
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.tree-controls { 
+    display: flex; 
+    gap: 15px; 
+    align-items: center; 
+}
+.tree-search {
+    padding: 12px 16px; 
+    border-radius: 12px; 
+    border: 2px solid #e8ecf4; 
+    width: 280px; 
+    font-size: 14px;
+    background: rgba(255, 255, 255, 0.8);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.tree-search:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+.btn-primary, .btn-secondary {
+    padding: 12px 20px; 
+    border-radius: 12px; 
+    border: none; 
+    cursor: pointer; 
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.btn-primary { 
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); 
+    color: white; 
+}
+.btn-secondary { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+    color: white; 
+}
+.btn-primary:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 6px 20px rgba(116, 185, 255, 0.4);
+}
+.btn-secondary:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+/* Enhanced Tree Visuals - Keep Horizontal Layout */
+.tree-root-wrap { 
+    padding: 50px; 
+    overflow: auto; 
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 15px;
+    margin-top: 20px;
+    min-height: 400px;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    /* Ensure horizontal scrolling shows all content */
+    overflow-x: auto;
+    overflow-y: auto;
+    /* Add extra space for wide trees */
+    min-width: 100%;
+}
+
+.tree-level {
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    position: relative; 
+    padding-top: 30px;
+    /* Ensure tree level can expand horizontally */
+    width: 100%;
+    min-width: max-content;
+}
+
+/* Improved vertical connecting lines from parent */
+.tree-level:before {
+    content: ""; 
+    position: absolute; 
+    top: 0; 
+    left: 50%; 
+    width: 3px; 
+    height: 30px; 
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    border-radius: 2px;
+    transform: translateX(-50%);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.tree-level.root:before { display: none; }
+
+.tree-children {
+    display: flex; 
+    gap: 25px; 
+    justify-content: center; 
+    margin-top: 30px; 
+    position: relative;
+    align-items: flex-start;
+    /* Ensure children don't get cut off */
+    min-width: max-content;
+    width: 100%;
+    /* Add padding to prevent edge cutoff */
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+/* Horizontal connecting line between siblings */
+.tree-children:before {
+    content: ""; 
+    position: absolute; 
+    top: -15px; 
+    height: 3px; 
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 2px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    opacity: var(--show-horizontal-line, 1);
+    left: var(--line-left, 25%);
+    right: var(--line-right, 25%);
+}
+
+/* Hide horizontal line for single children */
+.tree-children:has(> div:only-child):before {
+    display: none;
+}
+
+/* Vertical connecting lines to each child */
+.tree-children > div { 
+    position: relative; 
+}
+.tree-children > div:before {
+    content: ""; 
+    position: absolute; 
+    top: -30px; 
+    left: 50%; 
+    width: 3px; 
+    height: 30px; 
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    border-radius: 2px;
+    transform: translateX(-50%);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Ensure proper connection points */
+.tree-children > div:first-child:before,
+.tree-children > div:last-child:before {
+    height: 30px;
+    top: -30px;
+}
+
+/* Better spacing for multiple children */
+.tree-children:has(> div:nth-child(2)) {
+    gap: 40px;
+}
+
+.tree-children:has(> div:nth-child(3)) {
+    gap: 35px;
+}
+
+.tree-children:has(> div:nth-child(4)) {
+    gap: 30px;
+}
+
+.tree-children:has(> div:nth-child(n+5)) {
+    gap: 25px;
+}
+
+/* Enhanced tree nodes */
+.tree-node {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+    border: 2px solid #e8ecf4;
+    padding: 20px 24px;
+    border-radius: 16px;
+    min-width: 180px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    /* Ensure nodes are always visible */
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Hover effects */
+.tree-node:hover { 
+    transform: translateY(-8px) scale(1.02); 
+    box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
+    border-color: #667eea;
+    background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
+}
+
+/* Node content styling */
+.tree-name { 
+    font-weight: 700; 
+    font-size: 16px; 
+    margin-bottom: 8px; 
+    color: #2c3e50;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.tree-meta { 
+    font-size: 13px; 
+    color: #6c757d; 
+    margin: 4px 0;
+    font-weight: 500;
+}
+
+/* Special styling for wallet amount */
+.tree-meta:first-of-type {
+    color: #28a745;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Highlight effect for search */
+.highlight { 
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.3) !important; 
+    border-color: #667eea !important;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8f2ff 100%) !important;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: translateY(-8px) scale(1.02); }
+    50% { transform: translateY(-8px) scale(1.05); }
+    100% { transform: translateY(-8px) scale(1.02); }
+}
+
+/* Level indicators */
+.tree-level[data-level]:before {
+    content: attr(data-level);
+    position: absolute;
+    left: -40px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Enhanced Loading & Messages */
+#loading { 
+    padding: 40px; 
+    text-align: center; 
+    color: #667eea;
+    font-size: 16px;
+    font-weight: 500;
+    background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+    border-radius: 15px;
+    margin: 20px 0;
+    border: 2px dashed #e8ecf4;
+}
+#loading:before {
+    content: "🌳";
+    display: block;
+    font-size: 48px;
+    margin-bottom: 15px;
+    animation: bounce 2s infinite;
+}
+
+.error { 
+    color: #dc3545; 
+    padding: 20px;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe6e6 100%);
+    border-radius: 12px;
+    border-left: 4px solid #dc3545;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.1);
+}
+
+#message {
+    padding: 20px;
+    text-align: center;
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border-radius: 12px;
+    border-left: 4px solid #ffc107;
+    color: #856404;
+    font-weight: 500;
+    margin: 20px 0;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+}
+
+/* Enhanced Modal */
+.modal-backdrop {
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0,0,0,0.6); 
+    backdrop-filter: blur(5px);
+    display: none; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 2000;
+    animation: fadeIn 0.3s ease-out;
+}
+.modal {
+    width: 920px; 
+    max-width: 95%; 
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+    border-radius: 20px; 
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3); 
+    padding: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    animation: slideUp 0.3s ease-out;
+}
+.modal .close { 
+    float: right; 
+    cursor: pointer; 
+    border: none; 
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+    color: white;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    font-size: 18px; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+.modal .close:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+}
+.modal h3 {
+    color: #2c3e50;
+    font-size: 24px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.modal .stat-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+    gap: 15px; 
+    margin: 20px 0; 
+}
+.stat-card { 
+    padding: 20px; 
+    border-left: 4px solid #667eea; 
+    background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.1);
+}
+.stat-card strong {
+    color: #667eea;
+    font-size: 14px;
+    font-weight: 600;
+}
+.stat-card div {
+    font-size: 18px;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-top: 5px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0; 
+        transform: translateY(30px) scale(0.95); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
+}
+
+/* Mobile Responsive Navigation */
+@media (max-width: 768px) {
+    .mobile-menu-btn {
+        display: block;
+    }
+    nav .nav-grid { 
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        grid-template-columns: 1fr;
+        gap: 8px;
+        z-index: 1000;
+    }
+    nav .nav-grid.mobile-menu-open {
+        display: grid;
+    }
+    nav a { 
+        font-size: 14px; 
+        padding: 12px 16px;
+        min-height: auto;
+        border-radius: 8px;
+        text-align: left;
+    }
+    nav a:hover, nav a.active {
+        background: rgba(255,255,255,0.2);
+        transform: translateX(5px);
+    }
+}
+
+@media (max-width: 480px) {
+    nav h1 { 
+        font-size: 16px; 
+    }
+    nav .user-info {
+        font-size: 12px;
+    }
+    .mobile-menu-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+}
+
+/* Enhanced mobile responsiveness */
+@media (max-width: 1024px) {
+    .container { padding: 15px; }
+    .tree-card { padding: 20px; }
+    .tree-header { 
+        flex-direction: column; 
+        gap: 20px; 
+        align-items: stretch; 
+        text-align: center;
+    }
+    .tree-header h2 { font-size: 24px; }
+    .tree-controls { 
+        flex-direction: column; 
+        gap: 15px; 
+        align-items: stretch;
+    }
+    .tree-search { width: 100%; }
+    .btn-primary, .btn-secondary { 
+        width: 100%; 
+        padding: 14px; 
+        font-size: 16px;
+    }
+    
+    /* Adjust tree spacing for tablets but maintain visibility */
+    .tree-root-wrap { 
+        padding: 30px; 
+        /* Better horizontal scrolling on tablets */
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .tree-children { 
+        gap: 20px; 
+        padding: 0 15px;
+    }
+    .tree-node { min-width: 160px; padding: 16px 20px; }
+}
+
+@media (max-width: 768px) {
+    body { padding-top: 160px; }
+    
+    .tree-card { 
+        padding: 15px; 
+        border-radius: 15px;
+    }
+    .tree-header h2 { font-size: 20px; }
+    
+    .tree-node { 
+        min-width: 120px; 
+        padding: 12px 14px; 
+        font-size: 12px;
+        border-radius: 10px;
+    }
+    .tree-name { font-size: 13px; }
+    .tree-meta { font-size: 11px; }
+    
+    /* Ensure mobile horizontal scrolling works */
+    .tree-root-wrap { 
+        padding: 25px 15px; 
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        /* Show scroll hint on mobile */
+    }
+    
+    .scroll-hint {
+        display: block !important;
+        opacity: 1 !important;
+        animation: fadeInOut 4s ease-in-out;
+    }
+    
+    /* Keep horizontal layout but reduce spacing */
+    .tree-children { 
+        gap: 15px; 
+        margin-top: 25px;
+        padding: 0 10px;
+    }
+    
+    /* Adjust connecting lines for mobile */
+    .tree-level:before { height: 25px; }
+    .tree-level { padding-top: 25px; }
+    .tree-children > div:before {
+        height: 25px;
+        top: -25px;
+    }
+    .tree-children:before { top: -12px; }
+    
+    /* Reduce hover effects on mobile */
+    .tree-node:hover { 
+        transform: translateY(-2px) scale(1.01); 
+    }
+    
+    /* Zoom controls for mobile */
+    .tree-controls {
+        flex-wrap: wrap;
+    }
+    
+    .tree-controls button {
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+    
+    /* Stack export buttons on mobile */
+    #exportBtn, #exportFullBtn {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+
+/* Print styles for full tree export */
+@media print {
+    body { 
+        padding-top: 0 !important; 
+        background: white !important;
+    }
+    
+    nav, .tree-header, .tree-controls {
+        display: none !important;
+    }
+    
+    .tree-card {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+        background: white !important;
+        padding: 20px !important;
+    }
+    
+    .tree-root-wrap {
+        overflow: visible !important;
+        width: auto !important;
+        height: auto !important;
+        max-width: none !important;
+        max-height: none !important;
+        background: white !important;
+        padding: 20px !important;
+    }
+    
+    .tree-level, .tree-children {
+        width: auto !important;
+        min-width: auto !important;
+    }
+    
+    .tree-node {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        background: white !important;
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+    }
+    
+    .scroll-hint {
+        display: none !important;
+    }
+    
+    /* Ensure all connecting lines are visible in print */
+    .tree-level:before,
+    .tree-children:before,
+    .tree-children > div:before {
+        background: #333 !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+}
+
+@media (max-width: 600px) {
+    body { padding-top: 180px; }
+    
+    .tree-card { padding: 12px; }
+    .tree-header h2 { font-size: 18px; }
+    
+    .tree-node { 
+        min-width: 100px; 
+        padding: 10px 12px; 
+        font-size: 11px;
+        border-radius: 8px;
+    }
+    .tree-name { font-size: 12px; margin-bottom: 4px; }
+    .tree-meta { font-size: 10px; }
+    
+    /* Keep horizontal but more compact */
+    .tree-children { 
+        gap: 10px; 
+        margin-top: 20px;
+    }
+    
+    /* Smaller connecting lines */
+    .tree-level:before { height: 20px; width: 2px; }
+    .tree-level { padding-top: 20px; }
+    .tree-children > div:before {
+        height: 20px;
+        top: -20px;
+        width: 2px;
+    }
+    .tree-children:before { 
+        top: -10px; 
+        height: 2px;
+    }
+    
+    /* Minimal hover effects */
+    .tree-node:hover { 
+        transform: translateY(-1px); 
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* Stack zoom controls vertically on very small screens */
+    .tree-controls {
+        gap: 8px;
+    }
+    
+    .tree-controls button {
+        font-size: 11px;
+        padding: 6px 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .tree-card { padding: 10px; }
+    .tree-header h2 { font-size: 16px; }
+    
+    .tree-node { 
+        min-width: 110px; 
+        padding: 10px 12px; 
+        font-size: 11px;
+        border-radius: 8px;
+    }
+    .tree-name { font-size: 12px; margin-bottom: 4px; }
+    .tree-meta { font-size: 10px; }
+    
+    .tree-controls button { font-size: 14px; padding: 12px; }
+    .tree-search { font-size: 16px; padding: 10px; }
+    
+    /* Very compact tree for tiny screens */
+    .tree-children { gap: 8px; margin-top: 20px; }
+    .tree-level:before { height: 20px; }
+    .tree-level { padding-top: 20px; }
+    .tree-children > div:before { height: 20px; top: -20px; }
+    .tree-children:before { top: -10px; }
+    
+    /* Modal adjustments for mobile */
+    .modal { 
+        width: 95%; 
+        padding: 15px; 
+        margin: 10px;
+        border-radius: 12px;
+    }
+    .modal .stat-grid { 
+        grid-template-columns: 1fr; 
+        gap: 8px; 
+    }
+    .modal h3 { font-size: 18px; }
+}
+
+/* Touch device specific styles */
+.touch-device .tree-node {
+    cursor: pointer;
+    -webkit-tap-highlight-color: rgba(74, 144, 226, 0.2);
+}
+
+.touch-device .tree-node:active {
+    transform: scale(0.98);
+}
+
+/* Improve scrolling on touch devices */
+.touch-device #treeWrap {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+/* Better button spacing for touch */
+@media (hover: none) and (pointer: coarse) {
+    .tree-controls button {
+        min-height: 44px;
+        margin-bottom: 8px;
+    }
+    
+    .tree-search {
+        min-height: 44px;
+        font-size: 16px !important;
+    }
+}
+</style>
+</head>
+<body>
+
+<nav>
+    <div class="container">
+        <div class="nav-content">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 40px; height: 40px; border-radius: 50%;">
+                <h1 style="margin: 0;">Shree Mata Admin</h1>
+            </div>
+            <div class="user-info">
+                <span id="userName">Hello, Admin</span>
+            </div>
+            <button class="mobile-menu-btn" id="mobileMenuToggle" onclick="toggleMobileMenu()">
+                <span id="menuIcon">☰</span> Menu
+            </button>
+            <div class="nav-grid" id="adminNavLinks">
+                <a href="/">🏠 Home</a>
+                <a href="/admin.html">📚 Books</a>
+                <a href="/admin-bundles.html">📦 Bundles</a>
+                <a href="/admin-orders.html">🛒 Orders</a>
+                <a href="/admin-withdrawals.html">💰 Withdrawals</a>
+                <a href="/admin-bank-requests.html">🏦 Bank Requests</a>
+                <a href="/admin-notifications.html">📢 Notifications</a>
+                <a href="/admin-income.html">💵 Income</a>
+                <a href="/admin-users.html">👥 Users</a>
+                <a href="/admin-commission-settings.html">⚙️ Settings</a>
+                <a href="/admin-referral-tree.html">🌳 Referral Tree</a>
+                <a href="admin-referral-tree-visual.html" class="active">📊 Tree Visual</a>
+                <a href="/" id="logoutBtn">🚪 Logout</a>
+            </div>
+                <a href="/admin-users.html">👥 Users</a>
+                <a href="/admin-commission-settings.html">⚙️ Settings</a>
+                <a href="/admin-referral-tree.html">🌳 Referral Tree</a>
+                <a href="admin-referral-tree-visual.html" class="active">📊 Tree Visual</a>
+                <a href="/" id="logoutBtn">🚪 Logout</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="tree-card">
+        <div class="tree-header">
+            <h2>Referral Tree (Visual)</h2>
+            <div class="tree-controls">
+                <input id="searchInput" class="tree-search" placeholder="Search user by name or code..." />
+                <button id="zoomOutBtn" class="btn-primary">🔍- Zoom Out</button>
+                <button id="zoomInBtn" class="btn-primary">🔍+ Zoom In</button>
+                <button id="refreshBtn" class="btn-primary">Refresh</button>
+                <button id="exportBtn" class="btn-secondary">Export PNG</button>
+                <button id="exportFullBtn" class="btn-secondary">📸 Export Full Tree</button>
+                <button id="debugBtn" class="btn-primary" style="display: none;">🔍 Debug</button>
+            </div>
+        </div>
+
+        <p style="color:#666; margin:8px 0 12px;">Displays your full referral network. Click a node to open details. Use Ctrl+scroll to zoom or scroll horizontally to see all nodes.</p>
+
+        <div id="loading">Loading referral tree…</div>
+        <div id="treeWrap" class="tree-root-wrap" style="display:none;">
+            <div class="scroll-hint" style="position: absolute; top: 10px; right: 10px; background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 5px 10px; border-radius: 15px; font-size: 12px; pointer-events: none; opacity: 0.7;">
+                ← Scroll horizontally to see all nodes →
+            </div>
+        </div>
+        <div id="message" style="display:none;"></div>
+    </div>
+</div>
+
+<!-- modal for user details -->
+<div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-hidden="true">
+    <div class="modal" role="document">
+        <button class="close" id="modalClose" aria-label="Close">&times;</button>
+        <div id="modalContent">
+            <!-- content inserted dynamically -->
+        </div>
+    </div>
+</div>
+
+<script>
+/*
+  Robust admin visual referral tree
+  - Attempts common endpoints
+  - Works with nested `tree` arrays or `root` + `children` form
+  - Uses current API base: window.API_URL (should be http://localhost:3000 or production host)
+  - Calls protected endpoints with Bearer token from localStorage
+*/
+
+// API base (expected provided by your config.js)
+const API = (typeof API_URL !== 'undefined') ? API_URL : ''; // user earlier indicated API_URL is http://localhost:3000
+
+// Candidate endpoints (tried in order)
+const ENDPOINT_CANDIDATES = [
+    `${API}/api/admin/referral-tree/complete`, // likely from your codebase
+    `${API}/api/referral/tree`,                // possibility from reference file you shared
+    `${API}/api/admin/referral-tree/complete?page=1&limit=1000`, // try large limit if paged
+];
+
+const treeWrap = document.getElementById('treeWrap');
+const loadingEl = document.getElementById('loading');
+const messageEl = document.getElementById('message');
+const searchInput = document.getElementById('searchInput');
+const refreshBtn = document.getElementById('refreshBtn');
+const exportBtn = document.getElementById('exportBtn');
+const exportFullBtn = document.getElementById('exportFullBtn');
+const debugBtn = document.getElementById('debugBtn');
+const zoomInBtn = document.getElementById('zoomInBtn');
+const zoomOutBtn = document.getElementById('zoomOutBtn');
+
+let currentZoom = 1;
+
+refreshBtn.addEventListener('click', loadTree);
+exportBtn.addEventListener('click', exportTreeAsImage);
+exportFullBtn.addEventListener('click', exportFullTreeAsImageSimple);
+zoomInBtn.addEventListener('click', () => adjustZoom(0.1));
+zoomOutBtn.addEventListener('click', () => adjustZoom(-0.1));
+
+// Debug function to check tree content
+debugBtn.addEventListener('click', () => {
+    console.log('Tree content:', treeWrap.innerHTML);
+    console.log('Tree dimensions:', {
+        width: treeWrap.offsetWidth,
+        height: treeWrap.offsetHeight,
+        scrollWidth: treeWrap.scrollWidth,
+        scrollHeight: treeWrap.scrollHeight
+    });
+    alert('Check console for tree debug info');
+});
+searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') performSearch(); });
+
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalBackdrop').addEventListener('click', (e) => { if (e.target.id === 'modalBackdrop') closeModal(); });
+
+/* ---------- MAIN: loadTree tries endpoints until it gets usable data ---------- */
+async function loadTree(){
+    treeWrap.style.display = 'none';
+    messageEl.style.display = 'none';
+    loadingEl.style.display = 'block';
+    loadingEl.textContent = 'Loading referral tree…';
+    treeWrap.innerHTML = '';
+
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            loadingEl.textContent = 'Not authenticated. Redirecting to login…';
+            setTimeout(() => window.location.href = '/login.html', 900);
+            return;
+        }
+
+        let data = null;
+        let usedEndpoint = null;
+        // Try candidates sequentially
+        for (const ep of ENDPOINT_CANDIDATES) {
+            try {
+                const res = await fetch(ep, { headers: { 'Authorization': 'Bearer ' + token } });
+                if (!res.ok) {
+                    // Try next endpoint on 404,401,403 we still try others; but break on server 5xx?
+                    if (res.status >= 500) {
+                        // server error — stop trying other endpoints (they likely share same backend)
+                        throw new Error(`Server error ${res.status}`);
+                    }
+                    // try next candidate
+                    continue;
+                }
+                const json = await res.json();
+                if (json) { data = json; usedEndpoint = ep; break; }
+            } catch (err) {
+                // keep trying next endpoint
+                console.warn('Endpoint try failed:', ep, err);
+                continue;
+            }
+        }
+
+        loadingEl.style.display = 'none';
+
+        if (!data) {
+            messageEl.style.display = 'block';
+            messageEl.className = 'error';
+            messageEl.textContent = 'Could not load referral tree — no endpoint responded successfully. Check API_URL and backend routes.';
+            return;
+        }
+
+        // Normalize data to a root node or array of roots
+        let roots = [];
+        if (Array.isArray(data.tree)) {
+            // data.tree may be full nested tree (array)
+            roots = data.tree;
+        } else if (data.root) {
+            // legacy API: root + children
+            // some APIs return { root: {...}, children: [...] }
+            // we will attach children when building
+            roots = [ { ...data.root, children: data.children || (data.root.children || []) } ];
+        } else if (Array.isArray(data)) {
+            // in case API gave an array directly
+            roots = data;
+        } else {
+            // If object looks like single node
+            if (data.id || data._id) roots = [ data ];
+        }
+
+        if (!roots || roots.length === 0) {
+            messageEl.style.display = 'block';
+            messageEl.textContent = 'No referral records found.';
+            return;
+        }
+
+        // Build visible tree
+        treeWrap.innerHTML = '';
+        for (const r of roots) {
+            const el = buildTreeElement(r, true);
+            treeWrap.appendChild(el);
+        }
+        treeWrap.style.display = 'block';
+        
+        // Update connection lines and ensure visibility after tree is built
+        setTimeout(() => { 
+            updateConnectionLines();
+            ensureTreeVisibility();
+            window.scrollTo({ top: 0, behavior: 'smooth' }); 
+        }, 100);
+
+    } catch (err) {
+        console.error('loadTree error', err);
+        loadingEl.style.display = 'none';
+        messageEl.style.display = 'block';
+        messageEl.className = 'error';
+        messageEl.textContent = 'Error loading tree: ' + (err.message || err);
+    }
+}
+
+/* ---------- Build DOM recursively ---------- */
+function buildTreeElement(node, isRoot=false){
+    // Node may have children property or nested children
+    const levelDiv = document.createElement('div');
+    levelDiv.className = 'tree-level' + (isRoot ? ' root' : '');
+
+    const userNode = createUserNodeElement(node);
+    levelDiv.appendChild(userNode);
+
+    const children = node.children || node.treeChildren || node.childrenList || [];
+    if (children && children.length > 0) {
+        const childrenWrap = document.createElement('div');
+        childrenWrap.className = 'tree-children';
+        children.forEach(child => {
+            const childTree = buildTreeElement(child, false);
+            childrenWrap.appendChild(childTree);
+        });
+        levelDiv.appendChild(childrenWrap);
+    }
+
+    return levelDiv;
+}
+
+function createUserNodeElement(user){
+    const node = document.createElement('div');
+    node.className = 'tree-node';
+    node.setAttribute('data-user-id', user.id || user._id || user._id_str || '');
+    // safe content
+    const name = escapeHtml(user.name || user.fullName || user.displayName || 'Unnamed');
+    const wallet = Number(user.wallet || (user.account?.wallet) || 0).toFixed(2);
+    const referrals = (user.referrals !== undefined) ? user.referrals : (user.childrenCount || (user.relationships && user.relationships.treeChildrenCount) || 0);
+
+    node.innerHTML = `
+        <div class="tree-name">${name}</div>
+        <div class="tree-meta">Wallet: ₹${wallet}</div>
+        <div class="tree-meta">${referrals} referrals</div>
+    `;
+
+    // click opens modal (non-blocking)
+    node.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const uid = node.getAttribute('data-user-id');
+        openUserModal(uid, user); // pass current minimal user object as fallback
+    });
+
+    return node;
+}
+
+/* ---------- Modal / user details ---------- */
+const modalBackdrop = document.getElementById('modalBackdrop');
+const modalContent = document.getElementById('modalContent');
+
+function openUserModal(userId, fallbackUser){
+    // Show modal quickly with fallback content, then fetch details
+    modalBackdrop.style.display = 'flex';
+    modalBackdrop.setAttribute('aria-hidden', 'false');
+    modalContent.innerHTML = `<div style="padding:12px;">Loading user details…</div>`;
+
+    // If no ID or empty, show fallback
+    if (!userId) {
+        populateModalWithData(fallbackUser || { name: 'Unknown' });
+        return;
+    }
+    fetchAndPopulateUser(userId, fallbackUser);
+}
+
+async function fetchAndPopulateUser(userId, fallbackUser){
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) { populateModalWithData({ name: 'Not authenticated' }); return; }
+
+        // Try likely user endpoints
+        const userEndpoints = [
+            `${API}/api/admin/users/${userId}`,
+            `${API}/api/admin/users/user/${userId}`,
+            `${API}/api/users/${userId}`
+        ];
+
+        let userData = null;
+        for (const ep of userEndpoints) {
+            try {
+                const res = await fetch(ep, { headers: { 'Authorization': 'Bearer ' + token, 'Content-Type':'application/json' } });
+                if (!res.ok) continue;
+                const json = await res.json();
+                // Accept { user: {...} } or {...}
+                if (json.user) userData = json.user;
+                else userData = json;
+                break;
+            } catch(err) {
+                continue;
+            }
+        }
+
+        if (!userData) {
+            // fallback to minimal
+            populateModalWithData(fallbackUser || { name: 'No details available' });
+            return;
+        }
+
+        populateModalWithData(userData);
+
+    } catch (err) {
+        console.error('fetchAndPopulateUser', err);
+        populateModalWithData(fallbackUser || { name: 'Error loading details' });
+    }
+}
+
+function populateModalWithData(user) {
+    const joinDate = user.joinDate ? (new Date(user.joinDate)).toLocaleDateString() : 'N/A';
+    const wallet = Number(user.wallet || 0).toFixed(2);
+    const totalComms = Number(user.commissions?.total || user.totalCommissions || 0).toFixed(2);
+    const referrals = user.referrals ?? user.childrenCount ?? (user.relationships?.treeChildrenCount ?? 0);
+
+    modalContent.innerHTML = `
+        <button class="close" id="modalCloseInner" aria-label="Close">&times;</button>
+        <h3 style="margin-top:6px;">${escapeHtml(user.name || user.fullName || 'User')}</h3>
+        <div class="stat-grid">
+            <div class="stat-card"><strong>Wallet</strong><div>₹${wallet}</div></div>
+            <div class="stat-card"><strong>Total Commissions</strong><div>₹${totalComms}</div></div>
+            <div class="stat-card"><strong>Direct Children</strong><div>${referrals}</div></div>
+            <div class="stat-card"><strong>Joined</strong><div>${joinDate}</div></div>
+        </div>
+        <div style="margin-top:8px;">
+            <strong>Email:</strong> ${escapeHtml(user.email || 'N/A')}<br/>
+            <strong>Referral Code:</strong> ${escapeHtml(user.referralCode || user.code || 'N/A')}<br/>
+            <strong>Role:</strong> ${escapeHtml(user.role || 'User')}
+        </div>
+    `;
+    // wire inner close
+    const innerClose = document.getElementById('modalCloseInner');
+    if (innerClose) innerClose.addEventListener('click', closeModal);
+}
+
+/* ---------- search ---------- */
+function performSearch(){
+    const q = (searchInput.value || '').trim().toLowerCase();
+    if (!q) return;
+
+    // Clear previous highlights
+    document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('highlight'));
+
+    // Find first node whose text matches name/code
+    let found = null;
+    document.querySelectorAll('.tree-node').forEach(node => {
+        const txt = (node.textContent || '').toLowerCase();
+        if (found) return;
+        if (txt.includes(q)) found = node;
+    });
+
+    if (found) {
+        found.classList.add('highlight');
+        // ensure it's visible
+        found.scrollIntoView({ behavior:'smooth', block:'center' });
+        // remove highlight after a bit
+        setTimeout(() => found.classList.remove('highlight'), 4000);
+    } else {
+        alert('No matching user found in currently loaded tree.');
+    }
+}
+
+/* ---------- export ---------- */
+async function exportTreeAsImage(){
+    const el = treeWrap;
+    if (!el || el.style.display === 'none') {
+        alert('Nothing to export.');
+        return;
+    }
+    
+    // Show loading state
+    exportBtn.disabled = true;
+    exportBtn.textContent = '📸 Exporting...';
+    
+    try {
+        // Hide scroll hint during export
+        const scrollHint = el.querySelector('.scroll-hint');
+        const originalHintDisplay = scrollHint ? scrollHint.style.display : null;
+        if (scrollHint) scrollHint.style.display = 'none';
+        
+        // Wait for layout to settle
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Use html2canvas with current view
+        const canvas = await html2canvas(el, { 
+            scale: 1.5, 
+            useCORS: true, 
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            allowTaint: true,
+            foreignObjectRendering: false,
+            logging: false,
+            scrollX: 0,
+            scrollY: 0
+        });
+        
+        // Restore scroll hint
+        if (scrollHint && originalHintDisplay !== null) {
+            scrollHint.style.display = originalHintDisplay;
+        }
+        
+        // Create and download the image
+        const url = canvas.toDataURL('image/png', 0.9);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `referral-tree-view-${new Date().toISOString().split('T')[0]}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // Show success message
+        setTimeout(() => {
+            alert('✅ Tree view exported successfully!');
+        }, 100);
+        
+    } catch (err) {
+        console.error('Export failed', err);
+        alert('❌ Export failed: ' + err.message + '. Please try the full tree export or print option.');
+    } finally {
+        // Restore button state
+        exportBtn.disabled = false;
+        exportBtn.textContent = 'Export PNG';
+    }
+}
+
+/* ---------- Alternative full tree export ---------- */
+async function exportFullTreeAsImage() {
+    const el = treeWrap;
+    if (!el || el.style.display === 'none') {
+        alert('Nothing to export.');
+        return;
+    }
+    
+    // Show loading state
+    exportFullBtn.disabled = true;
+    exportFullBtn.textContent = '📸 Preparing...';
+    
+    try {
+        // Create a style element with all necessary CSS
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
+            .export-container {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                padding: 50px;
+                min-height: 400px;
+            }
+            .export-tree-wrap {
+                padding: 30px;
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 15px;
+                overflow: visible !important;
+                width: auto !important;
+                height: auto !important;
+            }
+            .export-tree-level {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                position: relative;
+                padding-top: 30px;
+                width: 100%;
+                min-width: max-content;
+            }
+            .export-tree-level:before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 50%;
+                width: 3px;
+                height: 30px;
+                background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+                border-radius: 2px;
+                transform: translateX(-50%);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .export-tree-level.root:before { display: none; }
+            .export-tree-children {
+                display: flex;
+                gap: 25px;
+                justify-content: center;
+                margin-top: 30px;
+                position: relative;
+                align-items: flex-start;
+                min-width: max-content;
+                width: 100%;
+                padding: 0 20px;
+                box-sizing: border-box;
+            }
+            .export-tree-children:before {
+                content: "";
+                position: absolute;
+                top: -15px;
+                height: 3px;
+                background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+                border-radius: 2px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                left: 25%;
+                right: 25%;
+            }
+            .export-tree-children > div {
+                position: relative;
+            }
+            .export-tree-children > div:before {
+                content: "";
+                position: absolute;
+                top: -30px;
+                left: 50%;
+                width: 3px;
+                height: 30px;
+                background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+                border-radius: 2px;
+                transform: translateX(-50%);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .export-tree-node {
+                background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+                border: 2px solid #e8ecf4;
+                padding: 20px 24px;
+                border-radius: 16px;
+                min-width: 180px;
+                text-align: center;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+                position: relative;
+                flex-shrink: 0;
+                white-space: nowrap;
+            }
+            .export-tree-name {
+                font-weight: 700;
+                font-size: 16px;
+                margin-bottom: 8px;
+                color: #2c3e50;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+            .export-tree-meta {
+                font-size: 13px;
+                color: #6c757d;
+                margin: 4px 0;
+                font-weight: 500;
+            }
+            .export-tree-meta:first-of-type {
+                color: #28a745;
+                font-weight: 600;
+                font-size: 14px;
+            }
+        `;
+        
+        // Create a temporary container for export
+        const tempContainer = document.createElement('div');
+        tempContainer.className = 'export-container';
+        tempContainer.style.cssText = `
+            position: absolute;
+            top: -20000px;
+            left: -20000px;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: -1000;
+        `;
+        
+        // Clone the tree content and update class names
+        const treeClone = el.cloneNode(true);
+        treeClone.className = 'export-tree-wrap';
+        
+        // Remove scroll hint from clone
+        const scrollHintClone = treeClone.querySelector('.scroll-hint');
+        if (scrollHintClone) scrollHintClone.remove();
+        
+        // Update all class names to use export-specific styles
+        const updateClasses = (element) => {
+            if (element.classList) {
+                if (element.classList.contains('tree-level')) {
+                    element.className = element.className.replace('tree-level', 'export-tree-level');
+                }
+                if (element.classList.contains('tree-children')) {
+                    element.className = element.className.replace('tree-children', 'export-tree-children');
+                }
+                if (element.classList.contains('tree-node')) {
+                    element.className = element.className.replace('tree-node', 'export-tree-node');
+                }
+                if (element.classList.contains('tree-name')) {
+                    element.className = element.className.replace('tree-name', 'export-tree-name');
+                }
+                if (element.classList.contains('tree-meta')) {
+                    element.className = element.className.replace('tree-meta', 'export-tree-meta');
+                }
+            }
+            
+            // Recursively update children
+            for (let child of element.children) {
+                updateClasses(child);
+            }
+        };
+        
+        updateClasses(treeClone);
+        
+        // Add style and content to container
+        tempContainer.appendChild(styleElement);
+        tempContainer.appendChild(treeClone);
+        document.body.appendChild(tempContainer);
+        
+        // Wait for layout and styles to apply
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        exportFullBtn.textContent = '📸 Capturing...';
+        
+        // Capture with html2canvas
+        const canvas = await html2canvas(tempContainer, {
+            scale: 1.5,
+            useCORS: true,
+            backgroundColor: '#f5f7fa',
+            allowTaint: true,
+            foreignObjectRendering: false,
+            logging: true,
+            width: tempContainer.scrollWidth,
+            height: tempContainer.scrollHeight,
+            scrollX: 0,
+            scrollY: 0,
+            onclone: (clonedDoc) => {
+                // Ensure styles are applied in the cloned document
+                const clonedStyle = clonedDoc.querySelector('style');
+                if (clonedStyle) {
+                    clonedStyle.innerHTML = styleElement.textContent;
+                }
+            }
+        });
+        
+        // Remove temporary container
+        document.body.removeChild(tempContainer);
+        
+        // Check if canvas has content
+        if (canvas.width === 0 || canvas.height === 0) {
+            throw new Error('Canvas has no content');
+        }
+        
+        // Create and download the image
+        const url = canvas.toDataURL('image/png', 0.95);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `referral-tree-complete-${new Date().toISOString().split('T')[0]}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // Show success message
+        setTimeout(() => {
+            alert('✅ Complete referral tree exported successfully!');
+        }, 100);
+        
+    } catch (err) {
+        console.error('Full export failed', err);
+        alert('❌ Full tree export failed: ' + err.message + '. Please try the regular export option.');
+    } finally {
+        // Restore button state
+        exportFullBtn.disabled = false;
+        exportFullBtn.textContent = '📸 Export Full Tree';
+    }
+}
+
+/* ---------- Simple full tree export ---------- */
+async function exportFullTreeAsImageSimple() {
+    const el = treeWrap;
+    if (!el || el.style.display === 'none') {
+        alert('Nothing to export.');
+        return;
+    }
+    
+    // Show loading state
+    exportFullBtn.disabled = true;
+    exportFullBtn.textContent = '📸 Exporting...';
+    
+    try {
+        // Store original styles
+        const originalOverflow = el.style.overflow;
+        const originalOverflowX = el.style.overflowX;
+        const originalTransform = el.style.transform;
+        const originalWidth = el.style.width;
+        const originalHeight = el.style.height;
+        
+        // Hide scroll hint
+        const scrollHint = el.querySelector('.scroll-hint');
+        if (scrollHint) scrollHint.style.display = 'none';
+        
+        // Temporarily make everything visible
+        el.style.overflow = 'visible';
+        el.style.overflowX = 'visible';
+        el.style.transform = 'none';
+        el.style.width = 'auto';
+        el.style.height = 'auto';
+        
+        // Wait for layout
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Capture the element
+        const canvas = await html2canvas(el, {
+            scale: 1,
+            useCORS: true,
+            backgroundColor: '#f5f7fa',
+            allowTaint: true,
+            logging: true,
+            foreignObjectRendering: false,
+            width: el.scrollWidth,
+            height: el.scrollHeight
+        });
+        
+        // Restore original styles
+        el.style.overflow = originalOverflow;
+        el.style.overflowX = originalOverflowX;
+        el.style.transform = originalTransform;
+        el.style.width = originalWidth;
+        el.style.height = originalHeight;
+        
+        // Show scroll hint again
+        if (scrollHint) scrollHint.style.display = '';
+        
+        // Download the image
+        const link = document.createElement('a');
+        link.download = `referral-tree-${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        
+        alert('✅ Tree exported successfully!');
+        
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('❌ Export failed. Error: ' + error.message);
+    } finally {
+        exportFullBtn.disabled = false;
+        exportFullBtn.textContent = '📸 Export Full Tree';
+    }
+}
+
+/* ---------- helpers ---------- */
+function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
+}
+
+function closeModal(){
+    modalBackdrop.style.display = 'none';
+    modalBackdrop.setAttribute('aria-hidden', 'true');
+}
+
+/* ---------- Authentication & Navigation ---------- */
+// Check authentication
+const token = localStorage.getItem("token");
+if (!token) window.location.href = "/login.html";
+
+const userName = localStorage.getItem("userName");
+if (userName) document.getElementById("userName").textContent = `Hello, ${userName}`;
+
+// Logout functionality
+document.getElementById("logoutBtn").addEventListener("click", (e) => {
+    e.preventDefault();
+    localStorage.removeItem("token");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userRole");
+    window.location.href = "/login.html";
+});
+
+// Mobile menu toggle function
+function toggleMobileMenu() {
+    const navLinks = document.getElementById('adminNavLinks');
+    const menuIcon = document.getElementById('menuIcon');
+    
+    if (navLinks.classList.contains('mobile-menu-open')) {
+        navLinks.classList.remove('mobile-menu-open');
+        menuIcon.textContent = '☰';
+    } else {
+        navLinks.classList.add('mobile-menu-open');
+        menuIcon.textContent = '✕';
+    }
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(e) {
+    const navLinks = document.getElementById('adminNavLinks');
+    const menuToggle = document.getElementById('mobileMenuToggle');
+    
+    if (navLinks && menuToggle && 
+        navLinks.classList.contains('mobile-menu-open') &&
+        !navLinks.contains(e.target) && 
+        !menuToggle.contains(e.target)) {
+        navLinks.classList.remove('mobile-menu-open');
+        document.getElementById('menuIcon').textContent = '☰';
+    }
+});
+
+// Close mobile menu when clicking on a link
+document.querySelectorAll('#adminNavLinks a').forEach(link => {
+    link.addEventListener('click', function() {
+        const navLinks = document.getElementById('adminNavLinks');
+        navLinks.classList.remove('mobile-menu-open');
+        document.getElementById('menuIcon').textContent = '☰';
+    });
+});
+
+/* ---------- Zoom functionality ---------- */
+function adjustZoom(delta) {
+    currentZoom = Math.max(0.3, Math.min(2, currentZoom + delta));
+    treeWrap.style.transform = `scale(${currentZoom})`;
+    treeWrap.style.transformOrigin = 'top center';
+    
+    // Update button states
+    zoomInBtn.disabled = currentZoom >= 2;
+    zoomOutBtn.disabled = currentZoom <= 0.3;
+    
+    // Update button text to show current zoom
+    zoomInBtn.textContent = `🔍+ Zoom In (${Math.round(currentZoom * 100)}%)`;
+    zoomOutBtn.textContent = `🔍- Zoom Out (${Math.round(currentZoom * 100)}%)`;
+}
+
+// Mouse wheel zoom support
+treeWrap.addEventListener('wheel', function(e) {
+    if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        adjustZoom(delta);
+    }
+});
+
+// Initialize zoom buttons
+setTimeout(() => {
+    adjustZoom(0); // Initialize button states
+}, 100);
+
+/* ---------- Enhanced line connections ---------- */
+function updateConnectionLines() {
+    // Update horizontal connecting lines based on actual child positions
+    document.querySelectorAll('.tree-children').forEach(childrenContainer => {
+        const children = childrenContainer.children;
+        if (children.length <= 1) {
+            childrenContainer.style.setProperty('--show-horizontal-line', '0');
+            return;
+        }
+        
+        // Calculate the span needed for horizontal line
+        const firstChild = children[0];
+        const lastChild = children[children.length - 1];
+        
+        if (firstChild && lastChild) {
+            const containerRect = childrenContainer.getBoundingClientRect();
+            const firstRect = firstChild.getBoundingClientRect();
+            const lastRect = lastChild.getBoundingClientRect();
+            
+            const leftOffset = firstRect.left - containerRect.left + (firstRect.width / 2);
+            const rightOffset = containerRect.right - lastRect.right + (lastRect.width / 2);
+            
+            childrenContainer.style.setProperty('--line-left', `${leftOffset}px`);
+            childrenContainer.style.setProperty('--line-right', `${rightOffset}px`);
+            childrenContainer.style.setProperty('--show-horizontal-line', '1');
+        }
+    });
+}
+
+/* ---------- Ensure tree visibility ---------- */
+function ensureTreeVisibility() {
+    // Make sure the tree container has proper dimensions
+    const treeWrap = document.getElementById('treeWrap');
+    if (!treeWrap) return;
+    
+    // Calculate the actual width needed for the tree
+    const treeContent = treeWrap.firstElementChild;
+    if (treeContent) {
+        const contentWidth = treeContent.scrollWidth;
+        const containerWidth = treeWrap.clientWidth;
+        
+        // If content is wider than container, ensure horizontal scrolling
+        if (contentWidth > containerWidth) {
+            treeWrap.style.overflowX = 'auto';
+            treeWrap.style.minWidth = '100%';
+        }
+        
+        // Center the tree horizontally if it's smaller than container
+        if (contentWidth < containerWidth) {
+            treeWrap.style.justifyContent = 'center';
+            treeWrap.style.display = 'flex';
+            treeWrap.style.flexDirection = 'column';
+            treeWrap.style.alignItems = 'center';
+        }
+    }
+    
+    // Hide scroll hint after a few seconds
+    setTimeout(() => {
+        const scrollHint = document.querySelector('.scroll-hint');
+        if (scrollHint) {
+            scrollHint.style.opacity = '0.3';
+        }
+    }, 5000);
+}
+
+/* ---------- initialization ---------- */
+loadTree();
+
+// Mobile-specific enhancements
+function initMobileTreeEnhancements() {
+    // Add touch-friendly interactions
+    if ('ontouchstart' in window) {
+        document.body.classList.add('touch-device');
+        
+        // Add touch feedback to tree nodes
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.closest('.tree-node')) {
+                e.target.closest('.tree-node').style.transform = 'scale(0.98)';
+            }
+        });
+        
+        document.addEventListener('touchend', function(e) {
+            if (e.target.closest('.tree-node')) {
+                setTimeout(() => {
+                    const node = e.target.closest('.tree-node');
+                    if (node) node.style.transform = '';
+                }, 150);
+            }
+        });
+    }
+    
+    // Improve mobile scrolling for tree container
+    const treeWrap = document.getElementById('treeWrap');
+    if (treeWrap) {
+        treeWrap.style.webkitOverflowScrolling = 'touch';
+        
+        // Add horizontal scroll indicator for mobile
+        if (window.innerWidth <= 768) {
+            const scrollIndicator = document.createElement('div');
+            scrollIndicator.style.cssText = `
+                position: absolute;
+                bottom: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0,0,0,0.6);
+                color: white;
+                padding: 5px 10px;
+                border-radius: 15px;
+                font-size: 12px;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+            scrollIndicator.textContent = '← Swipe to explore tree →';
+            treeWrap.parentElement.style.position = 'relative';
+            treeWrap.parentElement.appendChild(scrollIndicator);
+            
+            // Show scroll indicator briefly
+            setTimeout(() => {
+                scrollIndicator.style.opacity = '1';
+                setTimeout(() => {
+                    scrollIndicator.style.opacity = '0';
+                }, 3000);
+            }, 1000);
+        }
+    }
+    
+    // Optimize search for mobile
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput && window.innerWidth <= 768) {
+        searchInput.setAttribute('autocomplete', 'off');
+        searchInput.setAttribute('autocorrect', 'off');
+        searchInput.setAttribute('autocapitalize', 'off');
+        searchInput.style.fontSize = '16px'; // Prevent zoom on iOS
+    }
+    
+    // Add mobile-friendly export button
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn && window.innerWidth <= 768) {
+        exportBtn.addEventListener('click', function() {
+            // Show loading state for mobile
+            this.innerHTML = '📱 Exporting...';
+            this.disabled = true;
+            
+            setTimeout(() => {
+                this.innerHTML = 'Export PNG';
+                this.disabled = false;
+            }, 3000);
+        });
+    }
+}
+
+// Initialize mobile enhancements when DOM is ready
+document.addEventListener('DOMContentLoaded', initMobileTreeEnhancements);
+
+// Re-initialize on orientation change
+window.addEventListener('orientationchange', function() {
+    setTimeout(initMobileTreeEnhancements, 100);
+});
+
+</script>
+<script src="js/admin-navigation.js"></script>
+</body>
+</html>

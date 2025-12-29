@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Account - Shree Mata</title>
+    <link rel="stylesheet" href="css/account.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header>
+    <div class="navbar">
+        <div class="container navbar-content">
+            <div class="logo">
+                <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                    <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 32px; height: 32px; border-radius: 50%;">
+                    <span>Shree Mata</span>
+                </a>
+            </div>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="cart.html">Cart</a>
+                <a href="#" id="logoutBtn">Logout</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main>
+    <div class="container account-container">
+
+        <h1>My Account</h1>
+
+        <div class="account-menu">
+            <button onclick="showSection('profile')">👤 Profile</button>
+            <button onclick="showSection('edit')">✏️ Edit Profile</button>
+            <button onclick="showSection('address')">🏠 Delivery Address</button>
+            <button onclick="showSection('store')">🏪 Store Details</button>
+            <button onclick="showSection('orders')">📦 Order History</button>
+            <button onclick="showSection('wallet')">💰 Wallet & Cashback</button>
+            <button onclick="showSection('points')">🎁 Points & Rewards</button>
+            <button onclick="logout()">🚪 Logout</button>
+        </div>
+
+        <div id="profileSection" class="account-section">
+            <h2>👤 Profile</h2>
+            <p><strong>Name:</strong> <span id="accName"></span></p>
+            <p><strong>Email:</strong> <span id="accEmail"></span></p>
+        </div>
+
+        <div id="editSection" class="account-section" style="display:none;">
+            <h2>✏️ Edit Profile</h2>
+            <form id="editForm">
+                <input type="text" id="editName" placeholder="New Name">
+                <input type="email" id="editEmail" placeholder="New Email">
+                <button class="btn-primary" type="submit">💾 Update Profile</button>
+            </form>
+        </div>
+
+        <div id="addressSection" class="account-section" style="display:none;">
+            <h2>🏠 Delivery Address</h2>
+            <div id="addressDisplay" style="margin-bottom: 20px;">
+                <p><strong>Home Address 1:</strong> <span id="displayHomeAddress1">Not set</span></p>
+                <p><strong>Home Address 2:</strong> <span id="displayHomeAddress2">-</span></p>
+                <p><strong>Street Name:</strong> <span id="displayStreetName">Not set</span></p>
+                <p><strong>Landmark:</strong> <span id="displayLandmark">-</span></p>
+                <p><strong>Village/Area:</strong> <span id="displayVillage">Not set</span></p>
+                <p><strong>Taluk:</strong> <span id="displayTaluk">Not set</span></p>
+                <p><strong>District:</strong> <span id="displayDistrict">Not set</span></p>
+                <p><strong>State:</strong> <span id="displayState">Not set</span></p>
+                <p><strong>Pincode:</strong> <span id="displayPincode">Not set</span></p>
+                <p><strong>Phone:</strong> <span id="displayPhone">Not set</span></p>
+            </div>
+            <button class="action-btn" onclick="toggleAddressEdit()">✏️ Edit Address</button>
+            
+            <form id="addressForm" style="display:none; margin-top: 20px;">
+                <div style="display: grid; gap: 15px;">
+                    <div>
+                        <label for="homeAddress1" style="display: block; margin-bottom: 5px; font-weight: 600;">Home Address 1 *</label>
+                        <input type="text" id="homeAddress1" placeholder="House/Building number and name" required>
+                    </div>
+                    <div>
+                        <label for="homeAddress2" style="display: block; margin-bottom: 5px; font-weight: 600;">Home Address 2 (Optional)</label>
+                        <input type="text" id="homeAddress2" placeholder="Apartment, suite, floor, etc.">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label for="streetName" style="display: block; margin-bottom: 5px; font-weight: 600;">Street Name</label>
+                            <input type="text" id="streetName" placeholder="Street name">
+                        </div>
+                        <div>
+                            <label for="landmark" style="display: block; margin-bottom: 5px; font-weight: 600;">Landmark</label>
+                            <input type="text" id="landmark" placeholder="Near landmark">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label for="village" style="display: block; margin-bottom: 5px; font-weight: 600;">Village/Area</label>
+                            <input type="text" id="village" placeholder="Village or area name">
+                        </div>
+                        <div>
+                            <label for="taluk" style="display: block; margin-bottom: 5px; font-weight: 600;">Taluk *</label>
+                            <input type="text" id="taluk" placeholder="Taluk name" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label for="district" style="display: block; margin-bottom: 5px; font-weight: 600;">District *</label>
+                            <input type="text" id="district" placeholder="District name" required>
+                        </div>
+                        <div>
+                            <label for="state" style="display: block; margin-bottom: 5px; font-weight: 600;">State *</label>
+                            <input type="text" id="state" placeholder="State name" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label for="pincode" style="display: block; margin-bottom: 5px; font-weight: 600;">Pincode *</label>
+                            <input type="text" id="pincode" placeholder="6-digit pincode" required pattern="[0-9]{6}">
+                        </div>
+                        <div>
+                            <label for="phone" style="display: block; margin-bottom: 5px; font-weight: 600;">Phone Number *</label>
+                            <input type="tel" id="phone" placeholder="10-digit phone number" required pattern="[0-9]{10}">
+                        </div>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="action-btn" type="submit">💾 Save Address</button>
+                    <button class="action-btn cancel-btn" type="button" onclick="toggleAddressEdit()">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="storeSection" class="account-section" style="display:none;">
+            <h2>🏪 Store Information</h2>
+            <div class="store-info-card" style="background: #f8f9fa; padding: 25px; border-radius: 12px; border-left: 4px solid #28a745; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                    <span style="font-size: 24px;">🏪</span>
+                    <h3 style="margin: 0; color: #155724;" id="accountStoreName">Loading...</h3>
+                </div>
+                
+                <div style="display: grid; gap: 12px; font-size: 14px; color: #155724;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-weight: 600; min-width: 80px;">📍 Address:</span>
+                        <span id="accountStoreAddress">Loading...</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-weight: 600; min-width: 80px;">🕒 Hours:</span>
+                        <span id="accountStoreHours">Loading...</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-weight: 600; min-width: 80px;">📞 Phone:</span>
+                        <a href="#" id="accountStorePhoneLink" style="color: #28a745; text-decoration: none; font-weight: 600;">
+                            <span id="accountStorePhone">Loading...</span>
+                        </a>
+                    </div>
+                    <div style="margin-top: 15px; padding: 15px; background: #e8f5e9; border-radius: 8px;">
+                        <div style="font-weight: 600; margin-bottom: 8px;">📞 Pickup Instructions:</div>
+                        <div id="accountPickupInstructions" style="line-height: 1.4;">Loading...</div>
+                    </div>
+                    <div id="accountMapLinkContainer" style="margin-top: 15px; display: none;">
+                        <a id="accountMapLinkButton" href="#" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);">
+                            🗺️ View Store on Map
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                <h4 style="margin: 0 0 8px 0; color: #856404;">💡 Store Pickup Benefits</h4>
+                <ul style="margin: 0; padding-left: 20px; color: #856404; font-size: 14px;">
+                    <li>Save on delivery charges (FREE pickup!)</li>
+                    <li>Inspect books before taking them</li>
+                    <li>No delivery delays</li>
+                    <li>Personal service and recommendations</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="ordersSection" class="account-section" style="display:none;">
+            <h2>📦 Order History</h2>
+            <div id="ordersList">Loading...</div>
+        </div>
+
+        <div id="walletSection" class="account-section" style="display:none;">
+            <h2>💰 Wallet & Cashback</h2>
+            
+            <div class="wallet-summary">
+                <div class="wallet-card">
+                    <h3>💰 Available Balance</h3>
+                    <p class="wallet-value" id="walletBalance">₹0</p>
+                    <small>Includes cashback and referral earnings</small>
+                </div>
+                <div class="wallet-card">
+                    <h3>🎯 Total Cashback Earned</h3>
+                    <p class="wallet-value" id="totalCashbackEarned">₹0</p>
+                    <small>From all your purchases</small>
+                </div>
+                <div class="wallet-card">
+                    <h3>👥 Total Referral Earnings</h3>
+                    <p class="wallet-value" id="totalReferralEarnings">₹0</p>
+                    <small>From your referral network</small>
+                </div>
+            </div>
+
+            <div class="withdrawal-section">
+                <h3>💸 Withdraw Money</h3>
+                <p>Minimum withdrawal: <span id="minWithdrawal">₹100</span></p>
+                <div class="withdrawal-form">
+                    <input type="number" id="withdrawalAmount" placeholder="Enter amount" min="100" step="1">
+                    <button class="btn-primary" onclick="requestWithdrawal()">Request Withdrawal</button>
+                </div>
+                <small style="color: #666; margin-top: 10px; display: block;">
+                    Withdrawals are processed within 24-48 hours to your registered bank account.
+                </small>
+            </div>
+
+            <div class="wallet-history">
+                <h3>💳 Transaction History</h3>
+                <div id="walletHistoryList">Loading...</div>
+            </div>
+        </div>
+
+        <div id="pointsSection" class="account-section" style="display:none;">
+            <h2>🎁 Points & Rewards</h2>
+            
+            <div class="points-summary">
+                <div class="points-card">
+                    <h3>Available Points</h3>
+                    <p class="points-value" id="pointsWallet">0</p>
+                </div>
+                <div class="points-card">
+                    <h3>Total Earned</h3>
+                    <p class="points-value" id="totalPointsEarned">0</p>
+                </div>
+                <div class="points-card">
+                    <h3>Virtual Referrals</h3>
+                    <p class="points-value" id="virtualReferralsCreated">0</p>
+                </div>
+            </div>
+
+            <div class="redeem-section">
+                <h3>Redeem Points</h3>
+                <p>You can redeem 100 points to create a virtual referral in your tree.</p>
+                <button class="btn-primary" id="redeemBtn" onclick="redeemVirtualReferral()">
+                    🎁 Redeem 100 Points for Virtual Referral
+                </button>
+            </div>
+
+            <div class="points-history">
+                <h3>Points History</h3>
+                <div id="pointsHistoryList">Loading...</div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/account.js"></script>
+</body>
+</html>
