@@ -271,7 +271,7 @@ router.post("/withdraw", authenticateToken, async (req, res) => {
             bank: user.bankDetails.accountNumber,
             ifsc: user.bankDetails.ifscCode,
             date: new Date(),
-            status: "approved" // Auto-approve withdrawals
+            status: "pending" // Set to pending for admin approval
         });
 
         await user.save();

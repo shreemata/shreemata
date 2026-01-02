@@ -45,6 +45,15 @@ function setupEventListeners() {
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
+    // Quantity selector event listeners
+    const decreaseBtn = document.getElementById("decreaseQty");
+    const increaseBtn = document.getElementById("increaseQty");
+    const quantityInput = document.getElementById("bookQuantity");
+
+    if (decreaseBtn) decreaseBtn.addEventListener("click", () => updateQuantity(-1));
+    if (increaseBtn) increaseBtn.addEventListener("click", () => updateQuantity(1));
+    if (quantityInput) quantityInput.addEventListener("change", () => updateQuantityFromInput());
+
     // Buy buttons
     const buyPickupBtn = document.getElementById("buyPickupBtn");
     if (buyPickupBtn) buyPickupBtn.addEventListener("click", () => handlePurchase("pickup"));
@@ -70,6 +79,74 @@ function setupEventListeners() {
             if (term) window.location.href = `/?search=${encodeURIComponent(term)}`;
         }
     });
+}
+
+/* -----------------------------------
+   QUANTITY MANAGEMENT
+----------------------------------- */
+function updateQuantity(change) {
+    const quantityInput = document.getElementById("bookQuantity");
+    let currentQty = parseInt(quantityInput.value) || 1;
+    
+    currentQty += change;
+    
+    // Ensure quantity is within bounds
+    if (currentQty < 1) currentQty = 1;
+    if (currentQty > 10) currentQty = 10;
+    
+    quantityInput.value = currentQty;
+    updatePricing();
+}
+
+function updateQuantityFromInput() {
+    const quantityInput = document.getElementById("bookQuantity");
+    let qty = parseInt(quantityInput.value) || 1;
+    
+    // Ensure quantity is within bounds
+    if (qty < 1) qty = 1;
+    if (qty > 10) qty = 10;
+    
+    quantityInput.value = qty;
+    updatePricing();
+}
+
+async function updatePricing() {
+    if (!window.currentBook) return;
+    
+    const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
+    const basePrice = parseFloat(window.currentBook.price);
+    const weight = window.currentBook.weight || 0.5;
+    
+    // Calculate total weight and courier charge
+    const totalWeight = weight * quantity;
+    let courierCharge = 0;
+    
+    try {
+        courierCharge = await calculateCourierCharge(totalWeight);
+        courierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
+    } catch (error) {
+        console.error('Error calculating courier charge:', error);
+        courierCharge = 0;
+    }
+    
+    // Update pricing displays
+    const pickupTotal = basePrice * quantity;
+    const courierTotal = pickupTotal + courierCharge;
+    
+    document.getElementById("pickupPrice").textContent = `₹${pickupTotal.toFixed(2)}`;
+    document.getElementById("courierPrice").textContent = `₹${courierTotal.toFixed(2)}`;
+    
+    // Update weight and courier charge displays
+    document.getElementById("totalWeight").textContent = `${totalWeight.toFixed(2)} kg`;
+    document.getElementById("totalCourierCharge").textContent = `₹${courierCharge.toFixed(2)}`;
+    
+    // Update the weight info in the right side as well
+    if (document.getElementById("bookWeight")) {
+        document.getElementById("bookWeight").textContent = `${totalWeight.toFixed(2)} kg`;
+    }
+    if (document.getElementById("bookCourierCharge")) {
+        document.getElementById("bookCourierCharge").textContent = `₹${courierCharge.toFixed(2)}`;
+    }
 }
 
 /* -----------------------------------
@@ -484,6 +561,7 @@ async function calculateCourierCharge(totalWeight) {
 async function proceedToPayment() {
     const token = localStorage.getItem("token");
     const deliveryMethod = currentBook?.selectedDeliveryMethod || "courier";
+    const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
     
     // Get the appropriate button based on delivery method
     const buyBtn = deliveryMethod === "pickup" 
@@ -509,19 +587,19 @@ async function proceedToPayment() {
     // Close modal if open
     closeAddressModal();
 
-    // Calculate pricing based on delivery method
-    const bookWeight = currentBook.weight || 0.5;
-    const itemsTotal = currentBook.price;
+    // Calculate pricing based on delivery method and quantity
+    const bookWeight = (currentBook.weight || 0.5) * quantity;
+    const itemsTotal = currentBook.price * quantity;
     let courierCharge = 0;
     let totalAmount = itemsTotal;
     let confirmMsg = "";
 
     if (deliveryMethod === "pickup") {
-        confirmMsg = `Order Summary (Book-stall Pickup):\n\nBook: ${currentBook.title}\nPrice: ₹${itemsTotal.toFixed(2)}\nDelivery: Pickup at store (FREE)\n\nTotal Amount: ₹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
+        confirmMsg = `Order Summary (Book-stall Pickup):\n\nBook: ${currentBook.title}\nQuantity: ${quantity}\nPrice: ₹${itemsTotal.toFixed(2)}\nDelivery: Pickup at store (FREE)\n\nTotal Amount: ₹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
     } else {
         courierCharge = await calculateCourierCharge(bookWeight);
         totalAmount = itemsTotal + courierCharge;
-        confirmMsg = `Order Summary (Courier Delivery):\n\nBook: ${currentBook.title}\nPrice: ₹${itemsTotal.toFixed(2)}\nWeight: ${bookWeight.toFixed(2)} kg\nCourier Charge: ₹${courierCharge.toFixed(2)}\n\nTotal Amount: ₹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
+        confirmMsg = `Order Summary (Courier Delivery):\n\nBook: ${currentBook.title}\nQuantity: ${quantity}\nPrice: ₹${itemsTotal.toFixed(2)}\nWeight: ${bookWeight.toFixed(2)} kg\nCourier Charge: ₹${courierCharge.toFixed(2)}\n\nTotal Amount: ₹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
     }
     
     if (!confirm(confirmMsg)) {
@@ -533,10 +611,10 @@ async function proceedToPayment() {
         title: currentBook.title,
         author: currentBook.author,
         price: currentBook.price,
-        quantity: 1,
+        quantity: quantity,
         coverImage: currentBook.cover_image,
         type: 'book',
-        weight: bookWeight
+        weight: currentBook.weight || 0.5
     }];
 
     try {

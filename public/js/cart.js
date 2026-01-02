@@ -191,9 +191,9 @@ async function loadCart() {
                 ${pointsBadge}
                 
                 <div class="cart-qty">
-                    <button class="qty-btn" data-id="${item.id || item.bundleId}" data-action="minus" onclick="handleQuantityClick(this)">-</button>
+                    <button class="qty-btn" data-id="${item.id || item.bundleId}" data-action="minus">-</button>
                     <input type="number" class="qty-input" data-id="${item.id || item.bundleId}" value="${item.quantity}" min="1" max="99">
-                    <button class="qty-btn" data-id="${item.id || item.bundleId}" data-action="plus" onclick="handleQuantityClick(this)">+</button>
+                    <button class="qty-btn" data-id="${item.id || item.bundleId}" data-action="plus">+</button>
                 </div>
 
                 <button class="remove-btn" data-id="${item.id || item.bundleId}">
@@ -703,15 +703,6 @@ function setupCartActions() {
 /* ------------------------------
     Handle Quantity Click (Fallback)
 ------------------------------ */
-window.handleQuantityClick = function(button) {
-    const id = button.dataset.id;
-    const action = button.dataset.action;
-    
-    if (id && action) {
-        updateQuantity(id, action);
-    }
-}
-
 /* ------------------------------
     Update Quantity
 ------------------------------ */

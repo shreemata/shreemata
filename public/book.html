@@ -270,7 +270,10 @@
         <div class="navbar">
             <div class="container navbar-content">
                 <div class="logo">
-                    <a href="/">📚 Shree Mata</a>
+                                       <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                        <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 36px; height: 36px; border-radius: 50%;">
+                        <span>Shree Mata</span>
+                    </a>
                 </div>
                 <div class="search-bar">
                     <input type="text" id="searchInput" placeholder="Search for books, authors...">
@@ -310,6 +313,20 @@
                     <!-- LEFT SIDE -->
                     <div class="book-detail-left">
                         <img id="bookCover" src="" alt="Book Cover" class="book-detail-cover">
+
+                        <!-- Quantity Selector -->
+                        <div class="quantity-selector" style="margin: 20px 0; text-align: center;">
+                            <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">Quantity:</label>
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 2px solid #e9ecef;">
+                                <button id="decreaseQty" style="background: #dc3545; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">−</button>
+                                <input type="number" id="bookQuantity" value="1" min="1" max="10" style="width: 80px; text-align: center; font-size: 18px; font-weight: bold; border: 2px solid #667eea; border-radius: 8px; padding: 10px; background: white;">
+                                <button id="increaseQty" style="background: #28a745; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">+</button>
+                            </div>
+                            <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                                <span>Total Weight: </span><span id="totalWeight" style="font-weight: bold; color: #e65100;">0.5 kg</span>
+                                <span style="margin-left: 15px;">Courier Charge: </span><span id="totalCourierCharge" style="font-weight: bold; color: #e65100;">₹25</span>
+                            </div>
+                        </div>
 
                         <!-- Purchase Buttons -->
                         <div class="purchase-buttons">
