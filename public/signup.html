@@ -286,6 +286,33 @@
     border-left: 3px solid #d90429;
 }
 
+#emailStatus.success, #otpStatus.success {
+    color: #2b9348;
+    font-weight: 600;
+    background-color: #eafaf1;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border-left: 3px solid #2b9348;
+}
+
+#emailStatus.error, #otpStatus.error {
+    color: #d90429;
+    font-weight: 600;
+    background-color: #ffeaea;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border-left: 3px solid #d90429;
+}
+
+#emailStatus.info, #otpStatus.info {
+    color: #0c5460;
+    font-weight: 600;
+    background-color: #d1ecf1;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border-left: 3px solid #bee5eb;
+}
+
     </style>
 </head>
 <body>
@@ -338,6 +365,23 @@
                         <div class="form-group">
                             <label for="email">Email</label>
                             <input type="email" id="email" name="email" required placeholder="Enter your email">
+                            <button type="button" id="verifyEmailBtn" class="btn-primary" style="margin-top: 8px; padding: 8px 16px; font-size: 13px; display: none;">
+                                Verify Email
+                            </button>
+                            <div id="emailStatus" style="margin-top: 5px; font-size: 13px;"></div>
+                        </div>
+
+                        <!-- Email OTP Verification Section -->
+                        <div id="emailOtpSection" class="form-group" style="display: none; background: #f0f8ff; padding: 15px; border-radius: 8px; border-left: 4px solid #2196F3;">
+                            <label for="emailOtp">Email Verification Code</label>
+                            <input type="text" id="emailOtp" name="emailOtp" placeholder="Enter 6-digit code sent to your email" maxlength="6" pattern="[0-9]{6}">
+                            <button type="button" id="verifyOtpBtn" class="btn-primary" style="margin-top: 8px; padding: 8px 16px; font-size: 13px;">
+                                Verify Code
+                            </button>
+                            <button type="button" id="resendOtpBtn" class="btn-primary" style="margin-top: 8px; margin-left: 8px; padding: 8px 16px; font-size: 13px; background: #6c757d;">
+                                Resend Code
+                            </button>
+                            <div id="otpStatus" style="margin-top: 5px; font-size: 13px;"></div>
                         </div>
 
                         <!-- Phone Number (no OTP) -->
@@ -358,47 +402,7 @@
                             <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Confirm your password">
                         </div>
 
-                        <!-- Security Questions Section -->
-                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
-                            <h4 style="margin: 0 0 15px 0; color: #667eea; font-size: 16px;">🔐 Setup Security Questions</h4>
-                            <p style="margin: 0 0 15px 0; font-size: 14px; color: #666;">These questions will help you reset your password if you forget it.</p>
-                            
-                            <div class="form-group">
-                                <label for="securityQuestion1">Security Question 1</label>
-                                <select id="securityQuestion1" name="securityQuestion1" required>
-                                    <option value="">Select a question...</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="securityAnswer1">Answer 1</label>
-                                <input type="text" id="securityAnswer1" name="securityAnswer1" required placeholder="Enter your answer">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="securityQuestion2">Security Question 2</label>
-                                <select id="securityQuestion2" name="securityQuestion2" required>
-                                    <option value="">Select a question...</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="securityAnswer2">Answer 2</label>
-                                <input type="text" id="securityAnswer2" name="securityAnswer2" required placeholder="Enter your answer">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="securityQuestion3">Security Question 3</label>
-                                <select id="securityQuestion3" name="securityQuestion3" required>
-                                    <option value="">Select a question...</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="securityAnswer3">Answer 3</label>
-                                <input type="text" id="securityAnswer3" name="securityAnswer3" required placeholder="Enter your answer">
-                            </div>
-                        </div>
+
 
                         <!-- Referral Code (optional) -->
                         <div class="form-group">

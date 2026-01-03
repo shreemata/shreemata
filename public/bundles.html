@@ -260,13 +260,46 @@
 
                 const discount = bundle.discount || Math.round(((bundle.originalPrice - bundle.bundlePrice) / bundle.originalPrice) * 100);
 
+                // Create prominent points badge if bundle has reward points
+                const pointsBadge = bundle.rewardPoints && bundle.rewardPoints > 0 
+                    ? `<div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 8px 12px; border-radius: 8px; margin: 10px 0; text-align: center; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3); font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                           <span style="font-size: 18px;">🎁</span>
+                           <span>Earn ${bundle.rewardPoints} Points</span>
+                       </div>`
+                    : '';
+
+                // Create cashback sticker for bundle
+                const getCashbackSticker = (bundle) => {
+                    let cashbackAmount = 0;
+                    
+                    if (bundle.cashbackAmount > 0) {
+                        cashbackAmount = bundle.cashbackAmount;
+                    } else if (bundle.cashbackPercentage > 0) {
+                        cashbackAmount = (bundle.bundlePrice * bundle.cashbackPercentage) / 100;
+                    }
+                    
+                    if (cashbackAmount > 0) {
+                        return `<div class="cashback-sticker">
+                                   <span class="cashback-icon">💰</span>
+                                   <span class="cashback-text">₹${cashbackAmount.toFixed(0)} Cashback</span>
+                               </div>`;
+                    }
+                    return '';
+                };
+
+                const cashbackSticker = getCashbackSticker(bundle);
+
                 card.innerHTML = `
-                    <div style="position: absolute; top: 10px; right: 10px; background: #ff4444; color: white; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 11px;">
-                        ${discount}% OFF
+                    <div style="position: relative;">
+                        <div style="position: absolute; top: 10px; right: 10px; background: #ff4444; color: white; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 11px;">
+                            ${discount}% OFF
+                        </div>
+                        <img src="${bundle.image || 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"250\" height=\"300\"%3E%3Crect fill=\"%23ddd\" width=\"250\" height=\"300\"/%3E%3Ctext fill=\"%23999\" font-family=\"Arial\" font-size=\"20\" x=\"50%25\" y=\"50%25\" text-anchor=\"middle\" dy=\".3em\"%3EBundle%3C/text%3E%3C/svg%3E'}" class="book-cover" />
+                        ${cashbackSticker}
                     </div>
-                    <img src="${bundle.image || 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"250\" height=\"300\"%3E%3Crect fill=\"%23ddd\" width=\"250\" height=\"300\"/%3E%3Ctext fill=\"%23999\" font-family=\"Arial\" font-size=\"20\" x=\"50%25\" y=\"50%25\" text-anchor=\"middle\" dy=\".3em\"%3EBundle%3C/text%3E%3C/svg%3E'}" class="book-cover" />
                     <h3>🎁 ${bundle.name}</h3>
                     <p style="font-size: 12px; color: #666;">${bundle.books.length} Books</p>
+                    ${pointsBadge}
                     <p style="text-decoration: line-through; color: #999; font-size: 14px;">₹${bundle.originalPrice}</p>
                     <p class="book-price" style="font-size: 20px; color: #ff4444;">₹${bundle.bundlePrice}</p>
                     <div class="book-actions">

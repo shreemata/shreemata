@@ -174,6 +174,18 @@
                     <h1 id="bundleName"></h1>
                     <p id="bundleDescription" style="color: #666; font-size: 16px; margin: 20px 0;"></p>
                     
+                    <!-- Reward Points Badge -->
+                    <div id="rewardPointsBadge" style="display: none; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 12px 16px; border-radius: 12px; margin: 20px 0; text-align: center; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3); font-weight: 700; font-size: 16px;">
+                        <span style="font-size: 20px; margin-right: 8px;">🎁</span>
+                        <span>Earn <span id="bundleRewardPoints">0</span> Points on Purchase!</span>
+                    </div>
+                    
+                    <!-- Cashback Badge -->
+                    <div id="cashbackBadge" style="display: none; background: linear-gradient(135deg, #ff6f61 0%, #ff9800 100%); color: white; padding: 12px 16px; border-radius: 12px; margin: 20px 0; text-align: center; box-shadow: 0 4px 12px rgba(255, 111, 97, 0.3); font-weight: 700; font-size: 16px;">
+                        <span style="font-size: 20px; margin-right: 8px;">💰</span>
+                        <span>Get ₹<span id="bundleCashbackAmount">0</span> Cashback!</span>
+                    </div>
+                    
                     <div class="price-section">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
                             <!-- Book-stall Purchase Option -->
@@ -357,6 +369,29 @@
             
             const discount = bundle.discount || Math.round(((bundle.originalPrice - bundle.bundlePrice) / bundle.originalPrice) * 100);
             document.getElementById("discountBadge").textContent = `${discount}% OFF`;
+            
+            // Show reward points badge if bundle has reward points
+            if (bundle.rewardPoints && bundle.rewardPoints > 0) {
+                document.getElementById("bundleRewardPoints").textContent = bundle.rewardPoints;
+                document.getElementById("rewardPointsBadge").style.display = "block";
+            } else {
+                document.getElementById("rewardPointsBadge").style.display = "none";
+            }
+            
+            // Show cashback badge if bundle has cashback
+            let cashbackAmount = 0;
+            if (bundle.cashbackAmount > 0) {
+                cashbackAmount = bundle.cashbackAmount;
+            } else if (bundle.cashbackPercentage > 0) {
+                cashbackAmount = (bundle.bundlePrice * bundle.cashbackPercentage) / 100;
+            }
+            
+            if (cashbackAmount > 0) {
+                document.getElementById("bundleCashbackAmount").textContent = cashbackAmount.toFixed(0);
+                document.getElementById("cashbackBadge").style.display = "block";
+            } else {
+                document.getElementById("cashbackBadge").style.display = "none";
+            }
             
             // Calculate pricing
             const basePrice = bundle.bundlePrice;

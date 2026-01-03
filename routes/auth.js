@@ -3,8 +3,315 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { findTreePlacement } = require("../services/treePlacement");
+const { sendEmailOTP, sendPasswordResetOTP } = require("../utils/emailService");
 
 const router = express.Router();
+
+// EMAIL OTP - Send OTP for email verification
+router.post("/send-email-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Email is required" 
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid email format" 
+      });
+    }
+
+    // Check if email is already registered
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Email is already registered" 
+      });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(`📧 Generated email OTP for ${email}: ${otp}`);
+
+    // Store OTP for email verification
+    global.emailOtpStore = global.emailOtpStore || new Map();
+    global.emailOtpStore.set(email, {
+      otp: otp,
+      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+      attempts: 0,
+      isEmailVerification: true
+    });
+
+    // Send OTP via email
+    try {
+      const emailResult = await sendEmailOTP(email, otp);
+      
+      if (emailResult.success) {
+        console.log(`Email OTP sent to ${email}: ${otp}`);
+        res.json({
+          success: true,
+          message: "Verification code sent to your email"
+        });
+      } else {
+        console.error('Email service error:', emailResult.error);
+        res.status(500).json({ 
+          success: false, 
+          error: "Failed to send verification email. Please try again." 
+        });
+      }
+    } catch (emailError) {
+      console.error("Email sending error:", emailError);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to send verification email. Please try again." 
+      });
+    }
+
+  } catch (error) {
+    console.error("Email OTP send error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Error sending verification code. Please try again." 
+    });
+  }
+});
+
+// EMAIL OTP - Verify OTP for email verification
+router.post("/verify-email-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Email and verification code are required" 
+      });
+    }
+
+    // Get stored OTP data
+    global.emailOtpStore = global.emailOtpStore || new Map();
+    const storedData = global.emailOtpStore.get(email);
+
+    if (!storedData) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Verification code not found or expired. Please request a new code." 
+      });
+    }
+
+    // Check if OTP is expired
+    if (Date.now() > storedData.expiresAt) {
+      global.emailOtpStore.delete(email);
+      return res.status(400).json({ 
+        success: false, 
+        error: "Verification code has expired. Please request a new code." 
+      });
+    }
+
+    // Check attempt limit
+    if (storedData.attempts >= 3) {
+      global.emailOtpStore.delete(email);
+      return res.status(400).json({ 
+        success: false, 
+        error: "Too many failed attempts. Please request a new code." 
+      });
+    }
+
+    // Verify OTP
+    if (storedData.otp !== otp) {
+      storedData.attempts += 1;
+      global.emailOtpStore.set(email, storedData);
+      
+      return res.status(400).json({ 
+        success: false, 
+        error: `Invalid verification code. ${3 - storedData.attempts} attempts remaining.` 
+      });
+    }
+
+    // Mark email as verified
+    storedData.verified = true;
+    global.emailOtpStore.set(email, storedData);
+
+    console.log(`Email OTP verified for ${email}`);
+
+    res.json({
+      success: true,
+      message: "Email verified successfully"
+    });
+
+  } catch (error) {
+    console.error("Email OTP verify error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Error verifying code. Please try again." 
+    });
+  }
+});
+
+// FORGOT PASSWORD - Send Email OTP
+router.post("/forgot-password-send-email-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Email is required" 
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid email format" 
+      });
+    }
+
+    // Check if email exists in database
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "No account found with this email address" 
+      });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(`🔐 Generated password reset OTP for ${email}: ${otp}`);
+
+    // Store OTP for password reset
+    global.passwordResetOtpStore = global.passwordResetOtpStore || new Map();
+    global.passwordResetOtpStore.set(email, {
+      otp: otp,
+      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+      attempts: 0,
+      userId: user._id,
+      isPasswordReset: true
+    });
+
+    // Send OTP via email
+    try {
+      const emailResult = await sendPasswordResetOTP(email, otp);
+      
+      if (emailResult.success) {
+        console.log(`Password reset OTP sent to ${email}: ${otp}`);
+        res.json({
+          success: true,
+          message: "Password reset code sent to your email"
+        });
+      } else {
+        console.error('Email service error:', emailResult.error);
+        res.status(500).json({ 
+          success: false, 
+          error: "Failed to send password reset email. Please try again." 
+        });
+      }
+    } catch (emailError) {
+      console.error("Email sending error:", emailError);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to send password reset email. Please try again." 
+      });
+    }
+
+  } catch (error) {
+    console.error("Password reset OTP send error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Error sending password reset code. Please try again." 
+    });
+  }
+});
+
+// FORGOT PASSWORD - Verify Email OTP
+router.post("/forgot-password-verify-email-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Email and verification code are required" 
+      });
+    }
+
+    // Get stored OTP data
+    global.passwordResetOtpStore = global.passwordResetOtpStore || new Map();
+    const storedData = global.passwordResetOtpStore.get(email);
+
+    if (!storedData) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Verification code not found or expired. Please request a new code." 
+      });
+    }
+
+    // Check if OTP is expired
+    if (Date.now() > storedData.expiresAt) {
+      global.passwordResetOtpStore.delete(email);
+      return res.status(400).json({ 
+        success: false, 
+        error: "Verification code has expired. Please request a new code." 
+      });
+    }
+
+    // Check attempt limit
+    if (storedData.attempts >= 3) {
+      global.passwordResetOtpStore.delete(email);
+      return res.status(400).json({ 
+        success: false, 
+        error: "Too many failed attempts. Please request a new code." 
+      });
+    }
+
+    // Verify OTP
+    if (storedData.otp !== otp) {
+      storedData.attempts += 1;
+      global.passwordResetOtpStore.set(email, storedData);
+      
+      return res.status(400).json({ 
+        success: false, 
+        error: `Invalid verification code. ${3 - storedData.attempts} attempts remaining.` 
+      });
+    }
+
+    // Generate reset token
+    const resetToken = jwt.sign(
+      { userId: storedData.userId, email, type: 'password-reset' },
+      process.env.JWT_SECRET,
+      { expiresIn: '10m' } // 10 minutes to reset password
+    );
+
+    // Clear OTP from store
+    global.passwordResetOtpStore.delete(email);
+
+    console.log(`Password reset OTP verified for ${email}`);
+
+    res.json({
+      success: true,
+      message: "Code verified successfully",
+      resetToken
+    });
+
+  } catch (error) {
+    console.error("Password reset OTP verify error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Error verifying code. Please try again." 
+    });
+  }
+});
 
 // SIGNUP
 router.post("/signup", async (req, res) => {
@@ -17,6 +324,20 @@ router.post("/signup", async (req, res) => {
         error: "All fields are required",
         code: "MISSING_FIELDS" 
       });
+
+    // Check if email was verified
+    global.emailOtpStore = global.emailOtpStore || new Map();
+    const emailVerificationData = global.emailOtpStore.get(email);
+    
+    if (!emailVerificationData || !emailVerificationData.verified) {
+      return res.status(400).json({ 
+        error: "Please verify your email address before creating account",
+        code: "EMAIL_NOT_VERIFIED" 
+      });
+    }
+
+    // Clean up email OTP after successful verification check
+    global.emailOtpStore.delete(email);
 
     // Validate phone number format (10 digits)
     if (!/^\d{10}$/.test(phone)) {

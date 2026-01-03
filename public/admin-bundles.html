@@ -667,6 +667,8 @@
                             <p style="color: #666; font-size: 14px;">
                                 Status: <strong>${bundle.isActive ? '✅ Active' : '❌ Inactive'}</strong>
                                 ${bundle.validUntil ? ` | Valid until: ${new Date(bundle.validUntil).toLocaleDateString()}` : ''}
+                                ${bundle.rewardPoints > 0 ? ` | 🎁 ${bundle.rewardPoints} points` : ''}
+                                ${bundle.cashbackAmount > 0 ? ` | 💰 ₹${bundle.cashbackAmount} cashback` : bundle.cashbackPercentage > 0 ? ` | 💰 ${bundle.cashbackPercentage}% cashback` : ''}
                             </p>
                         </div>
 

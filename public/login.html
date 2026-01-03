@@ -105,18 +105,17 @@
         .auth-container {
             display: flex;
             justify-content: center;
-            align-items: center;
-            min-height: calc(100vh - 140px);
-            padding: 20px 0;
+            align-items: flex-start;
+            padding: 40px 0 50px;
         }
 
         .auth-box {
             width: 100%;
-            max-width: 400px;
-            padding: 24px 24px;
-            border-radius: 16px;
+            max-width: 480px;
+            padding: 34px 30px;
+            border-radius: 20px;
             backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.75);
+            background: rgba(255, 255, 255, 0.65);
             box-shadow: 0 8px 26px rgba(0,0,0,0.12);
             animation: fadeIn 0.9s ease;
         }
@@ -140,16 +139,16 @@
 
         .auth-box h1 {
             text-align: center;
-            margin: 4px 0 4px;
+            margin: 6px 0 6px;
             color: #333;
-            font-size: 22px;
+            font-size: 26px;
         }
 
         .auth-subtitle {
             text-align: center;
-            margin-bottom: 16px;
+            margin-bottom: 18px;
             color: #666;
-            font-size: 13px;
+            font-size: 14px;
         }
 
         /* Small progress / steps indicator */
@@ -157,12 +156,12 @@
             display: flex;
             justify-content: center;
             gap: 6px;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         }
 
         .step-dot {
-            width: 8px;
-            height: 8px;
+            width: 9px;
+            height: 9px;
             border-radius: 50%;
             background: #ffe0da;
         }
@@ -173,25 +172,24 @@
 
         /* ---------- Form Styling ---------- */
         .form-group {
-            margin-bottom: 14px;
+            margin-bottom: 16px;
         }
 
         label {
             display: block;
             font-weight: 600;
-            margin-bottom: 4px;
-            font-size: 12px;
+            margin-bottom: 5px;
+            font-size: 13px;
         }
 
         input {
             width: 100%;
-            padding: 10px 12px;
-            border-radius: 8px;
+            padding: 11px 12px;
+            border-radius: 10px;
             border: 1px solid #ccc;
             outline: none;
             transition: 0.3s;
             font-size: 14px;
-            box-sizing: border-box;
         }
 
         input:focus {
@@ -204,14 +202,13 @@
             background: #ff6f61;
             color: #fff;
             border: none;
-            border-radius: 8px;
-            padding: 11px;
-            font-size: 14px;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             width: 100%;
             transition: 0.3s;
-            box-sizing: border-box;
         }
 
         .btn-primary:hover {
@@ -226,18 +223,14 @@
 
         .error-message {
             color: #d90429;
-            font-size: 12px;
-            margin-bottom: 8px;
-            background-color: #ffeaea;
-            padding: 6px 10px;
-            border-radius: 6px;
-            border-left: 3px solid #d90429;
+            font-size: 13px;
+            margin-bottom: 10px;
         }
 
         .auth-footer {
             text-align: center;
-            margin-top: 12px;
-            font-size: 12px;
+            margin-top: 15px;
+            font-size: 13px;
         }
 
         .auth-footer a {
@@ -249,8 +242,6 @@
         .auth-footer a:hover {
             text-decoration: underline;
         }
-
-
 
         /* ---------- Footer ---------- */
         footer {
@@ -267,173 +258,82 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Loading animation */
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 8px;
+        /* Responsive tweaks */
+        @media (max-width: 600px) {
+            .auth-box {
+                padding: 26px 20px;
+            }
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Success state */
-        .btn-success {
-            background: #28a745 !important;
-        }
-
-        /* Checkbox styling */
-        input[type="checkbox"] {
-            width: auto !important;
-            margin: 0 !important;
-            accent-color: #ff6f61;
-        }
-
-        /* Password toggle button */
-        #togglePassword:hover {
-            color: #ff6f61;
-        }
-
-        /* Login method toggle */
-        .login-toggle {
+        /* Tab styling */
+        .tab-container {
             display: flex;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 8px;
-            padding: 3px;
-            margin-bottom: 16px;
-            border: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 4px;
         }
 
-        .toggle-option {
+        .tab-button {
             flex: 1;
-            padding: 8px 12px;
-            text-align: center;
-            font-size: 12px;
-            font-weight: 600;
+            padding: 10px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
-            border-radius: 6px;
-            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 14px;
             color: #666;
+            transition: all 0.3s ease;
         }
 
-        .toggle-option.active {
+        .tab-button.active {
             background: #ff6f61;
             color: white;
-            box-shadow: 0 2px 4px rgba(255,111,97,0.3);
+            box-shadow: 0 2px 8px rgba(255,111,97,0.3);
         }
 
-        .toggle-option:hover:not(.active) {
-            background: rgba(255,111,97,0.1);
-            color: #ff6f61;
-        }
-
-        /* OTP Status styling */
-        .otp-status {
-            font-size: 11px;
-            margin-top: 4px;
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
-
-        .otp-status.success {
-            color: #2b9348;
-            background-color: #eafaf1;
-            border-left: 3px solid #2b9348;
-        }
-
-        .otp-status.error {
-            color: #d90429;
-            background-color: #ffeaea;
-            border-left: 3px solid #d90429;
-        }
-
-        /* Login section visibility - explicit control */
-        .login-section {
+        .tab-content {
             display: none;
         }
-        
-        .login-section.active {
-            display: block !important;
+
+        .tab-content.active {
+            display: block;
         }
 
-        /* Responsive tweaks */
-        @media (max-width: 768px) {
-            .auth-container {
-                padding: 15px;
-                min-height: calc(100vh - 120px);
-            }
-            
-            .auth-box {
-                max-width: 100%;
-                padding: 20px 18px;
-                margin: 0 10px;
-            }
-            
-            .auth-box h1 {
-                font-size: 20px;
-            }
-            
-            .books-bg {
-                display: none;
-            }
-            
-            .navbar-content {
-                padding: 0 10px;
-            }
-            
-            .nav-links a {
-                margin-left: 15px;
-                font-size: 13px;
-            }
+        .form-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
         }
 
-        @media (max-width: 480px) {
-            .auth-box {
-                padding: 16px 14px;
-                margin: 0 5px;
-            }
-            
-            .auth-box h1 {
-                font-size: 18px;
-            }
-            
-            .auth-subtitle {
-                font-size: 12px;
-            }
-            
-            .badge {
-                font-size: 10px;
-                padding: 4px 10px;
-            }
-            
-            .badge span {
-                font-size: 12px;
-            }
-            
-            input {
-                padding: 9px 10px;
-                font-size: 13px;
-            }
-            
-            .btn-primary {
-                padding: 10px;
-                font-size: 13px;
-            }
-            
-            .nav-links a {
-                margin-left: 10px;
-                font-size: 12px;
-            }
-            
-            .logo a {
-                font-size: 18px;
-            }
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .form-row .form-group:last-child {
+            flex: 0 0 auto;
+        }
+
+        .checkbox-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            font-size: 12px;
+        }
+
+        .checkbox-container label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            margin-bottom: 0;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: auto;
+            margin: 0;
         }
     </style>
 </head>
@@ -463,97 +363,85 @@
             <div class="auth-container">
                 <div class="auth-box">
                     <div class="badge">
-                        👋 Welcome back! <span>Sign in to continue</span>
+                        👋 Welcome back! <span>Login to your account</span>
                     </div>
 
                     <div style="text-align: center; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center;">
                         <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                        <h1 style="margin: 0; font-size: 24px;">Login to Shree Mata</h1>
+                        <h1 style="margin: 0; font-size: 24px;">Welcome Back</h1>
                     </div>
-                    <p class="auth-subtitle">Sign in to access your books and continue reading</p>
+                    <p class="auth-subtitle">Choose your preferred login method</p>
 
-                    <div class="steps">
-                        <div class="step-dot active"></div>
-                        <div class="step-dot active"></div>
-                        <div class="step-dot"></div>
-                    </div>
-
-                    <!-- Login Method Toggle -->
-                    <div class="login-toggle">
-                        <div class="toggle-option active" id="emailToggle">
-                            📧 Email & Password
-                        </div>
-                        <div class="toggle-option" id="phoneToggle">
-                            📱 Phone & Password
-                        </div>
+                    <!-- Tab Navigation -->
+                    <div class="tab-container">
+                        <button class="tab-button active" onclick="switchTab('email')">Email Login</button>
+                        <button class="tab-button" onclick="switchTab('phone')">Phone Login</button>
                     </div>
 
-                    <form id="loginForm">
-                        <!-- Email Login Section -->
-                        <div class="login-section active" id="emailLoginSection">
+                    <!-- Email Login Tab -->
+                    <div id="emailTab" class="tab-content active">
+                        <form id="emailLoginForm">
                             <div class="form-group">
                                 <label for="email">Email</label>
-                                <input type="email" id="email" name="email" placeholder="Enter your email">
+                                <input type="email" id="email" name="email" required placeholder="Enter your email">
                             </div>
 
                             <div class="form-group">
                                 <label for="password">Password</label>
-                                <div style="position: relative;">
-                                    <input type="password" id="password" name="password" placeholder="Enter your password">
-                                    <button type="button" id="togglePassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #666; cursor: pointer; font-size: 14px;">
-                                        👁️
-                                    </button>
-                                </div>
+                                <input type="password" id="password" name="password" required placeholder="Enter your password">
                             </div>
 
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 11px;">
-                                <label style="display: flex; align-items: center; margin: 0; cursor: pointer;">
-                                    <input type="checkbox" id="rememberMe" style="width: auto; margin-right: 5px; transform: scale(0.9);">
+                            <div class="checkbox-container">
+                                <label>
+                                    <input type="checkbox" id="rememberMe">
                                     Remember me
                                 </label>
                                 <a href="#" onclick="showForgotPassword()" style="color: #ff6f61; text-decoration: none; font-size: 11px;">
                                     Forgot Password?
                                 </a>
                             </div>
-                        </div>
 
-                        <!-- Phone Login Section -->
-                        <div class="login-section" id="phoneLoginSection">
+                            <div id="emailErrorMessage" class="error-message" style="display: none;"></div>
+
+                            <button type="submit" class="btn-primary btn-large" id="emailLoginBtn">
+                                Login with Email
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Phone Login Tab -->
+                    <div id="phoneTab" class="tab-content">
+                        <form id="phoneLoginForm">
                             <div class="form-group">
-                                <label for="loginPhone">Mobile Number</label>
-                                <input type="text" id="loginPhone" name="loginPhone" placeholder="Enter your mobile number" maxlength="10" pattern="[6-9][0-9]{9}">
+                                <label for="phoneNumber">Phone Number</label>
+                                <input type="text" id="phoneNumber" name="phoneNumber" required placeholder="Enter your 10-digit phone number" maxlength="10">
                             </div>
 
                             <div class="form-group">
                                 <label for="phonePassword">Password</label>
-                                <div style="position: relative;">
-                                    <input type="password" id="phonePassword" name="phonePassword" placeholder="Enter your password">
-                                    <button type="button" id="togglePhonePassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #666; cursor: pointer; font-size: 14px;">
-                                        👁️
-                                    </button>
-                                </div>
+                                <input type="password" id="phonePassword" name="phonePassword" required placeholder="Enter your password">
                             </div>
 
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 11px;">
-                                <label style="display: flex; align-items: center; margin: 0; cursor: pointer;">
-                                    <input type="checkbox" id="rememberPhone" style="width: auto; margin-right: 5px; transform: scale(0.9);">
+                            <div class="checkbox-container">
+                                <label>
+                                    <input type="checkbox" id="rememberMePhone">
                                     Remember me
                                 </label>
                                 <a href="#" onclick="showForgotPassword()" style="color: #ff6f61; text-decoration: none; font-size: 11px;">
                                     Forgot Password?
                                 </a>
                             </div>
-                        </div>
 
-                        <div id="errorMessage" class="error-message" style="display: none;"></div>
+                            <div id="phoneErrorMessage" class="error-message" style="display: none;"></div>
 
-                        <button type="submit" class="btn-primary btn-large" id="loginBtn">
-                            Sign In
-                        </button>
-                    </form>
+                            <button type="submit" class="btn-primary btn-large" id="phoneLoginBtn">
+                                Login with Phone
+                            </button>
+                        </form>
+                    </div>
 
                     <p class="auth-footer">
-                        Don't have an account? <a href="signup.html">Create one here</a>
+                        Don't have an account? <a href="signup.html">Sign up here</a>
                     </p>
                 </div>
             </div>
@@ -569,6 +457,16 @@
     <script src="js/config.js"></script>
     <script src="js/login.js"></script>
     <script>
+        function switchTab(tabName) {
+            // Remove active class from all tabs and buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to selected tab and button
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
         function showForgotPassword() {
             // Create forgot password modal
             const modal = document.createElement('div');
@@ -582,46 +480,51 @@
                 <div style="background: white; padding: 30px; border-radius: 16px; width: 100%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
                     <h2 style="margin: 0 0 20px 0; text-align: center; color: #333;">🔐 Reset Password</h2>
                     
+                    <!-- Step 1: Enter Email -->
                     <div id="forgotStep1">
-                        <p style="color: #666; margin-bottom: 20px; text-align: center;">Enter your email to get your security questions</p>
+                        <p style="color: #666; margin-bottom: 20px; text-align: center;">Enter your email address to receive verification code</p>
                         <div style="margin-bottom: 15px;">
                             <label style="display: block; margin-bottom: 5px; font-weight: 600;">Email Address</label>
-                            <input type="email" id="forgotEmail" placeholder="Enter your email address" 
+                            <input type="email" id="forgotEmail" placeholder="Enter your email address"
                                    style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
                         </div>
-                        <button onclick="getSecurityQuestions()" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                            Get Security Questions
+                        <button onclick="sendResetOTP()" id="sendOtpBtn" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                            Send Verification Code
                         </button>
                     </div>
                     
+                    <!-- Step 2: Enter OTP -->
                     <div id="forgotStep2" style="display: none;">
-                        <p style="color: #666; margin-bottom: 20px; text-align: center;">Answer your security questions and set new password</p>
-                        
-                        <div id="securityQuestionsContainer">
-                            <!-- Questions will be loaded here -->
+                        <p style="color: #666; margin-bottom: 20px; text-align: center;">Enter the verification code sent to your email</p>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Verification Code</label>
+                            <input type="text" id="forgotOtp" placeholder="Enter 6-digit code" maxlength="6"
+                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
                         </div>
-                        
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
-                            <h4 style="margin: 0 0 10px 0; color: #28a745; font-size: 14px;">🔑 Set New Password</h4>
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">New Password</label>
-                                <input type="password" id="newPassword" placeholder="Enter new password (min 6 characters)"
-                                       style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
-                            </div>
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Confirm Password</label>
-                                <input type="password" id="confirmPassword" placeholder="Confirm new password"
-                                       style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
-                            </div>
-                        </div>
-                        
-                        <button onclick="submitPasswordReset()" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                            Submit Password Reset Request
+                        <button onclick="verifyResetOTP()" id="verifyOtpBtn" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                            Verify Code
                         </button>
-                        
-                        <div style="background: #fff3cd; padding: 10px; border-radius: 6px; margin: 15px 0; font-size: 12px; color: #856404;">
-                            <strong>Note:</strong> Your password reset request will be sent to admin for approval. You'll be notified once approved.
+                        <button onclick="sendResetOTP()" style="width: 100%; padding: 8px; background: #6c757d; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 10px; font-size: 14px;">
+                            Resend Code
+                        </button>
+                    </div>
+                    
+                    <!-- Step 3: Set New Password -->
+                    <div id="forgotStep3" style="display: none;">
+                        <p style="color: #666; margin-bottom: 20px; text-align: center;">Set your new password</p>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">New Password</label>
+                            <input type="password" id="newPassword" placeholder="Enter new password (min 6 characters)"
+                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
                         </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Confirm Password</label>
+                            <input type="password" id="confirmNewPassword" placeholder="Confirm your new password"
+                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
+                        </div>
+                        <button onclick="resetPassword()" id="resetPasswordBtn" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                            Reset Password
+                        </button>
                     </div>
                     
                     <div id="forgotError" style="display: none; color: #d90429; background: #ffeaea; padding: 10px; border-radius: 6px; margin: 15px 0; font-size: 14px;"></div>
@@ -633,6 +536,11 @@
             
             document.body.appendChild(modal);
             window.forgotModal = modal;
+            
+            // Auto-format OTP input only
+            document.getElementById('forgotOtp').addEventListener('input', function() {
+                this.value = this.value.replace(/\D/g, '').substring(0, 6);
+            });
         }
         
         function closeForgotModal() {
@@ -642,84 +550,113 @@
             }
         }
         
-        async function getSecurityQuestions() {
+        async function sendResetOTP() {
             const email = document.getElementById('forgotEmail').value.trim();
             const errorDiv = document.getElementById('forgotError');
             const successDiv = document.getElementById('forgotSuccess');
+            const sendOtpBtn = document.getElementById('sendOtpBtn');
             
             errorDiv.style.display = 'none';
             successDiv.style.display = 'none';
             
-            if (!email || !email.includes('@')) {
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                 errorDiv.textContent = 'Please enter a valid email address';
                 errorDiv.style.display = 'block';
                 return;
             }
             
+            sendOtpBtn.disabled = true;
+            sendOtpBtn.textContent = 'Sending...';
+            
             try {
-                const response = await fetch(`${API_URL}/password-reset/get-questions`, {
+                const response = await fetch(`${API_URL}/forgot-password-send-email-otp`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({ email })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Store user ID for later use
-                    window.resetUserId = data.userId;
-                    
-                    // Display security questions
-                    const container = document.getElementById('securityQuestionsContainer');
-                    container.innerHTML = `
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Question 1: ${data.questions.question1}</label>
-                            <input type="text" id="answer1" placeholder="Enter your answer"
-                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
-                        </div>
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Question 2: ${data.questions.question2}</label>
-                            <input type="text" id="answer2" placeholder="Enter your answer"
-                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
-                        </div>
-                        <div style="margin-bottom: 15px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Question 3: ${data.questions.question3}</label>
-                            <input type="text" id="answer3" placeholder="Enter your answer"
-                                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;">
-                        </div>
-                    `;
-                    
+                    successDiv.textContent = `Verification code sent to ${email}`;
+                    successDiv.style.display = 'block';
                     document.getElementById('forgotStep1').style.display = 'none';
                     document.getElementById('forgotStep2').style.display = 'block';
                 } else {
-                    errorDiv.textContent = data.error || 'Failed to get security questions';
+                    errorDiv.textContent = data.error || 'Failed to send verification code';
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {
+                console.error('Send OTP error:', error);
                 errorDiv.textContent = 'Network error. Please try again.';
                 errorDiv.style.display = 'block';
             }
+            
+            sendOtpBtn.disabled = false;
+            sendOtpBtn.textContent = 'Send Verification Code';
         }
         
-        async function submitPasswordReset() {
-            const answer1 = document.getElementById('answer1').value.trim();
-            const answer2 = document.getElementById('answer2').value.trim();
-            const answer3 = document.getElementById('answer3').value.trim();
-            const newPassword = document.getElementById('newPassword').value.trim();
-            const confirmPassword = document.getElementById('confirmPassword').value.trim();
-            
+        async function verifyResetOTP() {
+            const email = document.getElementById('forgotEmail').value.trim();
+            const otp = document.getElementById('forgotOtp').value.trim();
             const errorDiv = document.getElementById('forgotError');
             const successDiv = document.getElementById('forgotSuccess');
+            const verifyOtpBtn = document.getElementById('verifyOtpBtn');
             
             errorDiv.style.display = 'none';
             successDiv.style.display = 'none';
             
-            // Validate inputs
-            if (!answer1 || !answer2 || !answer3) {
-                errorDiv.textContent = 'Please answer all security questions';
+            if (!otp || otp.length !== 6) {
+                errorDiv.textContent = 'Please enter the 6-digit verification code';
                 errorDiv.style.display = 'block';
                 return;
             }
+            
+            verifyOtpBtn.disabled = true;
+            verifyOtpBtn.textContent = 'Verifying...';
+            
+            try {
+                const response = await fetch(`${API_URL}/forgot-password-verify-email-otp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, otp })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.resetToken = data.resetToken;
+                    successDiv.textContent = 'Code verified! Now set your new password.';
+                    successDiv.style.display = 'block';
+                    document.getElementById('forgotStep2').style.display = 'none';
+                    document.getElementById('forgotStep3').style.display = 'block';
+                } else {
+                    errorDiv.textContent = data.error || 'Invalid verification code';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Verify OTP error:', error);
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+            
+            verifyOtpBtn.disabled = false;
+            verifyOtpBtn.textContent = 'Verify Code';
+        }
+        
+        async function resetPassword() {
+            const newPassword = document.getElementById('newPassword').value.trim();
+            const confirmPassword = document.getElementById('confirmNewPassword').value.trim();
+            const errorDiv = document.getElementById('forgotError');
+            const successDiv = document.getElementById('forgotSuccess');
+            const resetPasswordBtn = document.getElementById('resetPasswordBtn');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
             
             if (!newPassword || newPassword.length < 6) {
                 errorDiv.textContent = 'Password must be at least 6 characters long';
@@ -733,40 +670,49 @@
                 return;
             }
             
+            if (!window.resetToken) {
+                errorDiv.textContent = 'Invalid session. Please start over.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            resetPasswordBtn.disabled = true;
+            resetPasswordBtn.textContent = 'Resetting...';
+            
             try {
-                const response = await fetch(`${API_URL}/password-reset/submit-request`, {
+                const response = await fetch(`${API_URL}/reset-password`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({ 
-                        userId: window.resetUserId,
-                        answer1,
-                        answer2,
-                        answer3,
-                        newPassword,
-                        confirmPassword
+                        resetToken: window.resetToken,
+                        newPassword 
                     })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    successDiv.textContent = data.message;
+                    successDiv.textContent = 'Password reset successfully! You can now login with your new password.';
                     successDiv.style.display = 'block';
-                    
-                    // Hide the form and show success message
-                    document.getElementById('forgotStep2').style.display = 'none';
+                    document.getElementById('forgotStep3').style.display = 'none';
                     
                     setTimeout(() => {
                         closeForgotModal();
                     }, 3000);
                 } else {
-                    errorDiv.textContent = data.error || 'Failed to submit password reset request';
+                    errorDiv.textContent = data.error || 'Failed to reset password';
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {
+                console.error('Reset password error:', error);
                 errorDiv.textContent = 'Network error. Please try again.';
                 errorDiv.style.display = 'block';
             }
+            
+            resetPasswordBtn.disabled = false;
+            resetPasswordBtn.textContent = 'Reset Password';
         }
     </script>
 </body>

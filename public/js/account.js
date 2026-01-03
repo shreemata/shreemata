@@ -80,7 +80,7 @@ function showSection(section) {
                     document.getElementById("walletBalance").textContent = `₹${walletBalance.toFixed(2)}`;
                 }
                 if (document.getElementById("totalCashbackEarned")) {
-                    document.getElementById("totalCashbackEarned").textContent = "₹0.00";
+                    document.getElementById("totalCashbackEarned").textContent = "Loading...";
                 }
                 if (document.getElementById("totalReferralEarnings")) {
                     document.getElementById("totalReferralEarnings").textContent = `₹${walletBalance.toFixed(2)}`;
@@ -524,10 +524,12 @@ async function loadWalletData() {
         console.log("Wallet balance displayed:", walletBalance);
 
         // Load commission transactions including cashback from MongoDB
+        console.log("Fetching transactions from:", `${API}/commission/transactions`);
         const transactionsRes = await fetch(`${API}/commission/transactions`, {
             headers: { "Authorization": `Bearer ${token}` }
         });
         
+        console.log("Transactions response status:", transactionsRes.status);
         if (!transactionsRes.ok) {
             throw new Error(`Transactions fetch failed: ${transactionsRes.status}`);
         }
@@ -539,18 +541,22 @@ async function loadWalletData() {
         let totalReferralEarnings = 0;
         
         if (transactionsData.transactions && transactionsData.transactions.length > 0) {
+            console.log("Found", transactionsData.transactions.length, "transactions");
             transactionsData.transactions.forEach(tx => {
-                console.log("Processing transaction:", tx.type, tx.amount);
+                console.log("Processing transaction:", tx.type, tx.amount, tx.description);
                 if (tx.type === 'cashback') {
                     totalCashback += tx.amount;
+                    console.log("Added cashback:", tx.amount, "Total so far:", totalCashback);
                 } else if (tx.type === 'referral_commission' || tx.type === 'level_commission') {
                     totalReferralEarnings += tx.amount;
+                    console.log("Added referral earning:", tx.amount, "Total so far:", totalReferralEarnings);
                 }
             });
             
             // Display transaction history
             displayWalletHistory(transactionsData.transactions);
         } else {
+            console.log("No transactions found");
             // No transactions yet
             document.getElementById("walletHistoryList").innerHTML = "<p style='text-align: center; color: #666; padding: 20px;'>No transactions yet. Start shopping to earn cashback!</p>";
         }

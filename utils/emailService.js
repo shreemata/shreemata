@@ -368,8 +368,138 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
     }
 }
 
+/**
+ * Send email OTP for verification
+ */
+async function sendEmailOTP(email, otp) {
+    try {
+        const mailOptions = {
+            from: `"Shree Mata" <${process.env.MAIL_USER}>`,
+            to: email,
+            subject: 'Email Verification Code - Shree Mata',
+            html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                </head>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                        <h1 style="color: white; margin: 0;">📚 Shree Mata</h1>
+                        <p style="color: white; margin: 10px 0 0 0;">Email Verification</p>
+                    </div>
+                    
+                    <div style="background: white; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
+                        <h2 style="color: #667eea; margin-top: 0;">Verify Your Email Address</h2>
+                        
+                        <p>Thank you for signing up with Shree Mata! To complete your registration, please verify your email address.</p>
+                        
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                            <p style="margin: 0 0 10px 0; font-size: 16px; color: #666;">Your verification code is:</p>
+                            <div style="font-size: 32px; font-weight: 700; color: #667eea; letter-spacing: 8px; font-family: 'Courier New', monospace;">${otp}</div>
+                            <p style="margin: 10px 0 0 0; font-size: 14px; color: #999;">This code will expire in 10 minutes</p>
+                        </div>
+
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                            <p style="margin: 0; color: #856404; font-size: 14px;">
+                                <strong>⚠️ Security Notice:</strong><br>
+                                • Do not share this code with anyone<br>
+                                • We will never ask for this code over phone or email<br>
+                                • If you didn't request this verification, please ignore this email
+                            </p>
+                        </div>
+
+                        <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                            If you have any questions, please contact us at ${process.env.MAIL_USER}
+                        </p>
+                    </div>
+
+                    <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+                        <p>© ${new Date().getFullYear()} Shree Mata. All rights reserved.</p>
+                    </div>
+                </body>
+                </html>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('✅ Email OTP sent:', info.messageId);
+        return { success: true, messageId: info.messageId };
+    } catch (error) {
+        console.error('❌ Error sending email OTP:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send password reset OTP to email
+ */
+async function sendPasswordResetOTP(email, otp) {
+    try {
+        const mailOptions = {
+            from: `"Shree Mata" <${process.env.MAIL_USER}>`,
+            to: email,
+            subject: 'Password Reset Code - Shree Mata',
+            html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                </head>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                        <h1 style="color: white; margin: 0;">📚 Shree Mata</h1>
+                        <p style="color: white; margin: 10px 0 0 0;">Password Reset Request</p>
+                    </div>
+                    
+                    <div style="background: white; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
+                        <h2 style="color: #667eea; margin-top: 0;">🔐 Reset Your Password</h2>
+                        
+                        <p>We received a request to reset your password. To proceed with the password reset, please use the verification code below:</p>
+                        
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                            <p style="margin: 0 0 10px 0; font-size: 16px; color: #666;">Your password reset code is:</p>
+                            <div style="font-size: 32px; font-weight: 700; color: #667eea; letter-spacing: 8px; font-family: 'Courier New', monospace;">${otp}</div>
+                            <p style="margin: 10px 0 0 0; font-size: 14px; color: #999;">This code will expire in 10 minutes</p>
+                        </div>
+
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                            <p style="margin: 0; color: #856404; font-size: 14px;">
+                                <strong>⚠️ Security Notice:</strong><br>
+                                • Do not share this code with anyone<br>
+                                • We will never ask for this code over phone or email<br>
+                                • If you didn't request this password reset, please ignore this email and your password will remain unchanged
+                            </p>
+                        </div>
+
+                        <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                            If you have any questions, please contact us at ${process.env.MAIL_USER}
+                        </p>
+                    </div>
+
+                    <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+                        <p>© ${new Date().getFullYear()} Shree Mata. All rights reserved.</p>
+                    </div>
+                </body>
+                </html>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('✅ Password reset OTP sent:', info.messageId);
+        return { success: true, messageId: info.messageId };
+    } catch (error) {
+        console.error('❌ Error sending password reset OTP:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 module.exports = {
     sendOrderConfirmationEmail,
     sendAdminNotification,
-    sendDeliveryStatusEmail
+    sendDeliveryStatusEmail,
+    sendEmailOTP,
+    sendPasswordResetOTP
 };

@@ -20,63 +20,178 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     setupPhoneValidation();
-    loadSecurityQuestions();
+    setupEmailVerification();
     setupSignupForm();
 });
 
-// Load security questions from API
-async function loadSecurityQuestions() {
-    try {
-        const response = await fetch(`${API_URL}/password-reset/security-questions`);
-        const data = await response.json();
-        
-        if (data.success) {
-            const questions = data.questions;
-            const selects = ['securityQuestion1', 'securityQuestion2', 'securityQuestion3'];
-            
-            selects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                questions.forEach(question => {
-                    const option = document.createElement('option');
-                    option.value = question;
-                    option.textContent = question;
-                    select.appendChild(option);
-                });
-            });
-            
-            // Add change event listeners to prevent duplicate selections
-            selects.forEach((selectId, index) => {
-                document.getElementById(selectId).addEventListener('change', () => {
-                    validateSecurityQuestionSelection();
-                });
-            });
-        }
-    } catch (error) {
-        console.error('Error loading security questions:', error);
-    }
-}
+// Email verification setup
+let emailVerified = false;
+let emailOtpSent = false;
 
-// Validate that all security questions are different
-function validateSecurityQuestionSelection() {
-    const q1 = document.getElementById('securityQuestion1').value;
-    const q2 = document.getElementById('securityQuestion2').value;
-    const q3 = document.getElementById('securityQuestion3').value;
-    
-    const errorMessage = document.getElementById('errorMessage');
-    
-    if (q1 && q2 && q3) {
-        if (q1 === q2 || q2 === q3 || q1 === q3) {
-            errorMessage.textContent = 'Please select different security questions';
-            errorMessage.style.display = 'block';
-            return false;
+function setupEmailVerification() {
+    const emailInput = document.getElementById('email');
+    const verifyEmailBtn = document.getElementById('verifyEmailBtn');
+    const emailStatus = document.getElementById('emailStatus');
+    const emailOtpSection = document.getElementById('emailOtpSection');
+    const emailOtpInput = document.getElementById('emailOtp');
+    const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+    const resendOtpBtn = document.getElementById('resendOtpBtn');
+    const otpStatus = document.getElementById('otpStatus');
+
+    // Show verify button when email is entered
+    emailInput.addEventListener('input', function() {
+        const email = this.value.trim();
+        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            verifyEmailBtn.style.display = 'inline-block';
+            emailStatus.textContent = '';
+            emailStatus.className = '';
         } else {
-            if (errorMessage.textContent.includes('security questions')) {
-                errorMessage.style.display = 'none';
-            }
-            return true;
+            verifyEmailBtn.style.display = 'none';
+            emailVerified = false;
+            emailOtpSent = false;
+            emailOtpSection.style.display = 'none';
+            emailStatus.textContent = '';
+            emailStatus.className = '';
         }
-    }
-    return true;
+    });
+
+    // Send email OTP
+    verifyEmailBtn.addEventListener('click', async function() {
+        const email = emailInput.value.trim();
+        
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            emailStatus.textContent = 'Please enter a valid email address';
+            emailStatus.className = 'error';
+            return;
+        }
+
+        this.disabled = true;
+        this.textContent = 'Sending...';
+        emailStatus.textContent = '';
+        emailStatus.className = '';
+
+        try {
+            const response = await fetch(`${API_URL}/send-email-otp`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                emailOtpSent = true;
+                emailOtpSection.style.display = 'block';
+                emailStatus.textContent = '✓ Verification code sent to your email';
+                emailStatus.className = 'success';
+                this.style.display = 'none';
+                emailOtpInput.focus();
+            } else {
+                emailStatus.textContent = data.error || 'Failed to send verification code';
+                emailStatus.className = 'error';
+            }
+        } catch (error) {
+            console.error('Email OTP send error:', error);
+            emailStatus.textContent = 'Network error. Please try again.';
+            emailStatus.className = 'error';
+        }
+
+        this.disabled = false;
+        this.textContent = 'Verify Email';
+    });
+
+    // Verify email OTP
+    verifyOtpBtn.addEventListener('click', async function() {
+        const email = emailInput.value.trim();
+        const otp = emailOtpInput.value.trim();
+
+        if (!otp || otp.length !== 6) {
+            otpStatus.textContent = 'Please enter the 6-digit verification code';
+            otpStatus.className = 'error';
+            return;
+        }
+
+        this.disabled = true;
+        this.textContent = 'Verifying...';
+        otpStatus.textContent = '';
+        otpStatus.className = '';
+
+        try {
+            const response = await fetch(`${API_URL}/verify-email-otp`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, otp })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                emailVerified = true;
+                otpStatus.textContent = '✓ Email verified successfully!';
+                otpStatus.className = 'success';
+                emailOtpSection.style.display = 'none';
+                emailStatus.textContent = '✓ Email verified';
+                emailStatus.className = 'success';
+                emailInput.disabled = true;
+            } else {
+                otpStatus.textContent = data.error || 'Invalid verification code';
+                otpStatus.className = 'error';
+            }
+        } catch (error) {
+            console.error('Email OTP verify error:', error);
+            otpStatus.textContent = 'Network error. Please try again.';
+            otpStatus.className = 'error';
+        }
+
+        this.disabled = false;
+        this.textContent = 'Verify Code';
+    });
+
+    // Resend email OTP
+    resendOtpBtn.addEventListener('click', async function() {
+        const email = emailInput.value.trim();
+
+        this.disabled = true;
+        this.textContent = 'Sending...';
+        otpStatus.textContent = '';
+        otpStatus.className = '';
+
+        try {
+            const response = await fetch(`${API_URL}/send-email-otp`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                otpStatus.textContent = '✓ New verification code sent to your email';
+                otpStatus.className = 'success';
+            } else {
+                otpStatus.textContent = data.error || 'Failed to resend verification code';
+                otpStatus.className = 'error';
+            }
+        } catch (error) {
+            console.error('Email OTP resend error:', error);
+            otpStatus.textContent = 'Network error. Please try again.';
+            otpStatus.className = 'error';
+        }
+
+        this.disabled = false;
+        this.textContent = 'Resend Code';
+    });
+
+    // Auto-format OTP input
+    emailOtpInput.addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '').substring(0, 6);
+    });
 }
 
 function setupPhoneValidation() {
@@ -167,14 +282,6 @@ function setupSignupForm() {
         const referralInputEl = document.getElementById('referralInput');
         const referralCode = referralInputEl ? referralInputEl.value.trim() : null;
 
-        // Security questions
-        const securityQuestion1 = document.getElementById('securityQuestion1').value;
-        const securityAnswer1 = document.getElementById('securityAnswer1').value.trim();
-        const securityQuestion2 = document.getElementById('securityQuestion2').value;
-        const securityAnswer2 = document.getElementById('securityAnswer2').value.trim();
-        const securityQuestion3 = document.getElementById('securityQuestion3').value;
-        const securityAnswer3 = document.getElementById('securityAnswer3').value.trim();
-
         const errorMessage = document.getElementById('errorMessage');
         const signupBtn = document.getElementById('signupBtn');
 
@@ -200,6 +307,13 @@ function setupSignupForm() {
             return;
         }
 
+        // Validate email verification
+        if (!emailVerified) {
+            errorMessage.textContent = 'Please verify your email address before creating account';
+            errorMessage.style.display = 'block';
+            return;
+        }
+
         if (password !== confirmPassword) {
             errorMessage.textContent = 'Passwords do not match';
             errorMessage.style.display = 'block';
@@ -212,28 +326,11 @@ function setupSignupForm() {
             return;
         }
 
-        // Validate security questions
-        if (!securityQuestion1 || !securityAnswer1 || !securityQuestion2 || !securityAnswer2 || !securityQuestion3 || !securityAnswer3) {
-            errorMessage.textContent = 'Please complete all security questions and answers';
-            errorMessage.style.display = 'block';
-            return;
-        }
-
-        if (!validateSecurityQuestionSelection()) {
-            return;
-        }
-
-        if (securityAnswer1.length < 2 || securityAnswer2.length < 2 || securityAnswer3.length < 2) {
-            errorMessage.textContent = 'Security answers must be at least 2 characters long';
-            errorMessage.style.display = 'block';
-            return;
-        }
-
         signupBtn.disabled = true;
         signupBtn.textContent = 'Creating account...';
 
         try {
-            // Step 1: Create user account
+            // Create user account
             const signupResponse = await fetch(`${API_URL}/signup`, {
                 method: 'POST',
                 headers: {
@@ -258,35 +355,6 @@ function setupSignupForm() {
                 return;
             }
 
-            // Step 2: Setup security questions
-            signupBtn.textContent = 'Setting up security...';
-            
-            const securityResponse = await fetch(`${API_URL}/password-reset/setup-security`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${signupData.token}`
-                },
-                body: JSON.stringify({
-                    question1: securityQuestion1,
-                    answer1: securityAnswer1,
-                    question2: securityQuestion2,
-                    answer2: securityAnswer2,
-                    question3: securityQuestion3,
-                    answer3: securityAnswer3
-                })
-            });
-
-            const securityData = await securityResponse.json();
-
-            if (!securityResponse.ok) {
-                errorMessage.textContent = securityData.error || 'Failed to setup security questions. Please try again.';
-                errorMessage.style.display = 'block';
-                signupBtn.disabled = false;
-                signupBtn.textContent = 'Create Account';
-                return;
-            }
-
             // Success - store token and redirect
             localStorage.setItem('token', signupData.token);
             localStorage.setItem('user', JSON.stringify(signupData.user));
@@ -296,7 +364,7 @@ function setupSignupForm() {
                 migrateGuestCartToUser();
             }
 
-            alert('Account created successfully with security questions setup!');
+            alert('Account created successfully!');
             
             // Check if there's a redirect URL stored
             const redirectUrl = localStorage.getItem("redirectAfterLogin");
