@@ -322,6 +322,7 @@
     </div>
 
     <script src="js/config.js"></script>
+    <script src="js/successPopup.js"></script>
     <script src="js/cartUtils.js"></script>
     <script>
         const API = window.API_URL;
@@ -826,8 +827,16 @@
                             const verifyData = await verifyRes.json();
 
                             if (verifyRes.ok && verifyData.success) {
-                                alert("Payment successful! Your order has been placed.");
-                                window.location.href = "/";
+                                // Show success popup with order details
+                                const orderData = {
+                                    orderId: response.razorpay_payment_id,
+                                    items: 1,
+                                    amount: totalAmount,
+                                    deliveryMethod: deliveryMethod === 'pickup' ? 'Store Pickup' : 'Courier Delivery',
+                                    paymentMethod: 'Online Payment'
+                                };
+                                
+                                showSuccessPopup(orderData);
                             } else {
                                 throw new Error(verifyData.error || "Payment verification failed");
                             }

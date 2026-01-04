@@ -693,13 +693,26 @@ async function proceedToPayment() {
                     // ✅ Payment verification successful!
                     console.log("✅ Payment verified successfully!");
                     
-                    // Show success popup
-                    if (confirm("🎉 Order Confirmed!\n\nYour payment has been processed successfully and your book order has been placed.\n\nWould you like to view your order in your account page?")) {
-                        // Redirect to account page orders section
-                        window.location.href = "/account.html?section=orders";
+                    // Show success popup with order details
+                    const orderData = {
+                        orderId: response.razorpay_payment_id,
+                        items: quantity,
+                        amount: totalAmount,
+                        deliveryMethod: deliveryMethod === 'pickup' ? 'Store Pickup' : 'Courier Delivery',
+                        paymentMethod: 'Online Payment'
+                    };
+                    
+                    console.log("📋 Order data for popup:", orderData);
+                    
+                    // Check if showSuccessPopup function exists
+                    if (typeof showSuccessPopup === 'function') {
+                        console.log("✅ showSuccessPopup function found, calling it...");
+                        showSuccessPopup(orderData);
                     } else {
-                        // Redirect to home
-                        window.location.href = "/";
+                        console.error("❌ showSuccessPopup function not found!");
+                        // Fallback to alert
+                        alert("🎉 Order Confirmed!\n\nYour payment has been processed successfully and your order has been placed.");
+                        window.location.href = "/account.html?section=orders";
                     }
 
                 } catch (err) {

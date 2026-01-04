@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupEmailLoginForm();
     setupPhoneLoginForm();
     setupInputValidation();
+    setupPasswordToggle();
     loadRememberedCredentials();
 });
 
@@ -332,6 +333,39 @@ function savePhoneCredentials(phone, remember) {
         localStorage.setItem("rememberedPhone", phone);
     } else {
         localStorage.removeItem("rememberedPhone");
+    }
+}
+
+function setupPasswordToggle() {
+    const passwordInput = document.getElementById("password");
+    const toggleButton = document.getElementById("togglePassword");
+    const phonePasswordInput = document.getElementById("phonePassword");
+    const togglePhoneButton = document.getElementById("togglePhonePassword");
+
+    // Email password toggle
+    if (toggleButton && passwordInput) {
+        toggleButton.addEventListener("click", function() {
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                toggleButton.textContent = "🙈";
+            } else {
+                passwordInput.type = "password";
+                toggleButton.textContent = "👁️";
+            }
+        });
+    }
+
+    // Phone password toggle
+    if (togglePhoneButton && phonePasswordInput) {
+        togglePhoneButton.addEventListener("click", function() {
+            if (phonePasswordInput.type === "password") {
+                phonePasswordInput.type = "text";
+                togglePhoneButton.textContent = "🙈";
+            } else {
+                phonePasswordInput.type = "password";
+                togglePhoneButton.textContent = "👁️";
+            }
+        });
     }
 }
 

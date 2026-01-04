@@ -1602,14 +1602,17 @@ async function proceedToPayment() {
                     // Clear cart immediately
                     clearCart();
                     
-                    // Show success popup
-                    if (confirm("🎉 Order Confirmed!\n\nYour payment has been processed successfully and your order has been placed.\n\nWould you like to view your order in your account page?")) {
-                        // Redirect to account page orders section
-                        window.location.href = "/account.html?section=orders";
-                    } else {
-                        // Redirect to home
-                        window.location.href = "/";
-                    }
+                    // Show success popup with order details
+                    const cart = getCart();
+                    const orderData = {
+                        orderId: response.razorpay_payment_id,
+                        items: cart.length,
+                        amount: (rzpOrder.amount / 100), // Convert from paise to rupees
+                        deliveryMethod: deliveryMethod === 'pickup' ? 'Store Pickup' : 'Courier Delivery',
+                        paymentMethod: 'Online Payment'
+                    };
+                    
+                    showSuccessPopup(orderData);
                     
                     return; // Exit the handler
 
