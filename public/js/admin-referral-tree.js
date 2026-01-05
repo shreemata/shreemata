@@ -242,22 +242,22 @@ function displayStats(stats) {
             </div>
             <div class="stat-card">
                 <h3>${stats.overview.usersInTree}</h3>
-                <p>Users in Tree</p>
+                <p>Users in Tree (Purchased)</p>
+            </div>
+            <div class="stat-card">
+                <h3>${stats.overview.usersWithoutPurchases || 0}</h3>
+                <p>Users Without Purchases</p>
             </div>
             <div class="stat-card">
                 <h3>${stats.overview.deepestLevel}</h3>
                 <p>Deepest Level</p>
             </div>
             <div class="stat-card">
-                <h3>${stats.overview.usersWithoutReferrers}</h3>
-                <p>No Referrer</p>
+                <h3>${stats.overview.percentageInTree || 0}%</h3>
+                <p>Purchase Rate</p>
             </div>
             <div class="stat-card">
-                <h3>${stats.fillRates.overall}%</h3>
-                <p>Overall Fill Rate</p>
-            </div>
-            <div class="stat-card">
-                <h3>₹${stats.commissionStatistics.totalCommissionsPaid.toFixed(2)}</h3>
+                <h3>₹${stats.commissionStatistics?.totalCommissionsPaid?.toFixed(2) || '0.00'}</h3>
                 <p>Total Commissions</p>
             </div>
         `;

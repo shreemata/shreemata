@@ -2,7 +2,6 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const { findTreePlacement } = require("../services/treePlacement");
 const { sendEmailOTP, sendPasswordResetOTP } = require("../utils/emailService");
 
 const router = express.Router();

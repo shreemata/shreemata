@@ -483,8 +483,17 @@ router.post("/verify", authenticateToken, async (req, res) => {
         order.totalAmount
       );
       console.log("✅ Commission distribution completed:", commissionTransaction._id);
+      
+      // Mark user's first purchase as done after successful commission distribution
+      const user = await User.findById(order.user_id);
+      if (user && !user.firstPurchaseDone) {
+        user.firstPurchaseDone = true;
+        await user.save();
+        console.log(`✅ Marked first purchase as done for user: ${user.email}`);
+      }
     } catch (commissionError) {
       console.error("❌ Commission distribution error:", commissionError);
+      console.error("❌ Commission error details:", commissionError.stack);
       // Log error but don't fail the payment verification
       // Implement retry logic here if needed
     }
@@ -826,6 +835,14 @@ router.post("/webhook", async (req, res) => {
             order.totalAmount
           );
           console.log("✅ Webhook: Commission distribution completed:", commissionTransaction._id);
+          
+          // Mark user's first purchase as done after successful commission distribution
+          const user = await User.findById(order.user_id);
+          if (user && !user.firstPurchaseDone) {
+            user.firstPurchaseDone = true;
+            await user.save();
+            console.log(`✅ Webhook: Marked first purchase as done for user: ${user.email}`);
+          }
         } catch (commissionError) {
           console.error("❌ Webhook: Commission distribution error:", commissionError);
           // Implement retry logic here if needed

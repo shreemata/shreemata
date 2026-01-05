@@ -99,6 +99,15 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
                 );
                 console.log("✅ Commission distribution completed:", commissionTransaction._id);
                 
+                // Mark user's first purchase as done after successful commission distribution
+                const User = require("../models/User");
+                const user = await User.findById(order.user_id);
+                if (user && !user.firstPurchaseDone) {
+                    user.firstPurchaseDone = true;
+                    await user.save();
+                    console.log(`✅ Admin: Marked first purchase as done for user: ${user.email}`);
+                }
+                
                 // Reduce stock for completed orders (skip digital items)
                 console.log("📦 Reducing stock for completed order items...");
                 const Book = require("../models/Book");

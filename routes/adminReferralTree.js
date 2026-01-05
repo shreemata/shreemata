@@ -21,10 +21,16 @@ async function buildCompleteTree(rootUsers, currentDepth = 0, maxDepth = 20) {
 
     for (const userId of rootUsers) {
         const user = await User.findById(userId)
-            .select("name email referralCode wallet treeLevel treePosition treeChildren referredBy createdAt directCommissionEarned treeCommissionEarned")
+            .select("name email referralCode wallet treeLevel treePosition treeChildren referredBy createdAt directCommissionEarned treeCommissionEarned firstPurchaseDone")
             .populate('treeChildren', '_id');
 
         if (!user) continue;
+        
+        // Skip users who haven't made purchases (should not appear in tree)
+        if (!user.firstPurchaseDone || user.treeLevel === 0) {
+            console.log(`Skipping user ${user.email} - no purchase made (firstPurchaseDone: ${user.firstPurchaseDone}, treeLevel: ${user.treeLevel})`);
+            continue;
+        }
 
         // Calculate total commission earned
         const totalCommissionEarned = (user.directCommissionEarned || 0) + (user.treeCommissionEarned || 0);
@@ -33,7 +39,8 @@ async function buildCompleteTree(rootUsers, currentDepth = 0, maxDepth = 20) {
         const referralStatus = {
             hasReferrer: !!user.referredBy,
             joinedWithoutReferrer: !user.referredBy,
-            isRootUser: user.treeLevel === 0 || !user.treeParent
+            isRootUser: user.treeLevel === 1 || !user.treeParent, // Level 1 is root for purchased users
+            hasPurchased: user.treeLevel > 0 // Only users with purchases have treeLevel > 0
         };
 
         // Get children recursively
@@ -85,18 +92,21 @@ router.get("/complete", authenticateToken, isAdmin, async (req, res) => {
         const maxDepth = Math.min(parseInt(req.query.maxDepth) || 10, 20);
         const skip = (page - 1) * limit;
 
-        // Find root users (users with treeLevel 0 or no treeParent)
+        // Find root users (users who have made purchases AND have tree placement)
+        // Only show users who have both purchased and been placed in tree
         const totalRootUsers = await User.countDocuments({
+            firstPurchaseDone: true, // Must have made a purchase
+            treeLevel: { $gte: 1 }, // Must have tree placement
             $or: [
-                { treeLevel: 0 },
                 { treeParent: null },
                 { treeParent: { $exists: false } }
             ]
         });
 
         const rootUsers = await User.find({
+            firstPurchaseDone: true, // Must have made a purchase
+            treeLevel: { $gte: 1 }, // Must have tree placement
             $or: [
-                { treeLevel: 0 },
                 { treeParent: null },
                 { treeParent: { $exists: false } }
             ]
@@ -176,10 +186,10 @@ router.get("/level/:level", authenticateToken, isAdmin, async (req, res) => {
         
         const level = parseInt(req.params.level);
         
-        // Validate level parameter
-        if (isNaN(level) || level < 0) {
+        // Validate level parameter - must be >= 1 (only show users who made purchases)
+        if (isNaN(level) || level < 1) {
             return res.status(400).json({ 
-                error: "Invalid level parameter. Must be a non-negative integer." 
+                error: "Invalid level parameter. Must be 1 or higher (level 0 users haven't made purchases yet)." 
             });
         }
 
@@ -188,10 +198,16 @@ router.get("/level/:level", authenticateToken, isAdmin, async (req, res) => {
         const limit = parseInt(req.query.limit) || 100;
         const skip = (page - 1) * limit;
 
-        // Get all users at the specified level
-        const totalUsersAtLevel = await User.countDocuments({ treeLevel: level });
+        // Get all users at the specified level who have made purchases
+        const totalUsersAtLevel = await User.countDocuments({ 
+            treeLevel: level,
+            firstPurchaseDone: true 
+        });
         
-        const usersAtLevel = await User.find({ treeLevel: level })
+        const usersAtLevel = await User.find({ 
+            treeLevel: level,
+            firstPurchaseDone: true 
+        })
             .select("name email referralCode wallet treePosition treeParent treeChildren referredBy createdAt directCommissionEarned treeCommissionEarned")
             .populate('treeParent', 'name email referralCode')
             .populate('treeChildren', 'name email referralCode')
@@ -305,10 +321,15 @@ router.get("/stats", authenticateToken, isAdmin, async (req, res) => {
         
         // Get basic tree statistics
         const totalUsers = await User.countDocuments();
-        const usersInTree = await User.countDocuments({ treeLevel: { $gt: 0 } });
+        const usersInTree = await User.countDocuments({ 
+            firstPurchaseDone: true, 
+            treeLevel: { $gte: 1 } 
+        }); // Only users who made purchases AND have tree placement
+        const usersWithoutPurchases = await User.countDocuments({ firstPurchaseDone: false }); // Users who haven't purchased
         const rootUsers = await User.countDocuments({
+            firstPurchaseDone: true, // Must have made a purchase
+            treeLevel: { $gte: 1 }, // Must have tree placement
             $or: [
-                { treeLevel: 0 },
                 { treeParent: null },
                 { treeParent: { $exists: false } }
             ]
@@ -320,9 +341,14 @@ router.get("/stats", authenticateToken, isAdmin, async (req, res) => {
             .select('treeLevel');
         const deepestLevel = deepestLevelResult?.treeLevel || 0;
 
-        // Get users per level distribution
+        // Get users per level distribution (only for users who made purchases)
         const levelDistribution = await User.aggregate([
-            { $match: { treeLevel: { $gte: 0 } } },
+            { 
+                $match: { 
+                    firstPurchaseDone: true, // Must have made a purchase
+                    treeLevel: { $gte: 1 } // Must have tree placement
+                } 
+            },
             {
                 $group: {
                     _id: '$treeLevel',
@@ -465,13 +491,17 @@ router.get("/stats", authenticateToken, isAdmin, async (req, res) => {
         res.json({
             overview: {
                 totalUsers: totalUsers,
-                usersInTree: usersInTree,
+                usersInTree: usersInTree, // Users who have made purchases and are in tree
+                usersWithoutPurchases: usersWithoutPurchases, // Users who haven't made purchases yet
                 rootUsers: rootUsers,
                 deepestLevel: deepestLevel,
                 totalLevels: deepestLevel + 1,
                 usersWithoutReferrers: totalUsersWithoutReferrers,
                 percentageWithoutReferrers: totalUsers > 0 
                     ? ((totalUsersWithoutReferrers / totalUsers) * 100).toFixed(2) 
+                    : 0,
+                percentageInTree: totalUsers > 0 
+                    ? ((usersInTree / totalUsers) * 100).toFixed(2) 
                     : 0
             },
             levelDistribution: levelStats,
