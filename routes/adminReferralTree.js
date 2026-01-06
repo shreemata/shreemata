@@ -6,6 +6,82 @@ const { authenticateToken, isAdmin } = require("../middleware/auth");
 const router = express.Router();
 
 /**
+ * Build tree structure grouped by levels for horizontal display
+ * Instead of nested children, group all users by their tree level
+ */
+async function buildLevelGroupedTree(rootUsers, currentDepth = 0, maxDepth = 20) {
+    if (currentDepth >= maxDepth || !rootUsers || rootUsers.length === 0) {
+        return { levels: {}, allUsers: [] };
+    }
+
+    const levels = {};
+    const allUsers = [];
+    const processedUsers = new Set();
+
+    async function processUsersAtLevel(userIds, level) {
+        if (level > maxDepth || userIds.length === 0) return;
+
+        const users = await User.find({ 
+            _id: { $in: userIds },
+            firstPurchaseDone: true // Only show users who made purchases
+        }).select("name email referralCode wallet treeLevel treePosition treeChildren treeParent referredBy createdAt directCommissionEarned treeCommissionEarned firstPurchaseDone");
+
+        for (const user of users) {
+            if (processedUsers.has(user._id.toString())) continue;
+            processedUsers.add(user._id.toString());
+
+            // Calculate total commission earned
+            const totalCommissionEarned = (user.directCommissionEarned || 0) + (user.treeCommissionEarned || 0);
+
+            // Determine referral status
+            const referralStatus = {
+                hasReferrer: !!user.referredBy,
+                joinedWithoutReferrer: !user.referredBy,
+                isRootUser: user.treeLevel === 1 || !user.treeParent,
+                hasPurchased: user.treeLevel > 0
+            };
+
+            const userData = {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                referralCode: user.referralCode,
+                wallet: user.wallet || 0,
+                treeLevel: user.treeLevel,
+                treePosition: user.treePosition,
+                treeParent: user.treeParent, // Include parent ID for positioning
+                joinDate: user.createdAt,
+                referralStatus: referralStatus,
+                commissions: {
+                    total: totalCommissionEarned,
+                    direct: user.directCommissionEarned || 0,
+                    tree: user.treeCommissionEarned || 0
+                },
+                childrenCount: user.treeChildren.length,
+                children: [] // No nested children for horizontal layout
+            };
+
+            // Group by level
+            if (!levels[user.treeLevel]) {
+                levels[user.treeLevel] = [];
+            }
+            levels[user.treeLevel].push(userData);
+            allUsers.push(userData);
+
+            // Process children at next level
+            if (user.treeChildren.length > 0) {
+                await processUsersAtLevel(user.treeChildren, user.treeLevel + 1);
+            }
+        }
+    }
+
+    // Start processing from root users
+    await processUsersAtLevel(rootUsers, 1);
+
+    return { levels, allUsers };
+}
+
+/**
  * Build complete tree structure starting from root users
  * @param {Array} rootUsers - Array of root user IDs
  * @param {number} currentDepth - Current depth in recursion
@@ -118,8 +194,16 @@ router.get("/complete", authenticateToken, isAdmin, async (req, res) => {
 
         const rootUserIds = rootUsers.map(user => user._id);
 
-        // Build complete tree structure
-        const completeTree = await buildCompleteTree(rootUserIds, 0, maxDepth);
+        // Build level-grouped tree structure for horizontal display
+        const treeData = await buildLevelGroupedTree(rootUserIds, 0, maxDepth);
+        
+        // Convert levels object to array format for frontend
+        const levelsArray = Object.keys(treeData.levels)
+            .sort((a, b) => parseInt(a) - parseInt(b))
+            .map(levelNum => ({
+                level: parseInt(levelNum),
+                users: treeData.levels[levelNum]
+            }));
 
         // Calculate statistics
         const stats = {
@@ -128,29 +212,14 @@ router.get("/complete", authenticateToken, isAdmin, async (req, res) => {
             maxDepthTraversed: maxDepth
         };
 
-        // Count users without referrers in current page
-        let usersWithoutReferrers = 0;
-        let totalUsersInCurrentTree = 0;
-
-        function countUsers(nodes) {
-            for (const node of nodes) {
-                totalUsersInCurrentTree++;
-                if (node.referralStatus.joinedWithoutReferrer) {
-                    usersWithoutReferrers++;
-                }
-                if (node.children && node.children.length > 0) {
-                    countUsers(node.children);
-                }
-            }
-        }
-
-        countUsers(completeTree);
-
-        stats.usersWithoutReferrers = usersWithoutReferrers;
-        stats.totalUsersInCurrentTree = totalUsersInCurrentTree;
+        // Calculate statistics from level-grouped data
+        stats.usersWithoutReferrers = treeData.allUsers.filter(user => user.referralStatus.joinedWithoutReferrer).length;
+        stats.totalUsersInCurrentTree = treeData.allUsers.length;
 
         res.json({
-            tree: completeTree,
+            tree: treeData.allUsers, // For visual tree compatibility - flat array of all users
+            levels: levelsArray, // Send level-grouped data for horizontal display
+            allUsers: treeData.allUsers,
             pagination: {
                 currentPage: page,
                 totalPages: Math.ceil(totalRootUsers / limit),

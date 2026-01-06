@@ -11,6 +11,9 @@
 <!-- html2canvas for Export PNG -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
+<!-- Load API configuration first -->
+<script src="js/config.js"></script>
+
 <style>
 /* --- Enhanced Modern Layout --- */
 body {
@@ -186,7 +189,7 @@ nav a:hover, nav a.active {
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
-/* Enhanced Tree Visuals - Keep Horizontal Layout */
+/* Enhanced Tree Visuals - Traditional Tree Layout */
 .tree-root-wrap { 
     padding: 50px; 
     overflow: auto; 
@@ -197,133 +200,257 @@ nav a:hover, nav a.active {
     position: relative;
     width: 100%;
     box-sizing: border-box;
-    /* Ensure horizontal scrolling shows all content */
     overflow-x: auto;
     overflow-y: auto;
-    /* Add extra space for wide trees */
     min-width: 100%;
 }
 
+/* Level containers - Increased spacing for visible connections */
 .tree-level {
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    position: relative; 
-    padding-top: 30px;
-    /* Ensure tree level can expand horizontally */
-    width: 100%;
-    min-width: max-content;
+    margin-bottom: 80px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-/* Improved vertical connecting lines from parent */
-.tree-level:before {
-    content: ""; 
-    position: absolute; 
-    top: 0; 
-    left: 50%; 
-    width: 3px; 
-    height: 30px; 
-    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+/* Level headers - positioned to the left */
+.level-header {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 25px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    z-index: 10;
+}
+
+.level-header h3 {
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 5px 0;
+}
+
+.level-count {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Nodes container - Better alignment for smaller cards */
+.level-nodes {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    flex-wrap: wrap;
+    margin-left: 100px; /* Space for level header */
+    max-width: calc(100% - 120px);
+}
+
+/* Positioned nodes for parent-child alignment */
+.level-nodes.positioned-nodes {
+    justify-content: flex-start;
+    position: relative;
+    height: 120px; /* Fixed height for positioning */
+}
+
+/* Parent groups for positioning children under parents */
+.parent-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    position: relative;
+}
+
+/* Individual user nodes - Consistent sizing */
+.horizontal-node {
+    flex: 0 0 auto;
+    max-width: 160px;
+    min-width: 140px;
+    margin: 0;
+    position: relative;
+}
+
+/* Enhanced tree structure with visible connections */
+
+/* Vertical connecting lines from each node to next level - More visible */
+.horizontal-node::after {
+    content: "";
+    position: absolute;
+    bottom: -35px;
+    left: 50%;
+    width: 4px;
+    height: 35px;
+    background: #000000;
     border-radius: 2px;
     transform: translateX(-50%);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-.tree-level.root:before { display: none; }
-
-.tree-children {
-    display: flex; 
-    gap: 25px; 
-    justify-content: center; 
-    margin-top: 30px; 
-    position: relative;
-    align-items: flex-start;
-    /* Ensure children don't get cut off */
-    min-width: max-content;
-    width: 100%;
-    /* Add padding to prevent edge cutoff */
-    padding: 0 20px;
-    box-sizing: border-box;
+    z-index: 5;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-/* Horizontal connecting line between siblings */
-.tree-children:before {
-    content: ""; 
-    position: absolute; 
-    top: -15px; 
-    height: 3px; 
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-    border-radius: 2px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    opacity: var(--show-horizontal-line, 1);
-    left: var(--line-left, 25%);
-    right: var(--line-right, 25%);
-}
-
-/* Hide horizontal line for single children */
-.tree-children:has(> div:only-child):before {
+/* Hide connection line for nodes in the last level */
+.tree-level:last-child .horizontal-node::after {
     display: none;
 }
 
-/* Vertical connecting lines to each child */
-.tree-children > div { 
-    position: relative; 
+/* Horizontal connecting line between siblings - More visible */
+.level-nodes::before {
+    content: "";
+    position: absolute;
+    bottom: -35px;
+    height: 4px;
+    background: #000000;
+    border-radius: 2px;
+    z-index: 4;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
-.tree-children > div:before {
-    content: ""; 
-    position: absolute; 
-    top: -30px; 
-    left: 50%; 
-    width: 3px; 
-    height: 30px; 
-    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+
+/* Show horizontal lines for all levels */
+.level-nodes.positioned-nodes::before {
+    display: block;
+}
+
+/* Enhanced connection indicators for nodes */
+.horizontal-node.has-children {
+    border-color: #28a745 !important;
+    box-shadow: 0 4px 20px rgba(40, 167, 69, 0.2) !important;
+}
+
+.horizontal-node.has-parent {
+    border-color: #007bff !important;
+    box-shadow: 0 4px 20px rgba(0, 123, 255, 0.2) !important;
+}
+
+.horizontal-node.has-children .tree-name {
+    color: #28a745 !important;
+}
+
+.horizontal-node.has-parent .tree-name {
+    color: #007bff !important;
+}
+
+/* Connection line hover effects */
+.tree-connection-svg path {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+/* Remove the old connection line styles since we're using SVG */
+.horizontal-node::after {
+    display: none;
+}
+
+.level-nodes::before {
+    display: none;
+}
+
+/* Enhanced connection for parent-child relationships */
+.parent-group::before {
+    content: "";
+    position: absolute;
+    top: -35px;
+    left: 50%;
+    width: 4px;
+    height: 35px;
+    background: #000000;
     border-radius: 2px;
     transform: translateX(-50%);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 5;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-/* Ensure proper connection points */
-.tree-children > div:first-child:before,
-.tree-children > div:last-child:before {
-    height: 30px;
-    top: -30px;
+/* Calculate horizontal line position dynamically for better alignment */
+.level-nodes:has(.horizontal-node:nth-child(1):nth-last-child(1))::before {
+    display: none; /* Single node - no horizontal line */
 }
 
-/* Better spacing for multiple children */
-.tree-children:has(> div:nth-child(2)) {
-    gap: 40px;
+.level-nodes:has(.horizontal-node:nth-child(2))::before {
+    left: 20%;
+    right: 20%;
 }
 
-.tree-children:has(> div:nth-child(3)) {
-    gap: 35px;
+.level-nodes:has(.horizontal-node:nth-child(3))::before {
+    left: 15%;
+    right: 15%;
 }
 
-.tree-children:has(> div:nth-child(4)) {
-    gap: 30px;
+.level-nodes:has(.horizontal-node:nth-child(4))::before {
+    left: 12%;
+    right: 12%;
 }
 
-.tree-children:has(> div:nth-child(n+5)) {
-    gap: 25px;
+.level-nodes:has(.horizontal-node:nth-child(n+5))::before {
+    left: 8%;
+    right: 8%;
 }
 
-/* Enhanced tree nodes */
+/* Enhanced tree nodes - Smaller and more compact */
 .tree-node {
     background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
     border: 2px solid #e8ecf4;
-    padding: 20px 24px;
-    border-radius: 16px;
-    min-width: 180px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    min-width: 140px;
+    max-width: 160px;
     text-align: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 3px 15px rgba(0,0,0,0.06);
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    /* Ensure nodes are always visible */
     flex-shrink: 0;
     white-space: nowrap;
 }
 
-/* Hover effects */
+/* Connection lines and animations */
+.custom-connection-line {
+    transition: opacity 0.3s ease;
+}
+
+.custom-connection-line path {
+    stroke-dasharray: 5, 5;
+    animation: dash 20s linear infinite;
+}
+
+@keyframes dash {
+    to {
+        stroke-dashoffset: -100;
+    }
+}
+
+/* Enhanced hover effects for connected nodes */
+.tree-node:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
+    border-color: #667eea;
+    background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
+    z-index: 10;
+}
+
+/* Highlight connected nodes on hover */
+.tree-node.connected-highlight {
+    border-color: #28a745 !important;
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3) !important;
+}
+
+/* Connection line highlighting */
+.connection-highlight {
+    stroke: #28a745 !important;
+    stroke-width: 3 !important;
+    opacity: 1 !important;
+}
 .tree-node:hover { 
     transform: translateY(-8px) scale(1.02); 
     box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
@@ -331,29 +458,31 @@ nav a:hover, nav a.active {
     background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
 }
 
-/* Node content styling */
+/* Node content styling - Smaller text for compact cards */
 .tree-name { 
     font-weight: 700; 
-    font-size: 16px; 
-    margin-bottom: 8px; 
+    font-size: 14px; 
+    margin-bottom: 6px; 
     color: #2c3e50;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    line-height: 1.2;
 }
 .tree-meta { 
-    font-size: 13px; 
+    font-size: 11px; 
     color: #6c757d; 
-    margin: 4px 0;
+    margin: 2px 0;
     font-weight: 500;
+    line-height: 1.3;
 }
 
 /* Special styling for wallet amount */
 .tree-meta:first-of-type {
     color: #28a745;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 /* Highlight effect for search */
@@ -919,7 +1048,7 @@ nav a:hover, nav a.active {
                 <button id="refreshBtn" class="btn-primary">Refresh</button>
                 <button id="exportBtn" class="btn-secondary">Export PNG</button>
                 <button id="exportFullBtn" class="btn-secondary">📸 Export Full Tree</button>
-                <button id="debugBtn" class="btn-primary" style="display: none;">🔍 Debug</button>
+                <button id="debugBtn" class="btn-primary">🔍 Debug Connections</button>
             </div>
         </div>
 
@@ -954,14 +1083,14 @@ nav a:hover, nav a.active {
   - Calls protected endpoints with Bearer token from localStorage
 */
 
-// API base (expected provided by your config.js)
-const API = (typeof API_URL !== 'undefined') ? API_URL : ''; // user earlier indicated API_URL is http://localhost:3000
+// API base (loaded from config.js)
+const API = window.API_URL || 'http://localhost:3000/api';
 
 // Candidate endpoints (tried in order)
 const ENDPOINT_CANDIDATES = [
-    `${API}/api/admin/referral-tree/complete`, // likely from your codebase
-    `${API}/api/referral/tree`,                // possibility from reference file you shared
-    `${API}/api/admin/referral-tree/complete?page=1&limit=1000`, // try large limit if paged
+    `${API}/admin/referral-tree/complete`, // correct endpoint path
+    `${API}/referral/tree`,                // alternative endpoint
+    `${API}/admin/referral-tree/complete?page=1&limit=1000`, // try large limit if paged
 ];
 
 const treeWrap = document.getElementById('treeWrap');
@@ -983,16 +1112,45 @@ exportFullBtn.addEventListener('click', exportFullTreeAsImageSimple);
 zoomInBtn.addEventListener('click', () => adjustZoom(0.1));
 zoomOutBtn.addEventListener('click', () => adjustZoom(-0.1));
 
-// Debug function to check tree content
+// Debug function to check tree content and connections
 debugBtn.addEventListener('click', () => {
-    console.log('Tree content:', treeWrap.innerHTML);
+    console.log('🔍 DEBUG: Tree content and connections');
     console.log('Tree dimensions:', {
         width: treeWrap.offsetWidth,
         height: treeWrap.offsetHeight,
         scrollWidth: treeWrap.scrollWidth,
         scrollHeight: treeWrap.scrollHeight
     });
-    alert('Check console for tree debug info');
+    
+    // Check all nodes
+    const allNodes = document.querySelectorAll('.horizontal-node');
+    console.log(`Found ${allNodes.length} nodes:`);
+    allNodes.forEach(node => {
+        const userId = node.getAttribute('data-user-id');
+        const name = node.querySelector('.tree-name').textContent;
+        const rect = node.getBoundingClientRect();
+        console.log(`  ${name} (${userId}): x=${rect.left}, y=${rect.top}, w=${rect.width}, h=${rect.height}`);
+    });
+    
+    // Check SVG connections
+    const svg = document.querySelector('.tree-connection-svg');
+    if (svg) {
+        const lines = svg.querySelectorAll('line');
+        console.log(`Found ${lines.length} connection lines`);
+        lines.forEach((line, index) => {
+            console.log(`  Line ${index}: (${line.getAttribute('x1')}, ${line.getAttribute('y1')}) → (${line.getAttribute('x2')}, ${line.getAttribute('y2')})`);
+        });
+    } else {
+        console.log('No SVG connections found');
+    }
+    
+    // Force redraw connections
+    if (window.currentLevelsData) {
+        console.log('Redrawing connections...');
+        addTreeConnections(window.currentLevelsData);
+    }
+    
+    alert('Check console for debug info');
 });
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') performSearch(); });
 
@@ -1009,8 +1167,20 @@ async function loadTree(){
 
     try {
         const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        
+        console.log('🔍 Debug - API URL:', API);
+        console.log('🔍 Debug - Token exists:', !!token);
+        console.log('🔍 Debug - User:', user);
+        
         if (!token) {
             loadingEl.textContent = 'Not authenticated. Redirecting to login…';
+            setTimeout(() => window.location.href = '/login.html', 900);
+            return;
+        }
+        
+        if (!user || user.role !== 'admin') {
+            loadingEl.textContent = 'Admin access required. Redirecting to login…';
             setTimeout(() => window.location.href = '/login.html', 900);
             return;
         }
@@ -1019,9 +1189,12 @@ async function loadTree(){
         let usedEndpoint = null;
         // Try candidates sequentially
         for (const ep of ENDPOINT_CANDIDATES) {
+            console.log('🔍 Trying endpoint:', ep);
             try {
                 const res = await fetch(ep, { headers: { 'Authorization': 'Bearer ' + token } });
+                console.log('🔍 Response status:', res.status);
                 if (!res.ok) {
+                    console.log('🔍 Response not OK:', res.status, res.statusText);
                     // Try next endpoint on 404,401,403 we still try others; but break on server 5xx?
                     if (res.status >= 500) {
                         // server error — stop trying other endpoints (they likely share same backend)
@@ -1031,6 +1204,7 @@ async function loadTree(){
                     continue;
                 }
                 const json = await res.json();
+                console.log('🔍 Response data keys:', Object.keys(json));
                 if (json) { data = json; usedEndpoint = ep; break; }
             } catch (err) {
                 // keep trying next endpoint
@@ -1045,45 +1219,57 @@ async function loadTree(){
             messageEl.style.display = 'block';
             messageEl.className = 'error';
             messageEl.textContent = 'Could not load referral tree — no endpoint responded successfully. Check API_URL and backend routes.';
+            console.error('🔍 No data received from any endpoint');
+            console.error('🔍 Tried endpoints:', ENDPOINT_CANDIDATES);
             return;
         }
+        
+        console.log('✅ Successfully loaded data from:', usedEndpoint);
 
-        // Normalize data to a root node or array of roots
-        let roots = [];
-        if (Array.isArray(data.tree)) {
-            // data.tree may be full nested tree (array)
-            roots = data.tree;
+        // Normalize data to display by levels horizontally
+        let levelsData = [];
+        
+        if (data.levels && Array.isArray(data.levels)) {
+            // New level-grouped format - perfect for horizontal display
+            console.log('📊 Processing level-grouped data:', data.levels.length, 'levels');
+            levelsData = data.levels.map(level => ({
+                level: level.level || 1,
+                users: level.users || []
+            }));
+        } else if (Array.isArray(data.tree)) {
+            // Convert tree structure to level-grouped format
+            console.log('📊 Converting tree to level-grouped format');
+            levelsData = convertTreeToLevels(data.tree);
         } else if (data.root) {
-            // legacy API: root + children
-            // some APIs return { root: {...}, children: [...] }
-            // we will attach children when building
-            roots = [ { ...data.root, children: data.children || (data.root.children || []) } ];
+            // Legacy API: root + children - convert to levels
+            const treeArray = [ { ...data.root, children: data.children || (data.root.children || []) } ];
+            levelsData = convertTreeToLevels(treeArray);
         } else if (Array.isArray(data)) {
-            // in case API gave an array directly
-            roots = data;
+            // Array of users - convert to levels
+            levelsData = convertTreeToLevels(data);
         } else {
-            // If object looks like single node
-            if (data.id || data._id) roots = [ data ];
+            // Single node
+            if (data.id || data._id) {
+                levelsData = [{ level: 1, users: [data] }];
+            }
         }
 
-        if (!roots || roots.length === 0) {
+        if (!levelsData || levelsData.length === 0) {
             messageEl.style.display = 'block';
             messageEl.textContent = 'No referral records found.';
             return;
         }
 
-        // Build visible tree
+        // Build horizontal level-based tree
         treeWrap.innerHTML = '';
-        for (const r of roots) {
-            const el = buildTreeElement(r, true);
-            treeWrap.appendChild(el);
-        }
+        buildHorizontalLevelTree(levelsData);
         treeWrap.style.display = 'block';
         
-        // Update connection lines and ensure visibility after tree is built
+        // Store levels data for connection redrawing
+        window.currentLevelsData = levelsData;
+        
+        // Scroll to top after tree is built
         setTimeout(() => { 
-            updateConnectionLines();
-            ensureTreeVisibility();
             window.scrollTo({ top: 0, behavior: 'smooth' }); 
         }, 100);
 
@@ -1094,6 +1280,263 @@ async function loadTree(){
         messageEl.className = 'error';
         messageEl.textContent = 'Error loading tree: ' + (err.message || err);
     }
+}
+
+/* ---------- Build Horizontal Level Tree ---------- */
+function buildHorizontalLevelTree(levelsData) {
+    console.log('🏗️ Building traditional tree with', levelsData.length, 'levels');
+    
+    levelsData.forEach((levelData, levelIndex) => {
+        const levelDiv = document.createElement('div');
+        levelDiv.className = 'tree-level';
+        levelDiv.setAttribute('data-level', levelData.level);
+        
+        // Level header
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'level-header';
+        headerDiv.innerHTML = `
+            <h3>Level ${levelData.level}</h3>
+            <span class="level-count">${levelData.users ? levelData.users.length : 0} users</span>
+        `;
+        levelDiv.appendChild(headerDiv);
+        
+        // Create nodes container
+        const nodesDiv = document.createElement('div');
+        nodesDiv.className = 'level-nodes';
+        
+        if (levelData.users && levelData.users.length > 0) {
+            levelData.users.forEach(user => {
+                const userNode = createHorizontalUserNode(user);
+                nodesDiv.appendChild(userNode);
+            });
+        }
+        
+        levelDiv.appendChild(nodesDiv);
+        treeWrap.appendChild(levelDiv);
+    });
+    
+    // Add connection lines after tree is built
+    setTimeout(() => {
+        addTreeConnections(levelsData);
+        adjustConnectionLines();
+    }, 100);
+}
+
+/* ---------- Add Tree Connections ---------- */
+function addTreeConnections(levelsData) {
+    // Remove any existing connection lines
+    document.querySelectorAll('.tree-connection-svg').forEach(svg => svg.remove());
+    
+    // Wait for layout to be complete before drawing connections
+    setTimeout(() => {
+        // Create SVG overlay for custom connection lines
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.classList.add('tree-connection-svg');
+        svg.style.position = 'absolute';
+        svg.style.top = '0';
+        svg.style.left = '0';
+        svg.style.width = '100%';
+        svg.style.height = '100%';
+        svg.style.pointerEvents = 'none';
+        svg.style.zIndex = '3';
+        treeWrap.appendChild(svg);
+        
+        console.log('🔗 Drawing connections for', levelsData.length, 'levels');
+        
+        // Draw connections between parent and child nodes
+        levelsData.forEach((levelData, levelIndex) => {
+            if (levelIndex === 0) return; // Skip root level
+            
+            console.log(`Level ${levelData.level}: ${levelData.users.length} users`);
+            
+            levelData.users.forEach(user => {
+                if (!user.treeParent) return;
+                
+                // Find parent and child nodes
+                const parentNode = document.querySelector(`[data-user-id="${user.treeParent}"]`);
+                const childNode = document.querySelector(`[data-user-id="${user.id}"]`);
+                
+                if (parentNode && childNode) {
+                    console.log(`Drawing line: ${parentNode.querySelector('.tree-name').textContent} → ${childNode.querySelector('.tree-name').textContent}`);
+                    drawConnectionLine(svg, parentNode, childNode);
+                } else {
+                    console.warn(`Missing nodes for connection: parent=${!!parentNode}, child=${!!childNode}`);
+                }
+            });
+        });
+    }, 200); // Increased delay to ensure layout is complete
+}
+
+/* ---------- Draw Connection Line Between Two Nodes ---------- */
+function drawConnectionLine(svg, parentNode, childNode) {
+    const treeWrapRect = treeWrap.getBoundingClientRect();
+    const parentRect = parentNode.getBoundingClientRect();
+    const childRect = childNode.getBoundingClientRect();
+    
+    // Calculate positions relative to tree container
+    const startX = parentRect.left - treeWrapRect.left + parentRect.width / 2;
+    const startY = parentRect.bottom - treeWrapRect.top;
+    const endX = childRect.left - treeWrapRect.left + childRect.width / 2;
+    const endY = childRect.top - treeWrapRect.top;
+    
+    // Create a simple straight line for direct parent-child connection
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', startX);
+    line.setAttribute('y1', startY);
+    line.setAttribute('x2', endX);
+    line.setAttribute('y2', endY);
+    line.setAttribute('stroke', '#2c3e50');
+    line.setAttribute('stroke-width', '3');
+    line.setAttribute('stroke-linecap', 'round');
+    line.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))';
+    
+    // Add hover effect
+    line.addEventListener('mouseenter', () => {
+        line.setAttribute('stroke', '#ff6b6b');
+        line.setAttribute('stroke-width', '4');
+        // Highlight connected nodes
+        parentNode.style.borderColor = '#ff6b6b';
+        childNode.style.borderColor = '#ff6b6b';
+    });
+    
+    line.addEventListener('mouseleave', () => {
+        line.setAttribute('stroke', '#2c3e50');
+        line.setAttribute('stroke-width', '3');
+        // Reset node colors
+        parentNode.style.borderColor = '';
+        childNode.style.borderColor = '';
+    });
+    
+    svg.appendChild(line);
+    
+    // Add connection indicators to nodes
+    parentNode.classList.add('has-children');
+    childNode.classList.add('has-parent');
+}
+
+/* ---------- Position Children Under Parents ---------- */
+function positionChildrenUnderParents() {
+    // For each level after the first, position child groups under their parents
+    const levels = document.querySelectorAll('.tree-level');
+    
+    levels.forEach((level, levelIndex) => {
+        if (levelIndex === 0) return; // Skip root level
+        
+        const parentGroups = level.querySelectorAll('.parent-group');
+        
+        parentGroups.forEach(group => {
+            const parentId = group.getAttribute('data-parent-id');
+            if (parentId === 'root') return;
+            
+            // Find the parent node in the previous level
+            const parentNode = document.querySelector(`[data-user-id="${parentId}"]`);
+            if (!parentNode) return;
+            
+            // Get parent position
+            const parentRect = parentNode.getBoundingClientRect();
+            const levelRect = level.getBoundingClientRect();
+            
+            // Calculate position relative to the level container
+            const leftOffset = parentRect.left - levelRect.left + (parentRect.width / 2);
+            
+            // Position the group under the parent
+            group.style.position = 'absolute';
+            group.style.left = leftOffset + 'px';
+            group.style.transform = 'translateX(-50%)';
+        });
+    });
+}
+
+/* ---------- Adjust Connection Lines ---------- */
+function adjustConnectionLines() {
+    // Redraw SVG connections if they exist
+    if (window.currentLevelsData) {
+        addTreeConnections(window.currentLevelsData);
+    }
+}
+
+/* ---------- Create Horizontal User Node ---------- */
+function createHorizontalUserNode(user) {
+    const node = document.createElement('div');
+    node.className = 'tree-node horizontal-node';
+    node.setAttribute('data-user-id', user.id || user._id || '');
+    node.setAttribute('data-parent-id', user.treeParent || user.parentId || '');
+    
+    // Safe content
+    const name = escapeHtml(user.name || user.fullName || user.displayName || 'Unnamed');
+    const wallet = Number(user.wallet || (user.account?.wallet) || 0).toFixed(2);
+    const referrals = (user.referrals !== undefined) ? user.referrals : (user.childrenCount || (user.relationships && user.relationships.treeChildrenCount) || 0);
+    
+    node.innerHTML = `
+        <div class="tree-name">${name}</div>
+        <div class="tree-meta">Wallet: ₹${wallet}</div>
+        <div class="tree-meta">${referrals} referrals</div>
+    `;
+    
+    // Click opens modal
+    node.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const uid = node.getAttribute('data-user-id');
+        openUserModal(uid, user);
+    });
+    
+    // Simple hover effects
+    node.addEventListener('mouseenter', () => {
+        node.style.transform = 'translateY(-5px) scale(1.05)';
+        node.style.boxShadow = '0 15px 35px rgba(102, 126, 234, 0.3)';
+        node.style.borderColor = '#667eea';
+    });
+    
+    node.addEventListener('mouseleave', () => {
+        node.style.transform = '';
+        node.style.boxShadow = '';
+        node.style.borderColor = '';
+    });
+    
+    return node;
+}
+
+/* ---------- Convert Tree Structure to Levels ---------- */
+function convertTreeToLevels(treeArray) {
+    const levels = {};
+    
+    function processNode(node, level = 1, parentId = null) {
+        if (!levels[level]) {
+            levels[level] = [];
+        }
+        
+        // Add current node to its level with parent information
+        levels[level].push({
+            id: node.id || node._id,
+            name: node.name || node.fullName || node.displayName,
+            email: node.email,
+            wallet: node.wallet || 0,
+            referrals: node.referrals || node.childrenCount || 0,
+            treeLevel: level,
+            treeParent: parentId,
+            parentId: parentId,
+            referredBy: node.referredBy || parentId
+        });
+        
+        // Process children at next level
+        const children = node.children || node.treeChildren || node.childrenList || [];
+        children.forEach(child => {
+            processNode(child, level + 1, node.id || node._id);
+        });
+    }
+    
+    // Process all root nodes
+    treeArray.forEach(root => {
+        processNode(root, 1, null);
+    });
+    
+    // Convert to array format
+    return Object.keys(levels)
+        .sort((a, b) => parseInt(a) - parseInt(b))
+        .map(levelNum => ({
+            level: parseInt(levelNum),
+            users: levels[levelNum]
+        }));
 }
 
 /* ---------- Build DOM recursively ---------- */
@@ -1169,9 +1612,9 @@ async function fetchAndPopulateUser(userId, fallbackUser){
 
         // Try likely user endpoints
         const userEndpoints = [
-            `${API}/api/admin/users/${userId}`,
-            `${API}/api/admin/users/user/${userId}`,
-            `${API}/api/users/${userId}`
+            `${API}/admin/users/${userId}`,
+            `${API}/admin/users/user/${userId}`,
+            `${API}/users/${userId}`
         ];
 
         let userData = null;
@@ -1787,7 +2230,26 @@ function ensureTreeVisibility() {
 }
 
 /* ---------- initialization ---------- */
-loadTree();
+document.addEventListener('DOMContentLoaded', () => {
+    loadTree();
+    
+    // Redraw connections on window resize
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            adjustConnectionLines();
+        }, 250);
+    });
+});
+
+// Fallback if DOMContentLoaded already fired
+if (document.readyState === 'loading') {
+    // Do nothing, DOMContentLoaded will fire
+} else {
+    // DOM is already ready
+    loadTree();
+}
 
 // Mobile-specific enhancements
 function initMobileTreeEnhancements() {

@@ -1,4 +1,4 @@
-const API = window.API_URL;
+const API = window.API_URL || 'http://localhost:3000/api';
 
 let currentPage = 1;
 let currentViewMode = 'complete';
@@ -303,8 +303,9 @@ function displayTreeData(data) {
     const container = document.getElementById('treeViewContainer');
     const content = document.getElementById('treeContent');
     
-    if (currentViewMode === 'complete' && data.tree) {
-        content.innerHTML = renderTreeNodes(data.tree);
+    if (currentViewMode === 'complete' && data.levels) {
+        // Handle level-grouped data for horizontal display
+        content.innerHTML = renderLevelGroupedTree(data.levels);
         displayPagination(data.pagination);
     } else if (currentViewMode === 'level' && data.users) {
         content.innerHTML = renderLevelUsers(data.users, data.level);
@@ -317,43 +318,101 @@ function displayTreeData(data) {
     addTreeNodeEventListeners();
 }
 
-/* RENDER TREE NODES */
+/* RENDER LEVEL GROUPED TREE */
+function renderLevelGroupedTree(levels) {
+    if (!levels || levels.length === 0) {
+        return '<div class="empty-state"><p>No users found in tree.</p></div>';
+    }
+    
+    return levels.map(levelData => {
+        const levelNum = levelData.level;
+        const users = levelData.users;
+        
+        return `
+            <div class="tree-level" data-level="${levelNum}">
+                <div class="level-header">
+                    <h3>Level ${levelNum}</h3>
+                    <span class="level-count">${users.length} users</span>
+                </div>
+                <div class="level-nodes">
+                    ${users.map(user => renderSingleNode(user)).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/* RENDER TREE NODES - HORIZONTAL 5-PERSON LAYOUT */
 function renderTreeNodes(nodes, level = 0) {
     if (!nodes || nodes.length === 0) {
         return '<div class="empty-state"><p>No nodes at this level.</p></div>';
     }
     
-    return nodes.map(node => {
-        const referralStatusClass = node.referralStatus.joinedWithoutReferrer ? 'no-referrer' : 'has-referrer';
-        const referralStatusText = node.referralStatus.joinedWithoutReferrer ? 'No Referrer' : 'Has Referrer';
-        const referralStatusBadge = node.referralStatus.joinedWithoutReferrer ? 'no-referrer' : 'has-referrer';
-        
-        const childrenHtml = node.children && node.children.length > 0 
-            ? `<div class="node-children">${renderTreeNodes(node.children, level + 1)}</div>`
-            : '';
+    // Group nodes by tree level for horizontal display
+    const nodesByLevel = {};
+    
+    function collectNodesByLevel(nodeList, currentLevel = 0) {
+        nodeList.forEach(node => {
+            const nodeLevel = node.treeLevel || 1;
+            if (!nodesByLevel[nodeLevel]) {
+                nodesByLevel[nodeLevel] = [];
+            }
+            nodesByLevel[nodeLevel].push(node);
+            
+            // Recursively collect children
+            if (node.children && node.children.length > 0) {
+                collectNodesByLevel(node.children, currentLevel + 1);
+            }
+        });
+    }
+    
+    collectNodesByLevel(nodes);
+    
+    // Render levels horizontally
+    const levels = Object.keys(nodesByLevel).sort((a, b) => parseInt(a) - parseInt(b));
+    
+    return levels.map(levelNum => {
+        const levelNodes = nodesByLevel[levelNum];
         
         return `
-            <div class="tree-node ${referralStatusClass}" data-user-id="${node.id}">
-                <div class="node-header">
-                    <div class="node-info">
-                        <div class="node-name">${node.name}</div>
-                        <div class="node-details">
-                            <span class="level-indicator">Level ${node.treeLevel}</span>
-                            <span class="referral-status ${referralStatusBadge}">${referralStatusText}</span>
-                            <span>Wallet: ₹${node.wallet.toFixed(2)}</span>
-                            <span>Children: ${node.childrenCount}</span>
-                            <span>Joined: ${new Date(node.joinDate).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-                    <div class="node-actions">
-                        <button class="btn-info" onclick="showUserDetails('${node.id}')">Details</button>
-                        ${node.childrenCount > 0 ? `<button class="btn-expand" onclick="toggleNodeChildren(this)">Expand</button>` : ''}
-                    </div>
+            <div class="tree-level" data-level="${levelNum}">
+                <div class="level-header">
+                    <h3>Level ${levelNum}</h3>
+                    <span class="level-count">${levelNodes.length} users</span>
                 </div>
-                ${childrenHtml}
+                <div class="level-nodes">
+                    ${levelNodes.map(node => renderSingleNode(node)).join('')}
+                </div>
             </div>
         `;
     }).join('');
+}
+
+/* RENDER SINGLE NODE */
+function renderSingleNode(node) {
+    const referralStatusClass = node.referralStatus?.joinedWithoutReferrer ? 'no-referrer' : 'has-referrer';
+    const referralStatusText = node.referralStatus?.joinedWithoutReferrer ? 'No Referrer' : 'Has Referrer';
+    const referralStatusBadge = node.referralStatus?.joinedWithoutReferrer ? 'no-referrer' : 'has-referrer';
+    
+    return `
+        <div class="tree-node horizontal-node ${referralStatusClass}" data-user-id="${node.id}">
+            <div class="node-header">
+                <div class="node-info">
+                    <div class="node-name">${node.name}</div>
+                    <div class="node-details">
+                        <span class="level-indicator">Level ${node.treeLevel}</span>
+                        <span class="referral-status ${referralStatusBadge}">${referralStatusText}</span>
+                        <span>Wallet: ₹${(node.wallet || 0).toFixed(2)}</span>
+                        <span>Children: ${node.childrenCount || 0}</span>
+                        <span>Joined: ${new Date(node.joinDate).toLocaleDateString()}</span>
+                    </div>
+                </div>
+                <div class="node-actions">
+                    <button class="btn-info" onclick="showUserDetails('${node.id}')">Details</button>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 /* RENDER LEVEL USERS */

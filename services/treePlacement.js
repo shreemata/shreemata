@@ -1,9 +1,15 @@
 const User = require('../models/User');
 
 /**
- * Find the appropriate tree placement for a new user
- * Implements global breadth-first search with serial ordering based on timestamps
- * Always searches from the root of the tree to ensure balanced, level-by-level filling
+ * Find the appropriate tree placement using 5-person horizontal filling
+ * Algorithm: Fill left-to-right across each level, max 5 children per node
+ * 
+ * Tree Structure:
+ *                    ADMIN (Root)
+ *                 /  /  |  \  \
+ *            User1 User2 User3 User4 User5
+ *           /||\\\  /||\\\  /||\\\
+ *      U1.1-U1.5  U2.1-U2.5  U3.1-U3.5
  * 
  * @param {String} referenceUserId - The ID of a user to use as reference for finding the tree root
  * @returns {Object} Placement information: { parentId, level, position }
@@ -15,7 +21,7 @@ async function findTreePlacement(referenceUserId) {
     throw new Error('Reference user not found');
   }
   
-  // Find the root of the tree (user with treeLevel 1 or no treeParent)
+  // Find the root of the tree (admin or user with treeLevel 1 and no treeParent)
   let root = referenceUser;
   while (root.treeParent) {
     root = await User.findById(root.treeParent);
@@ -24,11 +30,20 @@ async function findTreePlacement(referenceUserId) {
     }
   }
   
-  // Start BFS from the root to find first available spot
-  // This ensures global, level-by-level filling regardless of who referred
+  console.log(`🌳 Starting tree placement search from root: ${root.name || root.email}`);
   
-  // If root has less than 5 children, place directly under root
+  // Start level-by-level search for available spot
+  return await findAvailableSpotInTree(root);
+}
+
+/**
+ * Find available spot in tree using breadth-first, left-to-right filling
+ * Each node can have maximum 5 children
+ */
+async function findAvailableSpotInTree(root) {
+  // Check if root has space (< 5 children)
   if (root.treeChildren.length < 5) {
+    console.log(`🎯 Found space under root ${root.name || root.email}: position ${root.treeChildren.length}`);
     return {
       parentId: root._id,
       level: root.treeLevel + 1,
@@ -36,49 +51,61 @@ async function findTreePlacement(referenceUserId) {
     };
   }
   
-  // Otherwise, find placement using breadth-first search from root
-  // Start with the root's children, ordered by their creation time
-  const childrenWithTimestamps = await User.find({
-    _id: { $in: root.treeChildren }
-  }).select('_id treeChildren treeLevel createdAt').sort({ createdAt: 1 });
+  console.log(`🔍 Root is full (${root.treeChildren.length}/5), searching levels...`);
   
-  const queue = childrenWithTimestamps.map(child => child._id);
+  // Root is full, search level by level
+  let currentLevel = root.treeLevel + 1;
   
-  while (queue.length > 0) {
-    const candidateId = queue.shift();
-    const candidate = await User.findById(candidateId)
-      .select('_id treeChildren treeLevel createdAt');
+  while (true) {
+    console.log(`🔍 Searching level ${currentLevel}...`);
     
-    if (!candidate) {
-      continue;
+    // Get all users at current level, ordered by creation time (left to right)
+    const usersAtLevel = await User.find({ 
+      treeLevel: currentLevel,
+      firstPurchaseDone: true // Only consider users who have made purchases
+    }).sort({ createdAt: 1 });
+    
+    if (usersAtLevel.length === 0) {
+      console.log(`❌ No users found at level ${currentLevel}`);
+      break;
     }
     
-    // If this candidate has space, place here
-    if (candidate.treeChildren.length < 5) {
-      return {
-        parentId: candidateId,
-        level: candidate.treeLevel + 1,
-        position: candidate.treeChildren.length
-      };
+    console.log(`📊 Found ${usersAtLevel.length} users at level ${currentLevel}`);
+    
+    // Check each user at this level (left to right) for available space
+    for (const user of usersAtLevel) {
+      if (user.treeChildren.length < 5) {
+        console.log(`🎯 Found space under ${user.name || user.email} at level ${currentLevel}: position ${user.treeChildren.length}`);
+        return {
+          parentId: user._id,
+          level: currentLevel + 1,
+          position: user.treeChildren.length
+        };
+      }
     }
     
-    // Otherwise, add their children to queue in chronological order
-    if (candidate.treeChildren.length > 0) {
-      const nextLevelChildren = await User.find({
-        _id: { $in: candidate.treeChildren }
-      }).select('_id createdAt').sort({ createdAt: 1 });
-      
-      queue.push(...nextLevelChildren.map(c => c._id));
+    console.log(`⏭️ Level ${currentLevel} is full, moving to next level`);
+    currentLevel++;
+    
+    // Safety check to prevent infinite loop
+    if (currentLevel > 20) {
+      throw new Error('Tree depth limit exceeded (20 levels)');
     }
   }
   
-  // Fallback (should never reach here in normal operation)
-  throw new Error('Unable to find tree placement');
+  // If we reach here, no existing users have space, place under root
+  console.log(`🎯 No available spots found, placing under root as fallback`);
+  return {
+    parentId: root._id,
+    level: root.treeLevel + 1,
+    position: root.treeChildren.length
+  };
 }
 
 /**
  * Create tree placement for a user on their first purchase
  * This function handles both referred and non-referred users
+ * IMPORTANT: Only creates tree placement for the purchasing user, not their referrers
  * 
  * @param {String} userId - The ID of the user making their first purchase
  * @param {Object} session - Optional MongoDB session for transactions
@@ -111,7 +138,7 @@ async function createTreePlacementOnFirstPurchase(userId, session = null) {
   };
   
   if (user.referredBy) {
-    // User was referred - find their direct referrer and place in tree
+    // User was referred - find their direct referrer
     const referrerQuery = session ? 
       User.findOne({ referralCode: user.referredBy }).session(session) : 
       User.findOne({ referralCode: user.referredBy });
@@ -122,24 +149,24 @@ async function createTreePlacementOnFirstPurchase(userId, session = null) {
       
       // Check if referrer has tree placement (has made a purchase)
       if (directReferrer.treeLevel > 0 && directReferrer.treeParent !== undefined) {
-        // Referrer has tree placement - place under them
-        console.log(`Referrer ${directReferrer.email} has tree placement - placing under them`);
+        // Referrer has tree placement - use tree algorithm starting from referrer
+        console.log(`Referrer ${directReferrer.email} has tree placement - using as reference`);
         const placement = await findTreePlacement(directReferrer._id);
         treePlacementData = placement;
       } else {
-        // Referrer hasn't made a purchase yet - place purchaser as root
-        console.log(`Referrer ${directReferrer.email} hasn't purchased yet - placing purchaser as root`);
-        treePlacementData = await findRootPlacement(session);
+        // Referrer hasn't made a purchase yet - use global tree placement
+        console.log(`Referrer ${directReferrer.email} hasn't purchased yet - using global tree placement`);
+        treePlacementData = await findGlobalTreePlacement(session, user._id);
       }
     } else {
       console.log(`Direct referrer not found for code: ${user.referredBy}`);
-      // Invalid referral code - place as root user
-      treePlacementData = await findRootPlacement(session);
+      // Invalid referral code - use global tree placement
+      treePlacementData = await findGlobalTreePlacement(session, user._id);
     }
   } else {
-    // User without referrer - place in tree using existing users as reference
-    console.log("User without referrer, finding tree placement...");
-    treePlacementData = await findRootPlacement(session);
+    // User without referrer - use global tree placement
+    console.log("User without referrer, using global tree placement...");
+    treePlacementData = await findGlobalTreePlacement(session, user._id);
   }
   
   // Update user with tree placement
@@ -169,24 +196,45 @@ async function createTreePlacementOnFirstPurchase(userId, session = null) {
 }
 
 /**
- * Find placement for users without referrers or when referrer is not found
- * Uses existing tree structure to find optimal placement
- * 
- * @param {Object} session - Optional MongoDB session for transactions
+ * Find placement for users without referrers or when referrer hasn't purchased
+ * Uses global tree structure to find optimal placement
  */
-async function findRootPlacement(session = null) {
-  // Find any existing user with tree placement to use as reference
-  const query = session ? 
-    User.findOne({ treeLevel: { $gte: 1 } }).sort({ createdAt: 1 }).session(session) :
-    User.findOne({ treeLevel: { $gte: 1 } }).sort({ createdAt: 1 });
-  const anyExistingUser = await query;
+async function findGlobalTreePlacement(session = null, excludeUserId = null) {
+  // Find admin user (root of tree) - exclude the current user
+  const adminQuery = session ? 
+    User.findOne({ 
+      role: 'admin',
+      _id: { $ne: excludeUserId } // Don't place user under themselves
+    }).session(session) : 
+    User.findOne({ 
+      role: 'admin',
+      _id: { $ne: excludeUserId } // Don't place user under themselves
+    });
+  let admin = await adminQuery;
   
-  if (anyExistingUser) {
-    // Use the tree placement algorithm starting from any existing user
-    const placement = await findTreePlacement(anyExistingUser._id);
+  if (!admin) {
+    // No admin found, find any user with treeLevel 1 (root level) - exclude current user
+    const rootUserQuery = session ? 
+      User.findOne({ 
+        treeLevel: 1, 
+        firstPurchaseDone: true,
+        _id: { $ne: excludeUserId } // Don't place user under themselves
+      }).sort({ createdAt: 1 }).session(session) :
+      User.findOne({ 
+        treeLevel: 1, 
+        firstPurchaseDone: true,
+        _id: { $ne: excludeUserId } // Don't place user under themselves
+      }).sort({ createdAt: 1 });
+    admin = await rootUserQuery;
+  }
+  
+  if (admin) {
+    // Use the tree placement algorithm starting from admin/root
+    const placement = await findAvailableSpotInTree(admin);
     return placement;
   } else {
     // First user ever - becomes root
+    console.log("First user ever - placing as root");
     return {
       parentId: null,
       level: 1,
