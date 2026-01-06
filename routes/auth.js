@@ -395,13 +395,6 @@ router.post("/signup", async (req, res) => {
       throw new Error("Unable to generate unique referral code");
     }
 
-    // Handle tree placement for all users (with or without referrer)
-    let treePlacementData = {
-      treeParent: null,
-      treeLevel: 1, // Root level for users without referrer
-      treePosition: 0
-    };
-
     let directReferrer = null;
 
     if (referredBy) {
@@ -422,43 +415,6 @@ router.post("/signup", async (req, res) => {
           code: "REFERRAL_CODE_NOT_FOUND" 
         });
       }
-
-      // Find tree placement for the new user
-      try {
-        const placement = await findTreePlacement(directReferrer._id);
-        treePlacementData = {
-          treeParent: placement.parentId,
-          treeLevel: placement.level,
-          treePosition: placement.position
-        };
-      } catch (error) {
-        console.error("Tree placement error:", error);
-        return res.status(500).json({ 
-          error: "Error determining tree placement",
-          code: "TREE_PLACEMENT_ERROR",
-          details: error.message 
-        });
-      }
-    } else {
-      // For users without referrer, still place them in the tree using the same algorithm
-      // Find any existing user to use as a reference point for tree placement
-      try {
-        const anyExistingUser = await User.findOne({ treeLevel: { $gte: 1 } }).sort({ createdAt: 1 });
-        
-        if (anyExistingUser) {
-          // Use the tree placement algorithm starting from any existing user
-          const placement = await findTreePlacement(anyExistingUser._id);
-          treePlacementData = {
-            treeParent: placement.parentId,
-            treeLevel: placement.level,
-            treePosition: placement.position
-          };
-        }
-        // If no existing users, keep default root level placement
-      } catch (error) {
-        console.error("Tree placement error for no-referrer user:", error);
-        // Keep default root level placement if tree placement fails
-      }
     }
 
     // Generate unique referral code
@@ -473,7 +429,7 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    // Create user with referral system fields and tree placement
+    // Create user WITHOUT tree placement (tree placement happens on first purchase only)
     const newUser = await User.create({
       name,
       email,
@@ -485,9 +441,11 @@ router.post("/signup", async (req, res) => {
       wallet: 0,
       referrals: 0,
       firstPurchaseDone: false,
-      treeParent: treePlacementData.treeParent,
-      treeLevel: treePlacementData.treeLevel,
-      treePosition: treePlacementData.treePosition,
+      // Tree placement fields - will be set on first purchase
+      treeParent: null,
+      treeLevel: 0, // 0 means not yet placed in tree
+      treePosition: 0,
+      treeChildren: [],
       referralJoinedAt: referredBy ? new Date() : null
     });
 
@@ -507,16 +465,6 @@ router.post("/signup", async (req, res) => {
       directReferrer.referrals += 1;
       await directReferrer.save();
       console.log(`Referral count incremented for ${directReferrer.email}: ${directReferrer.referrals}`);
-    }
-
-    // Add new user to tree parent's children array (for both referred and non-referred users)
-    if (treePlacementData.treeParent) {
-      const treeParent = await User.findById(treePlacementData.treeParent);
-      if (treeParent) {
-        treeParent.treeChildren.push(newUser._id);
-        await treeParent.save();
-        console.log(`Added ${newUser.email} to tree parent ${treeParent.email}'s children`);
-      }
     }
 
     const token = jwt.sign(

@@ -131,41 +131,38 @@ async function createTreePlacementOnFirstPurchase(userId, session = null) {
   
   console.log(`Creating tree placement for user ${user.email} on first purchase`);
   
-  let treePlacementData = {
-    parentId: null,
-    level: 1, // Root level for users without referrer
-    position: 0
-  };
+  let treePlacementData;
   
   if (user.referredBy) {
     // User was referred - find their direct referrer
+    console.log(`🔗 User has referrer code: ${user.referredBy}`);
     const referrerQuery = session ? 
       User.findOne({ referralCode: user.referredBy }).session(session) : 
       User.findOne({ referralCode: user.referredBy });
     const directReferrer = await referrerQuery;
     
     if (directReferrer) {
-      console.log(`Direct referrer found: ${directReferrer.email}`);
+      console.log(`✅ Direct referrer found: ${directReferrer.email}`);
       
       // Check if referrer has tree placement (has made a purchase)
       if (directReferrer.treeLevel > 0 && directReferrer.treeParent !== undefined) {
         // Referrer has tree placement - use tree algorithm starting from referrer
-        console.log(`Referrer ${directReferrer.email} has tree placement - using as reference`);
+        console.log(`🌳 Referrer ${directReferrer.email} has tree placement - using as reference`);
         const placement = await findTreePlacement(directReferrer._id);
         treePlacementData = placement;
       } else {
         // Referrer hasn't made a purchase yet - use global tree placement
-        console.log(`Referrer ${directReferrer.email} hasn't purchased yet - using global tree placement`);
+        console.log(`⚠️ Referrer ${directReferrer.email} hasn't purchased yet - using global tree placement`);
         treePlacementData = await findGlobalTreePlacement(session, user._id);
       }
     } else {
-      console.log(`Direct referrer not found for code: ${user.referredBy}`);
+      console.log(`❌ Direct referrer not found for code: ${user.referredBy}`);
       // Invalid referral code - use global tree placement
       treePlacementData = await findGlobalTreePlacement(session, user._id);
     }
   } else {
     // User without referrer - use global tree placement
-    console.log("User without referrer, using global tree placement...");
+    console.log("👤 User without referrer, using global tree placement...");
     treePlacementData = await findGlobalTreePlacement(session, user._id);
   }
   
@@ -200,6 +197,8 @@ async function createTreePlacementOnFirstPurchase(userId, session = null) {
  * Uses global tree structure to find optimal placement
  */
 async function findGlobalTreePlacement(session = null, excludeUserId = null) {
+  console.log(`🔍 Finding global tree placement (excluding user: ${excludeUserId})`);
+  
   // Find admin user (root of tree) - exclude the current user
   const adminQuery = session ? 
     User.findOne({ 
@@ -212,8 +211,11 @@ async function findGlobalTreePlacement(session = null, excludeUserId = null) {
     });
   let admin = await adminQuery;
   
+  console.log(`🔍 Admin search result:`, admin ? `Found ${admin.name} (${admin.email})` : 'Not found');
+  
   if (!admin) {
     // No admin found, find any user with treeLevel 1 (root level) - exclude current user
+    console.log(`🔍 No admin found, searching for Level 1 users...`);
     const rootUserQuery = session ? 
       User.findOne({ 
         treeLevel: 1, 
@@ -226,15 +228,19 @@ async function findGlobalTreePlacement(session = null, excludeUserId = null) {
         _id: { $ne: excludeUserId } // Don't place user under themselves
       }).sort({ createdAt: 1 });
     admin = await rootUserQuery;
+    console.log(`🔍 Level 1 user search result:`, admin ? `Found ${admin.name} (${admin.email})` : 'Not found');
   }
   
   if (admin) {
     // Use the tree placement algorithm starting from admin/root
+    console.log(`🎯 Using tree placement algorithm starting from ${admin.name}`);
     const placement = await findAvailableSpotInTree(admin);
+    console.log(`🎯 Global placement result:`, placement);
     return placement;
   } else {
-    // First user ever - becomes root
-    console.log("First user ever - placing as root");
+    // This should NEVER happen unless it's truly the first user ever
+    console.log("⚠️ WARNING: No admin or Level 1 users found - this should only happen for the very first user");
+    console.log("🎯 Placing as root (Level 1)");
     return {
       parentId: null,
       level: 1,

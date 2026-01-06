@@ -97,30 +97,44 @@ async function distributeCommissions(orderId, purchaserId, orderAmount) {
     
     // 🌳 CREATE TREE PLACEMENT ON FIRST PURCHASE
     // Check if this is the user's first purchase and they don't have tree placement yet
+    // Also check if the order amount meets the minimum threshold for tree placement
     if (!purchaser.firstPurchaseDone && (purchaser.treeLevel === 0 || !purchaser.treeParent)) {
-      console.log(`🌳 Creating tree placement for ${purchaser.email} on first purchase`);
+      console.log(`🌳 Checking tree placement eligibility for ${purchaser.email} on first purchase`);
       
-      try {
-        // Create tree placement for this user
-        await createTreePlacementOnFirstPurchase(purchaser._id, null);
+      // Check if order amount meets minimum threshold for tree placement
+      if (orderAmount >= settings.minimumTreePlacementAmount) {
+        console.log(`✅ Order amount ₹${orderAmount} meets minimum threshold ₹${settings.minimumTreePlacementAmount} - creating tree placement`);
         
-        // Mark first purchase as done
+        try {
+          // Create tree placement for this user
+          await createTreePlacementOnFirstPurchase(purchaser._id, null);
+          
+          // Mark first purchase as done
+          purchaser.firstPurchaseDone = true;
+          await purchaser.save();
+          console.log(`✅ Marked first purchase as done for ${purchaser.email}`);
+          
+          // Refresh purchaser data to get updated tree information
+          const updatedPurchaser = await User.findById(purchaserId);
+          if (updatedPurchaser) {
+            // Update the purchaser reference to use the updated data
+            Object.assign(purchaser, updatedPurchaser.toObject());
+          }
+          
+          console.log(`✅ Tree placement created for ${purchaser.email}: Level ${purchaser.treeLevel}, Parent: ${purchaser.treeParent}`);
+        } catch (treePlacementError) {
+          console.error(`❌ Error creating tree placement for ${purchaser.email}:`, treePlacementError);
+          // Don't fail the entire commission distribution if tree placement fails
+          // The commission distribution can still proceed
+        }
+      } else {
+        console.log(`⚠️ Order amount ₹${orderAmount} below minimum threshold ₹${settings.minimumTreePlacementAmount} - skipping tree placement`);
+        console.log(`   User will receive commissions but won't be placed in tree until threshold is met`);
+        
+        // Mark first purchase as done even if tree placement is skipped
         purchaser.firstPurchaseDone = true;
         await purchaser.save();
-        console.log(`✅ Marked first purchase as done for ${purchaser.email}`);
-        
-        // Refresh purchaser data to get updated tree information
-        const updatedPurchaser = await User.findById(purchaserId);
-        if (updatedPurchaser) {
-          // Update the purchaser reference to use the updated data
-          Object.assign(purchaser, updatedPurchaser.toObject());
-        }
-        
-        console.log(`✅ Tree placement created for ${purchaser.email}: Level ${purchaser.treeLevel}, Parent: ${purchaser.treeParent}`);
-      } catch (treePlacementError) {
-        console.error(`❌ Error creating tree placement for ${purchaser.email}:`, treePlacementError);
-        // Don't fail the entire commission distribution if tree placement fails
-        // The commission distribution can still proceed
+        console.log(`✅ Marked first purchase as done for ${purchaser.email} (tree placement deferred)`);
       }
     } else if (purchaser.firstPurchaseDone) {
       console.log(`User ${purchaser.email} already has completed their first purchase`);
@@ -202,42 +216,31 @@ async function distributeCommissions(orderId, purchaserId, orderAmount) {
     }
     transaction.devTrustFundAmount = devTrustBaseAmount;
     
-    // 4. Distribute Tree Commissions based on REFERRAL CHAIN (not tree structure)
-    // This ensures commissions flow even if referrers haven't purchased yet
+    // 4. Distribute Tree Commissions based on TREE PLACEMENT (not referral chain)
+    // This ensures commissions flow to tree parents regardless of referral relationships
     const treeCommissionPool = orderAmount * (settings.treeCommissionPoolPercent / 100);
     let remainingPool = treeCommissionPool;
-    let currentReferrerCode = purchaser.referredBy; // Start from purchaser's referrer
+    let currentTreeParent = purchaser.treeParent; // Start from purchaser's tree parent
     let levelIndex = 0;
     const maxLevels = settings.treeCommissionLevels.length || 20; // Use configured levels
     
-    console.log(`🔗 Starting referral chain commission distribution from purchaser ${purchaser.email}`);
-    console.log(`   Purchaser referred by: ${currentReferrerCode || 'None'}`);
+    console.log(`🌳 Starting tree placement commission distribution from purchaser ${purchaser.email}`);
+    console.log(`   Purchaser tree parent: ${currentTreeParent || 'None'}`);
     
-    while (currentReferrerCode && remainingPool > 0.01 && levelIndex < maxLevels) {
-      const referrer = await User.findOne({ referralCode: currentReferrerCode });
+    while (currentTreeParent && remainingPool > 0.01 && levelIndex < maxLevels) {
+      const treeParent = await User.findById(currentTreeParent);
       
-      if (!referrer) {
-        console.log(`Referrer not found for code ${currentReferrerCode} at level ${levelIndex + 1}, stopping commission distribution`);
+      if (!treeParent) {
+        console.log(`Tree parent not found for ID ${currentTreeParent} at level ${levelIndex + 1}, stopping commission distribution`);
         break;
       }
       
-      console.log(`   Level ${levelIndex + 1}: Found referrer ${referrer.email} (${referrer.referralCode})`);
-      
-      // Skip tree commission if this referrer is also the direct referrer
-      // (They already got direct commission, so no tree commission for their own direct referral)
-      const isDirectReferrer = levelIndex === 0; // First level is always the direct referrer
-      
-      if (isDirectReferrer) {
-        console.log(`   Skipping tree commission for ${referrer.email} - they are the direct referrer`);
-        currentReferrerCode = referrer.referredBy; // Move to next level
-        levelIndex++;
-        continue;
-      }
+      console.log(`   Level ${levelIndex + 1}: Found tree parent ${treeParent.email} (${treeParent.name})`);
       
       // Get percentage for this level from settings
-      const levelConfig = settings.treeCommissionLevels[levelIndex - 1]; // -1 because we skip direct referrer
+      const levelConfig = settings.treeCommissionLevels[levelIndex];
       if (!levelConfig) {
-        console.log(`   No commission configured for level ${levelIndex}, stopping`);
+        console.log(`   No commission configured for level ${levelIndex + 1}, stopping`);
         break;
       }
       
@@ -252,24 +255,24 @@ async function distributeCommissions(orderId, purchaserId, orderAmount) {
       // Only distribute if we have enough in the pool
       if (commissionAmount <= remainingPool) {
         // Check if user is suspended
-        if (referrer.suspended) {
-          console.log(`   Referrer ${referrer.email} is suspended, allocating commission to Trust Fund`);
-          await addToTrustFund('trust', commissionAmount, orderId, 'order_allocation', `Tree commission - user suspended (${referrer.email})`, null);
+        if (treeParent.suspended) {
+          console.log(`   Tree parent ${treeParent.email} is suspended, allocating commission to Trust Fund`);
+          await addToTrustFund('trust', commissionAmount, orderId, 'order_allocation', `Tree commission - user suspended (${treeParent.email})`, null);
           transaction.trustFundAmount += commissionAmount;
           
           transaction.treeCommissions.push({
-            recipient: referrer._id,
-            level: levelIndex,
+            recipient: treeParent._id,
+            level: levelIndex + 1,
             percentage,
             amount: commissionAmount
           });
         } else {
           // Check if this is a virtual user - redirect commission to original user
-          if (referrer.isVirtual && referrer.originalUser) {
-            console.log(`   Referrer ${referrer.email} is virtual, redirecting commission to original user`);
+          if (treeParent.isVirtual && treeParent.originalUser) {
+            console.log(`   Tree parent ${treeParent.email} is virtual, redirecting commission to original user`);
             
             // Get the original user
-            const originalUser = await User.findById(referrer.originalUser);
+            const originalUser = await User.findById(treeParent.originalUser);
             if (originalUser) {
               // Validate wallet update for original user
               if (originalUser.wallet + commissionAmount < 0) {
@@ -283,22 +286,22 @@ async function distributeCommissions(orderId, purchaserId, orderAmount) {
               
               // Record transaction with virtual user as recipient but note the redirection
               transaction.treeCommissions.push({
-                recipient: referrer._id, // Virtual user ID for tracking
-                level: levelIndex,
+                recipient: treeParent._id, // Virtual user ID for tracking
+                level: levelIndex + 1,
                 percentage,
                 amount: commissionAmount,
                 redirectedTo: originalUser._id // Track where money actually went
               });
               
-              console.log(`   Tree commission of ${commissionAmount} (${percentage}%) credited to original user ${originalUser.email} (via virtual user ${referrer.email}) at level ${levelIndex}`);
+              console.log(`   Tree commission of ${commissionAmount} (${percentage}%) credited to original user ${originalUser.email} (via virtual user ${treeParent.email}) at level ${levelIndex + 1}`);
             } else {
-              console.log(`   Original user not found for virtual user ${referrer.email}, allocating to Trust Fund`);
-              await addToTrustFund('trust', commissionAmount, orderId, 'order_allocation', `Tree commission - virtual user original not found (${referrer.email})`, null);
+              console.log(`   Original user not found for virtual user ${treeParent.email}, allocating to Trust Fund`);
+              await addToTrustFund('trust', commissionAmount, orderId, 'order_allocation', `Tree commission - virtual user original not found (${treeParent.email})`, null);
               transaction.trustFundAmount += commissionAmount;
               
               transaction.treeCommissions.push({
-                recipient: referrer._id,
-                level: levelIndex,
+                recipient: treeParent._id,
+                level: levelIndex + 1,
                 percentage,
                 amount: commissionAmount
               });
@@ -306,27 +309,27 @@ async function distributeCommissions(orderId, purchaserId, orderAmount) {
           } else {
             // Regular user - credit commission normally
             // Validate wallet update
-            if (referrer.wallet + commissionAmount < 0) {
+            if (treeParent.wallet + commissionAmount < 0) {
               throw new Error('Wallet update would result in negative balance');
             }
 
-            referrer.wallet += commissionAmount;
-            referrer.treeCommissionEarned += commissionAmount;
-            await referrer.save();
+            treeParent.wallet += commissionAmount;
+            treeParent.treeCommissionEarned += commissionAmount;
+            await treeParent.save();
             
             transaction.treeCommissions.push({
-              recipient: referrer._id,
-              level: levelIndex,
+              recipient: treeParent._id,
+              level: levelIndex + 1,
               percentage,
               amount: commissionAmount
             });
             
-            console.log(`   Tree commission of ${commissionAmount} (${percentage}%) credited to ${referrer.email} at level ${levelIndex}`);
+            console.log(`   Tree commission of ${commissionAmount} (${percentage}%) credited to ${treeParent.email} at level ${levelIndex + 1}`);
           }
         }
         
         remainingPool -= commissionAmount;
-        currentReferrerCode = referrer.referredBy; // Move up the referral chain
+        currentTreeParent = treeParent.treeParent; // Move up the tree
         levelIndex++;
       } else {
         console.log(`   Insufficient pool remaining (${remainingPool}) for commission amount ${commissionAmount}`);
@@ -335,10 +338,10 @@ async function distributeCommissions(orderId, purchaserId, orderAmount) {
     }
 
     if (levelIndex >= maxLevels) {
-      console.warn(`Reached maximum configured referral levels (${maxLevels}), stopping distribution`);
+      console.warn(`Reached maximum configured tree levels (${maxLevels}), stopping distribution`);
     }
     
-    console.log(`🔗 Referral chain commission distribution completed. Remaining pool: ${remainingPool}`);
+    console.log(`🌳 Tree placement commission distribution completed. Remaining pool: ${remainingPool}`);
     
     // 5. Add Development Trust Fund (1% + any remainder from tree commission)
     transaction.remainderToDevFund = remainingPool;

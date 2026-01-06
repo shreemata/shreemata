@@ -83,6 +83,7 @@ router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) 
       trustFundPercent,
       developmentFundPercent,
       minimumWithdrawalAmount,
+      minimumTreePlacementAmount,
       baseShippingCharge,
       shippingRatePerKg,
       freeShippingThreshold,
@@ -123,6 +124,9 @@ router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) 
     if (minimumWithdrawalAmount !== undefined) {
       settings.minimumWithdrawalAmount = minimumWithdrawalAmount;
     }
+    if (minimumTreePlacementAmount !== undefined) {
+      settings.minimumTreePlacementAmount = minimumTreePlacementAmount;
+    }
     if (baseShippingCharge !== undefined) {
       settings.baseShippingCharge = baseShippingCharge;
     }
@@ -159,7 +163,8 @@ router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) 
       baseShippingCharge: settings.baseShippingCharge,
       shippingRatePerKg: settings.shippingRatePerKg,
       freeShippingThreshold: settings.freeShippingThreshold,
-      minimumWithdrawalAmount: settings.minimumWithdrawalAmount
+      minimumWithdrawalAmount: settings.minimumWithdrawalAmount,
+      minimumTreePlacementAmount: settings.minimumTreePlacementAmount
     });
     
     // Validate total doesn't exceed 10%

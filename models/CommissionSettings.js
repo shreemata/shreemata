@@ -62,6 +62,13 @@ const commissionSettingsSchema = new mongoose.Schema({
     min: 1
   },
   
+  // Minimum purchase amount for tree placement (default ₹0 - no minimum)
+  minimumTreePlacementAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  
   // Shipping Settings
   // Base shipping charge (default ₹50)
   baseShippingCharge: {
@@ -157,6 +164,7 @@ commissionSettingsSchema.statics.getSettings = async function() {
       developmentFundPercent: 1,
       totalAllocationPercent: 10,
       minimumWithdrawalAmount: 100,
+      minimumTreePlacementAmount: 0, // No minimum by default
       baseShippingCharge: 50,
       shippingRatePerKg: 25,
       freeShippingThreshold: 500,
