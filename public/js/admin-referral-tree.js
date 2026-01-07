@@ -24,12 +24,12 @@ function checkAdminAuth() {
         return;
     }
 
-    document.getElementById('userName').textContent = `Hello, ${user.name}`;
+    // User name display is handled by admin-navigation.js
 }
 
 /* EVENT LISTENERS */
 function setupEventListeners() {
-    document.getElementById('logoutBtn').addEventListener('click', logout);
+    // Logout handled by admin-navigation.js
     document.getElementById('applyFilters').addEventListener('click', applyFilters);
     document.getElementById('refreshData').addEventListener('click', () => loadTreeData());
     
@@ -112,12 +112,7 @@ function switchTab(tabName) {
     if (activeButton) activeButton.classList.add('active');
 }
 
-/* LOGOUT */
-function logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/';
-}
+/* LOGOUT - handled by admin-navigation.js */
 
 /* TOGGLE VIEW MODE CONTROLS */
 function toggleViewModeControls() {
@@ -152,10 +147,15 @@ function applyFilters() {
 /* LOAD TREE DATA */
 async function loadTreeData() {
     try {
+        console.log('🔄 Loading tree data...');
         showLoading();
         hideError();
         
         const token = localStorage.getItem('token');
+        if (!token) {
+            throw new Error('No authentication token found');
+        }
+        
         let endpoint = '';
         let queryParams = new URLSearchParams();
         
@@ -181,6 +181,8 @@ async function loadTreeData() {
         }
         
         const url = `${API}${endpoint}?${queryParams.toString()}`;
+        console.log('🌐 API Request URL:', url);
+        console.log('🔑 Token present:', !!token);
         
         const response = await fetch(url, {
             headers: {
@@ -188,6 +190,9 @@ async function loadTreeData() {
                 'Content-Type': 'application/json'
             }
         });
+        
+        console.log('📡 Response status:', response.status);
+        console.log('📡 Response ok:', response.ok);
         
         if (!response.ok) {
             if (response.status === 401) {
@@ -201,10 +206,14 @@ async function loadTreeData() {
                 window.location.href = '/admin.html';
                 return;
             }
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            
+            const errorText = await response.text();
+            console.error('❌ API Error Response:', errorText);
+            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
         }
         
         const data = await response.json();
+        console.log('✅ API Response data:', data);
         
         if (currentViewMode === 'stats') {
             statsData = data;
@@ -219,9 +228,10 @@ async function loadTreeData() {
         }
         
         hideLoading();
+        console.log('✅ Tree data loaded successfully');
         
     } catch (error) {
-        console.error('Error loading tree data:', error);
+        console.error('❌ Error loading tree data:', error);
         showError(`Failed to load tree data: ${error.message}`);
         hideLoading();
     }

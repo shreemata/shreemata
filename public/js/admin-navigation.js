@@ -32,22 +32,27 @@ function initAdminNavigation(currentPageId = '') {
     // If no nav element exists, create one
     if (!nav) {
         nav = document.createElement('nav');
+        nav.className = 'admin-nav-forced';
         nav.style.cssText = `
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            background-color: #667eea !important;
+            padding: 20px 0 !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 100 !important;
+            width: 100% !important;
         `;
         
         // Insert at the beginning of body
         document.body.insertBefore(nav, document.body.firstChild);
         
         // Add top margin to body to account for fixed nav
-        document.body.style.paddingTop = '80px';
+        if (!document.body.style.paddingTop) {
+            document.body.style.paddingTop = '90px';
+        }
         
         // Hide existing admin headers to avoid duplication
         const existingHeaders = document.querySelectorAll('.header, .admin-header');
@@ -56,11 +61,46 @@ function initAdminNavigation(currentPageId = '') {
                 header.style.display = 'none';
             }
         });
+    } else {
+        // If nav exists, ensure it has the correct styling
+        nav.className = 'admin-nav-forced';
+        nav.style.cssText = `
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            background-color: #667eea !important;
+            padding: 20px 0 !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 100 !important;
+            width: 100% !important;
+        `;
+        console.log('Nav element already exists, updating content and styling');
     }
 
     // Create navigation HTML
     const navHTML = createAdminNavHTML(currentPageId);
     nav.innerHTML = navHTML;
+
+    // Force apply the gradient background immediately after creation
+    setTimeout(() => {
+        const navElement = document.querySelector('nav');
+        if (navElement) {
+            navElement.style.setProperty('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'important');
+            navElement.style.setProperty('background-color', '#667eea', 'important');
+            
+            // Debug: Log current styles
+            const computedStyle = window.getComputedStyle(navElement);
+            console.log('🎨 Navigation Debug Info:');
+            console.log('  Background:', computedStyle.background);
+            console.log('  Background-color:', computedStyle.backgroundColor);
+            console.log('  Inline style:', navElement.style.cssText);
+            console.log('  Classes:', navElement.className);
+            
+            console.log('🎨 Forced navigation background color');
+        }
+    }, 50);
 
     // Setup mobile menu functionality
     setupMobileMenu();
@@ -72,7 +112,7 @@ function initAdminNavigation(currentPageId = '') {
     loadAdminUserInfo();
 }
 
-// Create navigation HTML
+// Create navigation HTML with popup modal
 function createAdminNavHTML(currentPageId) {
     const linksHTML = adminNavConfig.links.map(link => {
         const isActive = link.id === currentPageId || 
@@ -83,7 +123,7 @@ function createAdminNavHTML(currentPageId) {
         const logoutId = link.id === 'logout' ? 'id="logoutBtn"' : '';
         
         return `<a href="${link.href}" class="${activeClass}" ${logoutId}>
-                    ${link.icon} ${link.text}
+                    <span class="icon">${link.icon}</span> ${link.text}
                 </a>`;
     }).join('');
 
@@ -96,13 +136,70 @@ function createAdminNavHTML(currentPageId) {
                     </button>
                     <h1>${adminNavConfig.title}</h1>
                 </div>
-                <button id="mobileMenuToggle" class="mobile-menu-toggle" onclick="toggleAdminMobileMenu()">
-                    <span id="adminMenuIcon">☰</span> Menu
-                </button>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span id="userName" style="color: white; font-size: 14px; font-weight: 500;"></span>
+                    <button id="popupMenuBtn" class="popup-menu-btn" onclick="openAdminPopupMenu()">
+                        <span>☰</span>
+                        <span>Menu</span>
+                    </button>
+                </div>
             </div>
-            <div id="adminNavLinks" class="admin-nav-links">
-                <span id="userName" style="color: white; margin-right: 10px;"></span>
-                ${linksHTML}
+        </div>
+        
+        <!-- Popup Menu Modal -->
+        <div class="popup-overlay" id="adminPopupOverlay" onclick="closeAdminPopupMenu(event)">
+            <div class="popup-modal" onclick="event.stopPropagation()">
+                <div class="popup-header">
+                    <h2>Admin Panel</h2>
+                    <span id="popupUserName">Hello, Admin</span>
+                    <button class="popup-close" onclick="closeAdminPopupMenu()">×</button>
+                </div>
+                
+                <div class="popup-content">
+                    <div class="popup-menu-links">
+                        <div class="popup-menu-group">
+                            <div class="popup-group-title">Main</div>
+                            <a href="/"><span class="icon">🏠</span> Home</a>
+                        </div>
+                        
+                        <div class="popup-menu-group">
+                            <div class="popup-group-title">Content Management</div>
+                            <a href="/admin.html"><span class="icon">📚</span> Manage Books</a>
+                            <a href="/admin-bundles.html"><span class="icon">📦</span> Manage Bundles</a>
+                        </div>
+                        
+                        <div class="popup-menu-group">
+                            <div class="popup-group-title">Orders & Payments</div>
+                            <a href="/admin-orders.html"><span class="icon">🛒</span> Orders</a>
+                            <a href="/admin-withdrawals.html"><span class="icon">💰</span> Withdrawals</a>
+                            <a href="/admin-bank-requests.html"><span class="icon">🏦</span> Bank Requests</a>
+                        </div>
+                        
+                        <div class="popup-menu-group">
+                            <div class="popup-group-title">Communications</div>
+                            <a href="/admin-notifications.html"><span class="icon">📢</span> Notifications</a>
+                        </div>
+                        
+                        <div class="popup-menu-group">
+                            <div class="popup-group-title">Reports & Analytics</div>
+                            <a href="/admin-income.html"><span class="icon">💵</span> Income Reports</a>
+                            <a href="/admin-users.html"><span class="icon">👥</span> Manage Users</a>
+                            <a href="/admin-referral-tree.html"><span class="icon">🌳</span> Referral Tree</a>
+                            <a href="/admin-referral-tree-visual.html"><span class="icon">📊</span> Tree Visual</a>
+                        </div>
+                        
+                        <div class="popup-menu-group">
+                            <div class="popup-group-title">Settings</div>
+                            <a href="/admin-commission-settings.html" class="${currentPageId === 'settings' ? 'active' : ''}"><span class="icon">⚙️</span> Commission Settings</a>
+                            <a href="/admin-receipt-settings.html" class="${currentPageId === 'receipt-settings' ? 'active' : ''}"><span class="icon">🧾</span> Receipt Settings</a>
+                        </div>
+                        
+                        <div class="popup-menu-group">
+                            <div class="popup-group-title">Account</div>
+                            <a href="/" id="popupLogoutBtn"><span class="icon">🚪</span> Logout</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -110,20 +207,21 @@ function createAdminNavHTML(currentPageId) {
 
 // Setup mobile menu functionality
 function setupMobileMenu() {
-    // Remove any existing event listeners to prevent duplicates
-    const existingToggle = document.getElementById('mobileMenuToggle');
-    if (existingToggle) {
-        existingToggle.replaceWith(existingToggle.cloneNode(true));
-    }
-    
-    // Add mobile menu styles if not already present
+    // Add popup modal styles if not already present
     if (!document.getElementById('adminNavStyles')) {
         const style = document.createElement('style');
         style.id = 'adminNavStyles';
         style.textContent = `
-            /* Ensure nav is properly styled */
+            /* Force consistent navigation styling across all admin pages - Maximum specificity */
+            body nav, 
+            body nav[style], 
+            html body nav,
+            nav.admin-nav,
+            nav#adminNav,
+            .admin-nav,
             nav {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                background-color: #667eea !important;
                 padding: 20px 0 !important;
                 box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
                 position: fixed !important;
@@ -131,47 +229,231 @@ function setupMobileMenu() {
                 left: 0 !important;
                 right: 0 !important;
                 z-index: 100 !important;
+                width: 100% !important;
+                height: auto !important;
+                border: none !important;
+                border-radius: 0 !important;
             }
             
+            /* Additional forced styling with class selector */
+            .admin-nav-forced,
+            nav.admin-nav-forced {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                background-color: #667eea !important;
+            }
+            
+            body nav .container,
             nav .container {
-                max-width: 1200px;
-                margin: 0 auto;
-                padding: 0 20px;
+                max-width: 1200px !important;
+                margin: 0 auto !important;
+                padding: 0 20px !important;
+                background: transparent !important;
+                box-shadow: none !important;
             }
             
+            body nav h1,
             nav h1 {
                 color: white !important;
                 margin: 0 !important;
                 font-size: 24px !important;
+                background: transparent !important;
             }
-            
-            nav a {
-                color: white !important;
-                text-decoration: none !important;
-                padding: 8px 16px;
-                border-radius: 6px;
-                transition: all 0.3s ease;
-                font-weight: 500;
-            }
-            
-            nav a:hover, nav a.active {
-                background: rgba(255, 255, 255, 0.2) !important;
             }
 
-            .mobile-menu-toggle {
-                display: none;
-                background: rgba(255, 255, 255, 0.2);
-                border: 2px solid rgba(255, 255, 255, 0.3);
+            /* Popup Menu Button */
+            .popup-menu-btn {
+                background: rgba(255,255,255,0.2);
                 color: white;
-                padding: 10px 15px;
+                border: none;
+                padding: 12px 20px;
                 border-radius: 8px;
-                font-size: 16px;
                 cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .popup-menu-btn:hover {
+                background: rgba(255,255,255,0.3);
+                transform: translateY(-1px);
+            }
+            
+            /* Popup Modal Overlay */
+            .popup-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.6);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.3s ease;
+                z-index: 2000;
+                padding: 20px;
+            }
+            
+            .popup-overlay.active {
+                opacity: 1;
+                visibility: visible;
+            }
+            
+            /* Popup Modal */
+            .popup-modal {
+                background: white;
+                border-radius: 16px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                max-width: 500px;
+                width: 100%;
+                max-height: 80vh;
+                overflow-y: auto;
+                transform: scale(0.8) translateY(20px);
                 transition: all 0.3s ease;
             }
-
-            .mobile-menu-toggle:hover {
-                background: rgba(255, 255, 255, 0.3);
+            
+            .popup-overlay.active .popup-modal {
+                transform: scale(1) translateY(0);
+            }
+            
+            /* Popup Header */
+            .popup-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 25px;
+                border-radius: 16px 16px 0 0;
+                text-align: center;
+                position: relative;
+            }
+            
+            .popup-header h2 {
+                margin: 0 0 8px 0;
+                font-size: 20px;
+                font-weight: 600;
+            }
+            
+            .popup-header span {
+                font-size: 14px;
+                opacity: 0.9;
+            }
+            
+            .popup-close {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: rgba(255,255,255,0.2);
+                color: white;
+                border: none;
+                width: 35px;
+                height: 35px;
+                border-radius: 50%;
+                cursor: pointer;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.3s ease;
+            }
+            
+            .popup-close:hover {
+                background: rgba(255,255,255,0.3);
+                transform: rotate(90deg);
+            }
+            
+            /* Popup Content */
+            .popup-content {
+                padding: 0;
+            }
+            
+            .popup-menu-group {
+                border-bottom: 1px solid #f0f0f0;
+            }
+            
+            .popup-menu-group:last-child {
+                border-bottom: none;
+            }
+            
+            .popup-group-title {
+                padding: 20px 25px 10px;
+                font-size: 12px;
+                font-weight: 600;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                background: #f8f9fa;
+            }
+            
+            .popup-menu-group:first-child .popup-group-title {
+                padding-top: 25px;
+            }
+            
+            .popup-menu-links a {
+                display: flex;
+                align-items: center;
+                padding: 15px 25px;
+                color: #333;
+                text-decoration: none;
+                font-size: 15px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                border-left: 4px solid transparent;
+            }
+            
+            .popup-menu-links a:hover {
+                background: #f8f9fa;
+                border-left-color: #667eea;
+                color: #667eea;
+                transform: translateX(5px);
+            }
+            
+            .popup-menu-links a.active {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-left-color: white;
+                font-weight: 600;
+            }
+            
+            .popup-menu-links a .icon {
+                margin-right: 15px;
+                font-size: 18px;
+                width: 24px;
+                text-align: center;
+                flex-shrink: 0;
+            }
+            
+            /* Mobile Responsive */
+            @media (max-width: 768px) {
+                .popup-modal {
+                    max-width: 90%;
+                    margin: 10px;
+                }
+                
+                .popup-header {
+                    padding: 20px;
+                }
+                
+                .popup-header h2 {
+                    font-size: 18px;
+                }
+                
+                .popup-menu-links a {
+                    padding: 12px 20px;
+                    font-size: 14px;
+                }
+                
+                .popup-group-title {
+                    padding: 15px 20px 8px;
+                }
+                
+                .popup-menu-btn {
+                    padding: 10px 15px;
+                    font-size: 13px;
+                }
             }
 
             .back-btn {
@@ -189,310 +471,152 @@ function setupMobileMenu() {
                 background: rgba(255, 255, 255, 0.3);
                 transform: translateX(-2px);
             }
-
-            .admin-nav-links {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 8px;
-                transition: all 0.3s ease;
-            }
-
-            .admin-nav-links a {
-                padding: 8px 12px;
-                font-size: 12px;
-                min-width: auto;
-                white-space: nowrap;
-            }
-
-            /* Always show menu button for better UX */
-            .mobile-menu-toggle {
-                display: block;
-            }
-            
-            @media (min-width: 1025px) {
-                .mobile-menu-toggle {
-                    background: rgba(255, 255, 255, 0.15);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                }
-                
-                .mobile-menu-toggle:hover {
-                    background: rgba(255, 255, 255, 0.25);
-                }
-            }
-
-            @media (max-width: 1024px) {
-
-                nav .container {
-                    flex-direction: column;
-                    gap: 15px;
-                    padding: 15px 10px;
-                    position: relative;
-                }
-
-                .admin-nav-links {
-                    position: absolute;
-                    top: 100%;
-                    left: 10px;
-                    right: 10px;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    border-radius: 12px;
-                    padding: 20px;
-                    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-                    flex-direction: column;
-                    gap: 12px;
-                    max-height: 0;
-                    overflow: hidden;
-                    opacity: 0;
-                    transform: translateY(-10px);
-                    z-index: 1000;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                }
-                
-            }
-            
-            /* Desktop dropdown menu */
-            @media (min-width: 1025px) {
-                nav .container {
-                    flex-direction: row;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 15px 20px;
-                    position: relative;
-                }
-                
-                .admin-nav-links {
-                    position: absolute;
-                    top: 100%;
-                    right: 0;
-                    left: auto;
-                    width: 300px;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    border-radius: 12px;
-                    padding: 20px;
-                    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-                    flex-direction: column;
-                    gap: 12px;
-                    max-height: 0;
-                    overflow: hidden;
-                    opacity: 0;
-                    transform: translateY(-10px);
-                    z-index: 1000;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                }
-                
-                .admin-nav-links a {
-                    padding: 10px 16px;
-                    font-size: 14px;
-                    border-radius: 8px;
-                    transition: all 0.3s ease;
-                    text-align: left;
-                }
-                
-                #userName {
-                    text-align: left;
-                    padding: 10px 16px;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 8px;
-                    margin-bottom: 10px;
-                }
-
-                .admin-nav-links.mobile-menu-open {
-                    max-height: 600px !important;
-                    opacity: 1 !important;
-                    transform: translateY(0) !important;
-                    visibility: visible !important;
-                    display: flex !important;
-                    pointer-events: auto !important;
-                }
-
-                .admin-nav-links a {
-                    padding: 12px 16px;
-                    font-size: 14px;
-                    border-radius: 8px;
-                    transition: all 0.3s ease;
-                    text-align: center;
-                }
-
-                .admin-nav-links a:hover, 
-                .admin-nav-links a.active {
-                    background: rgba(255, 255, 255, 0.2);
-                    transform: translateX(5px);
-                }
-
-                #userName {
-                    text-align: center;
-                    padding: 10px;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 8px;
-                    margin-bottom: 10px;
-                }
-            }
-
-            @media (max-width: 480px) {
-                .admin-nav-links a {
-                    padding: 10px 14px;
-                    font-size: 13px;
-                }
-
-                .mobile-menu-toggle {
-                    padding: 8px 12px;
-                    font-size: 14px;
-                }
-            }
         `;
         document.head.appendChild(style);
     }
 
-    // Setup event listeners using event delegation
-    setupEventListeners();
+    // Setup popup menu event listeners
+    setupPopupMenuListeners();
+}
+
+// Setup popup menu event listeners
+function setupPopupMenuListeners() {
+    // Wait for DOM to be fully ready
+    const setupListeners = () => {
+        const menuBtn = document.getElementById('popupMenuBtn');
+        const backBtn = document.getElementById('backBtn');
+        
+        if (menuBtn && !menuBtn.hasAttribute('data-listener-attached')) {
+            console.log('🔧 Setting up popup menu listeners');
+            
+            // Mark as having listener to avoid duplicates
+            menuBtn.setAttribute('data-listener-attached', 'true');
+            
+            // Use a single click event listener
+            menuBtn.addEventListener('click', function(e) {
+                console.log('📱 Popup menu clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                openAdminPopupMenu();
+            });
+            
+            console.log('✅ Popup menu button listener attached');
+        } else if (!menuBtn) {
+            console.log('⚠️ Popup menu button not found yet');
+        }
+        
+        if (backBtn && !backBtn.hasAttribute('data-listener-attached')) {
+            backBtn.setAttribute('data-listener-attached', 'true');
+            backBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                goBack();
+            });
+        }
+    };
+    
+    // Try multiple times with increasing delays
+    const attempts = [50, 200, 500, 1000];
+    attempts.forEach(delay => {
+        setTimeout(setupListeners, delay);
+    });
 }
 
 function setupEventListeners() {
-    // Multiple attempts to ensure event listeners work
-    const attempts = [100, 300, 500, 1000];
-    
-    attempts.forEach(delay => {
-        setTimeout(function() {
-            const menuToggle = document.getElementById('mobileMenuToggle');
-            const backBtn = document.getElementById('backBtn');
-            
-            if (menuToggle && !menuToggle.hasAttribute('data-listener-attached')) {
-                console.log(`🔧 Setting up event listeners (attempt at ${delay}ms):`, {
-                    menuToggle: !!menuToggle,
-                    backBtn: !!backBtn
-                });
-                
-                // Mark as having listener to avoid duplicates
-                menuToggle.setAttribute('data-listener-attached', 'true');
-                
-                // Multiple event types for maximum compatibility
-                ['click', 'touchstart', 'mousedown'].forEach(eventType => {
-                    menuToggle.addEventListener(eventType, function(e) {
-                        console.log(`📱 Menu toggle ${eventType} triggered`);
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        // Small delay to ensure DOM is ready
-                        setTimeout(() => {
-                            toggleAdminMobileMenu();
-                        }, 10);
-                    }, { passive: false });
-                });
-                
-                // Also add onclick as ultimate fallback
-                menuToggle.onclick = function(e) {
-                    console.log('📱 Menu toggle onclick fallback triggered');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleAdminMobileMenu();
-                    return false;
-                };
-            }
-            
-            if (backBtn && !backBtn.hasAttribute('data-listener-attached')) {
-                backBtn.setAttribute('data-listener-attached', 'true');
-                backBtn.onclick = function(e) {
-                    e.preventDefault();
-                    goBack();
-                };
-            }
-            
-        }, delay);
-    });
+    // Setup popup menu listeners
+    setupPopupMenuListeners();
     
     // Handle click outside to close menu - only set once
     if (!document.documentElement.hasAttribute('data-outside-click-setup')) {
         document.documentElement.setAttribute('data-outside-click-setup', 'true');
         
         document.addEventListener('click', function(e) {
-            const navLinks = document.getElementById('adminNavLinks');
-            const menuToggle = document.getElementById('mobileMenuToggle');
+            const popup = document.getElementById('adminPopupOverlay');
+            const menuBtn = document.getElementById('popupMenuBtn');
             
-            if (navLinks && menuToggle && 
-                navLinks.classList.contains('mobile-menu-open') &&
-                !navLinks.contains(e.target) && 
-                !menuToggle.contains(e.target)) {
+            if (popup && menuBtn && 
+                popup.classList.contains('active') &&
+                !popup.contains(e.target) && 
+                !menuBtn.contains(e.target)) {
                 
-                console.log('🔒 Closing menu due to outside click');
-                navLinks.classList.remove('mobile-menu-open');
-                const menuIcon = document.getElementById('adminMenuIcon');
-                if (menuIcon) menuIcon.textContent = '☰';
+                console.log('🔒 Closing popup due to outside click');
+                closeAdminPopupMenu();
             }
         });
     }
 }
 
-// Mobile menu toggle function (global) - Completely rewritten for reliability
-window.toggleAdminMobileMenu = function() {
-    console.log('=== MOBILE MENU TOGGLE START ===');
-    
-    // Find elements with multiple fallback methods
-    let navLinks = document.getElementById('adminNavLinks') || 
-                   document.querySelector('.admin-nav-links') ||
-                   document.querySelector('[id*="adminNavLinks"]');
-                   
-    let menuIcon = document.getElementById('adminMenuIcon') || 
-                   document.querySelector('#mobileMenuToggle span') ||
-                   document.querySelector('.mobile-menu-toggle span');
-    
-    console.log('🔍 Element search results:', {
-        navLinks: !!navLinks,
-        menuIcon: !!menuIcon,
-        navLinksId: navLinks ? navLinks.id : 'none',
-        menuIconParent: menuIcon ? menuIcon.parentElement.id : 'none'
-    });
-    
-    if (!navLinks || !menuIcon) {
-        console.error('❌ Critical elements missing - recreating navigation');
-        // Try to reinitialize navigation
-        setTimeout(() => {
-            initializeAdminNavigation();
-        }, 100);
-        return false;
-    }
-    
-    // Get current state
-    const currentClasses = navLinks.className;
-    const isCurrentlyOpen = navLinks.classList.contains('mobile-menu-open');
-    
-    console.log('📊 Current state:', {
-        isOpen: isCurrentlyOpen,
-        classes: currentClasses,
-        iconText: menuIcon.textContent.trim()
-    });
-    
-    // Force clear any stuck states first
-    navLinks.style.transition = 'none';
-    navLinks.classList.remove('mobile-menu-open');
-    
-    // Force reflow
-    navLinks.offsetHeight;
-    
-    // Re-enable transitions
-    navLinks.style.transition = '';
-    
-    if (isCurrentlyOpen) {
-        // Close menu
-        navLinks.classList.remove('mobile-menu-open');
-        menuIcon.textContent = '☰';
-        console.log('🔒 Menu CLOSED');
+// Global popup menu functions
+window.openAdminPopupMenu = function() {
+    console.log('🔓 Opening admin popup menu');
+    const popup = document.getElementById('adminPopupOverlay');
+    if (popup) {
+        popup.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        
+        // Load user info into popup
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const userName = localStorage.getItem('userName') || (user ? user.name : 'Admin');
+        const popupUserName = document.getElementById('popupUserName');
+        if (popupUserName) {
+            popupUserName.textContent = `Hello, ${userName}`;
+        }
+        
+        // Setup popup logout button
+        const popupLogoutBtn = document.getElementById('popupLogoutBtn');
+        if (popupLogoutBtn && !popupLogoutBtn.hasAttribute('data-listener-attached')) {
+            popupLogoutBtn.setAttribute('data-listener-attached', 'true');
+            popupLogoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (confirm('Are you sure you want to logout?')) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('userName');
+                    localStorage.removeItem('userRole');
+                    window.location.href = '/';
+                }
+            });
+        }
+        
+        // Setup close on link click
+        const popupLinks = document.querySelectorAll('.popup-menu-links a');
+        popupLinks.forEach(link => {
+            if (!link.hasAttribute('data-close-listener')) {
+                link.setAttribute('data-close-listener', 'true');
+                link.addEventListener('click', function() {
+                    if (!this.id || this.id !== 'popupLogoutBtn') {
+                        closeAdminPopupMenu();
+                    }
+                });
+            }
+        });
     } else {
-        // Open menu
-        navLinks.classList.add('mobile-menu-open');
-        menuIcon.textContent = '✕';
-        console.log('🔓 Menu OPENED');
+        console.error('❌ Popup overlay not found');
+    }
+};
+
+window.closeAdminPopupMenu = function(event) {
+    // Only close if clicking on overlay, not on modal content
+    if (event && event.target !== document.getElementById('adminPopupOverlay')) {
+        return;
     }
     
-    // Double-check the final state
-    setTimeout(() => {
-        const finalState = navLinks.classList.contains('mobile-menu-open');
-        console.log('✅ Final verification - Menu is open:', finalState);
-        console.log('=== MOBILE MENU TOGGLE END ===');
-    }, 50);
-    
-    return true;
+    console.log('🔒 Closing admin popup menu');
+    const popup = document.getElementById('adminPopupOverlay');
+    if (popup) {
+        popup.classList.remove('active');
+        document.body.style.overflow = '';
+    }
 };
+
+// Close popup on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const popup = document.getElementById('adminPopupOverlay');
+        if (popup && popup.classList.contains('active')) {
+            closeAdminPopupMenu();
+        }
+    }
+});
 
 // Setup logout functionality
 function setupLogout() {
@@ -512,10 +636,17 @@ function setupLogout() {
 // Load admin user info
 function loadAdminUserInfo() {
     const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const userName = localStorage.getItem('userName') || (user ? user.name : 'Admin');
     const userNameEl = document.getElementById('userName');
     
-    if (user && userNameEl) {
-        userNameEl.textContent = `👤 ${user.name}`;
+    if (userNameEl) {
+        userNameEl.textContent = `👤 ${userName}`;
+    }
+    
+    // Also update popup user name if it exists
+    const popupUserName = document.getElementById('popupUserName');
+    if (popupUserName) {
+        popupUserName.textContent = `Hello, ${userName}`;
     }
 }
 
@@ -575,6 +706,12 @@ function detectCurrentPage() {
 
 // Function to initialize admin navigation
 function initializeAdminNavigation() {
+    // Prevent multiple initializations
+    if (document.body.hasAttribute('data-admin-nav-initialized')) {
+        console.log('Admin navigation already initialized, skipping...');
+        return;
+    }
+    
     const currentPageId = detectCurrentPage();
     const path = window.location.pathname;
     
@@ -582,28 +719,43 @@ function initializeAdminNavigation() {
     if (currentPageId || path.includes('admin')) {
         console.log('Initializing admin navigation for page:', currentPageId);
         
+        // Mark as initialized
+        document.body.setAttribute('data-admin-nav-initialized', 'true');
+        
         // Initialize navigation
         initAdminNavigation(currentPageId);
         setupBackButton(currentPageId);
         updatePageTitle(currentPageId);
         
         // Setup event listeners after navigation is created
-        setupEventListeners();
+        setTimeout(() => {
+            setupEventListeners();
+        }, 100);
         
         console.log('Admin navigation initialized successfully');
     }
 }
 
-// Auto-initialize on DOM load
-document.addEventListener('DOMContentLoaded', initializeAdminNavigation);
-
-// Fallback initialization after a delay
-setTimeout(function() {
-    if (window.location.pathname.includes('admin')) {
-        console.log('Fallback initialization triggered');
+// Auto-initialize on DOM load - only once
+if (!window.adminNavInitialized) {
+    window.adminNavInitialized = true;
+    
+    // Try immediate initialization
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeAdminNavigation);
+    } else {
+        // DOM is already loaded
         initializeAdminNavigation();
     }
-}, 500);
+    
+    // Fallback initialization after a delay - only if not already initialized
+    setTimeout(function() {
+        if (window.location.pathname.includes('admin') && !document.body.hasAttribute('data-admin-nav-initialized')) {
+            console.log('Fallback initialization triggered');
+            initializeAdminNavigation();
+        }
+    }, 1000);
+}
 
 // Also initialize when the page becomes visible (for navigation between admin pages)
 document.addEventListener('visibilitychange', function() {

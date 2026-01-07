@@ -11,6 +11,7 @@
     <style>
         body {
             background: #f5f5f5;
+            padding-top: 90px;
         }
         .container {
             background: white;
@@ -199,39 +200,6 @@
             cursor: not-allowed;
             transform: none;
         }
-        nav {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        nav .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: transparent;
-            box-shadow: none;
-            padding: 0 20px;
-        }
-        nav h1 {
-            color: white;
-            margin: 0;
-            font-size: 24px;
-        }
-        nav div {
-            display: flex;
-            gap: 15px;
-        }
-        nav a {
-            color: white;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-        nav a:hover, nav a.active {
-            background: rgba(255,255,255,0.2);
-        }
         #debugInfo {
             background: linear-gradient(135deg, #e0f7fa 0%, #e1bee7 100%);
             padding: 15px;
@@ -245,31 +213,6 @@
 
         /* Mobile Responsive Styles */
         @media (max-width: 768px) {
-            nav {
-                padding: 8px 0;
-            }
-            
-            nav .container {
-                flex-direction: column;
-                gap: 8px;
-                padding: 0 10px;
-            }
-            
-            nav h1 {
-                font-size: 16px;
-            }
-            
-            nav div {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 5px;
-            }
-            
-            nav a {
-                padding: 5px 8px;
-                font-size: 11px;
-            }
-            
             .container {
                 padding: 15px !important;
                 margin-top: 80px !important;
@@ -371,29 +314,7 @@
     </style>
 </head>
 <body>
-    <nav>
-        <div class="container">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 40px; height: 40px; border-radius: 50%;">
-                <h1 style="margin: 0;">Shree Mata Admin</h1>
-            </div>
-            <div>
-                <span id="userName" style="color: white; margin-right: 10px;"></span>
-                <a href="/">🏠 Home</a>
-                <a href="/admin.html">Books</a>
-                <a href="/admin-bundles.html" class="active">Bundles</a>
-                <a href="/admin-orders.html">Orders</a>
-                <a href="/admin-withdrawals.html">Withdrawals</a>
-                <a href="/admin-bank-requests.html">Bank Requests</a>
-                <a href="/admin-notifications.html">Notifications</a>
-                <a href="/admin-income.html">Income</a>
-                <a href="/admin-users.html">Users</a>
-                <a href="/admin-commission-settings.html">Settings</a>
-                <a href="/admin-referral-tree.html">Referral Tree</a>
-                <a href="/" id="logoutBtn">Logout</a>
-            </div>
-        </div>
-    </nav>
+    <!-- Navigation will be injected by admin-navigation.js -->
 
     <div class="container" style="margin-top: 100px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -1048,10 +969,7 @@
             }
         }
 
-        document.getElementById("logoutBtn").addEventListener("click", () => {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-        });
+        // Logout will be handled by admin-navigation.js
     </script>
     <script src="js/admin-navigation.js"></script>
 </body>

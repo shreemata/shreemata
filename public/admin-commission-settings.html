@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#667eea">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Commission Settings - Shree Mata Admin</title>
     <link rel="stylesheet" href="css/styles.css">
@@ -33,6 +33,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            position: relative;
         }
         
         .nav-brand {
@@ -53,80 +54,92 @@
             font-weight: 500;
         }
         
-        .hamburger-btn {
+        /* Menu Button */
+        .menu-btn {
             background: rgba(255,255,255,0.2);
             color: white;
             border: none;
-            padding: 12px;
+            padding: 12px 20px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 14px;
+            font-weight: 500;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            justify-content: center;
-            width: 45px;
-            height: 45px;
+            gap: 8px;
         }
         
-        .hamburger-btn:hover {
+        .menu-btn:hover {
             background: rgba(255,255,255,0.3);
-            transform: scale(1.05);
+            transform: translateY(-1px);
         }
         
-        /* Hamburger Menu Overlay */
-        .menu-overlay {
+        /* Popup Modal Overlay */
+        .popup-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
-            z-index: 998;
+            z-index: 2000;
+            padding: 20px;
         }
         
-        .menu-overlay.active {
+        .popup-overlay.active {
             opacity: 1;
             visibility: visible;
         }
         
-        /* Right Side Menu Panel */
-        .side-menu {
-            position: fixed;
-            top: 0;
-            right: -350px;
-            width: 320px;
-            height: 100vh;
+        /* Popup Modal */
+        .popup-modal {
             background: white;
-            box-shadow: -5px 0 20px rgba(0,0,0,0.3);
-            transition: right 0.3s ease;
-            z-index: 999;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
             overflow-y: auto;
+            transform: scale(0.8) translateY(20px);
+            transition: all 0.3s ease;
         }
         
-        .side-menu.active {
-            right: 0;
+        .popup-overlay.active .popup-modal {
+            transform: scale(1) translateY(0);
         }
         
-        .side-menu-header {
+        /* Popup Header */
+        .popup-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            padding: 25px;
+            border-radius: 16px 16px 0 0;
+            text-align: center;
+            position: relative;
         }
         
-        .side-menu-header h2 {
-            margin: 0;
-            font-size: 18px;
+        .popup-header h2 {
+            margin: 0 0 8px 0;
+            font-size: 20px;
             font-weight: 600;
         }
         
-        .close-btn {
+        .popup-header span {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .popup-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
             background: rgba(255,255,255,0.2);
             color: white;
             border: none;
@@ -141,74 +154,95 @@
             transition: all 0.3s ease;
         }
         
-        .close-btn:hover {
+        .popup-close:hover {
             background: rgba(255,255,255,0.3);
             transform: rotate(90deg);
         }
         
-        .side-menu-user {
-            padding: 20px;
-            border-bottom: 1px solid #eee;
-            text-align: center;
-            background: #f8f9fa;
-        }
-        
-        .side-menu-user span {
-            color: #333;
-            font-weight: 500;
-            font-size: 16px;
-        }
-        
-        .side-menu-links {
+        /* Popup Content */
+        .popup-content {
             padding: 0;
         }
         
-        .menu-section {
-            border-bottom: 1px solid #eee;
+        .popup-menu-group {
+            border-bottom: 1px solid #f0f0f0;
         }
         
-        .menu-section-title {
-            padding: 15px 20px 10px;
+        .popup-menu-group:last-child {
+            border-bottom: none;
+        }
+        
+        .popup-group-title {
+            padding: 20px 25px 10px;
             font-size: 12px;
             font-weight: 600;
-            color: #666;
+            color: #888;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             background: #f8f9fa;
         }
         
-        .side-menu-links a {
+        .popup-menu-group:first-child .popup-group-title {
+            padding-top: 25px;
+        }
+        
+        .popup-menu-links a {
             display: flex;
             align-items: center;
-            padding: 15px 20px;
+            padding: 15px 25px;
             color: #333;
             text-decoration: none;
             font-size: 15px;
             font-weight: 500;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             border-left: 4px solid transparent;
         }
         
-        .side-menu-links a:hover {
+        .popup-menu-links a:hover {
             background: #f8f9fa;
             border-left-color: #667eea;
             color: #667eea;
             transform: translateX(5px);
         }
         
-        .side-menu-links a.active {
+        .popup-menu-links a.active {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-left-color: white;
             font-weight: 600;
         }
         
-        .side-menu-links a .icon {
+        .popup-menu-links a .icon {
             margin-right: 15px;
             font-size: 18px;
             width: 24px;
             text-align: center;
             flex-shrink: 0;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .popup-modal {
+                max-width: 90%;
+                margin: 10px;
+            }
+            
+            .popup-header {
+                padding: 20px;
+            }
+            
+            .popup-header h2 {
+                font-size: 18px;
+            }
+            
+            .popup-menu-links a {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+            
+            .popup-group-title {
+                padding: 15px 20px 8px;
+            }
         }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
         .main-container { 
@@ -230,17 +264,16 @@
             padding: 20px; 
             border-radius: 8px; 
             border: 2px solid #e0e0e0; 
-            break-inside: avoid; /* Prevent breaking across columns */
+            break-inside: avoid;
         }
         
-        /* Ensure store details card takes full width on smaller screens */
         .store-details-card {
             grid-column: 1 / -1;
         }
         
         @media (min-width: 1200px) {
             .store-details-card {
-                grid-column: span 2; /* Take 2 columns on larger screens */
+                grid-column: span 2;
             }
         }
         .setting-card h3 { margin: 0 0 15px 0; color: #333; font-size: 16px; }
@@ -259,7 +292,7 @@
         
         /* Weight Range Styles */
         .shipping-rates-card {
-            grid-column: 1 / -1; /* Take full width */
+            grid-column: 1 / -1;
             max-width: none;
         }
         
@@ -353,7 +386,7 @@
             .shipping-rates-header {
                 grid-template-columns: 1fr;
                 text-align: center;
-                display: none; /* Hide header on mobile */
+                display: none;
             }
             
             .weight-range-item {
@@ -429,11 +462,6 @@
             .nav-user {
                 font-size: 12px;
             }
-            
-            .side-menu {
-                width: 280px;
-                right: -300px;
-            }
         }
         
         @media (max-width: 480px) {
@@ -445,22 +473,9 @@
                 font-size: 16px;
             }
             
-            .hamburger-btn {
-                width: 40px;
-                height: 40px;
-                font-size: 16px;
-            }
-            
-            .side-menu {
-                width: 260px;
-                right: -280px;
-            }
-        }
-        
-        @media (max-width: 360px) {
-            .side-menu {
-                width: 240px;
-                right: -260px;
+            .menu-btn {
+                padding: 10px 15px;
+                font-size: 13px;
             }
         }
         .level-inputs { display: flex; flex-direction: column; gap: 10px; }
@@ -481,66 +496,65 @@
                 <span id="userName">Hello, Admin</span>
             </div>
             
-            <button class="hamburger-btn" onclick="openSideMenu()">
-                ☰
+            <button class="menu-btn" onclick="openPopupMenu()">
+                <span>☰</span>
+                <span>Menu</span>
             </button>
         </div>
     </nav>
 
-    <!-- Menu Overlay -->
-    <div class="menu-overlay" id="menuOverlay" onclick="closeSideMenu()"></div>
-    
-    <!-- Right Side Menu -->
-    <div class="side-menu" id="sideMenu">
-        <div class="side-menu-header">
-            <h2>Admin Menu</h2>
-            <button class="close-btn" onclick="closeSideMenu()">×</button>
-        </div>
-        
-        <div class="side-menu-user">
-            <span id="sideMenuUserName">Hello, Admin</span>
-        </div>
-        
-        <div class="side-menu-links">
-            <div class="menu-section">
-                <div class="menu-section-title">Main</div>
-                <a href="/"><span class="icon">🏠</span> Home</a>
+    <!-- Popup Menu Modal -->
+    <div class="popup-overlay" id="popupOverlay" onclick="closePopupMenu(event)">
+        <div class="popup-modal" onclick="event.stopPropagation()">
+            <div class="popup-header">
+                <h2>Admin Panel</h2>
+                <span id="popupUserName">Hello, Admin</span>
+                <button class="popup-close" onclick="closePopupMenu()">×</button>
             </div>
             
-            <div class="menu-section">
-                <div class="menu-section-title">Content Management</div>
-                <a href="/admin.html"><span class="icon">📚</span> Manage Books</a>
-                <a href="/admin-bundles.html"><span class="icon">📦</span> Manage Bundles</a>
-            </div>
-            
-            <div class="menu-section">
-                <div class="menu-section-title">Orders & Payments</div>
-                <a href="/admin-orders.html"><span class="icon">🛒</span> Orders</a>
-                <a href="/admin-withdrawals.html"><span class="icon">💰</span> Withdrawals</a>
-                <a href="/admin-bank-requests.html"><span class="icon">🏦</span> Bank Requests</a>
-            </div>
-            
-            <div class="menu-section">
-                <div class="menu-section-title">Communications</div>
-                <a href="/admin-notifications.html"><span class="icon">📢</span> Notifications</a>
-            </div>
-            
-            <div class="menu-section">
-                <div class="menu-section-title">Reports & Analytics</div>
-                <a href="/admin-income.html"><span class="icon">💵</span> Income Reports</a>
-                <a href="/admin-users.html"><span class="icon">👥</span> Manage Users</a>
-                <a href="/admin-referral-tree.html"><span class="icon">🌳</span> Referral Tree</a>
-                <a href="admin-referral-tree-visual.html"><span class="icon">📊</span> Tree Visual</a>
-            </div>
-            
-            <div class="menu-section">
-                <div class="menu-section-title">Settings</div>
-                <a href="/admin-commission-settings.html" class="active"><span class="icon">⚙️</span> Commission Settings</a>
-            </div>
-            
-            <div class="menu-section">
-                <div class="menu-section-title">Account</div>
-                <a href="/" id="logoutBtn"><span class="icon">🚪</span> Logout</a>
+            <div class="popup-content">
+                <div class="popup-menu-links">
+                    <div class="popup-menu-group">
+                        <div class="popup-group-title">Main</div>
+                        <a href="/"><span class="icon">🏠</span> Home</a>
+                    </div>
+                    
+                    <div class="popup-menu-group">
+                        <div class="popup-group-title">Content Management</div>
+                        <a href="/admin.html"><span class="icon">📚</span> Manage Books</a>
+                        <a href="/admin-bundles.html"><span class="icon">📦</span> Manage Bundles</a>
+                    </div>
+                    
+                    <div class="popup-menu-group">
+                        <div class="popup-group-title">Orders & Payments</div>
+                        <a href="/admin-orders.html"><span class="icon">🛒</span> Orders</a>
+                        <a href="/admin-withdrawals.html"><span class="icon">💰</span> Withdrawals</a>
+                        <a href="/admin-bank-requests.html"><span class="icon">🏦</span> Bank Requests</a>
+                    </div>
+                    
+                    <div class="popup-menu-group">
+                        <div class="popup-group-title">Communications</div>
+                        <a href="/admin-notifications.html"><span class="icon">📢</span> Notifications</a>
+                    </div>
+                    
+                    <div class="popup-menu-group">
+                        <div class="popup-group-title">Reports & Analytics</div>
+                        <a href="/admin-income.html"><span class="icon">💵</span> Income Reports</a>
+                        <a href="/admin-users.html"><span class="icon">👥</span> Manage Users</a>
+                        <a href="/admin-referral-tree.html"><span class="icon">🌳</span> Referral Tree</a>
+                        <a href="admin-referral-tree-visual.html"><span class="icon">📊</span> Tree Visual</a>
+                    </div>
+                    
+                    <div class="popup-menu-group">
+                        <div class="popup-group-title">Settings</div>
+                        <a href="/admin-commission-settings.html" class="active"><span class="icon">⚙️</span> Commission Settings</a>
+                    </div>
+                    
+                    <div class="popup-menu-group">
+                        <div class="popup-group-title">Account</div>
+                        <a href="/" id="logoutBtn"><span class="icon">🚪</span> Logout</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -702,6 +716,7 @@
                 <div style="display: flex; gap: 15px; margin-top: 30px;">
                     <button class="btn btn-success" onclick="saveSettings()">💾 Save Settings</button>
                     <button class="btn btn-secondary" onclick="resetSettings()">🔄 Reset to Defaults</button>
+                    <button class="btn" onclick="testSaveFunction()" style="background: #17a2b8; color: white;">🧪 Test Save Function</button>
                 </div>
             </div>
         </div>
@@ -715,15 +730,23 @@
 
     <script src="js/config.js"></script>
     <script>
+        console.log('🔧 Script loading started...');
+        
+        // Global variables
+        let currentSettings = null;
         const token = localStorage.getItem("token");
+        
+        // Authentication check
         if (!token) window.location.href = "/login.html";
 
+        // Set user name
         const userName = localStorage.getItem("userName");
         if (userName) {
             document.getElementById("userName").textContent = `Hello, ${userName}`;
-            document.getElementById("sideMenuUserName").textContent = `Hello, ${userName}`;
+            document.getElementById("popupUserName").textContent = `Hello, ${userName}`;
         }
 
+        // Logout functionality
         document.getElementById("logoutBtn").addEventListener("click", (e) => {
             e.preventDefault();
             localStorage.removeItem("token");
@@ -732,87 +755,57 @@
             window.location.href = "/login.html";
         });
 
-        // Hamburger menu functions
-        function openSideMenu() {
-            const overlay = document.getElementById('menuOverlay');
-            const sideMenu = document.getElementById('sideMenu');
-            
-            overlay.classList.add('active');
-            sideMenu.classList.add('active');
-            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        // Popup menu functions
+        function openPopupMenu() {
+            const popup = document.getElementById('popupOverlay');
+            popup.classList.add('active');
+            document.body.style.overflow = 'hidden';
         }
         
-        function closeSideMenu() {
-            const overlay = document.getElementById('menuOverlay');
-            const sideMenu = document.getElementById('sideMenu');
+        function closePopupMenu(event) {
+            // Only close if clicking on overlay, not on modal content
+            if (event && event.target !== document.getElementById('popupOverlay')) {
+                return;
+            }
             
-            overlay.classList.remove('active');
-            sideMenu.classList.remove('active');
-            document.body.style.overflow = ''; // Restore scrolling
+            const popup = document.getElementById('popupOverlay');
+            popup.classList.remove('active');
+            document.body.style.overflow = '';
         }
         
-        // Close menu when clicking on a link
-        document.querySelectorAll('.side-menu-links a').forEach(link => {
+        // Close popup when clicking on a link
+        document.querySelectorAll('.popup-menu-links a').forEach(link => {
             link.addEventListener('click', function() {
-                closeSideMenu();
+                closePopupMenu();
             });
         });
         
-        // Close menu on escape key
+        // Close popup on escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                closeSideMenu();
+                closePopupMenu();
             }
         });
 
-        // Navigation dropdown toggle
-        function toggleNavMenu() {
-            const dropdown = document.getElementById('navDropdown');
-            const arrow = document.getElementById('menuArrow');
+        // Alert functions
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            alertContainer.appendChild(alertDiv);
             
-            if (dropdown.classList.contains('active')) {
-                dropdown.classList.remove('active');
-                arrow.textContent = '▼';
-            } else {
-                dropdown.classList.add('active');
-                arrow.textContent = '▲';
-            }
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentElement) {
+                    alertDiv.remove();
+                }
+            }, 5000);
         }
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
-            const navMenu = document.querySelector('.nav-menu');
-            const dropdown = document.getElementById('navDropdown');
-            const arrow = document.getElementById('menuArrow');
-            
-            if (!navMenu.contains(e.target)) {
-                dropdown.classList.remove('active');
-                arrow.textContent = '▼';
-            }
-        });
-        
-        // Close dropdown when clicking on a link
-        document.querySelectorAll('.nav-dropdown-links a').forEach(link => {
-            link.addEventListener('click', function() {
-                const dropdown = document.getElementById('navDropdown');
-                const arrow = document.getElementById('menuArrow');
-                dropdown.classList.remove('active');
-                arrow.textContent = '▼';
-            });
-        });
-        
-        // Close dropdown on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                const dropdown = document.getElementById('navDropdown');
-                const arrow = document.getElementById('menuArrow');
-                dropdown.classList.remove('active');
-                arrow.textContent = '▼';
-            }
-        });
 
-        let currentSettings = null;
-        
         // Default shipping rates
         function getDefaultShippingRates() {
             return [
@@ -879,37 +872,29 @@
             }
             
             currentSettings.shippingRates[index][field] = numValue;
-            
-            // Validate weight ranges don't overlap (optional warning)
-            if (field === 'minWeight' || field === 'maxWeight') {
-                validateWeightRanges();
-            }
         }
         
-        // Validate weight ranges for overlaps
-        function validateWeightRanges() {
-            if (!currentSettings.shippingRates || currentSettings.shippingRates.length < 2) return;
-            
-            const sortedRanges = [...currentSettings.shippingRates].sort((a, b) => a.minWeight - b.minWeight);
-            let hasOverlap = false;
-            
-            for (let i = 0; i < sortedRanges.length - 1; i++) {
-                const current = sortedRanges[i];
-                const next = sortedRanges[i + 1];
+        // Refresh weight range indices after changes
+        function refreshWeightRanges() {
+            const container = document.getElementById('shippingRatesContainer');
+            const items = container.querySelectorAll('.weight-range-item');
+            items.forEach((item, index) => {
+                const inputs = item.querySelectorAll('input');
+                inputs[0].setAttribute('onchange', `updateShippingRate(${index}, 'minWeight', this.value)`);
+                inputs[1].setAttribute('onchange', `updateShippingRate(${index}, 'maxWeight', this.value)`);
+                inputs[2].setAttribute('onchange', `updateShippingRate(${index}, 'rate', this.value)`);
                 
-                if (current.maxWeight >= next.minWeight) {
-                    hasOverlap = true;
-                    break;
-                }
-            }
-            
-            if (hasOverlap) {
-                console.warn('⚠️ Weight ranges may overlap - consider sorting or adjusting ranges');
-            }
+                const removeBtn = item.querySelector('.remove-range-btn');
+                removeBtn.setAttribute('onclick', `removeWeightRange(${index})`);
+            });
         }
-        
+
         // Add new weight range
         function addWeightRange() {
+            console.log('🔧 addWeightRange called');
+            if (!currentSettings) {
+                currentSettings = {};
+            }
             if (!currentSettings.shippingRates) {
                 currentSettings.shippingRates = getDefaultShippingRates();
             }
@@ -927,13 +912,15 @@
             
             // Scroll to the new item
             const container = document.getElementById('shippingRatesContainer');
-            container.scrollTop = container.scrollHeight;
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
         }
         
         // Remove weight range
         function removeWeightRange(index) {
             if (!currentSettings.shippingRates || currentSettings.shippingRates.length <= 1) {
-                alert('At least one weight range is required');
+                showAlert('⚠️ At least one weight range is required', 'error');
                 return;
             }
             
@@ -941,17 +928,23 @@
             loadShippingRates(currentSettings.shippingRates);
             refreshWeightRanges();
         }
-        
+
         // Reset to default shipping rates
         function resetToDefaults() {
             if (confirm('Reset shipping rates to defaults?')) {
+                if (!currentSettings) currentSettings = {};
                 currentSettings.shippingRates = getDefaultShippingRates();
                 loadShippingRates(currentSettings.shippingRates);
+                showAlert('✅ Shipping rates reset to defaults!', 'success');
             }
         }
         
         // Add common weight ranges
         function addCommonRanges() {
+            console.log('🔧 addCommonRanges called');
+            if (!currentSettings) {
+                currentSettings = {};
+            }
             if (!currentSettings.shippingRates) {
                 currentSettings.shippingRates = [];
             }
@@ -981,7 +974,7 @@
         
         // Sort weight ranges by minimum weight
         function sortWeightRanges() {
-            if (!currentSettings.shippingRates || currentSettings.shippingRates.length === 0) {
+            if (!currentSettings || !currentSettings.shippingRates || currentSettings.shippingRates.length === 0) {
                 showAlert('⚠️ No weight ranges to sort', 'error');
                 return;
             }
@@ -990,114 +983,132 @@
             loadShippingRates(currentSettings.shippingRates);
             showAlert('✅ Weight ranges sorted by minimum weight!', 'success');
         }
-        
-        // Refresh weight range indices after changes
-        function refreshWeightRanges() {
-            const container = document.getElementById('shippingRatesContainer');
-            const items = container.querySelectorAll('.weight-range-item');
-            items.forEach((item, index) => {
-                const inputs = item.querySelectorAll('input');
-                inputs[0].setAttribute('onchange', `updateShippingRate(${index}, 'minWeight', this.value)`);
-                inputs[1].setAttribute('onchange', `updateShippingRate(${index}, 'maxWeight', this.value)`);
-                inputs[2].setAttribute('onchange', `updateShippingRate(${index}, 'rate', this.value)`);
-                
-                const removeBtn = item.querySelector('.remove-range-btn');
-                removeBtn.setAttribute('onclick', `removeWeightRange(${index})`);
-            });
-        }
 
-        async function loadSettings() {
-            try {
-                const response = await fetch(`${API_URL}/admin/commission-settings`, {
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
-
-                if (!response.ok) throw new Error("Failed to load settings");
-
-                const data = await response.json();
-                currentSettings = data.settings;
-
-                console.log('📡 Settings loaded from server:', currentSettings);
-                
-                document.getElementById("directCommission").value = currentSettings.directCommissionPercent;
-                document.getElementById("trustFund").value = currentSettings.trustFundPercent;
-                document.getElementById("devFund").value = currentSettings.developmentFundPercent;
-                document.getElementById("treePool").value = currentSettings.treeCommissionPoolPercent;
-                document.getElementById("minWithdrawal").value = currentSettings.minimumWithdrawalAmount || 100;
-                document.getElementById("minTreePlacement").value = currentSettings.minimumTreePlacementAmount || 0;
-                
-                // Load weight-based shipping rates
-                loadShippingRates(currentSettings.shippingRates || getDefaultShippingRates());
-                
-                // Load store details
-                document.getElementById("storeName").value = currentSettings.storeName || "Shree Mata";
-                document.getElementById("storeAddress").value = currentSettings.storeAddress || "Main Road, Your City";
-                document.getElementById("storePhone").value = currentSettings.storePhone || "+91 9449171605";
-                document.getElementById("storeHours").value = currentSettings.storeHours || "Mon-Sat 10AM-8PM, Sun 11AM-6PM";
-                document.getElementById("pickupInstructions").value = currentSettings.pickupInstructions || "We'll call you when your order is ready for pickup!";
-                document.getElementById("storeMapLink").value = currentSettings.storeMapLink || "";
-                
-                console.log('🚚 Shipping settings loaded:', {
-                    baseShipping: currentSettings.baseShippingCharge,
-                    shippingPerKg: currentSettings.shippingRatePerKg,
-                    freeShippingThreshold: currentSettings.freeShippingThreshold
-                });
-                
-                console.log('🏪 Store details loaded:', {
-                    storeName: currentSettings.storeName,
-                    storeAddress: currentSettings.storeAddress,
-                    storePhone: currentSettings.storePhone
-                });
-
-                renderTreeLevels();
-            } catch (error) {
-                console.error("Error loading settings:", error);
-                showAlert("Error loading settings", "error");
-            }
-        }
-
+        // Tree level functions
         function renderTreeLevels() {
-            const container = document.getElementById("treeLevels");
-            container.innerHTML = "";
-
+            const container = document.getElementById('treeLevels');
+            container.innerHTML = '';
+            
+            if (!currentSettings.treeCommissionLevels) {
+                currentSettings.treeCommissionLevels = [
+                    { level: 1, percentage: 1.5 },
+                    { level: 2, percentage: 0.75 }
+                ];
+            }
+            
             currentSettings.treeCommissionLevels.forEach((level, index) => {
-                const div = document.createElement("div");
-                div.className = "level-input";
+                const div = document.createElement('div');
+                div.className = 'level-input';
                 div.innerHTML = `
-                    <label style="min-width: 80px;">Level ${level.level}:</label>
-                    <input type="number" step="0.01" min="0" max="100" value="${level.percentage}" data-level="${index}">
-                    <button class="btn btn-secondary" onclick="removeLevel(${index})" style="padding: 8px 16px;">Remove</button>
+                    <label>Level ${level.level}:</label>
+                    <input type="number" step="0.01" min="0" max="100" value="${level.percentage}" 
+                           onchange="updateTreeLevel(${index}, this.value)" placeholder="0.00">
+                    <span>%</span>
+                    <button type="button" class="btn-secondary" onclick="removeLevel(${index})" style="padding: 8px 12px; font-size: 12px;">Remove</button>
                 `;
                 container.appendChild(div);
             });
         }
 
+        function updateTreeLevel(index, value) {
+            const numValue = parseFloat(value);
+            if (isNaN(numValue) || numValue < 0) {
+                showAlert('⚠️ Please enter a valid positive number', 'error');
+                return;
+            }
+            currentSettings.treeCommissionLevels[index].percentage = numValue;
+        }
+
         function addLevel() {
+            console.log('🔧 addLevel called');
+            if (!currentSettings) {
+                currentSettings = {};
+            }
+            if (!currentSettings.treeCommissionLevels) {
+                currentSettings.treeCommissionLevels = [];
+            }
+            
             const newLevel = currentSettings.treeCommissionLevels.length + 1;
             const lastPercentage = currentSettings.treeCommissionLevels[currentSettings.treeCommissionLevels.length - 1]?.percentage || 1.5;
             currentSettings.treeCommissionLevels.push({
                 level: newLevel,
                 percentage: lastPercentage / 2
             });
+            
             renderTreeLevels();
         }
 
         function removeLevel(index) {
+            console.log('🔧 removeLevel called with index:', index);
+            if (!currentSettings || !currentSettings.treeCommissionLevels) {
+                return;
+            }
+            
             currentSettings.treeCommissionLevels.splice(index, 1);
             currentSettings.treeCommissionLevels.forEach((level, i) => {
                 level.level = i + 1;
             });
+            
             renderTreeLevels();
         }
 
+        // Test function
+        function testSaveFunction() {
+            console.log('🧪 Testing save function...');
+            console.log('🔧 API_URL:', typeof API_URL !== 'undefined' ? API_URL : 'UNDEFINED');
+            console.log('🔧 Token:', typeof token !== 'undefined' ? (token ? 'Present' : 'Missing') : 'UNDEFINED');
+            console.log('🔧 currentSettings:', currentSettings);
+            
+            // Test if all form elements exist
+            const requiredElements = [
+                'directCommission', 'trustFund', 'devFund', 'treePool', 
+                'minWithdrawal', 'minTreePlacement', 'storeName', 'storeAddress', 
+                'storePhone', 'storeHours', 'pickupInstructions', 'storeMapLink'
+            ];
+            
+            console.log('🔧 Checking form elements:');
+            requiredElements.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                console.log(`  ${elementId}:`, element ? `Found (value: ${element.value})` : 'MISSING');
+            });
+            
+            // Test tree levels
+            const treeLevelInputs = document.querySelectorAll("#treeLevels input");
+            console.log('🔧 Tree level inputs found:', treeLevelInputs.length);
+            
+            showAlert('🧪 Test completed - check browser console for details', 'success');
+        }
+
+        // Save settings function
         async function saveSettings() {
+            console.log('🔧 saveSettings function called');
             const saveBtn = document.querySelector('.btn-success');
+            if (!saveBtn) {
+                console.error('❌ Save button not found');
+                return;
+            }
+            
             const originalText = saveBtn.textContent;
             
             try {
                 // Show loading state
                 saveBtn.disabled = true;
                 saveBtn.textContent = '💾 Saving...';
+                
+                // Check if all required elements exist
+                const requiredElements = [
+                    'directCommission', 'trustFund', 'devFund', 'treePool', 
+                    'minWithdrawal', 'minTreePlacement', 'storeName', 'storeAddress', 
+                    'storePhone', 'storeHours', 'pickupInstructions', 'storeMapLink'
+                ];
+                
+                for (const elementId of requiredElements) {
+                    const element = document.getElementById(elementId);
+                    if (!element) {
+                        console.error(`❌ Missing element: ${elementId}`);
+                        throw new Error(`Missing form element: ${elementId}`);
+                    }
+                }
                 
                 const treeLevels = [];
                 document.querySelectorAll("#treeLevels input").forEach((input, index) => {
@@ -1107,10 +1118,6 @@
                     });
                 });
 
-                const baseShippingValue = document.getElementById("baseShipping")?.value;
-                const shippingPerKgValue = document.getElementById("shippingPerKg")?.value;
-                const freeShippingValue = document.getElementById("freeShippingThreshold")?.value;
-                
                 const settings = {
                     directCommissionPercent: parseFloat(document.getElementById("directCommission").value),
                     trustFundPercent: parseFloat(document.getElementById("trustFund").value),
@@ -1119,11 +1126,11 @@
                     minimumWithdrawalAmount: parseFloat(document.getElementById("minWithdrawal").value),
                     minimumTreePlacementAmount: parseFloat(document.getElementById("minTreePlacement").value) || 0,
                     // Legacy shipping fields (keep for backward compatibility)
-                    baseShippingCharge: baseShippingValue !== '' && baseShippingValue !== undefined ? parseFloat(baseShippingValue) : 50,
-                    shippingRatePerKg: shippingPerKgValue !== '' && shippingPerKgValue !== undefined ? parseFloat(shippingPerKgValue) : 25,
-                    freeShippingThreshold: freeShippingValue !== '' && freeShippingValue !== undefined ? parseFloat(freeShippingValue) : 0,
+                    baseShippingCharge: 50,
+                    shippingRatePerKg: 25,
+                    freeShippingThreshold: 0,
                     // New weight-based shipping rates
-                    shippingRates: currentSettings.shippingRates || getDefaultShippingRates(),
+                    shippingRates: currentSettings?.shippingRates || getDefaultShippingRates(),
                     storeName: document.getElementById("storeName").value.trim() || "Shree Mata",
                     storeAddress: document.getElementById("storeAddress").value.trim() || "Main Road, Your City",
                     storePhone: document.getElementById("storePhone").value.trim() || "+91 9449171605",
@@ -1134,11 +1141,15 @@
                 };
 
                 console.log('🔍 Settings being sent to server:', settings);
-                console.log('🚚 Shipping settings:', {
-                    baseShippingCharge: settings.baseShippingCharge,
-                    shippingRatePerKg: settings.shippingRatePerKg,
-                    freeShippingThreshold: settings.freeShippingThreshold
-                });
+                console.log('🔧 API_URL:', typeof API_URL !== 'undefined' ? API_URL : 'UNDEFINED');
+                console.log('🔧 Token:', typeof token !== 'undefined' ? (token ? 'Present' : 'Missing') : 'UNDEFINED');
+
+                if (typeof API_URL === 'undefined') {
+                    throw new Error('API_URL is not defined');
+                }
+                if (typeof token === 'undefined' || !token) {
+                    throw new Error('Authentication token is missing');
+                }
 
                 const response = await fetch(`${API_URL}/admin/commission-settings`, {
                     method: 'PUT',
@@ -1157,14 +1168,15 @@
                     const error = responseData;
                     throw new Error(error.error || "Failed to save settings");
                 }
-                const minWithdrawal = settings.minimumWithdrawalAmount;
-                const baseShipping = settings.baseShippingCharge;
-                const shippingRate = settings.shippingRatePerKg;
                 
-                showAlert(`✅ Settings saved successfully! Minimum withdrawal: ₹${minWithdrawal}, Base shipping: ₹${baseShipping}, Rate per KG: ₹${shippingRate}`, "success");
+                const minWithdrawal = settings.minimumWithdrawalAmount;
+                const minTreePlacement = settings.minimumTreePlacementAmount;
+                
+                showAlert(`✅ Settings saved successfully! Minimum withdrawal: ₹${minWithdrawal}, Tree placement threshold: ₹${minTreePlacement}`, "success");
+                
                 loadSettings();
             } catch (error) {
-                console.error("Error saving settings:", error);
+                console.error("❌ Error saving settings:", error);
                 showAlert(`❌ Error: ${error.message}`, "error");
             } finally {
                 // Restore button state
@@ -1173,16 +1185,29 @@
             }
         }
 
+        // Reset settings function
         async function resetSettings() {
             if (!confirm("Are you sure you want to reset to default settings? This will set minimum withdrawal back to ₹100.")) return;
 
             const resetBtn = document.querySelector('.btn-secondary');
+            if (!resetBtn) {
+                console.error('❌ Reset button not found');
+                return;
+            }
+            
             const originalText = resetBtn.textContent;
             
             try {
                 // Show loading state
                 resetBtn.disabled = true;
                 resetBtn.textContent = '🔄 Resetting...';
+                
+                if (typeof API_URL === 'undefined') {
+                    throw new Error('API_URL is not defined');
+                }
+                if (typeof token === 'undefined' || !token) {
+                    throw new Error('Authentication token is missing');
+                }
                 
                 const response = await fetch(`${API_URL}/admin/commission-settings/reset`, {
                     method: 'POST',
@@ -1203,143 +1228,68 @@
             }
         }
 
-        function showAlert(message, type) {
-            const container = document.getElementById("alertContainer");
-            const alertId = 'alert-' + Date.now();
-            
-            container.innerHTML = `
-                <div class="alert alert-${type}" id="${alertId}">
-                    ${message}
-                    <button class="alert-close" onclick="closeAlert('${alertId}')">&times;</button>
-                </div>
-            `;
-            
-            // Auto-hide after 7 seconds (increased from 5 for better readability)
-            setTimeout(() => { 
-                const alertEl = document.getElementById(alertId);
-                if (alertEl) alertEl.remove();
-            }, 7000);
-        }
-
-        function closeAlert(alertId) {
-            const alertEl = document.getElementById(alertId);
-            if (alertEl) alertEl.remove();
-        }
-
-        // Track changes to highlight modified fields
-        function trackFieldChanges() {
-            const minWithdrawalField = document.getElementById("minWithdrawal");
-            let originalValue = minWithdrawalField.value;
-            
-            minWithdrawalField.addEventListener('input', function() {
-                if (this.value !== originalValue) {
-                    this.classList.add('changed');
-                } else {
-                    this.classList.remove('changed');
-                }
-            });
-            
-            // Reset tracking after save
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === 'childList' && mutation.target.id === 'alertContainer') {
-                        const alertEl = mutation.target.querySelector('.alert-success');
-                        if (alertEl) {
-                            // Settings were saved, update original value and remove changed class
-                            originalValue = minWithdrawalField.value;
-                            minWithdrawalField.classList.remove('changed');
-                        }
-                    }
+        // Load settings from server
+        async function loadSettings() {
+            try {
+                const response = await fetch(`${API_URL}/admin/commission-settings`, {
+                    headers: { "Authorization": `Bearer ${token}` }
                 });
-            });
-            
-            observer.observe(document.getElementById('alertContainer'), { childList: true });
+
+                if (!response.ok) throw new Error("Failed to load settings");
+
+                const data = await response.json();
+                currentSettings = data.settings;
+
+                console.log('📡 Settings loaded from server:', currentSettings);
+                
+                document.getElementById("directCommission").value = currentSettings.directCommissionPercent;
+                document.getElementById("trustFund").value = currentSettings.trustFundPercent;
+                document.getElementById("devFund").value = currentSettings.developmentFundPercent;
+                document.getElementById("treePool").value = currentSettings.treeCommissionPoolPercent;
+                document.getElementById("minWithdrawal").value = currentSettings.minimumWithdrawalAmount || 100;
+                document.getElementById("minTreePlacement").value = currentSettings.minimumTreePlacementAmount || 0;
+                
+                // Store details
+                document.getElementById("storeName").value = currentSettings.storeName || "Shree Mata";
+                document.getElementById("storeAddress").value = currentSettings.storeAddress || "Main Road, Your City";
+                document.getElementById("storePhone").value = currentSettings.storePhone || "+91 9449171605";
+                document.getElementById("storeHours").value = currentSettings.storeHours || "Mon-Sat 10AM-8PM, Sun 11AM-6PM";
+                document.getElementById("pickupInstructions").value = currentSettings.pickupInstructions || "We'll call you when your order is ready for pickup!";
+                document.getElementById("storeMapLink").value = currentSettings.storeMapLink || "";
+                
+                // Load shipping rates
+                if (currentSettings.shippingRates && currentSettings.shippingRates.length > 0) {
+                    loadShippingRates(currentSettings.shippingRates);
+                } else {
+                    currentSettings.shippingRates = getDefaultShippingRates();
+                    loadShippingRates(currentSettings.shippingRates);
+                }
+                
+                // Load tree commission levels
+                renderTreeLevels();
+                
+            } catch (error) {
+                console.error("Error loading settings:", error);
+                showAlert(`❌ Error loading settings: ${error.message}`, "error");
+                
+                // Set defaults if loading fails
+                currentSettings = {
+                    shippingRates: getDefaultShippingRates(),
+                    treeCommissionLevels: [
+                        { level: 1, percentage: 1.5 },
+                        { level: 2, percentage: 0.75 }
+                    ]
+                };
+                loadShippingRates(currentSettings.shippingRates);
+                renderTreeLevels();
+            }
         }
 
+        // Initialize the page
+        console.log('🔧 Initializing page...');
         loadSettings();
         
-        // Initialize change tracking after settings are loaded
-        setTimeout(trackFieldChanges, 1000);
-        
-        // Navigation dropdown toggle with position adjustment
-        function toggleNavMenu() {
-            const dropdown = document.getElementById('navDropdown');
-            const arrow = document.getElementById('menuArrow');
-            
-            if (dropdown.classList.contains('active')) {
-                dropdown.classList.remove('active');
-                dropdown.classList.remove('adjust-left');
-                arrow.textContent = '▼';
-            } else {
-                dropdown.classList.add('active');
-                arrow.textContent = '▲';
-                
-                // Adjust dropdown position if it goes off-screen
-                setTimeout(() => adjustDropdownPosition(), 10);
-            }
-        }
-        
-        // Adjust dropdown position to prevent it from going off-screen
-        function adjustDropdownPosition() {
-            const dropdown = document.getElementById('navDropdown');
-            const rect = dropdown.getBoundingClientRect();
-            const windowWidth = window.innerWidth;
-            
-            // If dropdown goes off the right edge of screen
-            if (rect.right > windowWidth - 10) {
-                dropdown.classList.add('adjust-left');
-            } else {
-                dropdown.classList.remove('adjust-left');
-            }
-        }
-        
-        // Adjust position on window resize
-        window.addEventListener('resize', function() {
-            const dropdown = document.getElementById('navDropdown');
-            if (dropdown.classList.contains('active')) {
-                adjustDropdownPosition();
-            }
-        });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
-            const navMenu = document.querySelector('.nav-menu');
-            const dropdown = document.getElementById('navDropdown');
-            const arrow = document.getElementById('menuArrow');
-            
-            if (!navMenu.contains(e.target)) {
-                dropdown.classList.remove('active');
-                dropdown.classList.remove('adjust-left');
-                arrow.textContent = '▼';
-            }
-        });
-        
-        // Close dropdown when clicking on a link
-        document.querySelectorAll('.nav-dropdown-links a').forEach(link => {
-            link.addEventListener('click', function() {
-                const dropdown = document.getElementById('navDropdown');
-                const arrow = document.getElementById('menuArrow');
-                dropdown.classList.remove('active');
-                dropdown.classList.remove('adjust-left');
-                arrow.textContent = '▼';
-            });
-        });
-        
-        // Close dropdown on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                const dropdown = document.getElementById('navDropdown');
-                const arrow = document.getElementById('menuArrow');
-                dropdown.classList.remove('active');
-                dropdown.classList.remove('adjust-left');
-                arrow.textContent = '▼';
-            }
-        });
-                const arrow = document.getElementById('menuArrow');
-                dropdown.classList.remove('active');
-                arrow.textContent = '▼';
-            }
-        });
+        console.log('🔧 All functions defined and page initialized');
     </script>
     <script src="js/admin-navigation.js"></script>
 </body>

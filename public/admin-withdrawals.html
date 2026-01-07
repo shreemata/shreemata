@@ -9,42 +9,9 @@
     <title>Admin – Withdrawals</title>
     <link rel="stylesheet" href="css/styles.css">
     <style>
-        nav {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+        body {
+            padding-top: 90px;
         }
-        nav .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        nav h1 {
-            color: white;
-            margin: 0;
-            font-size: 24px;
-        }
-        nav div {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-        nav a {
-            color: white;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-        nav a:hover, nav a.active {
-            background: rgba(255,255,255,0.2);
-        }
-        
         /* Modal Styles */
         .modal {
             position: fixed;
@@ -378,31 +345,9 @@
 </head>
 
 <body>
-    <nav>
-        <div class="container">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 40px; height: 40px; border-radius: 50%;">
-                <h1 style="margin: 0;">Shree Mata Admin</h1>
-            </div>
-            <div>
-                <span id="userName" style="color: white; margin-right: 10px;"></span>
-                <a href="/">🏠 Home</a>
-                <a href="/admin.html">Books</a>
-                <a href="/admin-bundles.html">Bundles</a>
-                <a href="/admin-orders.html">Orders</a>
-                <a href="/admin-withdrawals.html" class="active">Withdrawals</a>
-                <a href="/admin-bank-requests.html">Bank Requests</a>
-                <a href="/admin-notifications.html">Notifications</a>
-                <a href="/admin-income.html">Income</a>
-                <a href="/admin-users.html">Users</a>
-                <a href="/admin-commission-settings.html">Settings</a>
-                <a href="/admin-referral-tree.html">Referral Tree</a>
-                <a href="/" id="logoutBtn">Logout</a>
-            </div>
-        </div>
-    </nav>
+    <!-- Navigation will be injected by admin-navigation.js -->
 
-<div class="container admin-container">
+<div class="container admin-container" style="margin-top: 100px;">
     <h1>Withdrawal Management</h1>
     <p class="admin-subtitle">Manage user withdrawal requests and track approvals</p>
 

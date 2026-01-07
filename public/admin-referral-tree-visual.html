@@ -22,93 +22,12 @@ body {
     min-height: 100vh;
     margin: 0;
     color: #2c3e50;
-    padding-top: 140px;
+    padding-top: 90px;
 }
 
-/* Navigation Styles */
-nav { 
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-    padding: 15px 0; 
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15); 
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    right: 0; 
-    z-index: 100;
-    max-height: 120px;
-}
-nav .container { 
-    max-width: 1200px; 
-    margin: 0 auto; 
-    padding: 0 20px; 
-}
-nav h1 { 
-    color: white; 
-    margin: 0 0 10px 0; 
-    font-size: 20px; 
-    text-align: center; 
-}
-nav .nav-content { 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    width: 100%; 
-    position: relative;
-}
-nav .user-info { 
-    color: white; 
-    margin-bottom: 10px; 
-    font-weight: 500; 
-    font-size: 14px;
-}
-nav .nav-grid { 
-    display: grid; 
-    grid-template-columns: repeat(6, 1fr); 
-    gap: 5px; 
-    width: 100%; 
-    max-width: 800px;
-    margin: 0 auto;
-}
-nav a { 
-    color: white; 
-    text-decoration: none; 
-    padding: 6px 4px; 
-    border-radius: 4px; 
-    transition: all 0.3s ease; 
-    font-weight: 500; 
-    text-align: center;
-    font-size: 10px;
-    white-space: nowrap;
-    display: block;
-    min-height: 30px;
-    line-height: 30px;
-}
-nav a:hover, nav a.active { 
-    background: rgba(255,255,255,0.2); 
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
+/* Navigation styles handled by admin-navigation.js */
 
-/* Mobile Menu Button */
-.mobile-menu-btn {
-    display: none;
-    background: rgba(255,255,255,0.2);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    position: absolute;
-    top: -5px;
-    right: 0;
-}
-.mobile-menu-btn:hover {
-    background: rgba(255,255,255,0.3);
-    transform: translateY(-1px);
-}
+/* Mobile menu styles handled by admin-navigation.js */
 
 .container {
     max-width: 1400px;
@@ -748,7 +667,7 @@ nav a:hover, nav a.active {
 }
 
 @media (max-width: 768px) {
-    body { padding-top: 160px; }
+    body { padding-top: 90px; }
     
     .tree-card { 
         padding: 15px; 
@@ -880,7 +799,7 @@ nav a:hover, nav a.active {
 }
 
 @media (max-width: 600px) {
-    body { padding-top: 180px; }
+    body { padding-top: 90px; }
     
     .tree-card { padding: 12px; }
     .tree-header h2 { font-size: 18px; }
@@ -999,43 +918,7 @@ nav a:hover, nav a.active {
 </head>
 <body>
 
-<nav>
-    <div class="container">
-        <div class="nav-content">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 40px; height: 40px; border-radius: 50%;">
-                <h1 style="margin: 0;">Shree Mata Admin</h1>
-            </div>
-            <div class="user-info">
-                <span id="userName">Hello, Admin</span>
-            </div>
-            <button class="mobile-menu-btn" id="mobileMenuToggle" onclick="toggleMobileMenu()">
-                <span id="menuIcon">☰</span> Menu
-            </button>
-            <div class="nav-grid" id="adminNavLinks">
-                <a href="/">🏠 Home</a>
-                <a href="/admin.html">📚 Books</a>
-                <a href="/admin-bundles.html">📦 Bundles</a>
-                <a href="/admin-orders.html">🛒 Orders</a>
-                <a href="/admin-withdrawals.html">💰 Withdrawals</a>
-                <a href="/admin-bank-requests.html">🏦 Bank Requests</a>
-                <a href="/admin-notifications.html">📢 Notifications</a>
-                <a href="/admin-income.html">💵 Income</a>
-                <a href="/admin-users.html">👥 Users</a>
-                <a href="/admin-commission-settings.html">⚙️ Settings</a>
-                <a href="/admin-referral-tree.html">🌳 Referral Tree</a>
-                <a href="admin-referral-tree-visual.html" class="active">📊 Tree Visual</a>
-                <a href="/" id="logoutBtn">🚪 Logout</a>
-            </div>
-                <a href="/admin-users.html">👥 Users</a>
-                <a href="/admin-commission-settings.html">⚙️ Settings</a>
-                <a href="/admin-referral-tree.html">🌳 Referral Tree</a>
-                <a href="admin-referral-tree-visual.html" class="active">📊 Tree Visual</a>
-                <a href="/" id="logoutBtn">🚪 Logout</a>
-            </div>
-        </div>
-    </div>
-</nav>
+    <!-- Navigation will be injected by admin-navigation.js -->
 
 <div class="container">
     <div class="tree-card">
@@ -1075,6 +958,8 @@ nav a:hover, nav a.active {
 </div>
 
 <script>
+console.log('🚀 Admin Referral Tree Visual - Script Starting');
+
 /*
   Robust admin visual referral tree
   - Attempts common endpoints
@@ -1084,7 +969,9 @@ nav a:hover, nav a.active {
 */
 
 // API base (loaded from config.js)
+console.log('🔧 Config.js loading - API_URL:', window.API_URL);
 const API = window.API_URL || 'http://localhost:3000/api';
+console.log('🔧 Final API URL:', API);
 
 // Candidate endpoints (tried in order)
 const ENDPOINT_CANDIDATES = [
@@ -2084,56 +1971,14 @@ function closeModal(){
 /* ---------- Authentication & Navigation ---------- */
 // Check authentication
 const token = localStorage.getItem("token");
+console.log('🔑 Authentication check - Token exists:', !!token);
+console.log('🔑 Token value:', token ? 'Present' : 'Missing');
+
 if (!token) window.location.href = "/login.html";
 
-const userName = localStorage.getItem("userName");
-if (userName) document.getElementById("userName").textContent = `Hello, ${userName}`;
+// Authentication and user display handled by admin-navigation.js
 
-// Logout functionality
-document.getElementById("logoutBtn").addEventListener("click", (e) => {
-    e.preventDefault();
-    localStorage.removeItem("token");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userRole");
-    window.location.href = "/login.html";
-});
-
-// Mobile menu toggle function
-function toggleMobileMenu() {
-    const navLinks = document.getElementById('adminNavLinks');
-    const menuIcon = document.getElementById('menuIcon');
-    
-    if (navLinks.classList.contains('mobile-menu-open')) {
-        navLinks.classList.remove('mobile-menu-open');
-        menuIcon.textContent = '☰';
-    } else {
-        navLinks.classList.add('mobile-menu-open');
-        menuIcon.textContent = '✕';
-    }
-}
-
-// Close mobile menu when clicking outside
-document.addEventListener('click', function(e) {
-    const navLinks = document.getElementById('adminNavLinks');
-    const menuToggle = document.getElementById('mobileMenuToggle');
-    
-    if (navLinks && menuToggle && 
-        navLinks.classList.contains('mobile-menu-open') &&
-        !navLinks.contains(e.target) && 
-        !menuToggle.contains(e.target)) {
-        navLinks.classList.remove('mobile-menu-open');
-        document.getElementById('menuIcon').textContent = '☰';
-    }
-});
-
-// Close mobile menu when clicking on a link
-document.querySelectorAll('#adminNavLinks a').forEach(link => {
-    link.addEventListener('click', function() {
-        const navLinks = document.getElementById('adminNavLinks');
-        navLinks.classList.remove('mobile-menu-open');
-        document.getElementById('menuIcon').textContent = '☰';
-    });
-});
+// Mobile menu functionality handled by admin-navigation.js
 
 /* ---------- Zoom functionality ---------- */
 function adjustZoom(delta) {
@@ -2230,7 +2075,9 @@ function ensureTreeVisibility() {
 }
 
 /* ---------- initialization ---------- */
+console.log('🔧 Setting up DOMContentLoaded listener');
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOMContentLoaded fired - starting loadTree');
     loadTree();
     
     // Redraw connections on window resize
@@ -2248,6 +2095,7 @@ if (document.readyState === 'loading') {
     // Do nothing, DOMContentLoaded will fire
 } else {
     // DOM is already ready
+    console.log('🚀 DOM already ready - starting loadTree immediately');
     loadTree();
 }
 
