@@ -1,27 +1,27 @@
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-    host: process.env.MAIL_HOST,
-    port: process.env.MAIL_PORT,
+    host: process.env.SES_HOST,
+    port: process.env.SES_PORT,
     secure: false,
     auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
+        user: process.env.SES_USER,
+        pass: process.env.SES_PASS
     }
 });
 
 async function sendMail(to, subject, html) {
     try {
         await transporter.sendMail({
-            from: `"BookStore Support" <${process.env.MAIL_USER}>`,
+            from: `"Shree Mata Support" <${process.env.SES_USER}>`,
             to,
             subject,
             html
         });
 
-        console.log("📧 Email sent to:", to);
+        console.log("📧 Email sent via SES to:", to);
     } catch (err) {
-        console.error("❌ Email error:", err);
+        console.error("❌ SES Email error:", err);
     }
 }
 

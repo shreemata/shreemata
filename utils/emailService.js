@@ -1,23 +1,23 @@
-// Email service using nodemailer
+// Email service using nodemailer with AWS SES
 const nodemailer = require('nodemailer');
 
-// Create transporter
+// Create transporter for AWS SES
 const transporter = nodemailer.createTransport({
-    host: process.env.MAIL_HOST,
-    port: process.env.MAIL_PORT,
+    host: process.env.SES_HOST,
+    port: process.env.SES_PORT,
     secure: false, // true for 465, false for other ports
     auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
+        user: process.env.SES_USER,
+        pass: process.env.SES_PASS
     }
 });
 
 // Verify transporter configuration
 transporter.verify((error, success) => {
     if (error) {
-        console.error('❌ Email transporter error:', error);
+        console.error('❌ AWS SES transporter error:', error);
     } else {
-        console.log('✅ Email server is ready to send messages');
+        console.log('✅ AWS SES server is ready to send messages');
     }
 });
 
@@ -77,7 +77,7 @@ async function sendOrderConfirmationEmail(order, user) {
         }
 
         const mailOptions = {
-            from: `"Shree Mata" <${process.env.MAIL_USER}>`,
+            from: `"Shree Mata" <shashistudy2125@gmail.com>`,
             to: user.email,
             subject: `Order Confirmation - Order #${order._id}`,
             html: `
@@ -145,7 +145,7 @@ async function sendOrderConfirmationEmail(order, user) {
                         </div>
 
                         <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions, please contact us at ${process.env.MAIL_USER}
+                            If you have any questions, please contact us at shashistudy2125@gmail.com
                         </p>
                     </div>
 
@@ -172,8 +172,8 @@ async function sendOrderConfirmationEmail(order, user) {
 async function sendAdminNotification(order, user) {
     try {
         const mailOptions = {
-            from: `"Shree Mata" <${process.env.MAIL_USER}>`,
-            to: process.env.MAIL_USER, // Send to admin email
+            from: `"Shree Mata" <shashistudy2125@gmail.com>`,
+            to: "shashistudy2125@gmail.com", // Send to admin email
             subject: `New Order Received - Order #${order._id}`,
             html: `
                 <!DOCTYPE html>
@@ -282,7 +282,7 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
         }
 
         const mailOptions = {
-            from: `"Shree Mata" <${process.env.MAIL_USER}>`,
+            from: `"Shree Mata" <shashistudy2125@gmail.com>`,
             to: user.email,
             subject: `${statusInfo.icon} ${statusInfo.title} - Order #${order._id}`,
             html: `
@@ -347,7 +347,7 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
                         </div>
 
                         <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions, please contact us at ${process.env.MAIL_USER}
+                            If you have any questions, please contact us at shashistudy2125@gmail.com
                         </p>
                     </div>
 
@@ -374,7 +374,7 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
 async function sendEmailOTP(email, otp) {
     try {
         const mailOptions = {
-            from: `"Shree Mata" <${process.env.MAIL_USER}>`,
+            from: `"Shree Mata" <shashistudy2125@gmail.com>`,
             to: email,
             subject: 'Email Verification Code - Shree Mata',
             html: `
@@ -411,7 +411,7 @@ async function sendEmailOTP(email, otp) {
                         </div>
 
                         <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions, please contact us at ${process.env.MAIL_USER}
+                            If you have any questions, please contact us at shashistudy2125@gmail.com
                         </p>
                     </div>
 
@@ -438,7 +438,7 @@ async function sendEmailOTP(email, otp) {
 async function sendPasswordResetOTP(email, otp) {
     try {
         const mailOptions = {
-            from: `"Shree Mata" <${process.env.MAIL_USER}>`,
+            from: `"Shree Mata" <shashistudy2125@gmail.com>`,
             to: email,
             subject: 'Password Reset Code - Shree Mata',
             html: `
@@ -475,7 +475,7 @@ async function sendPasswordResetOTP(email, otp) {
                         </div>
 
                         <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions, please contact us at ${process.env.MAIL_USER}
+                            If you have any questions, please contact us at shashistudy2125@gmail.com
                         </p>
                     </div>
 
