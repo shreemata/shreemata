@@ -36,6 +36,98 @@ router.post("/", authenticateToken, async (req, res) => {
 });
 
 /**
+ * CREATE PENDING ORDER (For Check/Bank Transfer Payments)
+ */
+router.post("/create-pending", authenticateToken, async (req, res) => {
+    try {
+        const { 
+            bookId, 
+            quantity, 
+            deliveryMethod, 
+            paymentType, 
+            basePrice, 
+            courierCharge, 
+            totalAmount,
+            itemType = 'book' // Default to book, can be 'bundle'
+        } = req.body;
+
+        if (!bookId || !quantity || !paymentType) {
+            return res.status(400).json({ error: "Missing required fields" });
+        }
+
+        let itemData;
+        
+        if (itemType === 'bundle') {
+            // Fetch bundle details
+            const Bundle = require("../models/Bundle");
+            const bundle = await Bundle.findById(bookId);
+            
+            if (!bundle) {
+                return res.status(404).json({ error: "Bundle not found" });
+            }
+            
+            itemData = {
+                id: bookId,
+                title: bundle.name,
+                author: "Bundle",
+                quantity: quantity,
+                price: basePrice / quantity, // Convert total price to per-item price
+                coverImage: bundle.image || "",
+                type: 'bundle'
+            };
+        } else {
+            // Fetch book details
+            const Book = require("../models/Book");
+            const book = await Book.findById(bookId);
+            
+            if (!book) {
+                return res.status(404).json({ error: "Book not found" });
+            }
+            
+            itemData = {
+                id: bookId,
+                title: book.title,
+                author: book.author || "Unknown",
+                quantity: quantity,
+                price: basePrice / quantity, // Convert total price to per-item price
+                coverImage: book.cover_image || "",
+                type: 'book'
+            };
+        }
+
+        // Create order item with all required fields
+        const items = [itemData];
+
+        // Create Order in pending state
+        const order = await Order.create({
+            user_id: req.user.id,
+            items,
+            totalAmount,
+            deliveryMethod,
+            courierCharge,
+            paymentType, // 'check' or 'transfer'
+            status: "pending_payment_verification",
+            rewardApplied: false,
+            paymentDetails: {
+                type: paymentType,
+                status: 'awaiting_upload',
+                createdAt: new Date()
+            }
+        });
+
+        return res.json({ 
+            message: "Pending order created", 
+            orderId: order._id.toString(),
+            order 
+        });
+
+    } catch (err) {
+        console.error("Pending order create error:", err);
+        res.status(500).json({ error: "Error creating pending order" });
+    }
+});
+
+/**
  * USER ORDER HISTORY
  */
 router.get("/", authenticateToken, async (req, res) => {
@@ -163,6 +255,168 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
     } catch (err) {
         console.error("Update status error:", err);
         res.status(500).json({ error: "Server error" });
+    }
+});
+
+/**
+ * UPDATE UTR NUMBER (User can add UTR after check clears)
+ */
+router.put("/update-utr/:orderId", authenticateToken, async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { utrNumber, transferDate } = req.body;
+
+        if (!utrNumber || !utrNumber.trim()) {
+            return res.status(400).json({ error: "UTR number is required" });
+        }
+
+        // Find order and verify ownership
+        const order = await Order.findOne({ 
+            _id: orderId, 
+            user_id: req.user.id 
+        });
+
+        if (!order) {
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        // Verify order is eligible for UTR update
+        if (!order.paymentType || !['check', 'transfer'].includes(order.paymentType)) {
+            return res.status(400).json({ error: "This order doesn't support UTR updates" });
+        }
+
+        // Update UTR information
+        order.paymentDetails = {
+            ...order.paymentDetails,
+            utrNumber: utrNumber.trim(),
+            transferDate: transferDate ? new Date(transferDate) : new Date(),
+            status: 'pending_verification',
+            updatedAt: new Date()
+        };
+
+        // Update main order status if still pending
+        if (order.status === 'pending_payment_verification') {
+            order.status = 'pending';
+        }
+
+        await order.save();
+
+        res.json({ 
+            message: "UTR number updated successfully", 
+            order: {
+                _id: order._id,
+                paymentDetails: order.paymentDetails,
+                status: order.status
+            }
+        });
+
+    } catch (err) {
+        console.error("UTR update error:", err);
+        res.status(500).json({ error: "Error updating UTR number" });
+    }
+});
+
+/**
+ * CREATE CART PENDING ORDER (For Check/Bank Transfer Payments - Multiple Items)
+ */
+router.post("/create-cart-pending", authenticateToken, async (req, res) => {
+    try {
+        const { 
+            cartItems,
+            deliveryMethod, 
+            paymentType, 
+            itemsTotal,
+            courierCharge, 
+            totalAmount,
+            totalWeight
+        } = req.body;
+
+        if (!cartItems || cartItems.length === 0 || !paymentType) {
+            return res.status(400).json({ error: "Missing required fields" });
+        }
+
+        // Process cart items and fetch details for each
+        const processedItems = [];
+        
+        for (const cartItem of cartItems) {
+            let itemData;
+            
+            if (cartItem.isBundle || cartItem.bundleId) {
+                // Handle bundle item
+                const Bundle = require("../models/Bundle");
+                const bundle = await Bundle.findById(cartItem.bundleId);
+                
+                if (!bundle) {
+                    console.warn(`Bundle not found: ${cartItem.bundleId}`);
+                    continue; // Skip this item but continue with others
+                }
+                
+                itemData = {
+                    id: cartItem.bundleId,
+                    title: bundle.name,
+                    author: "Bundle",
+                    quantity: cartItem.quantity,
+                    price: bundle.bundlePrice,
+                    coverImage: bundle.image || "",
+                    type: 'bundle'
+                };
+            } else {
+                // Handle book item
+                const Book = require("../models/Book");
+                const book = await Book.findById(cartItem.id);
+                
+                if (!book) {
+                    console.warn(`Book not found: ${cartItem.id}`);
+                    continue; // Skip this item but continue with others
+                }
+                
+                itemData = {
+                    id: cartItem.id,
+                    title: book.title,
+                    author: book.author || "Unknown",
+                    quantity: cartItem.quantity,
+                    price: book.price,
+                    coverImage: book.cover_image || "",
+                    type: 'book'
+                };
+            }
+            
+            processedItems.push(itemData);
+        }
+
+        if (processedItems.length === 0) {
+            return res.status(400).json({ error: "No valid items found in cart" });
+        }
+
+        // Create Order in pending state with all cart items
+        const order = await Order.create({
+            user_id: req.user.id,
+            items: processedItems,
+            totalAmount,
+            deliveryMethod,
+            courierCharge,
+            paymentType, // 'check' or 'transfer'
+            status: "pending_payment_verification",
+            rewardApplied: false,
+            paymentDetails: {
+                type: paymentType,
+                status: 'awaiting_upload',
+                createdAt: new Date(),
+                cartOrder: true, // Flag to indicate this was a cart order
+                itemCount: processedItems.length
+            }
+        });
+
+        return res.json({ 
+            message: "Cart pending order created", 
+            orderId: order._id.toString(),
+            order,
+            itemCount: processedItems.length
+        });
+
+    } catch (err) {
+        console.error("Cart pending order create error:", err);
+        res.status(500).json({ error: "Error creating cart order" });
     }
 });
 

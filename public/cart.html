@@ -1692,5 +1692,110 @@
 <script src="/js/shipping-calculator.js"></script>
 <script src="/js/cartUtils.js"></script>
 <script src="/js/cart.js"></script>
+
+<!-- Cart Payment Method Selection Modal -->
+<div id="cartPaymentMethodModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px; width: 90%;">
+        <div class="modal-header">
+            <h3>💳 Select Payment Method</h3>
+            <span class="close" onclick="closeCartPaymentMethodModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div style="display: grid; gap: 20px; margin: 20px 0;">
+                <button onclick="proceedWithCartOnlinePayment()" class="payment-method-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 20px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
+                    💳 Online Payment (UPI/Card/Net Banking)
+                    <div style="font-size: 14px; opacity: 0.9; margin-top: 5px;">Instant payment via Razorpay - Recommended</div>
+                </button>
+                
+                <button onclick="proceedWithCartCheckPayment()" class="payment-method-btn" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; border: none; padding: 20px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
+                    📝 Check Payment
+                    <div style="font-size: 14px; opacity: 0.9; margin-top: 5px;">Upload check image for verification</div>
+                </button>
+                
+                <button onclick="proceedWithCartAccountTransfer()" class="payment-method-btn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; padding: 20px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
+                    🏦 Bank Transfer
+                    <div style="font-size: 14px; opacity: 0.9; margin-top: 5px;">Direct bank account transfer</div>
+                </button>
+            </div>
+            
+            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 14px; color: #1976d2;">
+                <strong>💡 Note:</strong> For check and bank transfer payments, all cart items will be combined into one order. You'll upload payment proof and add UTR number later in your account.
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .payment-method-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(5px);
+    }
+    
+    .modal-content {
+        background: white;
+        margin: 10% auto;
+        padding: 0;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateY(-50px) scale(0.9); opacity: 0; }
+        to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 15px 15px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-header h3 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+    }
+    
+    .modal-header .close {
+        color: white;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background 0.3s ease;
+    }
+    
+    .modal-header .close:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .modal-body {
+        padding: 25px;
+    }
+</style>
 </body>
 </html>

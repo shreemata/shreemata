@@ -263,6 +263,101 @@
                 padding: 8px 15px;
             }
         }
+
+        /* Payment Method Modal Styles */
+        .payment-modal {
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .payment-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .payment-option {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .payment-option:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .payment-icon {
+            font-size: 32px;
+            margin-right: 15px;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .payment-details {
+            flex: 1;
+        }
+
+        .payment-details h4 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .payment-details p {
+            margin: 0 0 8px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .payment-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .payment-badge.instant {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .payment-badge.manual {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .payment-arrow {
+            font-size: 20px;
+            color: #667eea;
+            margin-left: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .payment-option {
+                padding: 15px;
+            }
+            
+            .payment-icon {
+                font-size: 28px;
+                margin-right: 12px;
+                min-width: 40px;
+            }
+            
+            .payment-details h4 {
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -342,6 +437,49 @@
                             </div>
                         </div>
                     </div>
+
+    <!-- Payment Method Selection Modal -->
+    <div id="paymentMethodModal" class="modal" style="display: none;">
+        <div class="modal-content payment-modal">
+            <div class="modal-header">
+                <h3>Choose Payment Method</h3>
+                <span class="close" onclick="closePaymentMethodModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="payment-options">
+                    <div class="payment-option" onclick="proceedWithOnlinePayment()">
+                        <div class="payment-icon">💳</div>
+                        <div class="payment-details">
+                            <h4>Online Payment</h4>
+                            <p>UPI, Net Banking, Credit/Debit Card</p>
+                            <span class="payment-badge instant">Instant</span>
+                        </div>
+                        <div class="payment-arrow">→</div>
+                    </div>
+                    
+                    <div class="payment-option" onclick="proceedWithCheckPayment()">
+                        <div class="payment-icon">📝</div>
+                        <div class="payment-details">
+                            <h4>Check Payment</h4>
+                            <p>Upload check image & details</p>
+                            <span class="payment-badge manual">Manual Verification</span>
+                        </div>
+                        <div class="payment-arrow">→</div>
+                    </div>
+                    
+                    <div class="payment-option" onclick="proceedWithAccountTransfer()">
+                        <div class="payment-icon">🏦</div>
+                        <div class="payment-details">
+                            <h4>Bank Transfer</h4>
+                            <p>Direct account transfer</p>
+                            <span class="payment-badge manual">Manual Verification</span>
+                        </div>
+                        <div class="payment-arrow">→</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
                     <!-- RIGHT SIDE -->
                     <div class="book-detail-right">

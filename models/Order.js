@@ -52,7 +52,7 @@ const orderSchema = new mongoose.Schema({
     // ORIGINAL STATUS (PAYMENT + ORDER)
     status: {
         type: String,
-        enum: ["pending", "completed", "cancelled", "failed"],
+        enum: ["pending", "completed", "cancelled", "failed", "pending_payment_verification"],
         default: "pending"
     },
 
@@ -72,6 +72,30 @@ const orderSchema = new mongoose.Schema({
 
     razorpay_order_id: { type: String },
     razorpay_payment_id: { type: String },
+
+    // Payment Type and Details (for check/bank transfer)
+    paymentType: { 
+        type: String, 
+        enum: ["online", "check", "transfer"], 
+        default: "online" 
+    },
+    paymentDetails: {
+        type: { type: String }, // 'check' or 'transfer'
+        status: { 
+            type: String, 
+            enum: ["awaiting_upload", "awaiting_utr", "pending_verification", "verified", "rejected"],
+            default: "awaiting_upload"
+        },
+        utrNumber: { type: String, default: "" },
+        checkNumber: { type: String, default: "" },
+        bankName: { type: String, default: "" },
+        checkDate: { type: Date },
+        transferDate: { type: Date },
+        googleFormSubmissionId: { type: String, default: "" },
+        adminNotes: { type: String, default: "" },
+        createdAt: { type: Date, default: Date.now },
+        updatedAt: { type: Date, default: Date.now }
+    },
 
     // Prevent duplicate referral rewards
     rewardApplied: { type: Boolean, default: false }

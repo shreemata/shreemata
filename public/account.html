@@ -260,6 +260,54 @@
     </div>
 </main>
 
+<!-- UTR Update Modal -->
+<div id="utrModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px; width: 90%;">
+        <div class="modal-header">
+            <h3>📝 Add/Update UTR Number</h3>
+            <span class="close" onclick="closeUTRModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="utrForm">
+                <div style="margin-bottom: 20px;">
+                    <label for="utrNumber" style="display: block; margin-bottom: 8px; font-weight: 600;">UTR/Reference Number *</label>
+                    <input type="text" id="utrNumber" required 
+                           style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-family: monospace;"
+                           placeholder="Enter 12-digit UTR number">
+                    <small style="color: #666; display: block; margin-top: 5px;">
+                        Find this in your bank statement or transfer receipt
+                    </small>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label for="transferDate" style="display: block; margin-bottom: 8px; font-weight: 600;">Transfer/Check Date</label>
+                    <input type="date" id="transferDate" 
+                           style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box;">
+                </div>
+                
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 10px 0; color: #1976d2;">ℹ️ Instructions</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #666;">
+                        <li>UTR number is usually 12 digits long</li>
+                        <li>You can find it in your bank statement</li>
+                        <li>For checks, add UTR after the check clears</li>
+                        <li>This helps us verify your payment faster</li>
+                    </ul>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">
+                        💾 Save UTR Number
+                    </button>
+                    <button type="button" onclick="closeUTRModal()" class="btn-secondary">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="js/config.js"></script>
 <script src="js/account.js"></script>
 </body>

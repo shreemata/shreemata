@@ -170,7 +170,8 @@ async function loadOrders() {
             }).join(', ');
             
             const statusColor = order.status === 'completed' ? '#28a745' : 
-                               order.status === 'pending' ? '#ffc107' : '#dc3545';
+                               order.status === 'pending' ? '#ffc107' : 
+                               order.status === 'pending_payment_verification' ? '#ff9800' : '#dc3545';
             
             const deliveryStatus = order.deliveryStatus || 'pending';
             const deliveryColor = deliveryStatus === 'delivered' ? '#28a745' : 
@@ -212,6 +213,53 @@ async function loadOrders() {
                 `;
             }
 
+            // UTR/Payment Details Section
+            let paymentDetailsDisplay = '';
+            if (order.paymentType && ['check', 'transfer'].includes(order.paymentType)) {
+                const paymentDetails = order.paymentDetails || {};
+                const paymentTypeText = order.paymentType === 'check' ? 'Check Payment' : 'Bank Transfer';
+                
+                paymentDetailsDisplay = `
+                    <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #ff9800;">
+                        <h4 style="margin: 0 0 10px 0; color: #e65100; font-size: 16px;">💳 ${paymentTypeText}</h4>
+                        
+                        ${paymentDetails.utrNumber ? `
+                            <p style="margin: 5px 0;"><strong>UTR Number:</strong> 
+                                <span style="font-family: monospace; background: #e9ecef; padding: 2px 6px; border-radius: 4px;">${paymentDetails.utrNumber}</span>
+                            </p>
+                        ` : `
+                            <p style="margin: 5px 0; color: #ff9800;"><strong>UTR Number:</strong> Not provided yet</p>
+                        `}
+                        
+                        ${paymentDetails.checkNumber ? `
+                            <p style="margin: 5px 0;"><strong>Check Number:</strong> ${paymentDetails.checkNumber}</p>
+                        ` : ''}
+                        
+                        ${paymentDetails.bankName ? `
+                            <p style="margin: 5px 0;"><strong>Bank:</strong> ${paymentDetails.bankName}</p>
+                        ` : ''}
+                        
+                        <p style="margin: 5px 0;"><strong>Status:</strong> 
+                            <span style="color: ${paymentDetails.status === 'verified' ? '#28a745' : '#ff9800'}; font-weight: 600;">
+                                ${paymentDetails.status || 'awaiting_upload'}
+                            </span>
+                        </p>
+                        
+                        ${!paymentDetails.utrNumber || paymentDetails.status === 'awaiting_utr' ? `
+                            <div style="margin-top: 15px;">
+                                <button onclick="showUTRModal('${order._id}')" 
+                                        style="background: #ff9800; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                                    📝 ${paymentDetails.utrNumber ? 'Update UTR' : 'Add UTR Number'}
+                                </button>
+                                <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">
+                                    Add UTR number after your ${paymentTypeText.toLowerCase()} is processed
+                                </p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
             div.innerHTML = `
                 <h3>Order #${order._id.slice(-8)}</h3>
                 <p><strong>Items:</strong> ${itemsList}</p>
@@ -219,6 +267,7 @@ async function loadOrders() {
                 <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p>
                 <p><strong>Payment Status:</strong> <span style="color: ${statusColor}; font-weight: 600;">${order.status}</span></p>
                 <p><strong>Delivery Status:</strong> <span style="color: ${deliveryColor}; font-weight: 600;">${deliveryStatus}</span></p>
+                ${paymentDetailsDisplay}
                 ${trackingDisplay}
                 ${order.deliveryAddress && order.deliveryAddress.street ? `
                     <p><strong>Delivery Address:</strong> ${order.deliveryAddress.street}, ${order.deliveryAddress.taluk || order.deliveryAddress.city}, ${order.deliveryAddress.district || ''}</p>
@@ -1102,3 +1151,107 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Debug: Check if loadWalletData function is defined
 console.log("loadWalletData function defined:", typeof loadWalletData);
+
+/* -----------------------------------------
+   UTR MODAL FUNCTIONS
+----------------------------------------- */
+let currentOrderId = null;
+
+function showUTRModal(orderId) {
+    currentOrderId = orderId;
+    document.getElementById('utrModal').style.display = 'block';
+    
+    // Clear previous values
+    document.getElementById('utrNumber').value = '';
+    document.getElementById('transferDate').value = '';
+    
+    // Set today as default date
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('transferDate').value = today;
+}
+
+function closeUTRModal() {
+    document.getElementById('utrModal').style.display = 'none';
+    currentOrderId = null;
+}
+
+// Handle UTR form submission
+document.addEventListener("DOMContentLoaded", () => {
+    const utrForm = document.getElementById("utrForm");
+    if (utrForm) {
+        utrForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            
+            if (!currentOrderId) {
+                alert("No order selected");
+                return;
+            }
+            
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Login required");
+                return;
+            }
+            
+            const utrNumber = document.getElementById("utrNumber").value.trim();
+            const transferDate = document.getElementById("transferDate").value;
+            
+            if (!utrNumber) {
+                alert("Please enter UTR number");
+                return;
+            }
+            
+            // Validate UTR format (basic validation)
+            if (utrNumber.length < 8) {
+                alert("UTR number should be at least 8 characters long");
+                return;
+            }
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Saving...";
+            
+            try {
+                const res = await fetch(`${API}/orders/update-utr/${currentOrderId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        utrNumber,
+                        transferDate
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    throw new Error(data.error || "Failed to update UTR");
+                }
+                
+                alert("✅ UTR number updated successfully!\n\nYour payment will be verified by our admin team within 1-2 business days.");
+                closeUTRModal();
+                
+                // Reload orders to show updated information
+                loadOrders();
+                
+            } catch (err) {
+                console.error("UTR update error:", err);
+                alert("Error updating UTR: " + err.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
+    }
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', (e) => {
+        const modal = document.getElementById('utrModal');
+        if (e.target === modal) {
+            closeUTRModal();
+        }
+    });
+});

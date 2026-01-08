@@ -373,6 +373,42 @@ async function handlePurchase(deliveryMethod = "courier") {
         return window.location.href = "/login.html";
     }
 
+    // Store delivery method globally for later use
+    window.selectedDeliveryMethod = deliveryMethod;
+    
+    // Show payment method selection modal
+    showPaymentMethodModal();
+}
+
+function showPaymentMethodModal() {
+    document.getElementById("paymentMethodModal").style.display = "block";
+}
+
+function closePaymentMethodModal() {
+    document.getElementById("paymentMethodModal").style.display = "none";
+}
+
+// Payment method handlers
+function proceedWithOnlinePayment() {
+    closePaymentMethodModal();
+    // Continue with existing Razorpay flow
+    proceedWithRazorpayPayment();
+}
+
+function proceedWithCheckPayment() {
+    closePaymentMethodModal();
+    // Redirect to Google Form for check payment
+    redirectToCheckPaymentForm();
+}
+
+function proceedWithAccountTransfer() {
+    closePaymentMethodModal();
+    // Redirect to Google Form for account transfer
+    redirectToAccountTransferForm();
+}
+
+async function proceedWithRazorpayPayment() {
+    const deliveryMethod = window.selectedDeliveryMethod || "courier";
     const bookId = new URLSearchParams(window.location.search).get("id");
 
     try {
@@ -394,6 +430,96 @@ async function handlePurchase(deliveryMethod = "courier") {
     } catch (err) {
         console.error("Error:", err);
         alert("Error loading book details");
+    }
+}
+
+function redirectToCheckPaymentForm() {
+    const bookId = new URLSearchParams(window.location.search).get("id");
+    const deliveryMethod = window.selectedDeliveryMethod || "courier";
+    const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
+    
+    // Get book details from the page (should be loaded already)
+    const book = window.currentBook;
+    if (!book) {
+        alert("Book data not loaded. Please refresh the page and try again.");
+        return;
+    }
+    
+    // Calculate total amount
+    const basePrice = parseFloat(book.price) * quantity;
+    const weight = (book.weight || 0.5) * quantity;
+    
+    // Create order in pending state first
+    createPendingOrder('check', deliveryMethod, basePrice, weight, bookId, quantity);
+}
+
+function redirectToAccountTransferForm() {
+    const bookId = new URLSearchParams(window.location.search).get("id");
+    const deliveryMethod = window.selectedDeliveryMethod || "courier";
+    const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
+    
+    // Get book details from the page (should be loaded already)
+    const book = window.currentBook;
+    if (!book) {
+        alert("Book data not loaded. Please refresh the page and try again.");
+        return;
+    }
+    
+    // Calculate total amount
+    const basePrice = parseFloat(book.price) * quantity;
+    const weight = (book.weight || 0.5) * quantity;
+    
+    // Create order in pending state first
+    createPendingOrder('transfer', deliveryMethod, basePrice, weight, bookId, quantity);
+}
+
+async function createPendingOrder(paymentType, deliveryMethod, basePrice, weight, bookId, quantity) {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    
+    try {
+        // Calculate courier charge if needed
+        let courierCharge = 0;
+        if (deliveryMethod === "courier") {
+            courierCharge = await calculateCourierCharge(weight);
+        }
+        
+        const totalAmount = basePrice + courierCharge;
+        
+        // Create pending order
+        const orderRes = await fetch(`${API}/orders/create-pending`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                bookId: bookId,
+                quantity: quantity,
+                deliveryMethod: deliveryMethod,
+                paymentType: paymentType, // 'check' or 'transfer'
+                basePrice: basePrice,
+                courierCharge: courierCharge,
+                totalAmount: totalAmount,
+                status: 'pending_payment_verification'
+            })
+        });
+
+        const orderData = await orderRes.json();
+
+        if (!orderRes.ok) {
+            throw new Error(orderData.error || "Failed to create order");
+        }
+
+        // Show confirmation and redirect to upload page
+        alert(`Order created! Order ID: ${orderData.orderId}\n\nYou will now be redirected to upload payment details.`);
+        
+        // Redirect to payment upload page with order details
+        window.location.href = `/payment-upload.html?orderId=${orderData.orderId}&amount=${totalAmount}&type=${paymentType}`;
+
+    } catch (err) {
+        console.error("Error creating pending order:", err);
+        alert("Error creating order. Please try again.");
     }
 }
 

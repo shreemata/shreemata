@@ -1032,8 +1032,255 @@ async function checkout() {
     // Calculate cart total (without courier charge for offer calculation)
     const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-    // Check for applicable offers (on items only, not courier)
-    await checkApplicableOffers(cartTotal);
+    // Check for applicable offers first, then show payment method selection
+    await checkApplicableOffersForCart(cartTotal);
+}
+
+/* ------------------------------
+    Check Applicable Offers for Cart
+------------------------------ */
+async function checkApplicableOffersForCart(cartTotal) {
+    const API = window.API_URL || window.location.origin + '/api';
+
+    console.log("=== Checking Offers for Cart ===");
+    console.log("API URL:", API);
+    console.log("Cart Total:", cartTotal);
+
+    try {
+        const res = await fetch(`${API}/notifications/check-offers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cartTotal })
+        });
+
+        console.log("Response status:", res.status);
+        const data = await res.json();
+        console.log("Response data:", data);
+
+        if (data.applicableOffer) {
+            console.log("✅ Offer found! Showing popup...");
+            currentOffer = data;
+            showOfferModalForCart(data);
+        } else {
+            console.log("ℹ️ No applicable offer found. Going to payment method selection...");
+            // No offer applicable, go directly to payment method selection
+            currentOffer = null;
+            showCartPaymentMethodModal();
+        }
+    } catch (err) {
+        console.error("❌ Error checking offers:", err);
+        // Continue to payment method selection even if offer check fails
+        currentOffer = null;
+        showCartPaymentMethodModal();
+    }
+}
+
+/* ------------------------------
+    Show Offer Modal for Cart
+------------------------------ */
+function showOfferModalForCart(offerData) {
+    console.log("=== Showing Offer Modal for Cart ===");
+    console.log("Offer Data:", offerData);
+    
+    try {
+        // Get courier info
+        const courierInfo = JSON.parse(localStorage.getItem("courierInfo") || "{}");
+        const courierCharge = courierInfo.courierCharge || 0;
+        
+        // Calculate final amount with courier
+        const finalWithCourier = offerData.discountedAmount + courierCharge;
+        
+        document.getElementById("offerTitle").textContent = offerData.applicableOffer.title;
+        document.getElementById("offerMessage").textContent = offerData.applicableOffer.message;
+        document.getElementById("offerOriginalAmount").textContent = offerData.originalAmount.toFixed(2);
+        document.getElementById("offerDiscount").textContent = offerData.savings.toFixed(2);
+        
+        // Update the final amount display to include courier charge breakdown
+        const finalAmountEl = document.getElementById("offerFinalAmount");
+        if (courierCharge > 0) {
+            finalAmountEl.innerHTML = `
+                ${offerData.discountedAmount.toFixed(2)}
+                <div style="font-size: 14px; font-weight: normal; color: #666; margin-top: 5px;">
+                    + ₹${courierCharge.toFixed(2)} courier charge
+                </div>
+                <div style="font-size: 18px; font-weight: 700; color: #28a745; margin-top: 5px;">
+                    = ₹${finalWithCourier.toFixed(2)}
+                </div>
+            `;
+        } else {
+            finalAmountEl.textContent = offerData.discountedAmount.toFixed(2);
+        }
+        
+        document.getElementById("offerModal").style.display = "block";
+        console.log("✅ Offer modal displayed");
+    } catch (error) {
+        console.error("❌ Error showing offer modal:", error);
+    }
+}
+
+async function acceptOfferAndContinueToPayment() {
+    document.getElementById("offerModal").style.display = "none";
+    showCartPaymentMethodModal();
+}
+
+/* ------------------------------
+    Cart Payment Method Selection
+------------------------------ */
+function showCartPaymentMethodModal() {
+    document.getElementById("cartPaymentMethodModal").style.display = "block";
+}
+
+function closeCartPaymentMethodModal() {
+    document.getElementById("cartPaymentMethodModal").style.display = "none";
+}
+
+// Payment method handlers for cart
+function proceedWithCartOnlinePayment() {
+    closeCartPaymentMethodModal();
+    // Continue with existing Razorpay flow
+    showAddressModal();
+}
+
+function proceedWithCartCheckPayment() {
+    closeCartPaymentMethodModal();
+    // Create combined pending order for check payment
+    createCartPendingOrder('check');
+}
+
+function proceedWithCartAccountTransfer() {
+    closeCartPaymentMethodModal();
+    // Create combined pending order for bank transfer
+    createCartPendingOrder('transfer');
+}
+
+/* ------------------------------
+    Clear Cart
+------------------------------ */
+function clearCart() {
+    localStorage.removeItem("cart");
+    console.log("🛒 Cart cleared");
+}
+
+/* ------------------------------
+    Create Cart Pending Order (Combined)
+------------------------------ */
+async function createCartPendingOrder(paymentType) {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    const cart = getCart();
+    const API = window.API_URL || '';
+    
+    if (!API) {
+        alert("API configuration error. Please refresh the page.");
+        return;
+    }
+    
+    if (cart.length === 0) {
+        alert("Your cart is empty.");
+        return;
+    }
+    
+    // Get delivery method and courier info
+    const deliveryMethod = getSelectedDeliveryMethod();
+    const courierInfo = JSON.parse(localStorage.getItem("courierInfo") || "{}");
+    const courierCharge = courierInfo.courierCharge || 0;
+    const totalWeight = courierInfo.totalWeight || 0;
+    
+    // Calculate totals from cart items (use base price for bundles)
+    let itemsTotal = 0;
+    cart.forEach(item => {
+        if (item.isBundle || item.bundleId) {
+            // For bundles, use basePrice if available, otherwise calculate from bundlePrice
+            const itemPrice = item.basePrice || (item.price - (item.courierCharge || 0));
+            itemsTotal += itemPrice;
+        } else {
+            // For books, use the price directly
+            itemsTotal += item.price * item.quantity;
+        }
+    });
+    
+    const totalAmount = itemsTotal + courierCharge;
+    
+    console.log('Creating cart pending order:', {
+        paymentType,
+        deliveryMethod,
+        itemsTotal,
+        courierCharge,
+        totalAmount,
+        itemCount: cart.length,
+        cartItems: cart
+    });
+    
+    // Prepare cart items for backend (normalize the structure)
+    const normalizedCartItems = cart.map(item => {
+        if (item.isBundle || item.bundleId) {
+            return {
+                bundleId: item.bundleId,
+                isBundle: true,
+                title: item.title,
+                quantity: item.quantity,
+                price: item.basePrice || (item.price - (item.courierCharge || 0)), // Remove courier charge from price
+                weight: item.weight,
+                deliveryMethod: item.deliveryMethod,
+                coverImage: item.coverImage
+            };
+        } else {
+            return {
+                id: item.id,
+                title: item.title,
+                author: item.author,
+                quantity: item.quantity,
+                price: item.price,
+                weight: item.weight,
+                deliveryMethod: item.deliveryMethod,
+                coverImage: item.coverImage
+            };
+        }
+    });
+    
+    console.log('Normalized cart items:', normalizedCartItems);
+    
+    try {
+        // Create combined pending order for all cart items
+        const orderRes = await fetch(`${API}/orders/create-cart-pending`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                cartItems: normalizedCartItems,
+                deliveryMethod: deliveryMethod,
+                paymentType: paymentType, // 'check' or 'transfer'
+                itemsTotal: itemsTotal,
+                courierCharge: courierCharge,
+                totalAmount: totalAmount,
+                totalWeight: totalWeight
+            })
+        });
+
+        const orderData = await orderRes.json();
+        
+        console.log('Order creation response:', orderData);
+
+        if (!orderRes.ok) {
+            throw new Error(orderData.error || "Failed to create cart order");
+        }
+
+        // Clear cart after successful order creation
+        clearCart();
+        
+        // Show confirmation and redirect to upload page
+        const paymentTypeText = paymentType === 'check' ? 'Check Payment' : 'Bank Transfer';
+        alert(`Cart order created successfully!\n\nOrder ID: ${orderData.orderId}\nTotal Amount: ₹${totalAmount.toFixed(2)}\nItems: ${cart.length}\n\nYou will now be redirected to upload ${paymentTypeText.toLowerCase()} details.`);
+        
+        // Redirect to payment upload page with order details
+        window.location.href = `/payment-upload.html?orderId=${orderData.orderId}&amount=${totalAmount}&type=${paymentType}`;
+
+    } catch (err) {
+        console.error("Error creating cart pending order:", err);
+        alert("Error creating order: " + err.message + "\n\nPlease try again or contact support.");
+    }
 }
 
 /* ------------------------------
@@ -1125,7 +1372,7 @@ function closeOfferModal() {
 
 async function acceptOfferAndContinue() {
     document.getElementById("offerModal").style.display = "none";
-    await showAddressModal();
+    showCartPaymentMethodModal();
 }
 
 /* ------------------------------
@@ -1596,13 +1843,7 @@ async function proceedToPayment() {
                     // ✅ Payment verification successful!
                     console.log("✅ Payment verified successfully!");
                     
-                    // Reset checkout button first
-                    resetCheckoutButton();
-                    
-                    // Clear cart immediately
-                    clearCart();
-                    
-                    // Show success popup with order details
+                    // Get cart data BEFORE clearing it
                     const cart = getCart();
                     const orderData = {
                         orderId: response.razorpay_payment_id,
@@ -1612,7 +1853,27 @@ async function proceedToPayment() {
                         paymentMethod: 'Online Payment'
                     };
                     
-                    showSuccessPopup(orderData);
+                    console.log("📋 Order data for popup:", orderData);
+                    
+                    // Reset checkout button
+                    resetCheckoutButton();
+                    
+                    // Clear cart AFTER getting the data
+                    clearCart();
+                    
+                    // Show success popup with order details
+                    console.log("🎉 Calling showSuccessPopup with data:", orderData);
+                    
+                    // Check if showSuccessPopup function exists
+                    if (typeof showSuccessPopup === 'function') {
+                        console.log("✅ showSuccessPopup function found, calling it...");
+                        showSuccessPopup(orderData);
+                    } else {
+                        console.error("❌ showSuccessPopup function not found!");
+                        // Fallback to alert
+                        alert("🎉 Order Confirmed!\n\nYour payment has been processed successfully and your order has been placed.");
+                        window.location.href = "/account.html?section=orders";
+                    }
                     
                     return; // Exit the handler
 
