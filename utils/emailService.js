@@ -77,7 +77,7 @@ async function sendOrderConfirmationEmail(order, user) {
         }
 
         const mailOptions = {
-            from: `"Shree Mata" <shashistudy2125@gmail.com>`,
+            from: `"Shree Mata" <${process.env.SES_FROM_EMAIL || 'no-reply@shreemata.com'}>`,
             to: user.email,
             subject: `Order Confirmation - Order #${order._id}`,
             html: `
@@ -172,7 +172,7 @@ async function sendOrderConfirmationEmail(order, user) {
 async function sendAdminNotification(order, user) {
     try {
         const mailOptions = {
-            from: `"Shree Mata" <shashistudy2125@gmail.com>`,
+            from: `"Shree Mata" <${process.env.SES_FROM_EMAIL || 'no-reply@shreemata.com'}>`,
             to: "shashistudy2125@gmail.com", // Send to admin email
             subject: `New Order Received - Order #${order._id}`,
             html: `
@@ -282,7 +282,7 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
         }
 
         const mailOptions = {
-            from: `"Shree Mata" <shashistudy2125@gmail.com>`,
+            from: `"Shree Mata" <${process.env.SES_FROM_EMAIL || 'no-reply@shreemata.com'}>`,
             to: user.email,
             subject: `${statusInfo.icon} ${statusInfo.title} - Order #${order._id}`,
             html: `
@@ -374,7 +374,7 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
 async function sendEmailOTP(email, otp) {
     try {
         const mailOptions = {
-            from: `"Shree Mata" <shashistudy2125@gmail.com>`,
+            from: `"Shree Mata" <${process.env.SES_FROM_EMAIL || 'no-reply@shreemata.com'}>`,
             to: email,
             subject: 'Email Verification Code - Shree Mata',
             html: `
@@ -425,6 +425,14 @@ async function sendEmailOTP(email, otp) {
 
         const info = await transporter.sendMail(mailOptions);
         console.log('✅ Email OTP sent:', info.messageId);
+        console.log('📧 Email details:', {
+            from: mailOptions.from,
+            to: mailOptions.to,
+            subject: mailOptions.subject,
+            accepted: info.accepted,
+            rejected: info.rejected,
+            response: info.response
+        });
         return { success: true, messageId: info.messageId };
     } catch (error) {
         console.error('❌ Error sending email OTP:', error);
@@ -438,7 +446,7 @@ async function sendEmailOTP(email, otp) {
 async function sendPasswordResetOTP(email, otp) {
     try {
         const mailOptions = {
-            from: `"Shree Mata" <shashistudy2125@gmail.com>`,
+            from: `"Shree Mata" <${process.env.SES_FROM_EMAIL || 'no-reply@shreemata.com'}>`,
             to: email,
             subject: 'Password Reset Code - Shree Mata',
             html: `
