@@ -125,17 +125,18 @@ async function applyReferralRewardForOrder(order) {
 }
 
 // =====================================================
-// 1️⃣ CREATE RAZORPAY ORDER
+// 1️⃣ CREATE RAZORPAY ORDER OR PENDING CHECK ORDER
 // =====================================================
 router.post("/create-order", authenticateToken, async (req, res) => {
   try {
-    const { amount, items, deliveryAddress, appliedOffer, courierCharge, totalWeight, deliveryMethod } = req.body;
+    const { amount, items, deliveryAddress, appliedOffer, courierCharge, totalWeight, deliveryMethod, paymentMethod } = req.body;
 
     console.log("Create order request:", { 
       amount, 
       itemsCount: items?.length, 
       hasAddress: !!deliveryAddress, 
       deliveryMethod: deliveryMethod,
+      paymentMethod: paymentMethod || 'online',
       hasOffer: !!appliedOffer,
       courierCharge,
       totalWeight
@@ -327,6 +328,104 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       }
     }
     console.log("✅ Stock validation passed - all items available");
+
+    // =====================================================
+    // CHECK PAYMENT METHOD HANDLING
+    // =====================================================
+    if (paymentMethod === 'check') {
+      console.log("📝 Creating pending order for check payment...");
+      
+      // Prepare delivery address with defaults (null for digital-only orders and pickup orders)
+      const addressData = (!isDigitalOnly && !isPickupOrder && deliveryAddress) ? {
+        street: deliveryAddress.homeAddress1 || deliveryAddress.street || "", // Legacy compatibility
+        homeAddress1: deliveryAddress.homeAddress1 || "",
+        homeAddress2: deliveryAddress.homeAddress2 || "",
+        streetName: deliveryAddress.streetName || "",
+        landmark: deliveryAddress.landmark || "",
+        village: deliveryAddress.village || "",
+        taluk: deliveryAddress.taluk || "",
+        district: deliveryAddress.district || "",
+        state: deliveryAddress.state || "",
+        pincode: deliveryAddress.pincode || "",
+        phone: deliveryAddress.phone || ""
+      } : null;
+
+      // Prepare items array properly
+      const orderItems = items.map(item => ({
+        id: item.id,
+        title: item.title,
+        author: item.author,
+        price: Number(item.price),
+        quantity: Number(item.quantity),
+        coverImage: item.coverImage,
+        type: item.type || 'book',
+        isDigital: Boolean(item.isDigital),
+        digitalPrice: item.isDigital ? Number(item.price) : null
+      }));
+
+      // Prepare offer data if applicable
+      const offerData = appliedOffer ? {
+        offerId: appliedOffer.offerId,
+        offerTitle: appliedOffer.offerTitle,
+        discountType: appliedOffer.discountType,
+        discountValue: appliedOffer.discountValue,
+        originalAmount: appliedOffer.originalAmount,
+        discountedAmount: appliedOffer.discountedAmount,
+        savings: appliedOffer.savings
+      } : undefined;
+
+      // Create pending order for check payment
+      const pendingOrder = await Order.create({
+        user_id: req.user.id,
+        items: orderItems,
+        totalAmount: amount,
+        courierCharge: isDigitalOnly ? 0 : (courierCharge || 0),
+        totalWeight: isDigitalOnly ? 0 : (totalWeight || 0),
+        deliveryMethod: isDigitalOnly ? 'digital' : (deliveryMethod || 'home'),
+        appliedOffer: offerData,
+        deliveryAddress: addressData,
+        status: "pending_payment_verification", // Special status for check payments
+        paymentType: "check",
+        paymentDetails: {
+          type: "check",
+          status: "awaiting_upload",
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        rewardApplied: false
+      });
+
+      console.log("✅ Pending check order created:", pendingOrder._id);
+
+      // Get user details for Google Form pre-filling
+      const user = await User.findById(req.user.id);
+      
+      // Create Google Form URL with pre-filled data (using your working form)
+      const googleFormUrl = `https://docs.google.com/forms/d/e/1FAIpQLSdkaIGD87RUORM210G8kCWeIx60Fdc88KKkxcnmuee1bOL2Pg/viewform?usp=pp_url` +
+        `&entry.1788264298=${pendingOrder._id}` +
+        `&entry.1894225499=${amount}` +
+        
+        `&entry.774046160=${encodeURIComponent(user.email || '')}` +
+        `&entry.1406386079=${encodeURIComponent(user.name || '')}` +
+        `&entry.632794616=${encodeURIComponent(user.phone || '')}` +
+        `&entry.980862279=${encodeURIComponent('Bank Name')}` +
+        `&entry.790413540=${new Date().toISOString().split('T')[0]}`;
+
+      console.log('✅ Generated Google Form URL:', googleFormUrl);
+      console.log('✅ User details:', { name: user.name, email: user.email, phone: user.phone });
+
+      return res.json({ 
+        success: true,
+        orderType: 'check',
+        order: pendingOrder,
+        googleFormUrl: googleFormUrl,
+        message: "Pending order created. Please complete the check payment verification form."
+      });
+    }
+
+    // =====================================================
+    // ONLINE PAYMENT (RAZORPAY) HANDLING
+    // =====================================================
 
     const options = {
       amount: Math.round(amount * 100),
@@ -1062,6 +1161,498 @@ router.post("/test-cashback", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("Test cashback error:", error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// =====================================================
+// 🔄 CHECK PAYMENT WEBHOOK (Google Form Submission)
+// =====================================================
+router.post("/webhook/check-payment-submitted", async (req, res) => {
+  try {
+    console.log("📝 Check payment form submitted:", req.body);
+    
+    const { 
+      orderId, 
+      checkNumber, 
+      bankName, 
+      checkDate, 
+      utrNumber, 
+      formResponseId,
+      driveFileIds,
+      checkImageUrl,
+      checkImageDriveId
+    } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({ error: "Order ID is required" });
+    }
+
+    // Update order with check payment details including image URLs
+    const updateData = {
+      'paymentDetails.status': 'pending_verification',
+      'paymentDetails.checkNumber': checkNumber,
+      'paymentDetails.bankName': bankName,
+      'paymentDetails.checkDate': checkDate ? new Date(checkDate) : null,
+      'paymentDetails.utrNumber': utrNumber,
+      'paymentDetails.googleFormSubmissionId': formResponseId,
+      'paymentDetails.updatedAt': new Date()
+    };
+
+    // Add image URLs if provided
+    if (checkImageUrl) {
+      updateData['paymentDetails.checkImageUrl'] = checkImageUrl;
+    }
+    if (checkImageDriveId) {
+      updateData['paymentDetails.checkImageDriveId'] = checkImageDriveId;
+    }
+    if (driveFileIds && Array.isArray(driveFileIds)) {
+      updateData['paymentDetails.driveFileIds'] = driveFileIds;
+    }
+
+    const order = await Order.findByIdAndUpdate(orderId, updateData, { new: true });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    console.log(`✅ Check payment details updated for order: ${orderId}`);
+
+    // Send notification to admin (optional)
+    try {
+      const user = await User.findById(order.user_id);
+      if (user) {
+        console.log(`📧 Check payment submitted by ${user.name} for order ${orderId}`);
+        // You can send admin notification email here
+      }
+    } catch (emailError) {
+      console.error("Error sending admin notification:", emailError);
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Check payment details received",
+      orderId: orderId,
+      status: "pending_verification"
+    });
+
+  } catch (error) {
+    console.error("Check payment webhook error:", error);
+    res.status(500).json({ error: "Error processing check payment submission" });
+  }
+});
+
+// =====================================================
+// 🔄 ADMIN: APPROVE CHECK PAYMENT
+// =====================================================
+router.post("/admin/approve-check-payment/:orderId", authenticateToken, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { approvalNotes } = req.body;
+
+    // Verify admin access
+    const adminUser = await User.findById(req.user.id);
+    if (!adminUser || adminUser.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    console.log(`🔍 Admin ${adminUser.email} approving check payment for order: ${orderId}`);
+
+    // Find and update the order
+    const order = await Order.findOneAndUpdate(
+      { 
+        _id: orderId,
+        paymentType: 'check',
+        'paymentDetails.status': 'pending_verification'
+      },
+      {
+        status: 'completed',
+        'paymentDetails.status': 'verified',
+        'paymentDetails.adminNotes': approvalNotes || '',
+        'paymentDetails.updatedAt': new Date(),
+        rewardApplied: true // Mark to trigger automated processes
+      },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ 
+        error: "Order not found or not eligible for approval" 
+      });
+    }
+
+    console.log(`✅ Check payment approved for order: ${orderId}`);
+
+    // Trigger all automated processes (same as online payment)
+    await processApprovedCheckOrder(order, adminUser);
+
+    res.json({ 
+      success: true, 
+      message: "Check payment approved successfully",
+      orderId: orderId,
+      order: order
+    });
+
+  } catch (error) {
+    console.error("Check payment approval error:", error);
+    res.status(500).json({ error: "Error approving check payment" });
+  }
+});
+
+// =====================================================
+// 🔄 ADMIN: REJECT CHECK PAYMENT
+// =====================================================
+router.post("/admin/reject-check-payment/:orderId", authenticateToken, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { rejectionReason } = req.body;
+
+    // Verify admin access
+    const adminUser = await User.findById(req.user.id);
+    if (!adminUser || adminUser.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    console.log(`🔍 Admin ${adminUser.email} rejecting check payment for order: ${orderId}`);
+
+    // Find and update the order
+    const order = await Order.findOneAndUpdate(
+      { 
+        _id: orderId,
+        paymentType: 'check',
+        'paymentDetails.status': 'pending_verification'
+      },
+      {
+        status: 'cancelled',
+        'paymentDetails.status': 'rejected',
+        'paymentDetails.adminNotes': rejectionReason || '',
+        'paymentDetails.updatedAt': new Date()
+      },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ 
+        error: "Order not found or not eligible for rejection" 
+      });
+    }
+
+    console.log(`❌ Check payment rejected for order: ${orderId}`);
+
+    // Send rejection notification to user
+    try {
+      const user = await User.findById(order.user_id);
+      if (user && user.email) {
+        // You can create a rejection email function here
+        console.log(`📧 Sending rejection notification to ${user.email}`);
+      }
+    } catch (emailError) {
+      console.error("Error sending rejection notification:", emailError);
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Check payment rejected",
+      orderId: orderId,
+      order: order
+    });
+
+  } catch (error) {
+    console.error("Check payment rejection error:", error);
+    res.status(500).json({ error: "Error rejecting check payment" });
+  }
+});
+
+/**
+ * Process approved check order - trigger all automated systems
+ */
+async function processApprovedCheckOrder(order, adminUser) {
+  try {
+    console.log(`🔄 Processing approved check order: ${order._id}`);
+
+    // 1. COMMISSION DISTRIBUTION
+    try {
+      console.log("💰 Distributing commissions for approved check order:", order._id);
+      const commissionTransaction = await distributeCommissions(
+        order._id,
+        order.user_id,
+        order.totalAmount
+      );
+      console.log("✅ Commission distribution completed:", commissionTransaction._id);
+      
+      // Mark user's first purchase as done
+      const user = await User.findById(order.user_id);
+      if (user && !user.firstPurchaseDone) {
+        user.firstPurchaseDone = true;
+        await user.save();
+        console.log(`✅ Marked first purchase as done for user: ${user.email}`);
+      }
+    } catch (commissionError) {
+      console.error("❌ Commission distribution error:", commissionError);
+    }
+
+    // 2. AWARD POINTS
+    try {
+      console.log("🎁 Awarding points for approved check order:", order._id);
+      for (const item of order.items) {
+        let points = 0;
+        
+        if (item.type === 'book') {
+          const book = await Book.findById(item.id);
+          if (book && book.rewardPoints > 0) {
+            points = book.rewardPoints * item.quantity;
+          }
+        } else if (item.type === 'bundle') {
+          const bundle = await Bundle.findById(item.id);
+          if (bundle && bundle.rewardPoints > 0) {
+            points = bundle.rewardPoints * item.quantity;
+          }
+        }
+        
+        if (points > 0) {
+          await awardPoints(
+            order.user_id,
+            points,
+            item.type === 'book' ? 'book_purchase' : 'bundle_purchase',
+            item.id,
+            order._id
+          );
+          console.log(`✅ Awarded ${points} points for ${item.title}`);
+        }
+      }
+    } catch (pointsError) {
+      console.error("❌ Points awarding error:", pointsError);
+    }
+
+    // 3. AWARD CASHBACK
+    try {
+      console.log("💰 Processing cashback for approved check order:", order._id);
+      let totalCashback = 0;
+      
+      for (const item of order.items) {
+        let itemCashback = 0;
+        
+        if (item.type === 'book') {
+          const book = await Book.findById(item.id);
+          if (book) {
+            const bookCashback = book.getCashbackAmount();
+            itemCashback = bookCashback * item.quantity;
+          }
+        } else if (item.type === 'bundle') {
+          const bundle = await Bundle.findById(item.id);
+          if (bundle) {
+            const bundleCashback = bundle.getCashbackAmount();
+            itemCashback = bundleCashback * item.quantity;
+          }
+        }
+        
+        if (itemCashback > 0) {
+          totalCashback += itemCashback;
+          console.log(`💰 Cashback for ${item.title}: ₹${itemCashback.toFixed(2)}`);
+        }
+      }
+      
+      if (totalCashback > 0) {
+        const user = await User.findById(order.user_id);
+        if (user) {
+          const previousBalance = user.wallet || 0;
+          user.wallet = previousBalance + totalCashback;
+          await user.save();
+          
+          console.log(`✅ Added ₹${totalCashback.toFixed(2)} cashback to user wallet`);
+          console.log(`💰 User wallet: ₹${previousBalance.toFixed(2)} → ₹${user.wallet.toFixed(2)}`);
+        }
+      }
+    } catch (cashbackError) {
+      console.error("❌ Cashback processing error:", cashbackError);
+    }
+
+    // 4. SEND EMAIL NOTIFICATIONS
+    try {
+      console.log("📧 Sending email notifications for approved check order...");
+      const user = await User.findById(order.user_id);
+      if (user && user.email) {
+        await sendOrderConfirmationEmail(order, user);
+        await sendAdminNotification(order, user);
+        console.log("✅ Email notifications sent");
+      }
+    } catch (emailError) {
+      console.error("❌ Email notification error:", emailError);
+    }
+
+    console.log(`✅ Approved check order processing completed: ${order._id}`);
+
+  } catch (error) {
+    console.error("❌ Error processing approved check order:", error);
+    throw error;
+  }
+}
+
+// =====================================================
+// 🔄 SIMPLE CHECK PAYMENT FORM SUBMISSION
+// =====================================================
+router.post("/simple-check-payment-submit", authenticateToken, async (req, res) => {
+  try {
+    console.log("📝 Simple check payment form submitted:", req.body);
+    
+    const { 
+      orderId, 
+      checkNumber, 
+      bankName, 
+      checkDate, 
+      utrNumber
+    } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({ error: "Order ID is required" });
+    }
+
+    // Find the order and verify it belongs to the user
+    const order = await Order.findOne({
+      _id: orderId,
+      user_id: req.user.id,
+      paymentType: 'check',
+      status: 'pending_payment_verification'
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found or not eligible for check payment" });
+    }
+
+    // Update order with check payment details
+    const updateData = {
+      'paymentDetails.status': 'pending_verification', // This is what admin panel looks for
+      'paymentDetails.checkNumber': checkNumber,
+      'paymentDetails.bankName': bankName,
+      'paymentDetails.checkDate': checkDate ? new Date(checkDate) : null,
+      'paymentDetails.utrNumber': utrNumber,
+      'paymentDetails.updatedAt': new Date()
+    };
+
+    const updatedOrder = await Order.findByIdAndUpdate(orderId, updateData, { new: true });
+
+    console.log(`✅ Check payment details updated for order: ${orderId}`);
+    console.log(`📋 Order status: ${updatedOrder.status}`);
+    console.log(`📋 Payment details status: ${updatedOrder.paymentDetails.status}`);
+
+    res.json({ 
+      success: true, 
+      message: "Check payment details submitted successfully",
+      orderId: orderId,
+      status: "pending_verification"
+    });
+
+  } catch (error) {
+    console.error("Simple check payment submission error:", error);
+    res.status(500).json({ error: "Error processing check payment submission" });
+  }
+});
+
+// =====================================================
+// 🔄 UPLOAD CHECK IMAGE TO CLOUDINARY
+// =====================================================
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+
+// Configure Cloudinary (using your existing config)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Configure multer for memory storage (no temp files needed)
+const storage = multer.memoryStorage();
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    // Only allow image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
+
+router.post("/upload-check-image", authenticateToken, upload.single('checkImage'), async (req, res) => {
+  try {
+    const { orderId } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file uploaded" });
+    }
+
+    if (!orderId) {
+      return res.status(400).json({ error: "Order ID is required" });
+    }
+
+    // Find the order and verify it belongs to the user
+    const order = await Order.findOne({
+      _id: orderId,
+      user_id: req.user.id,
+      paymentType: 'check'
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    console.log(`📤 Uploading check image to Cloudinary for order: ${orderId}`);
+
+    // Upload to Cloudinary
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'check-payments',
+          public_id: `check_${orderId}_${Date.now()}`,
+          resource_type: 'image',
+          transformation: [
+            { width: 1200, height: 1200, crop: 'limit', quality: 'auto' }
+          ]
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result);
+          }
+        }
+      );
+      
+      uploadStream.end(req.file.buffer);
+    });
+    
+    // Update order with Cloudinary image details
+    const updateData = {
+      'paymentDetails.checkImageUrl': uploadResult.secure_url,
+      'paymentDetails.checkImagePublicId': uploadResult.public_id,
+      'paymentDetails.checkImageFileName': req.file.originalname,
+      'paymentDetails.updatedAt': new Date()
+    };
+
+    await Order.findByIdAndUpdate(orderId, updateData);
+
+    console.log(`✅ Check image uploaded to Cloudinary for order: ${orderId}`);
+    console.log(`📷 Cloudinary URL: ${uploadResult.secure_url}`);
+
+    res.json({ 
+      success: true, 
+      message: "Check image uploaded successfully to Cloudinary",
+      imageUrl: uploadResult.secure_url,
+      publicId: uploadResult.public_id,
+      fileName: req.file.originalname
+    });
+
+  } catch (error) {
+    console.error("Check image upload error:", error);
+    res.status(500).json({ 
+      error: "Error uploading check image to Cloudinary",
+      details: error.message 
+    });
   }
 });
 

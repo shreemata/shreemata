@@ -1143,14 +1143,156 @@ function proceedWithCartOnlinePayment() {
 
 function proceedWithCartCheckPayment() {
     closeCartPaymentMethodModal();
-    // Create combined pending order for check payment
-    createCartPendingOrder('check');
+    // Use the new integrated check payment system
+    createCartOrderWithCheckPayment();
 }
 
 function proceedWithCartAccountTransfer() {
     closeCartPaymentMethodModal();
     // Create combined pending order for bank transfer
     createCartPendingOrder('transfer');
+}
+
+/* ------------------------------
+    Create Cart Order with Check Payment (New Integrated System)
+------------------------------ */
+async function createCartOrderWithCheckPayment() {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    const cart = getCart();
+    const API = window.API_URL || '';
+    
+    if (!API) {
+        alert("API configuration error. Please refresh the page.");
+        return;
+    }
+    
+    if (cart.length === 0) {
+        alert("Your cart is empty.");
+        return;
+    }
+    
+    // Get delivery method and courier info
+    const deliveryMethod = getSelectedDeliveryMethod();
+    const courierInfo = JSON.parse(localStorage.getItem("courierInfo") || "{}");
+    const courierCharge = courierInfo.courierCharge || 0;
+    const totalWeight = courierInfo.totalWeight || 0;
+    
+    // Calculate totals from cart items
+    let itemsTotal = 0;
+    cart.forEach(item => {
+        if (item.isBundle || item.bundleId) {
+            const itemPrice = item.basePrice || (item.price - (item.courierCharge || 0));
+            itemsTotal += itemPrice;
+        } else {
+            itemsTotal += item.price * item.quantity;
+        }
+    });
+    
+    const totalAmount = itemsTotal + courierCharge;
+    
+    // Get delivery address
+    const deliveryAddress = JSON.parse(localStorage.getItem("deliveryAddress") || "{}");
+    
+    // Prepare cart items for the new payment system
+    const orderItems = cart.map(item => ({
+        id: item.id || item.bundleId,
+        title: item.title,
+        author: item.author || 'Unknown',
+        price: item.isBundle ? (item.basePrice || item.price) : item.price,
+        quantity: item.quantity,
+        coverImage: item.coverImage,
+        type: item.isBundle ? 'bundle' : 'book',
+        isDigital: false
+    }));
+    
+    console.log('Creating check payment order:', {
+        totalAmount,
+        itemCount: orderItems.length,
+        deliveryMethod,
+        courierCharge
+    });
+    
+    try {
+        // Use the new integrated payment system
+        const orderRes = await fetch(`${API}/payments/create-order`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                amount: totalAmount,
+                items: orderItems,
+                deliveryAddress: deliveryAddress,
+                appliedOffer: currentOffer, // Include any applied offer
+                courierCharge: courierCharge,
+                totalWeight: totalWeight,
+                deliveryMethod: deliveryMethod,
+                paymentMethod: 'check' // This triggers the check payment flow
+            })
+        });
+
+        const orderData = await orderRes.json();
+        
+        console.log('Check payment order response:', orderData);
+
+        if (!orderRes.ok) {
+            throw new Error(orderData.error || "Failed to create check payment order");
+        }
+
+        if (orderData.success && orderData.orderType === 'check') {
+            // Clear cart after successful order creation
+            clearCart();
+            
+            // Show success message
+            alert(`✅ Order created successfully!\n\nOrder ID: ${orderData.order._id}\nTotal Amount: ₹${totalAmount.toFixed(2)}\nItems: ${orderItems.length}\n\nYou will now be redirected to submit your check payment details.`);
+            
+            // Debug: Log the Google Form URL
+            console.log('Google Form URL:', orderData.googleFormUrl);
+            
+            // Try Google Form first, fallback to simple form if blocked
+            if (orderData.googleFormUrl) {
+                console.log('Opening Google Form...');
+                
+                // Try to open Google Form
+                const formWindow = window.open(orderData.googleFormUrl, '_blank');
+                
+                // Check if popup was blocked
+                if (!formWindow || formWindow.closed || typeof formWindow.closed == 'undefined') {
+                    // Popup blocked - redirect to Google Form instead
+                    if (confirm('⚠️ Popup blocked! Would you like to go to the Google Form now?\n\nClick OK to continue to the form, or Cancel to use our simple form.')) {
+                        window.location.href = orderData.googleFormUrl;
+                        return; // Don't redirect to orders page
+                    } else {
+                        // Use simple form as fallback
+                        const simpleFormUrl = `/simple-check-payment-form.html?orderId=${orderData.order._id}&amount=${totalAmount}&userName=${encodeURIComponent(user.name || '')}&userEmail=${encodeURIComponent(user.email || '')}&phone=${encodeURIComponent(user.phone || '')}`;
+                        window.location.href = simpleFormUrl;
+                        return;
+                    }
+                } else {
+                    // Google Form opened successfully
+                    console.log('✅ Google Form opened successfully');
+                }
+            } else {
+                // No Google Form URL - use simple form
+                const simpleFormUrl = `/simple-check-payment-form.html?orderId=${orderData.order._id}&amount=${totalAmount}&userName=${encodeURIComponent(user.name || '')}&userEmail=${encodeURIComponent(user.email || '')}&phone=${encodeURIComponent(user.phone || '')}`;
+                window.location.href = simpleFormUrl;
+                return;
+            }
+            
+            // Redirect to orders page after delay
+            setTimeout(() => {
+                window.location.href = '/account.html?section=orders';
+            }, 3000);
+        } else {
+            throw new Error("Unexpected response format");
+        }
+
+    } catch (err) {
+        console.error("Error creating check payment order:", err);
+        alert("❌ Error creating order: " + err.message + "\n\nPlease try again or contact support.");
+    }
 }
 
 /* ------------------------------

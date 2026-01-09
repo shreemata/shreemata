@@ -8,6 +8,53 @@ const { sendDeliveryStatusEmail } = require("../utils/emailService");
 const router = express.Router();
 
 /**
+ * GET PENDING CHECK PAYMENTS (Admin Only)
+ */
+router.get("/check-payments/pending", authenticateToken, isAdmin, async (req, res) => {
+    try {
+        console.log("📋 Admin fetching pending check payments...");
+
+        // Find orders with check payment pending verification
+        const orders = await Order.find({
+            paymentType: 'check',
+            'paymentDetails.status': 'pending_verification'
+        })
+        .populate('user_id', 'name email phone')
+        .sort({ 'paymentDetails.updatedAt': -1 })
+        .lean();
+
+        // Calculate stats
+        const stats = {
+            pendingCount: orders.length,
+            totalAmount: orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0),
+            todayCount: orders.filter(order => {
+                const today = new Date();
+                const orderDate = new Date(order.paymentDetails?.updatedAt || order.createdAt);
+                return orderDate.toDateString() === today.toDateString();
+            }).length
+        };
+
+        // Format orders for frontend
+        const formattedOrders = orders.map(order => ({
+            ...order,
+            user: order.user_id // Rename for easier access
+        }));
+
+        console.log(`✅ Found ${orders.length} pending check payments`);
+
+        res.json({
+            success: true,
+            orders: formattedOrders,
+            stats: stats
+        });
+
+    } catch (error) {
+        console.error("Error fetching pending check payments:", error);
+        res.status(500).json({ error: "Error fetching pending check payments" });
+    }
+});
+
+/**
  * CREATE ORDER (Referral rewards applied ONLY after payment verification)
  */
 router.post("/", authenticateToken, async (req, res) => {

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Google Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        .url-display {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
+            border: 1px solid #e0e0e0;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Google Form Test Page</h1>
+        
+        <div class="test-section">
+            <h3>1. Test Basic Form URL</h3>
+            <p>This tests if your Google Form opens correctly without any parameters.</p>
+            <button onclick="testBasicForm()">Open Basic Form</button>
+            <div id="basicResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. Test Pre-filled Form URL</h3>
+            <p>This tests the form with pre-filled data (like your system generates).</p>
+            <button onclick="testPrefilledForm()">Open Pre-filled Form</button>
+            <div id="prefilledResult"></div>
+            <div class="url-display" id="prefilledUrl"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. Test Popup Blocker</h3>
+            <p>This tests if your browser is blocking popups.</p>
+            <button onclick="testPopupBlocker()">Test Popup</button>
+            <div id="popupResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. Manual Form Link</h3>
+            <p>If popups are blocked, you can use this direct link:</p>
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSdzVs8LdM9G6wEHwIwfxLvwGbEV43ZfK8F_9QXmNbnHpN_G5Q/viewform" target="_blank">
+                📋 Open Google Form Manually
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Your actual form ID
+        const FORM_ID = '1FAIpQLSdzVs8LdM9G6wEHwIwfxLvwGbEV43ZfK8F_9QXmNbnHpN_G5Q';
+        
+        function testBasicForm() {
+            const basicUrl = `https://docs.google.com/forms/d/e/${FORM_ID}/viewform`;
+            console.log('Testing basic form URL:', basicUrl);
+            
+            try {
+                const formWindow = window.open(basicUrl, '_blank');
+                
+                if (!formWindow || formWindow.closed || typeof formWindow.closed == 'undefined') {
+                    document.getElementById('basicResult').innerHTML = '<span class="error">❌ Popup blocked! Please allow popups for this site.</span>';
+                } else {
+                    document.getElementById('basicResult').innerHTML = '<span class="success">✅ Form opened successfully!</span>';
+                }
+            } catch (error) {
+                document.getElementById('basicResult').innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+            }
+        }
+        
+        function testPrefilledForm() {
+            // Generate a test URL similar to what your system creates
+            const testOrderId = 'TEST_ORDER_' + Date.now();
+            const testAmount = '599';
+            const testEmail = 'test@example.com';
+            const testName = 'Test User';
+            const testPhone = '9876543210';
+            
+            const prefilledUrl = `https://docs.google.com/forms/d/e/${FORM_ID}/viewform?usp=pp_url` +
+                `&entry.209098555=${testOrderId}` +
+                `&entry.701631358=${testAmount}` +
+                `&entry.1509226876=${encodeURIComponent(testEmail)}` +
+                `&entry.485473134=${encodeURIComponent(testName)}` +
+                `&entry.4317222=${encodeURIComponent(testPhone)}`;
+            
+            console.log('Testing pre-filled form URL:', prefilledUrl);
+            document.getElementById('prefilledUrl').textContent = prefilledUrl;
+            
+            try {
+                const formWindow = window.open(prefilledUrl, '_blank');
+                
+                if (!formWindow || formWindow.closed || typeof formWindow.closed == 'undefined') {
+                    document.getElementById('prefilledResult').innerHTML = '<span class="error">❌ Popup blocked! Please allow popups for this site.</span>';
+                } else {
+                    document.getElementById('prefilledResult').innerHTML = '<span class="success">✅ Pre-filled form opened successfully!</span>';
+                }
+            } catch (error) {
+                document.getElementById('prefilledResult').innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+            }
+        }
+        
+        function testPopupBlocker() {
+            try {
+                const testWindow = window.open('', '_blank');
+                
+                if (!testWindow || testWindow.closed || typeof testWindow.closed == 'undefined') {
+                    document.getElementById('popupResult').innerHTML = '<span class="error">❌ Popups are blocked! Please allow popups for this site in your browser settings.</span>';
+                } else {
+                    testWindow.close();
+                    document.getElementById('popupResult').innerHTML = '<span class="success">✅ Popups are allowed!</span>';
+                }
+            } catch (error) {
+                document.getElementById('popupResult').innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+            }
+        }
+        
+        // Auto-test on page load
+        window.onload = function() {
+            console.log('Google Form Test Page Loaded');
+            console.log('Form ID:', FORM_ID);
+        };
+    </script>
+</body>
+</html>
