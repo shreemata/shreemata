@@ -92,6 +92,12 @@ const orderSchema = new mongoose.Schema({
         checkDate: { type: Date },
         transferDate: { type: Date },
         googleFormSubmissionId: { type: String, default: "" },
+        
+        // Image fields for check/transfer uploads
+        checkImageUrl: { type: String, default: "" },
+        checkImageDriveId: { type: String, default: "" },
+        driveFileIds: [{ type: String }], // Array of Google Drive file IDs
+        
         adminNotes: { type: String, default: "" },
         createdAt: { type: Date, default: Date.now },
         updatedAt: { type: Date, default: Date.now }
