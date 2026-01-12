@@ -88,14 +88,19 @@ const orderSchema = new mongoose.Schema({
         },
         utrNumber: { type: String, default: "" },
         checkNumber: { type: String, default: "" },
+        transferNumber: { type: String, default: "" }, // For bank transfers
         bankName: { type: String, default: "" },
         checkDate: { type: Date },
         transferDate: { type: Date },
+        accountNumber: { type: String, default: "" }, // For bank transfers
+        ifscCode: { type: String, default: "" }, // For bank transfers
         googleFormSubmissionId: { type: String, default: "" },
         
         // Image fields for check/transfer uploads
         checkImageUrl: { type: String, default: "" },
         checkImageDriveId: { type: String, default: "" },
+        transferReceiptUrl: { type: String, default: "" }, // For bank transfer receipts
+        transferReceiptDriveId: { type: String, default: "" }, // For bank transfer receipts
         driveFileIds: [{ type: String }], // Array of Google Drive file IDs
         
         adminNotes: { type: String, default: "" },

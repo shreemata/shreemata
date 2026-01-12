@@ -822,22 +822,35 @@
                 console.log(`   - checkImageDriveId: ${order.paymentDetails?.checkImageDriveId}`);
                 console.log(`   - driveFileIds: ${JSON.stringify(order.paymentDetails?.driveFileIds)}`);
                 
+                // Check for duplicate file IDs
+                const allFileIds = [];
+                if (order.paymentDetails?.checkImageDriveId) {
+                    allFileIds.push(order.paymentDetails.checkImageDriveId);
+                }
+                if (order.paymentDetails?.driveFileIds) {
+                    allFileIds.push(...order.paymentDetails.driveFileIds);
+                }
+                const uniqueFileIds = [...new Set(allFileIds)];
+                console.log(`   - All file IDs: ${JSON.stringify(allFileIds)}`);
+                console.log(`   - Unique file IDs: ${JSON.stringify(uniqueFileIds)}`);
+                console.log(`   - Has duplicates: ${allFileIds.length !== uniqueFileIds.length}`);
+                
                 const hasImages = order.paymentDetails?.checkImageUrl || order.paymentDetails?.checkImageDriveId;
                 console.log(`   - hasImages condition: ${hasImages}`);
             });
             
-            if (!orders || orders.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="icon">📋</div>
-                        <h3>No Pending Approvals</h3>
-                        <p>All check payments have been processed.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = orders.map(order => `
+            container.innerHTML = orders.map(order => {
+                // Get unique file IDs to avoid duplicates
+                const allFileIds = [];
+                if (order.paymentDetails?.checkImageDriveId) {
+                    allFileIds.push(order.paymentDetails.checkImageDriveId);
+                }
+                if (order.paymentDetails?.driveFileIds) {
+                    allFileIds.push(...order.paymentDetails.driveFileIds);
+                }
+                const uniqueFileIds = [...new Set(allFileIds)];
+                
+                return `
                 <div class="order-card">
                     <div class="order-header">
                         <div class="order-info">
@@ -894,19 +907,58 @@
                                 ` : ''}
                             </div>
                             
-                            ${order.paymentDetails.checkImageUrl || order.paymentDetails.checkImageDriveId || (order.paymentDetails.driveFileIds && order.paymentDetails.driveFileIds.length > 0) ? `
+                            ${uniqueFileIds.length > 0 ? `
                                 <div class="uploaded-images">
-                                    <h5>📷 Uploaded Images</h5>
+                                    <h5>📷 Uploaded Images (${uniqueFileIds.length})</h5>
                                     <div class="image-buttons">
-                                        ${order.paymentDetails.checkImageDriveId ? `
-                                            <a href="https://drive.google.com/file/d/${order.paymentDetails.checkImageDriveId}/view" target="_blank" class="btn-drive-link">
-                                                📁 View Check Image in Drive
-                                            </a>
-                                        ` : ''}
-                                        ${order.paymentDetails.driveFileIds?.filter(fileId => fileId !== order.paymentDetails.checkImageDriveId).map((fileId, index) => `
+                                        ${uniqueFileIds.map((fileId, index) => `
+                                            <button class="btn-view-image" onclick="openImageModal('https://drive.google.com/uc?export=view&id=${fileId}', 'Payment Document ${index + 1}')">
+                                                👁️ View Image ${index + 1}
+                                            </button>
                                             <a href="https://drive.google.com/file/d/${fileId}/view" target="_blank" class="btn-drive-link">
-                                                📁 View Document ${index + 2} in Drive
+                                                📁 Open in Drive
                                             </a>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : `
+                                <div class="uploaded-images">
+                                    <p style="color: #666; font-style: italic;">📷 No images uploaded yet</p>
+                                </div>
+                            `}
+                            
+                            ${order.paymentDetails.googleFormSubmissionId ? `
+                                <div style="margin-top: 15px;">
+                                    <button class="btn btn-view" onclick="showFormResponseModal('${order._id}', '${order._id}')">
+                                        📋 View Form Submission Details
+                                    </button>
+                                    <br>
+                                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                                        Response ID: ${order.paymentDetails.googleFormSubmissionId}
+                                    </small>
+                                </div>
+                            ` : `
+                                <div style="margin-top: 15px;">
+                                    <p style="color: #666; font-style: italic;">📋 No form submission data available</p>
+                                </div>
+                            `}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-approve" onclick="showApprovalModal('${order._id}')">
+                            ✅ Approve Payment
+                        </button>
+                        <button class="btn btn-reject" onclick="showRejectionModal('${order._id}')">
+                            ❌ Reject Payment
+                        </button>
+                        <a href="/admin-orders.html?orderId=${order._id}" class="btn btn-view">
+                            👁️ View Full Order
+                        </a>
+                    </div>
+                </div>
+            `}).join('');
+        }
                                         `).join('') || ''}
                                     </div>
                                 </div>
@@ -1075,68 +1127,114 @@
                     throw new Error('Order not found in current data');
                 }
                 
-                if (!order.allResponses || Object.keys(order.allResponses).length === 0) {
-                    throw new Error('Form response data not available for this order');
+                // Check if we have form response data
+                const hasAllResponses = order.allResponses && Object.keys(order.allResponses).length > 0;
+                const hasPaymentDetails = order.paymentDetails && Object.keys(order.paymentDetails).length > 0;
+                
+                if (!hasAllResponses && !hasPaymentDetails) {
+                    throw new Error('No form response data available for this order');
                 }
                 
                 // Create the form response display
                 let html = `
                     <div class="response-header">
-                        <h4>📋 Google Form Submission</h4>
-                        <p>Order ID: ${orderId}</p>
-                        <p>Submitted: ${new Date(order.paymentDetails?.updatedAt || order.createdAt).toLocaleString()}</p>
+                        <h4>📋 Payment Submission Details</h4>
+                        <p><strong>Order ID:</strong> ${orderId}</p>
+                        <p><strong>Submitted:</strong> ${new Date(order.paymentDetails?.updatedAt || order.createdAt).toLocaleString()}</p>
+                        ${order.paymentDetails?.googleFormSubmissionId ? `<p><strong>Form Response ID:</strong> ${order.paymentDetails.googleFormSubmissionId}</p>` : ''}
                     </div>
                 `;
                 
-                html += `
-                    <table class="form-response-table">
-                        <thead>
-                            <tr>
-                                <th>Form Field</th>
-                                <th>User Response</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
-                
-                // Display each form field and response
-                for (const [field, response] of Object.entries(order.allResponses)) {
-                    let displayValue = '';
+                // Show form responses if available
+                if (hasAllResponses) {
+                    html += `
+                        <h5 style="margin: 20px 0 10px 0; color: #333;">📝 Form Responses</h5>
+                        <table class="form-response-table">
+                            <thead>
+                                <tr>
+                                    <th>Form Field</th>
+                                    <th>User Response</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
                     
-                    if (Array.isArray(response)) {
-                        if (response.length > 0) {
-                            // Handle nested arrays (like file uploads)
-                            if (Array.isArray(response[0])) {
-                                displayValue = response[0].join(', ');
+                    // Display each form field and response
+                    for (const [field, response] of Object.entries(order.allResponses)) {
+                        let displayValue = '';
+                        
+                        if (Array.isArray(response)) {
+                            if (response.length > 0) {
+                                // Handle nested arrays (like file uploads)
+                                if (Array.isArray(response[0])) {
+                                    displayValue = response[0].join(', ');
+                                } else {
+                                    displayValue = response.join(', ');
+                                }
                             } else {
-                                displayValue = response.join(', ');
+                                displayValue = '<em style="color: #999;">No response</em>';
                             }
                         } else {
-                            displayValue = '<em style="color: #999;">No response</em>';
+                            displayValue = response || '<em style="color: #999;">No response</em>';
                         }
-                    } else {
-                        displayValue = response || '<em style="color: #999;">No response</em>';
-                    }
-                    
-                    // Special handling for file uploads
-                    if (field.toLowerCase().includes('upload') || field.toLowerCase().includes('image')) {
-                        if (displayValue && displayValue !== '<em style="color: #999;">No response</em>') {
-                            displayValue = `📎 File uploaded: ${displayValue}`;
+                        
+                        // Special handling for file uploads
+                        if (field.toLowerCase().includes('upload') || field.toLowerCase().includes('image')) {
+                            if (displayValue && displayValue !== '<em style="color: #999;">No response</em>') {
+                                displayValue = `📎 File uploaded: ${displayValue}`;
+                            }
                         }
+                        
+                        html += `
+                            <tr>
+                                <th>${field}</th>
+                                <td>${displayValue}</td>
+                            </tr>
+                        `;
                     }
                     
                     html += `
-                        <tr>
-                            <th>${field}</th>
-                            <td>${displayValue}</td>
-                        </tr>
+                            </tbody>
+                        </table>
                     `;
                 }
                 
-                html += `
-                        </tbody>
-                    </table>
-                `;
+                // Show payment details if available
+                if (hasPaymentDetails) {
+                    html += `
+                        <h5 style="margin: 20px 0 10px 0; color: #333;">💳 Payment Details</h5>
+                        <table class="form-response-table">
+                            <tbody>
+                    `;
+                    
+                    const paymentDetails = order.paymentDetails;
+                    const detailsToShow = [
+                        { label: 'Payment Type', value: paymentDetails.type || order.paymentType || 'check' },
+                        { label: 'Status', value: paymentDetails.status || 'pending' },
+                        { label: 'Check Number', value: paymentDetails.checkNumber },
+                        { label: 'Bank Name', value: paymentDetails.bankName },
+                        { label: 'Check Date', value: paymentDetails.checkDate ? new Date(paymentDetails.checkDate).toLocaleDateString() : null },
+                        { label: 'UTR Number', value: paymentDetails.utrNumber },
+                        { label: 'Created At', value: paymentDetails.createdAt ? new Date(paymentDetails.createdAt).toLocaleString() : null },
+                        { label: 'Updated At', value: paymentDetails.updatedAt ? new Date(paymentDetails.updatedAt).toLocaleString() : null }
+                    ];
+                    
+                    detailsToShow.forEach(detail => {
+                        if (detail.value) {
+                            html += `
+                                <tr>
+                                    <th>${detail.label}</th>
+                                    <td>${detail.value}</td>
+                                </tr>
+                            `;
+                        }
+                    });
+                    
+                    html += `
+                            </tbody>
+                        </table>
+                    `;
+                }
                 
                 content.innerHTML = html;
                 
@@ -1144,12 +1242,15 @@
                 console.error('Error loading form response:', error);
                 content.innerHTML = `
                     <div style="text-align: center; padding: 40px; color: #dc3545;">
-                        <p>❌ Error loading form submission details</p>
+                        <p>❌ Error loading submission details</p>
                         <p style="font-size: 14px;">${error.message}</p>
                         <p style="font-size: 12px; color: #666; margin-top: 15px;">
                             This might be an older order from before form data collection was implemented, 
                             or the form data wasn't saved properly.
                         </p>
+                        <button onclick="loadPendingCheckPayments()" class="btn btn-approve" style="margin-top: 15px;">
+                            🔄 Refresh Data
+                        </button>
                     </div>
                 `;
             }
@@ -1181,12 +1282,48 @@
             const img = document.getElementById('imageModalImg');
             const titleEl = document.getElementById('imageModalTitle');
             
-            img.src = imageUrl;
-            titleEl.textContent = title || 'Payment Document';
+            // Show modal immediately
             modal.style.display = 'block';
-            
-            // Prevent body scroll
             document.body.style.overflow = 'hidden';
+            
+            // Set title
+            titleEl.textContent = title || 'Payment Document';
+            
+            // Show loading state
+            img.style.display = 'none';
+            titleEl.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <div class="spinner" style="width: 20px; height: 20px; border-width: 2px;"></div>
+                    <span>Loading image...</span>
+                </div>
+            `;
+            
+            // Create a new image to test loading
+            const testImg = new Image();
+            
+            testImg.onload = function() {
+                // Image loaded successfully
+                img.src = imageUrl;
+                img.style.display = 'block';
+                titleEl.textContent = title || 'Payment Document';
+            };
+            
+            testImg.onerror = function() {
+                // Image failed to load
+                titleEl.innerHTML = `
+                    <div style="color: #dc3545; text-align: center;">
+                        <p>❌ Unable to load image</p>
+                        <p style="font-size: 14px; margin-top: 10px;">
+                            The image might not be publicly accessible. 
+                            <a href="${imageUrl}" target="_blank" style="color: #667eea;">Try opening in new tab</a>
+                        </p>
+                    </div>
+                `;
+                img.style.display = 'none';
+            };
+            
+            // Start loading the image
+            testImg.src = imageUrl;
         }
         
         function closeImageModal() {

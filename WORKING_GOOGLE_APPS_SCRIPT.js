@@ -99,6 +99,12 @@ else if (titleLower.includes('phone')) {
 }
 else if (titleLower.includes('bank name')) {
   extractedData.bankName = response;
+  // Detect payment type from bank name field
+  if (response && response.toLowerCase().includes('transfer')) {
+    extractedData.paymentType = 'transfer';
+  } else {
+    extractedData.paymentType = 'check';
+  }
 }
 else if (titleLower.includes('check date') || titleLower.includes('date')) {
   extractedData.checkDate = response;
@@ -212,6 +218,7 @@ console.log('🧾 Image results:', { driveFileIds, checkImageUrl, imageErrors })
   bankName: extractedData.bankName || 'Unknown Bank',
   checkDate: extractedData.checkDate || new Date().toISOString().split('T')[0],
   utrNumber: '',
+  paymentType: extractedData.paymentType || 'check', // Add payment type detection
   formResponseId: formResponseId,
   driveFileIds: driveFileIds,
   checkImageUrl: checkImageUrl,

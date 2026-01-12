@@ -159,24 +159,34 @@
         function openPaymentForm(type) {
             let formUrl = '';
             
-            if (type === 'check') {
-                // Check Payment Form URL with pre-filled data
-                formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSdkaIGD87RUORM210G8kCWeIx60Fdc88KKkxcnmuee1bOL2Pg/viewform?usp=pp_url&entry.1788264298=${orderId}&entry.1894225499=${amount}&entry.774046160=${encodeURIComponent(userEmail)}&entry.1406386079=${encodeURIComponent(userName)}`;
-            } else {
-                // Bank Transfer Form URL with pre-filled data
-                formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSdzVs8LdM9G6wEHwIwfxLvwGbEV43ZfK8F_9QXmNbnHpN_G5Q/viewform?usp=pp_url&entry.209098555=${orderId}&entry.701631358=${amount}&entry.1509226876=${encodeURIComponent(userEmail)}&entry.485473134=${encodeURIComponent(userName)}`;
-            }
+            // Use the same working Google Form for both payment types
+            // The form will be pre-filled with payment type information
+            formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSdkaIGD87RUORM210G8kCWeIx60Fdc88KKkxcnmuee1bOL2Pg/viewform?usp=pp_url` +
+                `&entry.1788264298=${orderId}` +
+                `&entry.1894225499=${amount}` +
+                `&entry.774046160=${encodeURIComponent(userEmail)}` +
+                `&entry.1406386079=${encodeURIComponent(userName)}` +
+                `&entry.980862279=${encodeURIComponent(type === 'check' ? 'Check Payment' : 'Bank Transfer')}` +
+                `&entry.790413540=${new Date().toISOString().split('T')[0]}`;
             
             // Show instructions before opening form
-            alert(
-                "📝 INSTRUCTIONS:\n\n" +
+            const instructions = type === 'check' ? 
+                "📝 CHECK PAYMENT INSTRUCTIONS:\n\n" +
                 "1. Fill out the form that will open\n" +
-                "2. Upload clear images of your payment\n" +
-                "3. Submit the form\n" +
-                "4. Close the form tab when done\n" +
-                "5. You'll be redirected to your orders page\n\n" +
-                "Click OK to open the form now."
-            );
+                "2. Upload clear images of your CHECK\n" +
+                "3. Enter check number and bank details\n" +
+                "4. Submit the form\n" +
+                "5. Close the form tab when done\n\n" +
+                "Click OK to open the form now." :
+                "🏦 BANK TRANSFER INSTRUCTIONS:\n\n" +
+                "1. Fill out the form that will open\n" +
+                "2. Upload clear images of your TRANSFER RECEIPT\n" +
+                "3. Enter UTR number and bank details\n" +
+                "4. Submit the form\n" +
+                "5. Close the form tab when done\n\n" +
+                "Click OK to open the form now.";
+            
+            alert(instructions);
             
             // Open form in new window/tab
             const formWindow = window.open(formUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');

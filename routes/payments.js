@@ -1181,11 +1181,13 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
       driveFileIds,
       checkImageUrl,
       checkImageDriveId,
-      allResponses  // Add this field
+      allResponses,  // Add this field
+      paymentType    // Add this field to detect check vs transfer
     } = req.body;
 
     console.log("🔍 Extracted fields:");
     console.log("  orderId:", orderId);
+    console.log("  paymentType:", paymentType);
     console.log("  checkImageUrl:", checkImageUrl);
     console.log("  checkImageDriveId:", checkImageDriveId);
     console.log("  driveFileIds:", driveFileIds);
@@ -1218,6 +1220,13 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
       'paymentDetails.googleFormSubmissionId': formResponseId,
       'paymentDetails.updatedAt': new Date()
     };
+
+    // Update payment type if provided (for unified form handling)
+    if (paymentType && (paymentType === 'check' || paymentType === 'transfer')) {
+      updateData['paymentType'] = paymentType;
+      updateData['paymentDetails.type'] = paymentType;
+      console.log('💾 ✅ Updated payment type to:', paymentType);
+    }
 
     // Add image URLs if provided - with detailed logging
     if (checkImageUrl) {
@@ -1282,6 +1291,134 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
   } catch (error) {
     console.error("Check payment webhook error:", error);
     res.status(500).json({ error: "Error processing check payment submission" });
+  }
+});
+
+// =====================================================
+// 🔄 BANK TRANSFER WEBHOOK (Google Form Submission)
+// =====================================================
+router.post("/webhook/bank-transfer-submitted", async (req, res) => {
+  try {
+    console.log("🏦 Bank transfer form submitted - RAW BODY:", JSON.stringify(req.body, null, 2));
+    
+    const { 
+      orderId, 
+      transferNumber, 
+      bankName, 
+      transferDate, 
+      utrNumber, 
+      accountNumber,
+      ifscCode,
+      formResponseId,
+      driveFileIds,
+      transferReceiptUrl,
+      transferReceiptDriveId,
+      allResponses,
+      paymentType = 'transfer'  // Default to transfer
+    } = req.body;
+
+    console.log("🔍 Extracted bank transfer fields:");
+    console.log("  orderId:", orderId);
+    console.log("  transferReceiptUrl:", transferReceiptUrl);
+    console.log("  transferReceiptDriveId:", transferReceiptDriveId);
+    console.log("  driveFileIds:", driveFileIds);
+    console.log("  utrNumber:", utrNumber);
+    console.log("  formResponseId:", formResponseId);
+    console.log("  allResponses:", allResponses ? 'Present' : 'Missing');
+
+    if (!orderId) {
+      return res.status(400).json({ error: "Order ID is required" });
+    }
+
+    // Validate ObjectId format
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      console.log(`❌ Invalid ObjectId format: "${orderId}"`);
+      return res.status(400).json({ 
+        error: "Invalid Order ID format", 
+        message: "Order ID must be a valid MongoDB ObjectId",
+        receivedOrderId: orderId,
+        expectedFormat: "24-character hex string (e.g., 507f1f77bcf86cd799439011)"
+      });
+    }
+
+    // Update order with bank transfer details
+    const updateData = {
+      'paymentDetails.status': 'pending_verification',
+      'paymentDetails.transferNumber': transferNumber,
+      'paymentDetails.bankName': bankName,
+      'paymentDetails.transferDate': transferDate ? new Date(transferDate) : null,
+      'paymentDetails.utrNumber': utrNumber,
+      'paymentDetails.accountNumber': accountNumber,
+      'paymentDetails.ifscCode': ifscCode,
+      'paymentDetails.googleFormSubmissionId': formResponseId,
+      'paymentDetails.updatedAt': new Date(),
+      'paymentType': 'transfer'  // Ensure payment type is set
+    };
+
+    // Add receipt URLs if provided - with detailed logging
+    if (transferReceiptUrl) {
+      updateData['paymentDetails.transferReceiptUrl'] = transferReceiptUrl;
+      console.log('💾 ✅ Saving transferReceiptUrl:', transferReceiptUrl);
+    } else {
+      console.log('💾 ❌ No transferReceiptUrl provided');
+    }
+    
+    if (transferReceiptDriveId) {
+      updateData['paymentDetails.transferReceiptDriveId'] = transferReceiptDriveId;
+      console.log('💾 ✅ Saving transferReceiptDriveId:', transferReceiptDriveId);
+    } else {
+      console.log('💾 ❌ No transferReceiptDriveId provided');
+    }
+    
+    if (driveFileIds && Array.isArray(driveFileIds) && driveFileIds.length > 0) {
+      updateData['paymentDetails.driveFileIds'] = driveFileIds;
+      console.log('💾 ✅ Saving driveFileIds:', driveFileIds);
+    } else {
+      console.log('💾 ❌ No driveFileIds provided or empty array');
+    }
+
+    // Add form responses data
+    if (allResponses && typeof allResponses === 'object') {
+      updateData['allResponses'] = allResponses;
+      console.log('💾 ✅ Saving allResponses:', Object.keys(allResponses).length, 'fields');
+    } else {
+      console.log('💾 ❌ No allResponses provided');
+    }
+
+    console.log('💾 Complete bank transfer updateData being sent to MongoDB:', JSON.stringify(updateData, null, 2));
+
+    const order = await Order.findByIdAndUpdate(orderId, updateData, { new: true });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    console.log('✅ Bank transfer order updated successfully');
+    console.log('🔍 Final paymentDetails in database:', JSON.stringify(order.paymentDetails, null, 2));
+    console.log('🔍 Final allResponses in database:', order.allResponses ? 'Present' : 'Missing');
+
+    // Send notification to admin (optional)
+    try {
+      const user = await User.findById(order.user_id);
+      if (user) {
+        console.log(`📧 Bank transfer submitted by ${user.name} for order ${orderId}`);
+        // You can send admin notification email here
+      }
+    } catch (emailError) {
+      console.error("Error sending admin notification:", emailError);
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Bank transfer details received",
+      orderId: orderId,
+      status: "pending_verification"
+    });
+
+  } catch (error) {
+    console.error("Bank transfer webhook error:", error);
+    res.status(500).json({ error: "Error processing bank transfer submission" });
   }
 });
 
