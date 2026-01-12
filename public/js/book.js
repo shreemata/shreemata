@@ -434,6 +434,16 @@ async function proceedWithRazorpayPayment() {
 }
 
 function redirectToCheckPaymentForm() {
+    // Check authentication first
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    
+    if (!token || !user) {
+        alert("Please log in to place an order.");
+        window.location.href = "/login.html";
+        return;
+    }
+    
     const bookId = new URLSearchParams(window.location.search).get("id");
     const deliveryMethod = window.selectedDeliveryMethod || "courier";
     const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
@@ -454,6 +464,16 @@ function redirectToCheckPaymentForm() {
 }
 
 function redirectToAccountTransferForm() {
+    // Check authentication first
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    
+    if (!token || !user) {
+        alert("Please log in to place an order.");
+        window.location.href = "/login.html";
+        return;
+    }
+    
     const bookId = new URLSearchParams(window.location.search).get("id");
     const deliveryMethod = window.selectedDeliveryMethod || "courier";
     const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
@@ -477,6 +497,13 @@ async function createPendingOrder(paymentType, deliveryMethod, basePrice, weight
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
     
+    // Double-check authentication
+    if (!token || !user) {
+        alert("Authentication required. Please log in to place an order.");
+        window.location.href = "/login.html";
+        return;
+    }
+    
     try {
         // Calculate courier charge if needed
         let courierCharge = 0;
@@ -485,6 +512,16 @@ async function createPendingOrder(paymentType, deliveryMethod, basePrice, weight
         }
         
         const totalAmount = basePrice + courierCharge;
+        
+        console.log("Creating pending order with:", {
+            paymentType,
+            deliveryMethod,
+            basePrice,
+            courierCharge,
+            totalAmount,
+            bookId,
+            quantity
+        });
         
         // Create pending order
         const orderRes = await fetch(`${API}/orders/create-pending`, {
@@ -508,8 +545,20 @@ async function createPendingOrder(paymentType, deliveryMethod, basePrice, weight
         const orderData = await orderRes.json();
 
         if (!orderRes.ok) {
-            throw new Error(orderData.error || "Failed to create order");
+            console.error("Order creation failed:", orderRes.status, orderData);
+            
+            if (orderRes.status === 401) {
+                alert("Your session has expired. Please log in again.");
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                window.location.href = "/login.html";
+                return;
+            }
+            
+            throw new Error(orderData.error || `Failed to create order (${orderRes.status})`);
         }
+
+        console.log("Order created successfully:", orderData);
 
         // Show confirmation and redirect to upload page
         alert(`Order created! Order ID: ${orderData.orderId}\n\nYou will now be redirected to upload payment details.`);
@@ -519,7 +568,15 @@ async function createPendingOrder(paymentType, deliveryMethod, basePrice, weight
 
     } catch (err) {
         console.error("Error creating pending order:", err);
-        alert("Error creating order. Please try again.");
+        
+        if (err.message.includes("Unauthorized")) {
+            alert("Authentication failed. Please log in again.");
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            window.location.href = "/login.html";
+        } else {
+            alert(`Error creating order: ${err.message}\n\nPlease try again or contact support.`);
+        }
     }
 }
 

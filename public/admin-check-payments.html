@@ -761,16 +761,22 @@
                                     <div class="image-gallery">
                                         ${order.paymentDetails.checkImageUrl ? `
                                             <div class="image-item">
-                                                <img src="${order.paymentDetails.checkImageUrl}" alt="Check Image" onclick="openImageModal('${order.paymentDetails.checkImageUrl}', 'Check Image')">
+                                                <img src="${order.paymentDetails.checkImageUrl}" 
+                                                     alt="Check Image" 
+                                                     onclick="openImageModal('${order.paymentDetails.checkImageUrl}', 'Check Image')"
+                                                     onerror="this.src='https://lh3.googleusercontent.com/d/${order.paymentDetails.checkImageDriveId}'; this.onerror=function(){this.src='https://drive.google.com/thumbnail?id=${order.paymentDetails.checkImageDriveId}&sz=w400';}">
                                                 <p>Check Image</p>
-                                                ${order.paymentDetails.driveWebViewLink ? `
-                                                    <a href="${order.paymentDetails.driveWebViewLink}" target="_blank" class="view-drive-link">📁 View in Drive</a>
+                                                ${order.paymentDetails.checkImageDriveId ? `
+                                                    <a href="https://drive.google.com/file/d/${order.paymentDetails.checkImageDriveId}/view" target="_blank" class="view-drive-link">📁 View in Drive</a>
                                                 ` : ''}
                                             </div>
                                         ` : ''}
                                         ${order.paymentDetails.driveFileIds?.map((fileId, index) => `
                                             <div class="image-item">
-                                                <img src="https://drive.google.com/uc?id=${fileId}" alt="Payment Document ${index + 1}" onclick="openImageModal('https://drive.google.com/uc?id=${fileId}', 'Payment Document ${index + 1}')">
+                                                <img src="https://lh3.googleusercontent.com/d/${fileId}" 
+                                                     alt="Payment Document ${index + 1}" 
+                                                     onclick="openImageModal('https://lh3.googleusercontent.com/d/${fileId}', 'Payment Document ${index + 1}')"
+                                                     onerror="this.src='https://drive.google.com/thumbnail?id=${fileId}&sz=w400'; this.onerror=null;">
                                                 <p>Document ${index + 1}</p>
                                                 <a href="https://drive.google.com/file/d/${fileId}/view" target="_blank" class="view-drive-link">📁 View in Drive</a>
                                             </div>
@@ -784,11 +790,21 @@
                             `}
                             
                             ${order.paymentDetails.googleFormSubmissionId ? `
-                                <a href="https://docs.google.com/forms/d/1FAIpQLSdkaIGD87RUORM210G8kCWeIx60Fdc88KKkxcnmuee1bOL2Pg/edit#response=${order.paymentDetails.googleFormSubmissionId}" 
-                                   target="_blank" class="google-form-link">
-                                    📋 View Google Form Response
-                                </a>
-                            ` : ''}
+                                <div style="margin-top: 15px;">
+                                    <a href="https://docs.google.com/forms/d/1FAIpQLSdkaIGD87RUORM210G8kCWeIx60Fdc88KKkxcnmuee1bOL2Pg/edit#response=${order.paymentDetails.googleFormSubmissionId}" 
+                                       target="_blank" class="google-form-link">
+                                        📋 View Google Form Response
+                                    </a>
+                                    <br>
+                                    <small style="color: #666; font-size: 12px;">
+                                        Response ID: ${order.paymentDetails.googleFormSubmissionId}
+                                    </small>
+                                </div>
+                            ` : `
+                                <div style="margin-top: 15px;">
+                                    <p style="color: #666; font-style: italic;">📋 No Google Form response ID available</p>
+                                </div>
+                            `}
                         </div>
                     ` : ''}
                     

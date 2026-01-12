@@ -42,21 +42,28 @@ function onFormSubmit(e) {
         const keyLower = key.toLowerCase();
         
         // Match by field names or entry numbers
-        if (key.includes('1788264298') || keyLower.includes('order') || keyLower.includes('id')) {
-          extractedData.orderId = fieldValue || '';
-        } else if (key.includes('1894225499') || keyLower.includes('amount') || keyLower.includes('price')) {
-          extractedData.amount = fieldValue || '';
-        } else if (key.includes('774046160') || keyLower.includes('email')) {
-          extractedData.userEmail = fieldValue || '';
-        } else if (key.includes('1406386079') || keyLower.includes('name')) {
-          extractedData.userName = fieldValue || '';
-        } else if (key.includes('632794616') || keyLower.includes('phone')) {
-          extractedData.userPhone = fieldValue || '';
-        } else if (key.includes('980862279') || keyLower.includes('bank')) {
-          extractedData.bankName = fieldValue || '';
-        } else if (key.includes('790413540') || keyLower.includes('date')) {
-          extractedData.checkDate = fieldValue || '';
-        }
+      if (keyLower.includes('order id')) {
+  extractedData.orderId = fieldValue;
+}
+else if (keyLower.includes('order amount') || keyLower.includes('amount')) {
+  extractedData.amount = fieldValue;
+}
+else if (keyLower.includes('email')) {
+  extractedData.userEmail = fieldValue;
+}
+else if (keyLower.includes('full name')) {
+  extractedData.userName = fieldValue;
+}
+else if (keyLower.includes('phone')) {
+  extractedData.userPhone = fieldValue;
+}
+else if (keyLower.includes('bank name')) {
+  extractedData.bankName = fieldValue;
+}
+else if (keyLower.includes('check date') || keyLower.includes('date')) {
+  extractedData.checkDate = fieldValue;
+}
+
       }
     }
     // Method 2: Direct response access
@@ -75,21 +82,28 @@ function onFormSubmit(e) {
         const titleLower = title.toLowerCase();
         
         // Match by field titles
-        if (titleLower.includes('order') || titleLower.includes('id')) {
-          extractedData.orderId = response || '';
-        } else if (titleLower.includes('amount') || titleLower.includes('price')) {
-          extractedData.amount = response || '';
-        } else if (titleLower.includes('email')) {
-          extractedData.userEmail = response || '';
-        } else if (titleLower.includes('name')) {
-          extractedData.userName = response || '';
-        } else if (titleLower.includes('phone')) {
-          extractedData.userPhone = response || '';
-        } else if (titleLower.includes('bank')) {
-          extractedData.bankName = response || '';
-        } else if (titleLower.includes('date')) {
-          extractedData.checkDate = response || '';
-        }
+    if (titleLower.includes('order id')) {
+  extractedData.orderId = response;
+}
+else if (titleLower.includes('order amount') || titleLower.includes('amount')) {
+  extractedData.amount = response;
+}
+else if (titleLower.includes('email')) {
+  extractedData.userEmail = response;
+}
+else if (titleLower.includes('full name')) {
+  extractedData.userName = response;
+}
+else if (titleLower.includes('phone')) {
+  extractedData.userPhone = response;
+}
+else if (titleLower.includes('bank name')) {
+  extractedData.bankName = response;
+}
+else if (titleLower.includes('check date') || titleLower.includes('date')) {
+  extractedData.checkDate = response;
+}
+
       }
     }
     // Method 3: Fallback for undefined event
@@ -114,58 +128,104 @@ function onFormSubmit(e) {
     console.log('Final extracted data:', extractedData);
     
     // Handle file uploads
-    const driveFileIds = [];
-    let checkImageUrl = '';
-    let checkImageDriveId = '';
-    
-    // Look for Google Drive URLs in responses
-    for (const [key, value] of Object.entries(responses)) {
-      const fieldValue = Array.isArray(value) ? value[0] : value;
-      if (fieldValue && typeof fieldValue === 'string' && fieldValue.includes('drive.google.com')) {
-        console.log('Found file URL:', fieldValue);
-        
-        // Extract file ID from Google Drive URL
-        const fileIdMatch = fieldValue.match(/[-\w]{25,}/);
-        if (fileIdMatch) {
-          const fileId = fileIdMatch[0];
-          driveFileIds.push(fileId);
-          
-          if (!checkImageUrl) {
-            checkImageUrl = `https://drive.google.com/uc?id=${fileId}`;
-            checkImageDriveId = fileId;
-          }
-          
-          // Try to make file publicly viewable
-          try {
-            const file = DriveApp.getFileById(fileId);
-            file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-            console.log(`✅ Made file ${fileId} publicly viewable`);
-          } catch (shareError) {
-            console.log('⚠️ Could not share file:', shareError.toString());
-          }
-        }
+    // Handle file uploads — CORRECT & SAFE
+const driveFileIds = [];
+let checkImageUrl = '';
+let checkImageDriveId = '';
+let imageErrors = [];
+
+for (const [key, value] of Object.entries(responses)) {
+  const fieldValue = Array.isArray(value) ? value[0] : value;
+  const keyLower = key.toLowerCase();
+
+  if (keyLower.includes('upload') || keyLower.includes('image') || keyLower.includes('file')) {
+    console.log('🖼️ Processing file field:', key, fieldValue);
+
+    let fileId = '';
+
+    // Case 1: Direct file ID
+    if (typeof fieldValue === 'string' && fieldValue.match(/^[a-zA-Z0-9_-]{25,}$/)) {
+      fileId = fieldValue;
+    }
+
+    // Case 2: Google Drive URL
+    else if (typeof fieldValue === 'string' && fieldValue.includes('drive.google.com')) {
+      const match = fieldValue.match(/[-\w]{25,}/);
+      if (match) fileId = match[0];
+    }
+
+    // Case 3: Array of file IDs
+    else if (Array.isArray(fieldValue) && fieldValue.length > 0) {
+      const first = fieldValue[0];
+      if (typeof first === 'string' && first.match(/^[a-zA-Z0-9_-]{25,}$/)) {
+        fileId = first;
       }
     }
+
+    if (!fileId) {
+      imageErrors.push(`No valid file ID found in field: ${key}`);
+      continue;
+    }
+
+    try {
+      const file = DriveApp.getFileById(fileId);
+      
+      // Set sharing permissions - try multiple approaches
+      try {
+        // First try: Anyone with link can view
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        console.log(`✅ File ${fileId} shared with link access`);
+        
+        // Second try: Make it public on the web (more permissive)
+        try {
+          file.setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW);
+          console.log(`✅ File ${fileId} made public`);
+        } catch (publicError) {
+          console.log(`⚠️ Could not make file public, but link sharing enabled`);
+        }
+      } catch (shareError) {
+        console.log(`⚠️ Could not set sharing for file ${fileId}:`, shareError.toString());
+      }
+
+      driveFileIds.push(fileId);
+      if (!checkImageUrl) {
+        // Use Google's image serving URL for better compatibility
+        checkImageUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
+        checkImageDriveId = fileId;
+      }
+
+      console.log(`✅ Image processed: ${fileId}`);
+    } catch (err) {
+      imageErrors.push(`Failed to process ${fileId}: ${err.message}`);
+      console.error('❌ Image error:', err.toString());
+    }
+  }
+}
+
+console.log('🧾 Image results:', { driveFileIds, checkImageUrl, imageErrors });
+
     
     // Prepare webhook data
-    const webhookData = {
-      orderId: extractedData.orderId || 'FORM_SUBMIT_' + Date.now(),
-      checkNumber: 'AUTO_' + Date.now(),
-      bankName: extractedData.bankName || 'Unknown Bank',
-      checkDate: extractedData.checkDate || new Date().toISOString().split('T')[0],
-      utrNumber: '',
-      formResponseId: formResponseId,
-      driveFileIds: driveFileIds,
-      checkImageUrl: checkImageUrl,
-      checkImageDriveId: checkImageDriveId,
-      timestamp: new Date().toISOString(),
-      userEmail: extractedData.userEmail || 'no-email@example.com',
-      userName: extractedData.userName || 'Unknown User',
-      amount: extractedData.amount || '0',
-      allResponses: responses,
-      source: 'google_form_working',
-      eventObjectStatus: e ? 'received' : 'undefined'
-    };
+   const webhookData = {
+  orderId: extractedData.orderId || 'FORM_SUBMIT_' + Date.now(),
+  checkNumber: 'AUTO_' + Date.now(),
+  bankName: extractedData.bankName || 'Unknown Bank',
+  checkDate: extractedData.checkDate || new Date().toISOString().split('T')[0],
+  utrNumber: '',
+  formResponseId: formResponseId,
+  driveFileIds: driveFileIds,
+  checkImageUrl: checkImageUrl,
+  checkImageDriveId: checkImageDriveId,
+  imageErrors: imageErrors,   // 👈 ADD THIS LINE
+  timestamp: new Date().toISOString(),
+  userEmail: extractedData.userEmail || 'no-email@example.com',
+  userName: extractedData.userName || 'Unknown User',
+  amount: extractedData.amount || '0',
+  allResponses: responses,
+  source: 'google_form_working',
+  eventObjectStatus: e ? 'received' : 'undefined'
+};
+
     
     console.log('📤 Sending webhook data:', JSON.stringify(webhookData, null, 2));
     

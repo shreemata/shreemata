@@ -1187,6 +1187,18 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
       return res.status(400).json({ error: "Order ID is required" });
     }
 
+    // Validate ObjectId format
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      console.log(`❌ Invalid ObjectId format: "${orderId}"`);
+      return res.status(400).json({ 
+        error: "Invalid Order ID format", 
+        message: "Order ID must be a valid MongoDB ObjectId",
+        receivedOrderId: orderId,
+        expectedFormat: "24-character hex string (e.g., 507f1f77bcf86cd799439011)"
+      });
+    }
+
     // Update order with check payment details including image URLs
     const updateData = {
       'paymentDetails.status': 'pending_verification',
