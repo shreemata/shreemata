@@ -1180,7 +1180,8 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
       formResponseId,
       driveFileIds,
       checkImageUrl,
-      checkImageDriveId
+      checkImageDriveId,
+      allResponses  // Add this field
     } = req.body;
 
     console.log("🔍 Extracted fields:");
@@ -1189,6 +1190,7 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
     console.log("  checkImageDriveId:", checkImageDriveId);
     console.log("  driveFileIds:", driveFileIds);
     console.log("  formResponseId:", formResponseId);
+    console.log("  allResponses:", allResponses ? 'Present' : 'Missing');
 
     if (!orderId) {
       return res.status(400).json({ error: "Order ID is required" });
@@ -1239,6 +1241,14 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
       console.log('💾 ❌ No driveFileIds provided or empty array');
     }
 
+    // Add form responses data
+    if (allResponses && typeof allResponses === 'object') {
+      updateData['allResponses'] = allResponses;
+      console.log('💾 ✅ Saving allResponses:', Object.keys(allResponses).length, 'fields');
+    } else {
+      console.log('💾 ❌ No allResponses provided');
+    }
+
     console.log('💾 Complete updateData being sent to MongoDB:', JSON.stringify(updateData, null, 2));
 
     const order = await Order.findByIdAndUpdate(orderId, updateData, { new: true });
@@ -1249,6 +1259,7 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
 
     console.log('✅ Order updated successfully');
     console.log('🔍 Final paymentDetails in database:', JSON.stringify(order.paymentDetails, null, 2));
+    console.log('🔍 Final allResponses in database:', order.allResponses ? 'Present' : 'Missing');
 
     // Send notification to admin (optional)
     try {

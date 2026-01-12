@@ -224,6 +224,56 @@
             font-weight: 600;
         }
         
+        .image-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn-view-image {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-view-image:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-drive-link {
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-drive-link:hover {
+            background: #218838;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+        
         .image-gallery {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -481,6 +531,55 @@
             justify-content: flex-end;
         }
         
+        .form-response-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .form-response-table th,
+        .form-response-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .form-response-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            width: 30%;
+        }
+        
+        .form-response-table td {
+            color: #666;
+            word-break: break-word;
+        }
+        
+        .form-response-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .response-header {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .response-header h4 {
+            margin: 0 0 8px 0;
+            color: #1976d2;
+            font-size: 16px;
+        }
+        
+        .response-header p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
         .btn-cancel {
             background: #6c757d;
             color: white;
@@ -605,6 +704,19 @@
         </div>
     </div>
     
+    <!-- Form Response Modal -->
+    <div class="modal" id="formResponseModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <h3>📋 Form Submission Details</h3>
+            <div id="formResponseContent">
+                <!-- Form response details will be loaded here -->
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="closeFormResponseModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Image Modal -->
     <div class="image-modal" id="imageModal" onclick="closeImageModal()">
         <div class="image-modal-content" onclick="event.stopPropagation()">
@@ -686,6 +798,9 @@
         
         function displayCheckPayments(orders) {
             const container = document.getElementById('ordersContainer');
+            
+            // Store orders globally for modal access
+            window.currentOrders = orders;
             
             console.log('🔍 Admin Panel Debug - Received orders:', orders);
             
@@ -779,31 +894,19 @@
                                 ` : ''}
                             </div>
                             
-                            ${order.paymentDetails.checkImageUrl || order.paymentDetails.checkImageDriveId ? `
+                            ${order.paymentDetails.checkImageUrl || order.paymentDetails.checkImageDriveId || (order.paymentDetails.driveFileIds && order.paymentDetails.driveFileIds.length > 0) ? `
                                 <div class="uploaded-images">
                                     <h5>📷 Uploaded Images</h5>
-                                    <div class="image-gallery">
-                                        ${order.paymentDetails.checkImageUrl ? `
-                                            <div class="image-item">
-                                                <img src="${order.paymentDetails.checkImageUrl}" 
-                                                     alt="Check Image" 
-                                                     onclick="openImageModal('${order.paymentDetails.checkImageUrl}', 'Check Image')"
-                                                     onerror="this.src='https://lh3.googleusercontent.com/d/${order.paymentDetails.checkImageDriveId}'; this.onerror=function(){this.src='https://drive.google.com/thumbnail?id=${order.paymentDetails.checkImageDriveId}&sz=w400';}">
-                                                <p>Check Image</p>
-                                                ${order.paymentDetails.checkImageDriveId ? `
-                                                    <a href="https://drive.google.com/file/d/${order.paymentDetails.checkImageDriveId}/view" target="_blank" class="view-drive-link">📁 View in Drive</a>
-                                                ` : ''}
-                                            </div>
+                                    <div class="image-buttons">
+                                        ${order.paymentDetails.checkImageDriveId ? `
+                                            <a href="https://drive.google.com/file/d/${order.paymentDetails.checkImageDriveId}/view" target="_blank" class="btn-drive-link">
+                                                📁 View Check Image in Drive
+                                            </a>
                                         ` : ''}
-                                        ${order.paymentDetails.driveFileIds?.map((fileId, index) => `
-                                            <div class="image-item">
-                                                <img src="https://lh3.googleusercontent.com/d/${fileId}" 
-                                                     alt="Payment Document ${index + 1}" 
-                                                     onclick="openImageModal('https://lh3.googleusercontent.com/d/${fileId}', 'Payment Document ${index + 1}')"
-                                                     onerror="this.src='https://drive.google.com/thumbnail?id=${fileId}&sz=w400'; this.onerror=null;">
-                                                <p>Document ${index + 1}</p>
-                                                <a href="https://drive.google.com/file/d/${fileId}/view" target="_blank" class="view-drive-link">📁 View in Drive</a>
-                                            </div>
+                                        ${order.paymentDetails.driveFileIds?.filter(fileId => fileId !== order.paymentDetails.checkImageDriveId).map((fileId, index) => `
+                                            <a href="https://drive.google.com/file/d/${fileId}/view" target="_blank" class="btn-drive-link">
+                                                📁 View Document ${index + 2} in Drive
+                                            </a>
                                         `).join('') || ''}
                                     </div>
                                 </div>
@@ -815,18 +918,17 @@
                             
                             ${order.paymentDetails.googleFormSubmissionId ? `
                                 <div style="margin-top: 15px;">
-                                    <a href="https://docs.google.com/forms/d/1FAIpQLSdkaIGD87RUORM210G8kCWeIx60Fdc88KKkxcnmuee1bOL2Pg/edit#response=${order.paymentDetails.googleFormSubmissionId}" 
-                                       target="_blank" class="google-form-link">
-                                        📋 View Google Form Response
-                                    </a>
+                                    <button class="btn btn-view" onclick="showFormResponseModal('${order._id}', '${order._id}')">
+                                        📋 View Form Submission Details
+                                    </button>
                                     <br>
-                                    <small style="color: #666; font-size: 12px;">
+                                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
                                         Response ID: ${order.paymentDetails.googleFormSubmissionId}
                                     </small>
                                 </div>
                             ` : `
                                 <div style="margin-top: 15px;">
-                                    <p style="color: #666; font-style: italic;">📋 No Google Form response ID available</p>
+                                    <p style="color: #666; font-style: italic;">📋 No form submission data available</p>
                                 </div>
                             `}
                         </div>
@@ -939,13 +1041,137 @@
             }
         }
         
+        // Form response modal functions
+        async function showFormResponseModal(orderId) {
+            const modal = document.getElementById('formResponseModal');
+            const content = document.getElementById('formResponseContent');
+            
+            // Show loading state
+            content.innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <div class="spinner"></div>
+                    <p>Loading form submission details...</p>
+                </div>
+            `;
+            
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            try {
+                // Find the order data from the current orders list
+                const orders = window.currentOrders || [];
+                console.log('🔍 Available orders:', orders.length);
+                console.log('🔍 Looking for order ID:', orderId);
+                
+                const order = orders.find(o => o._id === orderId);
+                console.log('🔍 Found order:', order ? 'Yes' : 'No');
+                
+                if (order) {
+                    console.log('🔍 Order allResponses:', order.allResponses);
+                    console.log('🔍 Order paymentDetails:', order.paymentDetails);
+                }
+                
+                if (!order) {
+                    throw new Error('Order not found in current data');
+                }
+                
+                if (!order.allResponses || Object.keys(order.allResponses).length === 0) {
+                    throw new Error('Form response data not available for this order');
+                }
+                
+                // Create the form response display
+                let html = `
+                    <div class="response-header">
+                        <h4>📋 Google Form Submission</h4>
+                        <p>Order ID: ${orderId}</p>
+                        <p>Submitted: ${new Date(order.paymentDetails?.updatedAt || order.createdAt).toLocaleString()}</p>
+                    </div>
+                `;
+                
+                html += `
+                    <table class="form-response-table">
+                        <thead>
+                            <tr>
+                                <th>Form Field</th>
+                                <th>User Response</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                // Display each form field and response
+                for (const [field, response] of Object.entries(order.allResponses)) {
+                    let displayValue = '';
+                    
+                    if (Array.isArray(response)) {
+                        if (response.length > 0) {
+                            // Handle nested arrays (like file uploads)
+                            if (Array.isArray(response[0])) {
+                                displayValue = response[0].join(', ');
+                            } else {
+                                displayValue = response.join(', ');
+                            }
+                        } else {
+                            displayValue = '<em style="color: #999;">No response</em>';
+                        }
+                    } else {
+                        displayValue = response || '<em style="color: #999;">No response</em>';
+                    }
+                    
+                    // Special handling for file uploads
+                    if (field.toLowerCase().includes('upload') || field.toLowerCase().includes('image')) {
+                        if (displayValue && displayValue !== '<em style="color: #999;">No response</em>') {
+                            displayValue = `📎 File uploaded: ${displayValue}`;
+                        }
+                    }
+                    
+                    html += `
+                        <tr>
+                            <th>${field}</th>
+                            <td>${displayValue}</td>
+                        </tr>
+                    `;
+                }
+                
+                html += `
+                        </tbody>
+                    </table>
+                `;
+                
+                content.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error loading form response:', error);
+                content.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #dc3545;">
+                        <p>❌ Error loading form submission details</p>
+                        <p style="font-size: 14px;">${error.message}</p>
+                        <p style="font-size: 12px; color: #666; margin-top: 15px;">
+                            This might be an older order from before form data collection was implemented, 
+                            or the form data wasn't saved properly.
+                        </p>
+                    </div>
+                `;
+            }
+        }
+        
+        function closeFormResponseModal() {
+            const modal = document.getElementById('formResponseModal');
+            modal.style.display = 'none';
+            
+            // Restore body scroll
+            document.body.style.overflow = '';
+        }
+        
         // Close modal when clicking outside
         window.onclick = function(event) {
             const approvalModal = document.getElementById('approvalModal');
             const rejectionModal = document.getElementById('rejectionModal');
+            const formResponseModal = document.getElementById('formResponseModal');
             
-            if (event.target === approvalModal || event.target === rejectionModal) {
+            if (event.target === approvalModal || event.target === rejectionModal || event.target === formResponseModal) {
                 closeModal();
+                closeFormResponseModal();
             }
         }
         
@@ -975,12 +1201,15 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeImageModal();
+                closeFormResponseModal();
             }
         });
         
-        // Make openImageModal globally available
+        // Make functions globally available
         window.openImageModal = openImageModal;
         window.closeImageModal = closeImageModal;
+        window.showFormResponseModal = showFormResponseModal;
+        window.closeFormResponseModal = closeFormResponseModal;
     </script>
 </body>
 </html>

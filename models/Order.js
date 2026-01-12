@@ -104,7 +104,10 @@ const orderSchema = new mongoose.Schema({
     },
 
     // Prevent duplicate referral rewards
-    rewardApplied: { type: Boolean, default: false }
+    rewardApplied: { type: Boolean, default: false },
+
+    // Google Form submission data (for check/transfer payments)
+    allResponses: { type: mongoose.Schema.Types.Mixed, default: {} }
 
 }, { timestamps: true });
 
