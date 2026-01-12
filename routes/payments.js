@@ -1169,7 +1169,7 @@ router.post("/test-cashback", authenticateToken, async (req, res) => {
 // =====================================================
 router.post("/webhook/check-payment-submitted", async (req, res) => {
   try {
-    console.log("📝 Check payment form submitted:", req.body);
+    console.log("📝 Check payment form submitted - RAW BODY:", JSON.stringify(req.body, null, 2));
     
     const { 
       orderId, 
@@ -1182,6 +1182,13 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
       checkImageUrl,
       checkImageDriveId
     } = req.body;
+
+    console.log("🔍 Extracted fields:");
+    console.log("  orderId:", orderId);
+    console.log("  checkImageUrl:", checkImageUrl);
+    console.log("  checkImageDriveId:", checkImageDriveId);
+    console.log("  driveFileIds:", driveFileIds);
+    console.log("  formResponseId:", formResponseId);
 
     if (!orderId) {
       return res.status(400).json({ error: "Order ID is required" });
@@ -1210,16 +1217,29 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
       'paymentDetails.updatedAt': new Date()
     };
 
-    // Add image URLs if provided
+    // Add image URLs if provided - with detailed logging
     if (checkImageUrl) {
       updateData['paymentDetails.checkImageUrl'] = checkImageUrl;
+      console.log('💾 ✅ Saving checkImageUrl:', checkImageUrl);
+    } else {
+      console.log('💾 ❌ No checkImageUrl provided');
     }
+    
     if (checkImageDriveId) {
       updateData['paymentDetails.checkImageDriveId'] = checkImageDriveId;
+      console.log('💾 ✅ Saving checkImageDriveId:', checkImageDriveId);
+    } else {
+      console.log('💾 ❌ No checkImageDriveId provided');
     }
-    if (driveFileIds && Array.isArray(driveFileIds)) {
+    
+    if (driveFileIds && Array.isArray(driveFileIds) && driveFileIds.length > 0) {
       updateData['paymentDetails.driveFileIds'] = driveFileIds;
+      console.log('💾 ✅ Saving driveFileIds:', driveFileIds);
+    } else {
+      console.log('💾 ❌ No driveFileIds provided or empty array');
     }
+
+    console.log('💾 Complete updateData being sent to MongoDB:', JSON.stringify(updateData, null, 2));
 
     const order = await Order.findByIdAndUpdate(orderId, updateData, { new: true });
 
@@ -1227,7 +1247,8 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    console.log(`✅ Check payment details updated for order: ${orderId}`);
+    console.log('✅ Order updated successfully');
+    console.log('🔍 Final paymentDetails in database:', JSON.stringify(order.paymentDetails, null, 2));
 
     // Send notification to admin (optional)
     try {

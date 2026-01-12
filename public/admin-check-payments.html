@@ -687,6 +687,30 @@
         function displayCheckPayments(orders) {
             const container = document.getElementById('ordersContainer');
             
+            console.log('🔍 Admin Panel Debug - Received orders:', orders);
+            
+            if (!orders || orders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📋</div>
+                        <h3>No Pending Approvals</h3>
+                        <p>All check payments have been processed.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Debug each order's payment details
+            orders.forEach((order, index) => {
+                console.log(`🔍 Order ${index + 1} (${order._id}) payment details:`, order.paymentDetails);
+                console.log(`   - checkImageUrl: ${order.paymentDetails?.checkImageUrl}`);
+                console.log(`   - checkImageDriveId: ${order.paymentDetails?.checkImageDriveId}`);
+                console.log(`   - driveFileIds: ${JSON.stringify(order.paymentDetails?.driveFileIds)}`);
+                
+                const hasImages = order.paymentDetails?.checkImageUrl || order.paymentDetails?.checkImageDriveId;
+                console.log(`   - hasImages condition: ${hasImages}`);
+            });
+            
             if (!orders || orders.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
