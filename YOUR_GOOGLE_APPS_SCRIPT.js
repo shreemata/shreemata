@@ -14,15 +14,21 @@ const WEBHOOK_URL = 'https://shreemata.com/api/payments/webhook/check-payment-su
 /**
  * This function runs when the form is submitted
  */
+/**
+ * This function runs when the form is submitted (FIXED VERSION)
+ */
 function onFormSubmit(e) {
   try {
     console.log('📝 Form submitted, processing...');
     
-    const responses = e.namedValues;
-    const formResponse = e.response;
+    // Handle different event object structures
+    const responses = e.namedValues || e.values || {};
+    const formResponse = e.response || e;
     
     // Log all responses for debugging
     console.log('All form responses:', responses);
+    console.log('Event object keys:', Object.keys(e));
+    console.log('Event object type:', typeof e);
     
     // Extract data based on your form's field structure
     let orderId = '';
@@ -35,23 +41,25 @@ function onFormSubmit(e) {
     
     // Map your form fields (based on your test URL)
     for (const [key, value] of Object.entries(responses)) {
-      console.log(`Field: ${key} = ${value[0]}`);
+      console.log(`Field: ${key} = ${Array.isArray(value) ? value[0] : value}`);
+      
+      const fieldValue = Array.isArray(value) ? value[0] : value;
       
       // Try to identify fields by their entry numbers from your test URL
       if (key.includes('1788264298') || key.toLowerCase().includes('order')) {
-        orderId = value[0];
+        orderId = fieldValue;
       } else if (key.includes('1894225499') || key.toLowerCase().includes('amount')) {
-        amount = value[0];
+        amount = fieldValue;
       } else if (key.includes('774046160') || key.toLowerCase().includes('email')) {
-        userEmail = value[0];
+        userEmail = fieldValue;
       } else if (key.includes('1406386079') || key.toLowerCase().includes('name')) {
-        userName = value[0];
+        userName = fieldValue;
       } else if (key.includes('632794616') || key.toLowerCase().includes('phone')) {
-        userPhone = value[0];
+        userPhone = fieldValue;
       } else if (key.includes('980862279') || key.toLowerCase().includes('bank')) {
-        bankName = value[0];
+        bankName = fieldValue;
       } else if (key.includes('790413540') || key.toLowerCase().includes('date')) {
-        checkDate = value[0];
+        checkDate = fieldValue;
       }
     }
     
@@ -66,8 +74,9 @@ function onFormSubmit(e) {
     
     // Look for file upload responses
     for (const [key, value] of Object.entries(responses)) {
-      if (value && value[0] && value[0].includes('drive.google.com')) {
-        const fileUrl = value[0];
+      const fieldValue = Array.isArray(value) ? value[0] : value;
+      if (fieldValue && fieldValue.includes && fieldValue.includes('drive.google.com')) {
+        const fileUrl = fieldValue;
         console.log('Found file URL:', fileUrl);
         
         // Extract file ID from Google Drive URL
@@ -96,11 +105,11 @@ function onFormSubmit(e) {
     // Prepare webhook data
     const webhookData = {
       orderId: orderId,
-      checkNumber: 'AUTO_' + Date.now(), // Generate if not provided
+      checkNumber: 'AUTO_' + Date.now(),
       bankName: bankName,
       checkDate: checkDate,
-      utrNumber: '', // Add if you have this field
-      formResponseId: formResponse.getId(),
+      utrNumber: '',
+      formResponseId: formResponse.getId ? formResponse.getId() : 'unknown',
       driveFileIds: driveFileIds,
       checkImageUrl: checkImageUrl,
       checkImageDriveId: checkImageDriveId,
@@ -108,7 +117,7 @@ function onFormSubmit(e) {
       userEmail: userEmail,
       userName: userName,
       amount: amount,
-      allResponses: responses // Include all responses for debugging
+      allResponses: responses
     };
     
     console.log('📤 Sending webhook data:', webhookData);
@@ -148,6 +157,7 @@ function onFormSubmit(e) {
     }
   }
 }
+
 
 /**
  * Setup trigger - run this once
