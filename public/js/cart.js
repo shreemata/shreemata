@@ -147,17 +147,21 @@ async function loadCart() {
     let totalCashback = 0;
 
     cart.forEach(item => {
-        total += item.price * item.quantity;
-        const itemWeight = (item.weight || 0.5) * item.quantity;
+        const itemPrice = parseFloat(item.price) || 0;
+        total += itemPrice * item.quantity;
+        const itemWeight = (parseFloat(item.weight) || 0.5) * item.quantity;
         totalWeight += itemWeight;
-        totalPoints += (item.rewardPoints || 0) * item.quantity;
+        totalPoints += (parseInt(item.rewardPoints) || 0) * item.quantity;
         
         // Calculate cashback for this item
         let itemCashback = 0;
-        if (item.cashbackAmount > 0) {
-            itemCashback = item.cashbackAmount * item.quantity;
-        } else if (item.cashbackPercentage > 0) {
-            itemCashback = (item.price * item.cashbackPercentage / 100) * item.quantity;
+        const cashbackAmount = parseFloat(item.cashbackAmount) || 0;
+        const cashbackPercentage = parseFloat(item.cashbackPercentage) || 0;
+        
+        if (cashbackAmount > 0) {
+            itemCashback = cashbackAmount * item.quantity;
+        } else if (cashbackPercentage > 0) {
+            itemCashback = (itemPrice * cashbackPercentage / 100) * item.quantity;
         }
         totalCashback += itemCashback;
 
@@ -186,8 +190,8 @@ async function loadCart() {
             <div class="cart-info">
                 <h3>${item.title}${bundleBadge}</h3>
                 <p>by ${item.author}</p>
-                <p class="cart-price">₹${(item.price || 0).toFixed(2)}</p>
-                <div class="weight-info">📦 ${(item.weight || 0.5).toFixed(2)} kg × ${item.quantity} = ${(itemWeight).toFixed(2)} kg</div>
+                <p class="cart-price">₹${(parseFloat(item.price) || 0).toFixed(2)}</p>
+                <div class="weight-info">📦 ${(parseFloat(item.weight) || 0.5).toFixed(2)} kg × ${item.quantity} = ${itemWeight.toFixed(2)} kg</div>
                 ${pointsBadge}
                 
                 <div class="cart-qty">
@@ -312,17 +316,21 @@ async function updateCartTotals() {
     let totalCashback = 0;
 
     cart.forEach(item => {
-        total += item.price * item.quantity;
-        const itemWeight = (item.weight || 0.5) * item.quantity;
+        const itemPrice = parseFloat(item.price) || 0;
+        total += itemPrice * item.quantity;
+        const itemWeight = (parseFloat(item.weight) || 0.5) * item.quantity;
         totalWeight += itemWeight;
-        totalPoints += (item.rewardPoints || 0) * item.quantity;
+        totalPoints += (parseInt(item.rewardPoints) || 0) * item.quantity;
         
         // Calculate cashback for this item
         let itemCashback = 0;
-        if (item.cashbackAmount > 0) {
-            itemCashback = item.cashbackAmount * item.quantity;
-        } else if (item.cashbackPercentage > 0) {
-            itemCashback = (item.price * item.cashbackPercentage / 100) * item.quantity;
+        const cashbackAmount = parseFloat(item.cashbackAmount) || 0;
+        const cashbackPercentage = parseFloat(item.cashbackPercentage) || 0;
+        
+        if (cashbackAmount > 0) {
+            itemCashback = cashbackAmount * item.quantity;
+        } else if (cashbackPercentage > 0) {
+            itemCashback = (itemPrice * cashbackPercentage / 100) * item.quantity;
         }
         totalCashback += itemCashback;
     });
@@ -808,17 +816,21 @@ async function updateCartSummary() {
 
     // Calculate totals
     cart.forEach(item => {
-        total += item.price * item.quantity;
-        const itemWeight = (item.weight || 0.5) * item.quantity;
+        const itemPrice = parseFloat(item.price) || 0;
+        total += itemPrice * item.quantity;
+        const itemWeight = (parseFloat(item.weight) || 0.5) * item.quantity;
         totalWeight += itemWeight;
-        totalPoints += (item.rewardPoints || 0) * item.quantity;
+        totalPoints += (parseInt(item.rewardPoints) || 0) * item.quantity;
         
         // Calculate cashback for this item
         let itemCashback = 0;
-        if (item.cashbackAmount > 0) {
-            itemCashback = item.cashbackAmount * item.quantity;
-        } else if (item.cashbackPercentage > 0) {
-            itemCashback = (item.price * item.cashbackPercentage / 100) * item.quantity;
+        const cashbackAmount = parseFloat(item.cashbackAmount) || 0;
+        const cashbackPercentage = parseFloat(item.cashbackPercentage) || 0;
+        
+        if (cashbackAmount > 0) {
+            itemCashback = cashbackAmount * item.quantity;
+        } else if (cashbackPercentage > 0) {
+            itemCashback = (itemPrice * cashbackPercentage / 100) * item.quantity;
         }
         totalCashback += itemCashback;
     });
@@ -1030,7 +1042,7 @@ async function checkout() {
     }
 
     // Calculate cart total (without courier charge for offer calculation)
-    const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const cartTotal = cart.reduce((sum, item) => sum + ((parseFloat(item.price) || 0) * item.quantity), 0);
 
     // Check for applicable offers first, then show payment method selection
     await checkApplicableOffersForCart(cartTotal);
@@ -1817,7 +1829,7 @@ async function proceedToPayment() {
 
     // calculate items total (in rupees)
     let itemsTotal = 0;
-    cart.forEach(item => itemsTotal += item.price * item.quantity);
+    cart.forEach(item => itemsTotal += (parseFloat(item.price) || 0) * item.quantity);
     
     // Add courier charge to total
     let total = itemsTotal + courierCharge;

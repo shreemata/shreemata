@@ -12,11 +12,14 @@ const router = express.Router();
  */
 router.get("/check-payments/pending", authenticateToken, isAdmin, async (req, res) => {
     try {
-        console.log("📋 Admin fetching pending check payments...");
+        console.log("📋 Admin fetching pending check payments and bank transfers...");
 
-        // Find orders with check payment pending verification
+        // Find orders with check payment OR bank transfer pending verification
         const orders = await Order.find({
-            paymentType: 'check',
+            $or: [
+                { paymentType: 'check' },
+                { paymentType: 'transfer' }
+            ],
             'paymentDetails.status': 'pending_verification'
         })
         .populate('user_id', 'name email phone')
@@ -40,7 +43,9 @@ router.get("/check-payments/pending", authenticateToken, isAdmin, async (req, re
             user: order.user_id // Rename for easier access
         }));
 
-        console.log(`✅ Found ${orders.length} pending check payments`);
+        console.log(`✅ Found ${orders.length} pending payments (check + bank transfer)`);
+        console.log(`   - Check payments: ${orders.filter(o => o.paymentType === 'check').length}`);
+        console.log(`   - Bank transfers: ${orders.filter(o => o.paymentType === 'transfer').length}`);
 
         res.json({
             success: true,

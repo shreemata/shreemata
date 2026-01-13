@@ -159,15 +159,28 @@
         function openPaymentForm(type) {
             let formUrl = '';
             
-            // Use the same working Google Form for both payment types
-            // The form will be pre-filled with payment type information
-            formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSdkaIGD87RUORM210G8kCWeIx60Fdc88KKkxcnmuee1bOL2Pg/viewform?usp=pp_url` +
-                `&entry.1788264298=${orderId}` +
-                `&entry.1894225499=${amount}` +
-                `&entry.774046160=${encodeURIComponent(userEmail)}` +
-                `&entry.1406386079=${encodeURIComponent(userName)}` +
-                `&entry.980862279=${encodeURIComponent(type === 'check' ? 'Check Payment' : 'Bank Transfer')}` +
-                `&entry.790413540=${new Date().toISOString().split('T')[0]}`;
+            if (type === 'check') {
+                // Check Payment Form (Working with pre-fill)
+                formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSdkaIGD87RUORM210G8kCWeIx60Fdc88KKkxcnmuee1bOL2Pg/viewform?usp=pp_url` +
+                    `&entry.1788264298=${orderId}` +
+                    `&entry.1894225499=${amount}` +
+                    `&entry.774046160=${encodeURIComponent(userEmail)}` +
+                    `&entry.1406386079=${encodeURIComponent(userName)}` +
+                    `&entry.980862279=${encodeURIComponent('Check Payment')}` +
+                    `&entry.790413540=${new Date().toISOString().split('T')[0]}`;
+            } else {
+                // Bank Transfer Form (Your correct form with actual entry IDs)
+                formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSdzVs8LdM9G6wEHwIwfxLvwGbEV43ZfK8F_9QXmNbnHpN_G5Q/viewform?usp=pp_url` +
+                    `&entry.209098555=${orderId}` +           // Order ID
+                    `&entry.701631358=${amount}` +            // Amount
+                    `&entry.1509226876=${encodeURIComponent(userEmail)}` +  // Email
+                    `&entry.485473134=${encodeURIComponent(userName)}` +    // Name
+                    `&entry.2045922923=${new Date().toISOString().split('T')[0]}` + // Date
+                    `&entry.4317222=` +                       // UTR Number (empty, user will fill)
+                    `&entry.136861828=`;                      // Bank Name (empty, user will fill)
+                
+                console.log('🏦 Bank Transfer Form URL with pre-fill:', formUrl);
+            }
             
             // Show instructions before opening form
             const instructions = type === 'check' ? 

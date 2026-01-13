@@ -1438,11 +1438,14 @@ router.post("/admin/approve-check-payment/:orderId", authenticateToken, async (r
 
     console.log(`🔍 Admin ${adminUser.email} approving check payment for order: ${orderId}`);
 
-    // Find and update the order
+    // Find and update the order (support both check and transfer payments)
     const order = await Order.findOneAndUpdate(
       { 
         _id: orderId,
-        paymentType: 'check',
+        $or: [
+          { paymentType: 'check' },
+          { paymentType: 'transfer' }
+        ],
         'paymentDetails.status': 'pending_verification'
       },
       {
@@ -1461,14 +1464,14 @@ router.post("/admin/approve-check-payment/:orderId", authenticateToken, async (r
       });
     }
 
-    console.log(`✅ Check payment approved for order: ${orderId}`);
+    console.log(`✅ ${order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} approved for order: ${orderId}`);
 
     // Trigger all automated processes (same as online payment)
     await processApprovedCheckOrder(order, adminUser);
 
     res.json({ 
       success: true, 
-      message: "Check payment approved successfully",
+      message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} approved successfully`,
       orderId: orderId,
       order: order
     });
@@ -1495,11 +1498,14 @@ router.post("/admin/reject-check-payment/:orderId", authenticateToken, async (re
 
     console.log(`🔍 Admin ${adminUser.email} rejecting check payment for order: ${orderId}`);
 
-    // Find and update the order
+    // Find and update the order (support both check and transfer payments)
     const order = await Order.findOneAndUpdate(
       { 
         _id: orderId,
-        paymentType: 'check',
+        $or: [
+          { paymentType: 'check' },
+          { paymentType: 'transfer' }
+        ],
         'paymentDetails.status': 'pending_verification'
       },
       {
@@ -1517,7 +1523,7 @@ router.post("/admin/reject-check-payment/:orderId", authenticateToken, async (re
       });
     }
 
-    console.log(`❌ Check payment rejected for order: ${orderId}`);
+    console.log(`❌ ${order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} rejected for order: ${orderId}`);
 
     // Send rejection notification to user
     try {
@@ -1532,7 +1538,7 @@ router.post("/admin/reject-check-payment/:orderId", authenticateToken, async (re
 
     res.json({ 
       success: true, 
-      message: "Check payment rejected",
+      message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} rejected`,
       orderId: orderId,
       order: order
     });

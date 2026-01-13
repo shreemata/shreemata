@@ -1,6 +1,6 @@
 /**
  * Google Apps Script for Bank Transfer Payment Form
- * Form ID: 1EmDm2ZdAuHpEzQ7IMe8q4Waw_v0d61Lx_lDCMLCXdoU
+ * Form ID: 1FAIpQLSdzVs8LdM9G6wEHwIwfxLvwGbEV43ZfK8F_9QXmNbnHpN_G5Q
  * 
  * SETUP INSTRUCTIONS:
  * 1. Go to the bank transfer Google Form
@@ -36,29 +36,41 @@ function onFormSubmit(e) {
       
       console.log('Raw namedValues:', JSON.stringify(responses, null, 2));
       
-      // Extract data from namedValues (using bank transfer form entry numbers)
+      // Extract data from namedValues (using exact field names from the logs)
       for (const [key, value] of Object.entries(responses)) {
         const fieldValue = Array.isArray(value) ? value[0] : value;
         console.log(`Field: "${key}" = "${fieldValue}"`);
         
-        const keyLower = key.toLowerCase();
-        
-        // Match by field names or entry numbers for BANK TRANSFER form
-        if (key.includes('209098555') || keyLower.includes('order') || keyLower.includes('id')) {
+        // Match by exact field names from your form
+        if (key === 'Order ID') {
           extractedData.orderId = fieldValue || '';
-        } else if (key.includes('701631358') || keyLower.includes('amount') || keyLower.includes('price')) {
+        } else if (key === 'Order Amount (₹)') {
           extractedData.amount = fieldValue || '';
-        } else if (key.includes('1509226876') || keyLower.includes('email')) {
+        } else if (key === 'Your Email Address') {
           extractedData.userEmail = fieldValue || '';
-        } else if (key.includes('485473134') || keyLower.includes('name')) {
+        } else if (key === 'Your Full Name') {
           extractedData.userName = fieldValue || '';
-        } else if (keyLower.includes('phone')) {
-          extractedData.userPhone = fieldValue || '';
-        } else if (keyLower.includes('bank')) {
-          extractedData.bankName = fieldValue || '';
-        } else if (keyLower.includes('utr') || keyLower.includes('reference')) {
+        } else if (key === 'UTR/Reference Number') {
           extractedData.utrNumber = fieldValue || '';
-        } else if (keyLower.includes('date')) {
+        } else if (key === 'Your Bank Name') {
+          extractedData.bankName = fieldValue || '';
+        } else if (key === 'Transfer Date') {
+          extractedData.transferDate = fieldValue || '';
+        }
+        // Also keep the entry number matching as fallback
+        else if (key.includes('209098555')) {
+          extractedData.orderId = fieldValue || '';
+        } else if (key.includes('701631358')) {
+          extractedData.amount = fieldValue || '';
+        } else if (key.includes('1509226876')) {
+          extractedData.userEmail = fieldValue || '';
+        } else if (key.includes('485473134')) {
+          extractedData.userName = fieldValue || '';
+        } else if (key.includes('4317222')) {
+          extractedData.utrNumber = fieldValue || '';
+        } else if (key.includes('136861828')) {
+          extractedData.bankName = fieldValue || '';
+        } else if (key.includes('2045922923')) {
           extractedData.transferDate = fieldValue || '';
         }
       }
@@ -78,22 +90,38 @@ function onFormSubmit(e) {
         
         const titleLower = title.toLowerCase();
         
-        // Match by field titles for bank transfer
-        if (titleLower.includes('order') || titleLower.includes('id')) {
+        // Match by exact field titles from your form
+        if (title === 'Order ID') {
           extractedData.orderId = response || '';
-        } else if (titleLower.includes('amount') || titleLower.includes('price')) {
+        } else if (title === 'Order Amount (₹)') {
+          extractedData.amount = response || '';
+        } else if (title === 'Your Email Address') {
+          extractedData.userEmail = response || '';
+        } else if (title === 'Your Full Name') {
+          extractedData.userName = response || '';
+        } else if (title === 'UTR/Reference Number') {
+          extractedData.utrNumber = response || '';
+        } else if (title === 'Your Bank Name') {
+          extractedData.bankName = response || '';
+        } else if (title === 'Transfer Date') {
+          extractedData.transferDate = response || '';
+        }
+        // Keep the generic matching as fallback
+        else if (titleLower.includes('order') && titleLower.includes('id')) {
+          extractedData.orderId = response || '';
+        } else if (titleLower.includes('amount') || titleLower.includes('₹')) {
           extractedData.amount = response || '';
         } else if (titleLower.includes('email')) {
           extractedData.userEmail = response || '';
-        } else if (titleLower.includes('name')) {
+        } else if (titleLower.includes('full name') || (titleLower.includes('name') && !titleLower.includes('bank'))) {
           extractedData.userName = response || '';
         } else if (titleLower.includes('phone')) {
           extractedData.userPhone = response || '';
-        } else if (titleLower.includes('bank')) {
+        } else if (titleLower.includes('bank') && titleLower.includes('name')) {
           extractedData.bankName = response || '';
         } else if (titleLower.includes('utr') || titleLower.includes('reference')) {
           extractedData.utrNumber = response || '';
-        } else if (titleLower.includes('date')) {
+        } else if (titleLower.includes('date') || titleLower.includes('transfer date')) {
           extractedData.transferDate = response || '';
         }
       }
@@ -293,11 +321,34 @@ function setupFormTrigger() {
       }
     });
     
-    // Get the bank transfer form by ID
-    const formId = '1EmDm2ZdAuHpEzQ7IMe8q4Waw_v0d61Lx_lDCMLCXdoU';
-    const form = FormApp.openById(formId);
+    // Try multiple form ID formats
+    const possibleFormIds = [
+      '1FAIpQLSdzVs8LdM9G6wEHwIwfxLvwGbEV43ZfK8F_9QXmNbnHpN_G5Q',
+      '1EmDm2ZdAuHpEzQ7IMe8q4Waw_v0d61Lx_lDCMLCXdoU'
+    ];
+    
+    let form = null;
+    let workingFormId = null;
+    
+    for (const formId of possibleFormIds) {
+      try {
+        console.log(`🔍 Trying form ID: ${formId}`);
+        form = FormApp.openById(formId);
+        workingFormId = formId;
+        console.log(`✅ Successfully opened form: ${form.getTitle()}`);
+        break;
+      } catch (e) {
+        console.log(`❌ Failed to open form with ID: ${formId}`);
+        console.log(`   Error: ${e.toString()}`);
+      }
+    }
+    
+    if (!form) {
+      throw new Error('Could not access any of the provided form IDs. Please check form permissions and IDs.');
+    }
     
     console.log('📋 Bank transfer form found:', form.getTitle());
+    console.log('📋 Using form ID:', workingFormId);
     
     // Create the form submit trigger using the form object
     const trigger = form.createSubmitTrigger();
@@ -380,21 +431,64 @@ function debugFormStructure() {
   try {
     console.log('🔍 Debugging bank transfer form structure...');
     
-    const formId = '1EmDm2ZdAuHpEzQ7IMe8q4Waw_v0d61Lx_lDCMLCXdoU';
-    const form = FormApp.openById(formId);
+    // Try multiple form ID formats
+    const possibleFormIds = [
+      '1FAIpQLSdzVs8LdM9G6wEHwIwfxLvwGbEV43ZfK8F_9QXmNbnHpN_G5Q',
+      '1EmDm2ZdAuHpEzQ7IMe8q4Waw_v0d61Lx_lDCMLCXdoU'
+    ];
     
-    console.log('Form title:', form.getTitle());
-    console.log('Form description:', form.getDescription());
+    for (const formId of possibleFormIds) {
+      try {
+        console.log(`\n🔍 Trying form ID: ${formId}`);
+        const form = FormApp.openById(formId);
+        
+        console.log('✅ Form accessible!');
+        console.log('Form title:', form.getTitle());
+        console.log('Form description:', form.getDescription());
+        
+        const items = form.getItems();
+        console.log('Form has', items.length, 'items:');
+        
+        items.forEach((item, index) => {
+          console.log(`${index + 1}. ${item.getTitle()} (${item.getType()})`);
+          console.log(`   ID: ${item.getId()}`);
+        });
+        
+        return; // Exit after first successful form
+        
+      } catch (e) {
+        console.log(`❌ Cannot access form ${formId}: ${e.toString()}`);
+      }
+    }
     
-    const items = form.getItems();
-    console.log('Form has', items.length, 'items:');
-    
-    items.forEach((item, index) => {
-      console.log(`${index + 1}. ${item.getTitle()} (${item.getType()})`);
-      console.log(`   ID: ${item.getId()}`);
-    });
+    console.log('❌ Could not access any form. Please check permissions.');
     
   } catch (error) {
     console.error('❌ Debug error:', error.toString());
+  }
+}
+
+/**
+ * Get the current form ID from the script container
+ */
+function getCurrentFormId() {
+  try {
+    console.log('🔍 Detecting current form ID...');
+    
+    // This should work if the script is attached to a form
+    const form = FormApp.getActiveForm();
+    if (form) {
+      const formId = form.getId();
+      console.log('✅ Current form ID:', formId);
+      console.log('✅ Form title:', form.getTitle());
+      return formId;
+    } else {
+      console.log('❌ No active form found. Script might not be attached to a form.');
+      return null;
+    }
+    
+  } catch (error) {
+    console.error('❌ Error getting current form ID:', error.toString());
+    return null;
   }
 }

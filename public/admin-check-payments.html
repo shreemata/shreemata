@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Check Payment Approvals - Admin</title>
+    <title>Payment Approvals - Admin</title>
     <link rel="stylesheet" href="css/styles.css">
     <style>
         body {
@@ -639,8 +639,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📋 Check Payment Approvals</h1>
-            <p>Review and approve check payment submissions from customers</p>
+            <h1>📋 Payment Approvals</h1>
+            <p>Review and approve check payments and bank transfers from customers</p>
         </div>
         
         <div class="stats-grid">
@@ -660,7 +660,7 @@
         
         <div class="pending-orders">
             <div class="section-header">
-                <h2>Pending Check Payment Approvals</h2>
+                <h2>Pending Payment Approvals</h2>
             </div>
             
             <div class="loading" id="loading">
@@ -879,8 +879,14 @@
                     
                     ${order.paymentDetails ? `
                         <div class="check-details">
-                            <h4>💳 Check Payment Details</h4>
+                            <h4>💳 ${order.paymentType === 'transfer' ? 'Bank Transfer' : 'Check Payment'} Details</h4>
                             <div class="check-info">
+                                ${order.paymentType === 'transfer' && order.paymentDetails.utrNumber ? `
+                                    <div class="check-field">
+                                        <span class="field-label">UTR Number:</span>
+                                        <span class="field-value">${order.paymentDetails.utrNumber}</span>
+                                    </div>
+                                ` : ''}
                                 ${order.paymentDetails.checkNumber ? `
                                     <div class="check-field">
                                         <span class="field-label">Check Number:</span>
@@ -893,18 +899,18 @@
                                         <span class="field-value">${order.paymentDetails.bankName}</span>
                                     </div>
                                 ` : ''}
-                                ${order.paymentDetails.utrNumber ? `
-                                    <div class="check-field">
-                                        <span class="field-label">UTR Number:</span>
-                                        <span class="field-value">${order.paymentDetails.utrNumber}</span>
-                                    </div>
-                                ` : ''}
                                 ${order.paymentDetails.checkDate ? `
                                     <div class="check-field">
-                                        <span class="field-label">Check Date:</span>
+                                        <span class="field-label">${order.paymentType === 'transfer' ? 'Transfer Date' : 'Check Date'}:</span>
                                         <span class="field-value">${new Date(order.paymentDetails.checkDate).toLocaleDateString()}</span>
                                     </div>
                                 ` : ''}
+                                <div class="check-field">
+                                    <span class="field-label">Payment Type:</span>
+                                    <span class="field-value" style="background: ${order.paymentType === 'transfer' ? '#e3f2fd' : '#f3e5f5'}; padding: 4px 8px; border-radius: 4px; font-weight: 600;">
+                                        ${order.paymentType === 'transfer' ? '🏦 Bank Transfer' : '📝 Check Payment'}
+                                    </span>
+                                </div>
                             </div>
                             
                             ${uniqueFileIds.length > 0 ? `
@@ -958,47 +964,6 @@
                     </div>
                 </div>
             `}).join('');
-        }
-                                        `).join('') || ''}
-                                    </div>
-                                </div>
-                            ` : `
-                                <div class="uploaded-images">
-                                    <p style="color: #666; font-style: italic;">📷 No images uploaded yet</p>
-                                </div>
-                            `}
-                            
-                            ${order.paymentDetails.googleFormSubmissionId ? `
-                                <div style="margin-top: 15px;">
-                                    <button class="btn btn-view" onclick="showFormResponseModal('${order._id}', '${order._id}')">
-                                        📋 View Form Submission Details
-                                    </button>
-                                    <br>
-                                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
-                                        Response ID: ${order.paymentDetails.googleFormSubmissionId}
-                                    </small>
-                                </div>
-                            ` : `
-                                <div style="margin-top: 15px;">
-                                    <p style="color: #666; font-style: italic;">📋 No form submission data available</p>
-                                </div>
-                            `}
-                        </div>
-                    ` : ''}
-                    
-                    <div class="action-buttons">
-                        <button class="btn btn-approve" onclick="showApprovalModal('${order._id}')">
-                            ✅ Approve Payment
-                        </button>
-                        <button class="btn btn-reject" onclick="showRejectionModal('${order._id}')">
-                            ❌ Reject Payment
-                        </button>
-                        <a href="/admin-orders.html?orderId=${order._id}" class="btn btn-view">
-                            👁️ View Full Order
-                        </a>
-                    </div>
-                </div>
-            `).join('');
         }
         
         function updateStats(stats) {
