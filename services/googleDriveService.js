@@ -44,8 +44,8 @@ class GoogleDriveService {
                 throw new Error('Google Drive service not initialized');
             }
 
-            // Create folder for check images if it doesn't exist
-            const folderId = await this.getOrCreateFolder('Check Payment Images');
+            // Create folder for cheque images if it doesn't exist
+            const folderId = await this.getOrCreateFolder('Cheque Payment Images');
 
             const fileMetadata = {
                 name: `${orderId}_${fileName}`,

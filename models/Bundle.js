@@ -45,6 +45,12 @@ const bundleSchema = new mongoose.Schema({
         default: 0 // Will be calculated from books
     },
     
+    courierCharge: {
+        type: Number,
+        default: 0,
+        min: 0 // Admin-set courier charge for this bundle
+    },
+    
     // Points System
     rewardPoints: {
         type: Number,

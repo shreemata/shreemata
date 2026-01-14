@@ -322,6 +322,188 @@
             }
         }
 
+        /* Drop-up Notification Styles */
+        .dropup-notification {
+            position: fixed;
+            bottom: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px 12px 0 0;
+            box-shadow: 0 -5px 25px rgba(102, 126, 234, 0.4);
+            z-index: 1000;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            max-width: 90%;
+            width: auto;
+            min-width: 300px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .dropup-notification.show {
+            bottom: 0;
+            animation: dropupPulse 2s ease-in-out infinite;
+        }
+
+        .dropup-notification.hide {
+            bottom: -200px;
+        }
+
+        .dropup-notification:hover {
+            transform: translateX(-50%) translateY(-5px);
+            box-shadow: 0 -8px 35px rgba(102, 126, 234, 0.6);
+            animation: none;
+        }
+
+        @keyframes dropupPulse {
+            0%, 100% {
+                box-shadow: 0 -5px 25px rgba(102, 126, 234, 0.4);
+            }
+            50% {
+                box-shadow: 0 -8px 35px rgba(102, 126, 234, 0.7);
+            }
+        }
+
+        .dropup-offer-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .dropup-offer-message {
+            font-size: 14px;
+            opacity: 0.95;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .dropup-close {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .dropup-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .dropup-cta {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .dropup-offer-counter {
+            position: absolute;
+            top: 8px;
+            left: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .dropup-navigation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .dropup-nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .dropup-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .dropup-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .dropup-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dropup-dot.active {
+            background: rgba(255, 255, 255, 0.9);
+            transform: scale(1.2);
+        }
+
+        /* Mobile responsive for dropup */
+        @media (max-width: 768px) {
+            .dropup-notification {
+                min-width: 280px;
+                padding: 12px 20px;
+                left: 10px;
+                right: 10px;
+                transform: none;
+                max-width: none;
+                width: calc(100% - 20px);
+            }
+
+            .dropup-notification.show {
+                bottom: 0;
+            }
+
+            .dropup-notification:hover {
+                transform: translateY(-3px);
+            }
+
+            .dropup-offer-title {
+                font-size: 15px;
+            }
+
+            .dropup-offer-message {
+                font-size: 13px;
+            }
+        }
+
         /* Sections */
         .bundles-section, .books-section {
             background: rgba(255, 255, 255, 0.98);
@@ -879,6 +1061,90 @@
             </div>
         </div>
     </footer>
+
+    <!-- Drop-up Notification -->
+    <div id="dropupNotification" class="dropup-notification">
+        <button class="dropup-close" onclick="hideDropupNotification()">&times;</button>
+        <div class="dropup-offer-counter" id="dropupOfferCounter" style="display: none;">1 of 3</div>
+        <div class="dropup-offer-title">
+            <span id="dropupOfferIcon">🎉</span>
+            <span id="dropupOfferTitle">Special Offer!</span>
+        </div>
+        <div class="dropup-offer-message" id="dropupOfferMessage">
+            Buy above ₹2000 and get ₹200 off!
+        </div>
+        <div class="dropup-cta">Click to explore books and claim your discount</div>
+        <div class="dropup-navigation" id="dropupNavigation" style="display: none;">
+            <button class="dropup-nav-btn" onclick="previousOffer()">‹</button>
+            <div class="dropup-dots" id="dropupDots"></div>
+            <button class="dropup-nav-btn" onclick="nextOffer()">›</button>
+        </div>
+    </div>
+
+    <script>
+        // Global function for hiding dropup notification
+        function hideDropupNotification() {
+            const dropupElement = document.getElementById('dropupNotification');
+            if (dropupElement) {
+                dropupElement.classList.remove('show');
+                dropupElement.classList.add('hide');
+                
+                // Clear cycling interval from home.js
+                if (window.offerCycleInterval) {
+                    clearInterval(window.offerCycleInterval);
+                    window.offerCycleInterval = null;
+                }
+            }
+        }
+        
+        // Global function for navigating to next offer
+        function nextOffer() {
+            if (window.allOffers && window.allOffers.length > 1) {
+                window.currentOfferIndex = (window.currentOfferIndex + 1) % window.allOffers.length;
+                window.displayCurrentOffer();
+                
+                // Reset auto-cycle timer
+                if (window.offerCycleInterval) {
+                    clearInterval(window.offerCycleInterval);
+                    window.offerCycleInterval = setInterval(() => {
+                        nextOffer();
+                    }, 4000);
+                }
+            }
+        }
+        
+        // Global function for navigating to previous offer
+        function previousOffer() {
+            if (window.allOffers && window.allOffers.length > 1) {
+                window.currentOfferIndex = (window.currentOfferIndex - 1 + window.allOffers.length) % window.allOffers.length;
+                window.displayCurrentOffer();
+                
+                // Reset auto-cycle timer
+                if (window.offerCycleInterval) {
+                    clearInterval(window.offerCycleInterval);
+                    window.offerCycleInterval = setInterval(() => {
+                        nextOffer();
+                    }, 4000);
+                }
+            }
+        }
+        
+        // Global function for jumping to specific offer
+        function goToOffer(index) {
+            if (window.allOffers && index >= 0 && index < window.allOffers.length) {
+                window.currentOfferIndex = index;
+                window.displayCurrentOffer();
+                
+                // Reset auto-cycle timer
+                if (window.offerCycleInterval) {
+                    clearInterval(window.offerCycleInterval);
+                    window.offerCycleInterval = setInterval(() => {
+                        nextOffer();
+                    }, 4000);
+                }
+            }
+        }
+    </script>
 
     <style>
         @keyframes spin {

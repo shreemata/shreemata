@@ -97,9 +97,9 @@
         </div>
         
         <div class="form-links">
-            <a href="#" id="checkFormLink" class="form-link" style="display: none;" onclick="openPaymentForm('check')">
-                <h4>📝 Check Payment Form</h4>
-                <p>Upload check images & details</p>
+            <a href="#" id="chequeFormLink" class="form-link" style="display: none;" onclick="openPaymentForm('cheque')">
+                <h4>📝 Cheque Payment Form</h4>
+                <p>Upload cheque images & details</p>
             </a>
             
             <a href="#" id="transferFormLink" class="form-link" style="display: none;" onclick="openPaymentForm('transfer')">
@@ -145,11 +145,11 @@
         if (amount) document.getElementById('orderAmount').textContent = amount;
         if (paymentType) {
             document.getElementById('paymentType').textContent = 
-                paymentType === 'check' ? 'Check Payment' : 'Bank Transfer';
+                paymentType === 'cheque' ? 'Cheque Payment' : 'Bank Transfer';
             
             // Show appropriate form link
-            if (paymentType === 'check') {
-                document.getElementById('checkFormLink').style.display = 'block';
+            if (paymentType === 'cheque') {
+                document.getElementById('chequeFormLink').style.display = 'block';
             } else {
                 document.getElementById('transferFormLink').style.display = 'block';
             }
@@ -159,14 +159,14 @@
         function openPaymentForm(type) {
             let formUrl = '';
             
-            if (type === 'check') {
-                // Check Payment Form (Working with pre-fill)
+            if (type === 'cheque') {
+                // Cheque Payment Form (Working with pre-fill)
                 formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSdkaIGD87RUORM210G8kCWeIx60Fdc88KKkxcnmuee1bOL2Pg/viewform?usp=pp_url` +
                     `&entry.1788264298=${orderId}` +
                     `&entry.1894225499=${amount}` +
                     `&entry.774046160=${encodeURIComponent(userEmail)}` +
                     `&entry.1406386079=${encodeURIComponent(userName)}` +
-                    `&entry.980862279=${encodeURIComponent('Check Payment')}` +
+                    `&entry.980862279=${encodeURIComponent('Cheque Payment')}` +
                     `&entry.790413540=${new Date().toISOString().split('T')[0]}`;
             } else {
                 // Bank Transfer Form (Your correct form with actual entry IDs)
@@ -183,11 +183,11 @@
             }
             
             // Show instructions before opening form
-            const instructions = type === 'check' ? 
-                "📝 CHECK PAYMENT INSTRUCTIONS:\n\n" +
+            const instructions = type === 'cheque' ? 
+                "📝 CHEQUE PAYMENT INSTRUCTIONS:\n\n" +
                 "1. Fill out the form that will open\n" +
-                "2. Upload clear images of your CHECK\n" +
-                "3. Enter check number and bank details\n" +
+                "2. Upload clear images of your CHEQUE\n" +
+                "3. Enter cheque number and bank details\n" +
                 "4. Submit the form\n" +
                 "5. Close the form tab when done\n\n" +
                 "Click OK to open the form now." :

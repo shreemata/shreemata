@@ -94,6 +94,16 @@ function updateQuantity(change) {
     if (currentQty < 1) currentQty = 1;
     if (currentQty > 10) currentQty = 10;
     
+    // Check stock limits if book has limited stock
+    const book = window.currentBook;
+    if (book && book.trackStock && book.stockStatus === 'limited_stock') {
+        const availableStock = book.stockQuantity || 0;
+        if (currentQty > availableStock) {
+            currentQty = availableStock;
+            alert(`⚠️ Only ${availableStock} copies are available.`);
+        }
+    }
+    
     quantityInput.value = currentQty;
     updatePricing();
 }
@@ -105,6 +115,16 @@ function updateQuantityFromInput() {
     // Ensure quantity is within bounds
     if (qty < 1) qty = 1;
     if (qty > 10) qty = 10;
+    
+    // Check stock limits if book has limited stock
+    const book = window.currentBook;
+    if (book && book.trackStock && book.stockStatus === 'limited_stock') {
+        const availableStock = book.stockQuantity || 0;
+        if (qty > availableStock) {
+            qty = availableStock;
+            alert(`⚠️ Only ${availableStock} copies are available.`);
+        }
+    }
     
     quantityInput.value = qty;
     updatePricing();
@@ -193,6 +213,64 @@ async function displayBookDetails(book) {
     
     document.getElementById("bookTitle").textContent = book.title;
     document.getElementById("bookAuthor").textContent = book.author;
+    
+    // Check stock status and disable buttons if out of stock
+    const isOutOfStock = book.trackStock && book.stockStatus === 'out_of_stock';
+    const isLimitedStock = book.trackStock && book.stockStatus === 'limited_stock';
+    
+    // Get all purchase buttons
+    const buyPickupBtn = document.getElementById("buyPickupBtn");
+    const buyCourierBtn = document.getElementById("buyCourierBtn");
+    const addToCartBtn = document.getElementById("addToCartBtn");
+    
+    if (isOutOfStock) {
+        // Disable all purchase buttons and update their text
+        if (buyPickupBtn) {
+            buyPickupBtn.disabled = true;
+            buyPickupBtn.textContent = "❌ Out of Stock";
+            buyPickupBtn.style.background = "#dc3545";
+            buyPickupBtn.style.cursor = "not-allowed";
+        }
+        
+        if (buyCourierBtn) {
+            buyCourierBtn.disabled = true;
+            buyCourierBtn.textContent = "❌ Out of Stock";
+            buyCourierBtn.style.background = "#dc3545";
+            buyCourierBtn.style.cursor = "not-allowed";
+        }
+        
+        if (addToCartBtn) {
+            addToCartBtn.disabled = true;
+            addToCartBtn.textContent = "❌ Out of Stock";
+            addToCartBtn.style.background = "#dc3545";
+            addToCartBtn.style.cursor = "not-allowed";
+        }
+        
+        // Add out of stock notice
+        const pricingSection = document.querySelector(".pricing-section");
+        const stockNotice = document.createElement("div");
+        stockNotice.style.cssText = "background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 18px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;";
+        stockNotice.innerHTML = `<span style="font-size: 28px;">❌</span><span>This book is currently out of stock</span>`;
+        pricingSection.parentNode.insertBefore(stockNotice, pricingSection.nextSibling);
+        
+    } else if (isLimitedStock) {
+        // Show limited stock warning
+        const pricingSection = document.querySelector(".pricing-section");
+        const stockNotice = document.createElement("div");
+        stockNotice.style.cssText = "background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 18px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;";
+        const remainingStock = book.stockQuantity || 0;
+        stockNotice.innerHTML = `<span style="font-size: 28px;">⚠️</span><span>Limited Stock - Only ${remainingStock} left!</span>`;
+        pricingSection.parentNode.insertBefore(stockNotice, pricingSection.nextSibling);
+        
+        // Update quantity selector max value to available stock
+        const quantityInput = document.getElementById("bookQuantity");
+        if (quantityInput && remainingStock > 0) {
+            quantityInput.max = remainingStock;
+            if (parseInt(quantityInput.value) > remainingStock) {
+                quantityInput.value = remainingStock;
+            }
+        }
+    }
     
     // Calculate pricing
     const basePrice = parseFloat(book.price);
@@ -373,6 +451,23 @@ async function handlePurchase(deliveryMethod = "courier") {
         return window.location.href = "/login.html";
     }
 
+    // Check stock status before proceeding
+    const book = window.currentBook;
+    if (book && book.trackStock && book.stockStatus === 'out_of_stock') {
+        alert("❌ This book is currently out of stock and cannot be purchased.");
+        return;
+    }
+    
+    // Check if requested quantity is available for limited stock
+    const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
+    if (book && book.trackStock && book.stockStatus === 'limited_stock') {
+        const availableStock = book.stockQuantity || 0;
+        if (quantity > availableStock) {
+            alert(`❌ Only ${availableStock} copies are available. Please reduce the quantity.`);
+            return;
+        }
+    }
+
     // Store delivery method globally for later use
     window.selectedDeliveryMethod = deliveryMethod;
     
@@ -395,10 +490,10 @@ function proceedWithOnlinePayment() {
     proceedWithRazorpayPayment();
 }
 
-function proceedWithCheckPayment() {
+function proceedWithChequePayment() {
     closePaymentMethodModal();
-    // Redirect to Google Form for check payment
-    redirectToCheckPaymentForm();
+    // Redirect to Google Form for cheque payment
+    redirectToChequePaymentForm();
 }
 
 function proceedWithAccountTransfer() {
@@ -433,7 +528,7 @@ async function proceedWithRazorpayPayment() {
     }
 }
 
-function redirectToCheckPaymentForm() {
+function redirectToChequePaymentForm() {
     // Check authentication first
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -460,7 +555,7 @@ function redirectToCheckPaymentForm() {
     const weight = (book.weight || 0.5) * quantity;
     
     // Create order in pending state first
-    createPendingOrder('check', deliveryMethod, basePrice, weight, bookId, quantity);
+    createPendingOrder('cheque', deliveryMethod, basePrice, weight, bookId, quantity);
 }
 
 function redirectToAccountTransferForm() {
@@ -534,7 +629,7 @@ async function createPendingOrder(paymentType, deliveryMethod, basePrice, weight
                 bookId: bookId,
                 quantity: quantity,
                 deliveryMethod: deliveryMethod,
-                paymentType: paymentType, // 'check' or 'transfer'
+                paymentType: paymentType, // 'cheque' or 'transfer'
                 basePrice: basePrice,
                 courierCharge: courierCharge,
                 totalAmount: totalAmount,
@@ -1006,6 +1101,23 @@ function updateCartCount() {
 async function addToCart(deliveryMethod = "courier") {
     const bookId = new URLSearchParams(window.location.search).get("id");
 
+    // Check stock status before adding to cart
+    const book = window.currentBook;
+    if (book && book.trackStock && book.stockStatus === 'out_of_stock') {
+        alert("❌ This book is currently out of stock and cannot be added to cart.");
+        return;
+    }
+    
+    // Check if requested quantity is available for limited stock
+    const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
+    if (book && book.trackStock && book.stockStatus === 'limited_stock') {
+        const availableStock = book.stockQuantity || 0;
+        if (quantity > availableStock) {
+            alert(`❌ Only ${availableStock} copies are available. Please reduce the quantity.`);
+            return;
+        }
+    }
+
     const cart = getCart();
 
     // Check if book with same delivery method already exists
@@ -1014,8 +1126,18 @@ async function addToCart(deliveryMethod = "courier") {
     );
 
     if (existingItemIndex !== -1) {
-        // If exists, increase quantity
-        cart[existingItemIndex].quantity += 1;
+        // If exists, check if increasing quantity would exceed stock
+        const newQuantity = cart[existingItemIndex].quantity + 1;
+        if (book && book.trackStock && book.stockStatus === 'limited_stock') {
+            const availableStock = book.stockQuantity || 0;
+            if (newQuantity > availableStock) {
+                alert(`❌ Cannot add more. Only ${availableStock} copies are available and you already have ${cart[existingItemIndex].quantity} in cart.`);
+                return;
+            }
+        }
+        
+        // If stock check passes, increase quantity
+        cart[existingItemIndex].quantity = newQuantity;
         saveCart(cart);
         updateCartCount(); // Update cart count
         
@@ -1025,7 +1147,6 @@ async function addToCart(deliveryMethod = "courier") {
     }
 
     // Use stored book data
-    const book = window.currentBook;
     if (!book) {
         return alert("Book data not loaded. Please refresh the page.");
     }
@@ -1044,7 +1165,7 @@ async function addToCart(deliveryMethod = "courier") {
         basePrice: basePrice,
         courierCharge: courierCharge,
         coverImage: book.cover_image,
-        quantity: 1,
+        quantity: quantity,
         weight: book.weight || 0.5,
         type: 'book',
         deliveryMethod: deliveryMethod

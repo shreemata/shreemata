@@ -731,7 +731,7 @@
     <script>
         // Initialize admin navigation
         document.addEventListener('DOMContentLoaded', function() {
-            initAdminNavigation('check-payments');
+            initAdminNavigation('cheque-payments');
             loadPendingCheckPayments();
         });
         
@@ -754,9 +754,9 @@
                     return;
                 }
                 
-                console.log('🔍 Debug: Making API call to:', `${window.API_URL}/orders/check-payments/pending`);
+                console.log('🔍 Debug: Making API call to:', `${window.API_URL}/orders/cheque-payments/pending`);
                 
-                const response = await fetch(`${window.API_URL}/orders/check-payments/pending`, {
+                const response = await fetch(`${window.API_URL}/orders/cheque-payments/pending`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -997,7 +997,7 @@
             
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`${window.API_URL}/payments/admin/approve-check-payment/${currentOrderId}`, {
+                const response = await fetch(`${window.API_URL}/payments/admin/approve-cheque-payment/${currentOrderId}`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -1033,7 +1033,7 @@
             
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`${window.API_URL}/payments/admin/reject-check-payment/${currentOrderId}`, {
+                const response = await fetch(`${window.API_URL}/payments/admin/reject-cheque-payment/${currentOrderId}`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,

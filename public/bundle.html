@@ -73,7 +73,20 @@
             padding: 15px;
             border-radius: 8px;
             text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
+        
+        .clickable-book {
+            cursor: pointer;
+        }
+        
+        .clickable-book:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+        
         .book-item img {
             width: 100%;
             height: 250px;
@@ -369,6 +382,68 @@
             document.getElementById("bundleDescription").textContent = bundle.description || '';
             document.getElementById("bundleImage").src = bundle.image || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="400"%3E%3Crect fill="%23ddd" width="300" height="400"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="24" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EBundle%3C/text%3E%3C/svg%3E';
             
+            // Check stock status of books in the bundle
+            const outOfStockBooks = bundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'out_of_stock'
+            );
+            const limitedStockBooks = bundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'limited_stock'
+            );
+            
+            // Get all purchase buttons
+            const buyPickupBtn = document.querySelector('button[onclick="buyNow(\'pickup\')"]');
+            const buyCourierBtn = document.querySelector('button[onclick="buyNow(\'courier\')"]');
+            const addToCartBtn = document.querySelector('button[onclick="addToCartOnly(\'courier\')"]');
+            
+            if (outOfStockBooks.length > 0) {
+                // Disable all purchase buttons if any book is out of stock
+                if (buyPickupBtn) {
+                    buyPickupBtn.disabled = true;
+                    buyPickupBtn.textContent = "❌ Bundle Unavailable";
+                    buyPickupBtn.style.background = "#dc3545";
+                    buyPickupBtn.style.cursor = "not-allowed";
+                }
+                
+                if (buyCourierBtn) {
+                    buyCourierBtn.disabled = true;
+                    buyCourierBtn.textContent = "❌ Bundle Unavailable";
+                    buyCourierBtn.style.background = "#dc3545";
+                    buyCourierBtn.style.cursor = "not-allowed";
+                }
+                
+                if (addToCartBtn) {
+                    addToCartBtn.disabled = true;
+                    addToCartBtn.textContent = "❌ Bundle Unavailable";
+                    addToCartBtn.style.background = "#dc3545";
+                    addToCartBtn.style.cursor = "not-allowed";
+                }
+                
+                // Add out of stock notice
+                const priceSection = document.querySelector(".price-section");
+                const stockNotice = document.createElement("div");
+                stockNotice.style.cssText = "background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 16px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);";
+                stockNotice.innerHTML = `❌ Bundle unavailable - Some books are out of stock:<br><small style="font-size: 14px;">${outOfStockBooks.map(book => book.title).join(', ')}</small>`;
+                priceSection.parentNode.insertBefore(stockNotice, priceSection);
+                
+            } else if (limitedStockBooks.length > 0) {
+                // Show limited stock warning
+                const priceSection = document.querySelector(".price-section");
+                const stockNotice = document.createElement("div");
+                stockNotice.style.cssText = "background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 16px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);";
+                const minStock = Math.min(...limitedStockBooks.map(book => book.stockQuantity || 0));
+                stockNotice.innerHTML = `⚠️ Limited Stock - Only ${minStock} bundles available!<br><small style="font-size: 14px;">Limited books: ${limitedStockBooks.map(book => book.title).join(', ')}</small>`;
+                priceSection.parentNode.insertBefore(stockNotice, priceSection);
+                
+                // Update quantity selector max value to available stock
+                const quantityInput = document.getElementById("bundleQuantity");
+                if (quantityInput && minStock > 0) {
+                    quantityInput.max = minStock;
+                    if (parseInt(quantityInput.value) > minStock) {
+                        quantityInput.value = minStock;
+                    }
+                }
+            }
+            
             const discount = bundle.discount || Math.round(((bundle.originalPrice - bundle.bundlePrice) / bundle.originalPrice) * 100);
             document.getElementById("discountBadge").textContent = `${discount}% OFF`;
             
@@ -399,15 +474,21 @@
             const basePrice = bundle.bundlePrice;
             const weight = bundle.weight || bundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0);
             
-            // Calculate courier charge (async)
+            // Use bundle's courier charge if set, otherwise calculate from weight
             let courierCharge = 0;
-            try {
-                courierCharge = await calculateCourierCharge(weight);
-                // Ensure courierCharge is a valid number
-                courierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
-            } catch (error) {
-                console.error('Error calculating courier charge:', error);
-                courierCharge = 0;
+            if (bundle.courierCharge !== undefined && bundle.courierCharge !== null) {
+                courierCharge = parseFloat(bundle.courierCharge) || 0;
+                console.log('Using bundle courier charge:', courierCharge);
+            } else {
+                // Fallback to weight-based calculation
+                try {
+                    courierCharge = await calculateCourierCharge(weight);
+                    courierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
+                    console.log('Calculated courier charge from weight:', courierCharge);
+                } catch (error) {
+                    console.error('Error calculating courier charge:', error);
+                    courierCharge = 0;
+                }
             }
             
             // Display pickup price (same as bundle price)
@@ -425,22 +506,64 @@
             document.getElementById("bundleWeight").textContent = `${weight.toFixed(2)} kg`;
             document.getElementById("bundleCourierCharge").textContent = `₹${courierCharge.toFixed(2)}`;
 
-            // Display books
+            // Display books with stock status
             const grid = document.getElementById("booksGrid");
-            grid.innerHTML = bundle.books.map(book => `
-                <div class="book-item">
-                    <img src="${book.cover_image || 'https://via.placeholder.com/200x300?text=Book'}" alt="${book.title}">
-                    <h4>${book.title}</h4>
-                    <p style="color: #666; font-size: 14px;">${book.author}</p>
-                    <p style="font-weight: bold;">₹${book.price}</p>
-                </div>
-            `).join('');
+            grid.innerHTML = bundle.books.map(book => {
+                let stockBadge = '';
+                if (book.trackStock) {
+                    if (book.stockStatus === 'out_of_stock') {
+                        stockBadge = '<div style="position: absolute; top: 5px; right: 5px; background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">OUT OF STOCK</div>';
+                    } else if (book.stockStatus === 'limited_stock') {
+                        stockBadge = '<div style="position: absolute; top: 5px; right: 5px; background: #ff9800; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">LIMITED</div>';
+                    }
+                }
+                
+                return `
+                    <div class="book-item clickable-book" style="position: relative; cursor: pointer; transition: all 0.3s ease;" 
+                         onclick="navigateToBook('${book._id}')" 
+                         onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(102, 126, 234, 0.3)'; this.querySelector('.view-details-btn').style.background='linear-gradient(135deg, #5a67d8 0%, #667eea 100%)'" 
+                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'; this.querySelector('.view-details-btn').style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'">
+                        ${stockBadge}
+                        <img src="${book.cover_image || 'https://via.placeholder.com/200x300?text=Book'}" alt="${book.title}">
+                        <h4>${book.title}</h4>
+                        <p style="color: #666; font-size: 14px;">${book.author}</p>
+                        <p style="font-weight: bold;">₹${book.price}</p>
+                        <div class="view-details-btn" style="margin-top: 10px; padding: 8px 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; font-size: 12px; font-weight: 600; transition: all 0.3s ease;">
+                            📖 Click to View Details & Preview
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function addToCart(deliveryMethod = "courier") {
             if (!currentBundle) return;
 
+            // Check stock status before adding to cart
+            const outOfStockBooks = currentBundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'out_of_stock'
+            );
+            
+            if (outOfStockBooks.length > 0) {
+                alert(`❌ This bundle cannot be added to cart because some books are out of stock:\n${outOfStockBooks.map(book => book.title).join(', ')}`);
+                return;
+            }
+
             const quantity = parseInt(document.getElementById('bundleQuantity').value) || 1;
+            
+            // Check if requested quantity is available for limited stock books
+            const limitedStockBooks = currentBundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'limited_stock'
+            );
+            
+            if (limitedStockBooks.length > 0) {
+                const minStock = Math.min(...limitedStockBooks.map(book => book.stockQuantity || 0));
+                if (quantity > minStock) {
+                    alert(`❌ Only ${minStock} bundles are available. Please reduce the quantity.`);
+                    return;
+                }
+            }
+            
             let cart = getCart();
 
             // Check if bundle with same delivery method already exists
@@ -449,12 +572,32 @@
             );
 
             if (existingItemIndex !== -1) {
-                // If exists, increase quantity by selected amount
-                cart[existingItemIndex].quantity += quantity;
+                // Check if increasing quantity would exceed stock for limited stock books
+                const newQuantity = cart[existingItemIndex].quantity + quantity;
+                if (limitedStockBooks.length > 0) {
+                    const minStock = Math.min(...limitedStockBooks.map(book => book.stockQuantity || 0));
+                    if (newQuantity > minStock) {
+                        alert(`❌ Cannot add more. Only ${minStock} bundles are available and you already have ${cart[existingItemIndex].quantity} in cart.`);
+                        return;
+                    }
+                }
+                
+                // If stock check passes, increase quantity by selected amount
+                cart[existingItemIndex].quantity = newQuantity;
                 
                 // Recalculate pricing for updated quantity
                 const weight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * cart[existingItemIndex].quantity;
-                const courierCharge = deliveryMethod === "courier" ? calculateCourierCharge(weight) : 0;
+                
+                // Use bundle's courier charge if set, otherwise calculate from weight
+                let courierCharge = 0;
+                if (deliveryMethod === "courier") {
+                    if (currentBundle.courierCharge !== undefined && currentBundle.courierCharge !== null) {
+                        courierCharge = parseFloat(currentBundle.courierCharge) * cart[existingItemIndex].quantity;
+                    } else {
+                        courierCharge = calculateCourierCharge(weight);
+                    }
+                }
+                
                 const totalPrice = (currentBundle.bundlePrice * cart[existingItemIndex].quantity) + courierCharge;
                 
                 cart[existingItemIndex].price = totalPrice;
@@ -469,7 +612,17 @@
             // Calculate pricing based on delivery method and quantity
             const basePrice = currentBundle.bundlePrice * quantity;
             const weight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * quantity;
-            const courierCharge = deliveryMethod === "courier" ? calculateCourierCharge(weight) : 0;
+            
+            // Use bundle's courier charge if set, otherwise calculate from weight
+            let courierCharge = 0;
+            if (deliveryMethod === "courier") {
+                if (currentBundle.courierCharge !== undefined && currentBundle.courierCharge !== null) {
+                    courierCharge = parseFloat(currentBundle.courierCharge) * quantity;
+                } else {
+                    courierCharge = calculateCourierCharge(weight);
+                }
+            }
+            
             const totalPrice = basePrice + courierCharge;
 
             // Add bundle to cart
@@ -494,6 +647,35 @@
         }
 
         function buyNow(deliveryMethod = "courier") {
+            // Check stock status before proceeding
+            if (!currentBundle) {
+                alert("Bundle details not loaded");
+                return;
+            }
+            
+            const outOfStockBooks = currentBundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'out_of_stock'
+            );
+            
+            if (outOfStockBooks.length > 0) {
+                alert(`❌ This bundle cannot be purchased because some books are out of stock:\n${outOfStockBooks.map(book => book.title).join(', ')}`);
+                return;
+            }
+            
+            // Check if requested quantity is available for limited stock books
+            const quantity = parseInt(document.getElementById("bundleQuantity").value) || 1;
+            const limitedStockBooks = currentBundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'limited_stock'
+            );
+            
+            if (limitedStockBooks.length > 0) {
+                const minStock = Math.min(...limitedStockBooks.map(book => book.stockQuantity || 0));
+                if (quantity > minStock) {
+                    alert(`❌ Only ${minStock} bundles are available. Please reduce the quantity.`);
+                    return;
+                }
+            }
+            
             // Store delivery method globally for later use
             window.selectedDeliveryMethod = deliveryMethod;
             
@@ -516,10 +698,10 @@
             handleBundlePurchase(window.selectedDeliveryMethod || "courier");
         }
 
-        function proceedWithCheckPayment() {
+        function proceedWithChequePayment() {
             closePaymentMethodModal();
-            // Redirect to check payment form
-            redirectToBundleCheckPaymentForm();
+            // Redirect to cheque payment form
+            redirectToBundleChequePaymentForm();
         }
 
         function proceedWithAccountTransfer() {
@@ -777,7 +959,14 @@
             if (deliveryMethod === "pickup") {
                 confirmMsg = `Order Summary (Book-stall Pickup):\n\nBundle: ${currentBundle.name}\nQuantity: ${quantity}\nPrice: ₹${itemsTotal.toFixed(2)}\nDelivery: Pickup at store (FREE)\n\nTotal Amount: ₹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
             } else {
-                courierCharge = calculateCourierCharge(bundleWeight);
+                // Use bundle's courier charge if set, otherwise calculate from weight
+                if (currentBundle.courierCharge !== undefined && currentBundle.courierCharge !== null) {
+                    courierCharge = parseFloat(currentBundle.courierCharge) * quantity;
+                    console.log('Using bundle courier charge for payment:', courierCharge);
+                } else {
+                    courierCharge = calculateCourierCharge(bundleWeight);
+                    console.log('Calculated courier charge for payment:', courierCharge);
+                }
                 totalAmount = itemsTotal + courierCharge;
                 confirmMsg = `Order Summary (Courier Delivery):\n\nBundle: ${currentBundle.name}\nQuantity: ${quantity}\nPrice: ₹${itemsTotal.toFixed(2)}\nWeight: ${bundleWeight.toFixed(2)} kg\nCourier Charge: ₹${courierCharge.toFixed(2)}\n\nTotal Amount: ₹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
             }
@@ -909,7 +1098,31 @@
         function addToCartOnly(deliveryMethod = "courier") {
             if (!currentBundle) return;
 
+            // Check stock status before adding to cart
+            const outOfStockBooks = currentBundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'out_of_stock'
+            );
+            
+            if (outOfStockBooks.length > 0) {
+                alert(`❌ This bundle cannot be added to cart because some books are out of stock:\n${outOfStockBooks.map(book => book.title).join(', ')}`);
+                return;
+            }
+
             const quantity = parseInt(document.getElementById('bundleQuantity').value) || 1;
+            
+            // Check if requested quantity is available for limited stock books
+            const limitedStockBooks = currentBundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'limited_stock'
+            );
+            
+            if (limitedStockBooks.length > 0) {
+                const minStock = Math.min(...limitedStockBooks.map(book => book.stockQuantity || 0));
+                if (quantity > minStock) {
+                    alert(`❌ Only ${minStock} bundles are available. Please reduce the quantity.`);
+                    return;
+                }
+            }
+            
             let cart = getCart();
 
             // Check if bundle with same delivery method already exists
@@ -918,8 +1131,18 @@
             );
 
             if (existingItemIndex !== -1) {
-                // If exists, increase quantity by selected amount
-                cart[existingItemIndex].quantity += quantity;
+                // Check if increasing quantity would exceed stock for limited stock books
+                const newQuantity = cart[existingItemIndex].quantity + quantity;
+                if (limitedStockBooks.length > 0) {
+                    const minStock = Math.min(...limitedStockBooks.map(book => book.stockQuantity || 0));
+                    if (newQuantity > minStock) {
+                        alert(`❌ Cannot add more. Only ${minStock} bundles are available and you already have ${cart[existingItemIndex].quantity} in cart.`);
+                        return;
+                    }
+                }
+                
+                // If stock check passes, increase quantity by selected amount
+                cart[existingItemIndex].quantity = newQuantity;
                 
                 // Recalculate pricing for updated quantity
                 const weight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * cart[existingItemIndex].quantity;
@@ -1022,8 +1245,8 @@
             document.getElementById("bundleCourierCharge").textContent = `₹${courierCharge.toFixed(2)}`;
         }
 
-        // Bundle Check Payment Functions
-        function redirectToBundleCheckPaymentForm() {
+        // Bundle Cheque Payment Functions
+        function redirectToBundleChequePaymentForm() {
             const bundleId = new URLSearchParams(window.location.search).get("id");
             const deliveryMethod = window.selectedDeliveryMethod || "courier";
             const quantity = parseInt(document.getElementById("bundleQuantity").value) || 1;
@@ -1037,10 +1260,10 @@
             const basePrice = parseFloat(currentBundle.bundlePrice) * quantity;
             const weight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * quantity;
             
-            console.log('Bundle Check Payment:', { bundleId, basePrice, weight, quantity });
+            console.log('Bundle Cheque Payment:', { bundleId, basePrice, weight, quantity });
             
             // Create order in pending state first
-            createBundlePendingOrder('check', deliveryMethod, basePrice, weight, bundleId, quantity);
+            createBundlePendingOrder('cheque', deliveryMethod, basePrice, weight, bundleId, quantity);
         }
 
         function redirectToBundleAccountTransferForm() {
@@ -1092,11 +1315,31 @@
                 // Calculate courier charge if needed
                 let courierCharge = 0;
                 if (deliveryMethod === "courier") {
-                    courierCharge = await calculateCourierCharge(weight);
-                    courierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
+                    // Use bundle's courier charge if set, otherwise calculate from weight
+                    if (currentBundle && currentBundle.courierCharge !== undefined && currentBundle.courierCharge !== null) {
+                        courierCharge = parseFloat(currentBundle.courierCharge) * quantity;
+                        console.log('Using bundle courier charge:', courierCharge);
+                    } else {
+                        courierCharge = await calculateCourierCharge(weight);
+                        courierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
+                        console.log('Calculated courier charge from weight:', courierCharge);
+                    }
                 }
                 
                 const totalAmount = basePrice + courierCharge;
+                
+                const requestData = {
+                    bookId: bundleId, // Using bookId field for bundle ID
+                    quantity: quantity,
+                    deliveryMethod: deliveryMethod,
+                    paymentType: paymentType, // 'cheque' or 'transfer'
+                    basePrice: basePrice,
+                    courierCharge: courierCharge,
+                    totalAmount: totalAmount,
+                    itemType: 'bundle' // Indicate this is a bundle order
+                };
+                
+                console.log('Sending bundle order request:', requestData);
                 
                 // Create pending order for bundle
                 const orderRes = await fetch(`${API}/orders/create-pending`, {
@@ -1105,22 +1348,14 @@
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${token}`
                     },
-                    body: JSON.stringify({
-                        bookId: bundleId, // Using bookId field for bundle ID
-                        quantity: quantity,
-                        deliveryMethod: deliveryMethod,
-                        paymentType: paymentType, // 'check' or 'transfer'
-                        basePrice: basePrice,
-                        courierCharge: courierCharge,
-                        totalAmount: totalAmount,
-                        itemType: 'bundle' // Indicate this is a bundle order
-                    })
+                    body: JSON.stringify(requestData)
                 });
 
                 const orderData = await orderRes.json();
 
                 if (!orderRes.ok) {
-                    throw new Error(orderData.error || "Failed to create order");
+                    console.error('Server response:', orderRes.status, orderData);
+                    throw new Error(orderData.error || `Server error: ${orderRes.status}`);
                 }
 
                 // Show confirmation and redirect to upload page
@@ -1156,6 +1391,24 @@
                 return baseCharge + (weight * ratePerKg);
             }
         }
+
+        // Navigate to individual book page
+        function navigateToBook(bookId) {
+            if (!bookId) {
+                console.error('Book ID is required for navigation');
+                return;
+            }
+            
+            // Add a subtle loading feedback
+            const clickedBook = event.target.closest('.book-item');
+            if (clickedBook) {
+                clickedBook.style.opacity = '0.7';
+                clickedBook.style.transform = 'scale(0.98)';
+            }
+            
+            // Navigate to the book page with the book ID
+            window.location.href = `/book.html?id=${bookId}`;
+        }
     </script>
 
     <!-- Payment Method Selection Modal -->
@@ -1172,9 +1425,9 @@
                         <div style="font-size: 14px; opacity: 0.9; margin-top: 5px;">Instant payment via Razorpay</div>
                     </button>
                     
-                    <button onclick="proceedWithCheckPayment()" class="payment-method-btn" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; border: none; padding: 20px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
-                        📝 Check Payment
-                        <div style="font-size: 14px; opacity: 0.9; margin-top: 5px;">Upload check image for verification</div>
+                    <button onclick="proceedWithChequePayment()" class="payment-method-btn" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; border: none; padding: 20px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
+                        📝 Cheque Payment
+                        <div style="font-size: 14px; opacity: 0.9; margin-top: 5px;">Upload cheque image for verification</div>
                     </button>
                     
                     <button onclick="proceedWithAccountTransfer()" class="payment-method-btn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; padding: 20px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
@@ -1184,7 +1437,7 @@
                 </div>
                 
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 14px; color: #666;">
-                    <strong>Note:</strong> For check and bank transfer payments, you'll need to upload payment proof and add UTR number later in your account.
+                    <strong>Note:</strong> For cheque and bank transfer payments, you'll need to upload payment proof and add UTR number later in your account.
                 </div>
             </div>
         </div>

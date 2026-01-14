@@ -330,10 +330,10 @@ router.post("/create-order", authenticateToken, async (req, res) => {
     console.log("✅ Stock validation passed - all items available");
 
     // =====================================================
-    // CHECK PAYMENT METHOD HANDLING
+    // CHEQUE PAYMENT METHOD HANDLING
     // =====================================================
-    if (paymentMethod === 'check') {
-      console.log("📝 Creating pending order for check payment...");
+    if (paymentMethod === 'cheque') {
+      console.log("📝 Creating pending order for cheque payment...");
       
       // Prepare delivery address with defaults (null for digital-only orders and pickup orders)
       const addressData = (!isDigitalOnly && !isPickupOrder && deliveryAddress) ? {
@@ -374,7 +374,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
         savings: appliedOffer.savings
       } : undefined;
 
-      // Create pending order for check payment
+      // Create pending order for cheque payment
       const pendingOrder = await Order.create({
         user_id: req.user.id,
         items: orderItems,
@@ -384,10 +384,10 @@ router.post("/create-order", authenticateToken, async (req, res) => {
         deliveryMethod: isDigitalOnly ? 'digital' : (deliveryMethod || 'home'),
         appliedOffer: offerData,
         deliveryAddress: addressData,
-        status: "pending_payment_verification", // Special status for check payments
-        paymentType: "check",
+        status: "pending_payment_verification", // Special status for cheque payments
+        paymentType: "cheque",
         paymentDetails: {
-          type: "check",
+          type: "cheque",
           status: "awaiting_upload",
           createdAt: new Date(),
           updatedAt: new Date()
@@ -419,7 +419,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
         orderType: 'check',
         order: pendingOrder,
         googleFormUrl: googleFormUrl,
-        message: "Pending order created. Please complete the check payment verification form."
+        message: "Pending order created. Please complete the cheque payment verification form."
       });
     }
 
@@ -1165,24 +1165,24 @@ router.post("/test-cashback", authenticateToken, async (req, res) => {
 });
 
 // =====================================================
-// 🔄 CHECK PAYMENT WEBHOOK (Google Form Submission)
+// 🔄 CHEQUE PAYMENT WEBHOOK (Google Form Submission)
 // =====================================================
-router.post("/webhook/check-payment-submitted", async (req, res) => {
+router.post("/webhook/cheque-payment-submitted", async (req, res) => {
   try {
-    console.log("📝 Check payment form submitted - RAW BODY:", JSON.stringify(req.body, null, 2));
+    console.log("📝 Cheque payment form submitted - RAW BODY:", JSON.stringify(req.body, null, 2));
     
     const { 
       orderId, 
-      checkNumber, 
+      chequeNumber, 
       bankName, 
-      checkDate, 
+      chequeDate, 
       utrNumber, 
       formResponseId,
       driveFileIds,
-      checkImageUrl,
-      checkImageDriveId,
+      chequeImageUrl,
+      chequeImageDriveId,
       allResponses,  // Add this field
-      paymentType    // Add this field to detect check vs transfer
+      paymentType    // Add this field to detect cheque vs transfer
     } = req.body;
 
     console.log("🔍 Extracted fields:");
@@ -1210,37 +1210,37 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
       });
     }
 
-    // Update order with check payment details including image URLs
+    // Update order with cheque payment details including image URLs
     const updateData = {
       'paymentDetails.status': 'pending_verification',
-      'paymentDetails.checkNumber': checkNumber,
+      'paymentDetails.chequeNumber': chequeNumber,
       'paymentDetails.bankName': bankName,
-      'paymentDetails.checkDate': checkDate ? new Date(checkDate) : null,
+      'paymentDetails.chequeDate': chequeDate ? new Date(chequeDate) : null,
       'paymentDetails.utrNumber': utrNumber,
       'paymentDetails.googleFormSubmissionId': formResponseId,
       'paymentDetails.updatedAt': new Date()
     };
 
     // Update payment type if provided (for unified form handling)
-    if (paymentType && (paymentType === 'check' || paymentType === 'transfer')) {
+    if (paymentType && (paymentType === 'check' || paymentType === 'cheque' || paymentType === 'transfer')) {
       updateData['paymentType'] = paymentType;
       updateData['paymentDetails.type'] = paymentType;
       console.log('💾 ✅ Updated payment type to:', paymentType);
     }
 
     // Add image URLs if provided - with detailed logging
-    if (checkImageUrl) {
-      updateData['paymentDetails.checkImageUrl'] = checkImageUrl;
-      console.log('💾 ✅ Saving checkImageUrl:', checkImageUrl);
+    if (chequeImageUrl) {
+      updateData['paymentDetails.chequeImageUrl'] = chequeImageUrl;
+      console.log('💾 ✅ Saving chequeImageUrl:', chequeImageUrl);
     } else {
-      console.log('💾 ❌ No checkImageUrl provided');
+      console.log('💾 ❌ No chequeImageUrl provided');
     }
     
-    if (checkImageDriveId) {
-      updateData['paymentDetails.checkImageDriveId'] = checkImageDriveId;
-      console.log('💾 ✅ Saving checkImageDriveId:', checkImageDriveId);
+    if (chequeImageDriveId) {
+      updateData['paymentDetails.chequeImageDriveId'] = chequeImageDriveId;
+      console.log('💾 ✅ Saving chequeImageDriveId:', chequeImageDriveId);
     } else {
-      console.log('💾 ❌ No checkImageDriveId provided');
+      console.log('💾 ❌ No chequeImageDriveId provided');
     }
     
     if (driveFileIds && Array.isArray(driveFileIds) && driveFileIds.length > 0) {
@@ -1274,7 +1274,7 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
     try {
       const user = await User.findById(order.user_id);
       if (user) {
-        console.log(`📧 Check payment submitted by ${user.name} for order ${orderId}`);
+        console.log(`📧 Cheque payment submitted by ${user.name} for order ${orderId}`);
         // You can send admin notification email here
       }
     } catch (emailError) {
@@ -1283,13 +1283,86 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: "Check payment details received",
+      message: "Cheque payment details received",
       orderId: orderId,
       status: "pending_verification"
     });
 
   } catch (error) {
-    console.error("Check payment webhook error:", error);
+    console.error("Cheque payment webhook error:", error);
+    res.status(500).json({ error: "Error processing cheque payment submission" });
+  }
+});
+
+// =====================================================
+// 🔄 BACKWARD COMPATIBILITY: OLD CHECK PAYMENT WEBHOOK
+// =====================================================
+router.post("/webhook/check-payment-submitted", async (req, res) => {
+  // Redirect to the new cheque payment webhook for backward compatibility
+  console.log("📝 Legacy check payment webhook called - redirecting to cheque webhook");
+  
+  // Forward the request to the cheque payment handler
+  try {
+    // Re-use the same logic as the cheque payment webhook
+    const { 
+      orderId, 
+      chequeNumber, 
+      bankName, 
+      chequeDate, 
+      utrNumber, 
+      formResponseId,
+      driveFileIds,
+      chequeImageUrl,
+      chequeImageDriveId,
+      allResponses,
+      paymentType
+    } = req.body;
+
+    // Update order with cheque payment details including image URLs
+    const updateData = {
+      'paymentDetails.status': 'pending_verification',
+      'paymentDetails.chequeNumber': chequeNumber,
+      'paymentDetails.bankName': bankName,
+      'paymentDetails.chequeDate': chequeDate ? new Date(chequeDate) : null,
+      'paymentDetails.utrNumber': utrNumber,
+      'paymentDetails.googleFormSubmissionId': formResponseId,
+      'paymentDetails.updatedAt': new Date()
+    };
+
+    // Update payment type if provided (for unified form handling)
+    if (paymentType && (paymentType === 'check' || paymentType === 'cheque' || paymentType === 'transfer')) {
+      updateData['paymentType'] = paymentType;
+      updateData['paymentDetails.type'] = paymentType;
+    }
+
+    // Add image URLs if provided
+    if (chequeImageUrl) {
+      updateData['paymentDetails.chequeImageUrl'] = chequeImageUrl;
+    }
+    
+    if (chequeImageDriveId) {
+      updateData['paymentDetails.chequeImageDriveId'] = chequeImageDriveId;
+    }
+    
+    if (driveFileIds && Array.isArray(driveFileIds) && driveFileIds.length > 0) {
+      updateData['paymentDetails.driveFileIds'] = driveFileIds;
+    }
+
+    const order = await Order.findByIdAndUpdate(orderId, updateData, { new: true });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Check payment details received (legacy endpoint)",
+      orderId: orderId,
+      status: "pending_verification"
+    });
+
+  } catch (error) {
+    console.error("Legacy check payment webhook error:", error);
     res.status(500).json({ error: "Error processing check payment submission" });
   }
 });
@@ -1423,9 +1496,9 @@ router.post("/webhook/bank-transfer-submitted", async (req, res) => {
 });
 
 // =====================================================
-// 🔄 ADMIN: APPROVE CHECK PAYMENT
+// 🔄 ADMIN: APPROVE CHEQUE PAYMENT
 // =====================================================
-router.post("/admin/approve-check-payment/:orderId", authenticateToken, async (req, res) => {
+router.post("/admin/approve-cheque-payment/:orderId", authenticateToken, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { approvalNotes } = req.body;
@@ -1436,14 +1509,15 @@ router.post("/admin/approve-check-payment/:orderId", authenticateToken, async (r
       return res.status(403).json({ error: "Admin access required" });
     }
 
-    console.log(`🔍 Admin ${adminUser.email} approving check payment for order: ${orderId}`);
+    console.log(`🔍 Admin ${adminUser.email} approving cheque payment for order: ${orderId}`);
 
-    // Find and update the order (support both check and transfer payments)
+    // Find and update the order (support both check/cheque and transfer payments)
     const order = await Order.findOneAndUpdate(
       { 
         _id: orderId,
         $or: [
           { paymentType: 'check' },
+          { paymentType: 'cheque' },
           { paymentType: 'transfer' }
         ],
         'paymentDetails.status': 'pending_verification'
@@ -1464,28 +1538,28 @@ router.post("/admin/approve-check-payment/:orderId", authenticateToken, async (r
       });
     }
 
-    console.log(`✅ ${order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} approved for order: ${orderId}`);
+    console.log(`✅ ${order.paymentType === 'transfer' ? 'Bank transfer' : 'Cheque payment'} approved for order: ${orderId}`);
 
     // Trigger all automated processes (same as online payment)
-    await processApprovedCheckOrder(order, adminUser);
+    await processApprovedChequeOrder(order, adminUser);
 
     res.json({ 
       success: true, 
-      message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} approved successfully`,
+      message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Cheque payment'} approved successfully`,
       orderId: orderId,
       order: order
     });
 
   } catch (error) {
-    console.error("Check payment approval error:", error);
-    res.status(500).json({ error: "Error approving check payment" });
+    console.error("Cheque payment approval error:", error);
+    res.status(500).json({ error: "Error approving cheque payment" });
   }
 });
 
 // =====================================================
-// 🔄 ADMIN: REJECT CHECK PAYMENT
+// 🔄 ADMIN: REJECT CHEQUE PAYMENT
 // =====================================================
-router.post("/admin/reject-check-payment/:orderId", authenticateToken, async (req, res) => {
+router.post("/admin/reject-cheque-payment/:orderId", authenticateToken, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { rejectionReason } = req.body;
@@ -1496,14 +1570,15 @@ router.post("/admin/reject-check-payment/:orderId", authenticateToken, async (re
       return res.status(403).json({ error: "Admin access required" });
     }
 
-    console.log(`🔍 Admin ${adminUser.email} rejecting check payment for order: ${orderId}`);
+    console.log(`🔍 Admin ${adminUser.email} rejecting cheque payment for order: ${orderId}`);
 
-    // Find and update the order (support both check and transfer payments)
+    // Find and update the order (support both check/cheque and transfer payments)
     const order = await Order.findOneAndUpdate(
       { 
         _id: orderId,
         $or: [
           { paymentType: 'check' },
+          { paymentType: 'cheque' },
           { paymentType: 'transfer' }
         ],
         'paymentDetails.status': 'pending_verification'
@@ -1523,7 +1598,7 @@ router.post("/admin/reject-check-payment/:orderId", authenticateToken, async (re
       });
     }
 
-    console.log(`❌ ${order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} rejected for order: ${orderId}`);
+    console.log(`❌ ${order.paymentType === 'transfer' ? 'Bank transfer' : 'Cheque payment'} rejected for order: ${orderId}`);
 
     // Send rejection notification to user
     try {
@@ -1538,21 +1613,125 @@ router.post("/admin/reject-check-payment/:orderId", authenticateToken, async (re
 
     res.json({ 
       success: true, 
-      message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} rejected`,
+      message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Cheque payment'} rejected`,
       orderId: orderId,
       order: order
     });
 
   } catch (error) {
-    console.error("Check payment rejection error:", error);
+    console.error("Cheque payment rejection error:", error);
+    res.status(500).json({ error: "Error rejecting cheque payment" });
+  }
+});
+
+// =====================================================
+// 🔄 BACKWARD COMPATIBILITY: OLD ADMIN ENDPOINTS
+// =====================================================
+
+// Legacy approve endpoint
+router.post("/admin/approve-check-payment/:orderId", authenticateToken, async (req, res) => {
+  console.log("📝 Legacy approve-check-payment endpoint called - redirecting to cheque endpoint");
+  
+  try {
+    const { orderId } = req.params;
+    const adminUser = req.user;
+
+    if (!adminUser || adminUser.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    // Find and update the order (support both check/cheque and transfer payments)
+    const order = await Order.findOneAndUpdate(
+      { 
+        _id: orderId,
+        $or: [
+          { paymentType: 'check' },
+          { paymentType: 'cheque' },
+          { paymentType: 'transfer' }
+        ],
+        'paymentDetails.status': 'pending_verification'
+      },
+      {
+        status: 'completed',
+        'paymentDetails.status': 'verified',
+        'paymentDetails.updatedAt': new Date(),
+        rewardApplied: true
+      },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found or already processed" });
+    }
+
+    // Trigger all automated processes
+    await processApprovedChequeOrder(order, adminUser);
+
+    res.json({ 
+      success: true, 
+      message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} approved successfully (legacy endpoint)`,
+      orderId: orderId,
+      order: order
+    });
+
+  } catch (error) {
+    console.error("Legacy check payment approval error:", error);
+    res.status(500).json({ error: "Error approving check payment" });
+  }
+});
+
+// Legacy reject endpoint
+router.post("/admin/reject-check-payment/:orderId", authenticateToken, async (req, res) => {
+  console.log("📝 Legacy reject-check-payment endpoint called - redirecting to cheque endpoint");
+  
+  try {
+    const { orderId } = req.params;
+    const adminUser = req.user;
+
+    if (!adminUser || adminUser.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    // Find and update the order
+    const order = await Order.findOneAndUpdate(
+      { 
+        _id: orderId,
+        $or: [
+          { paymentType: 'check' },
+          { paymentType: 'cheque' },
+          { paymentType: 'transfer' }
+        ],
+        'paymentDetails.status': 'pending_verification'
+      },
+      {
+        status: 'cancelled',
+        'paymentDetails.status': 'rejected',
+        'paymentDetails.updatedAt': new Date()
+      },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found or already processed" });
+    }
+
+    res.json({ 
+      success: true, 
+      message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} rejected (legacy endpoint)`,
+      orderId: orderId,
+      order: order
+    });
+
+  } catch (error) {
+    console.error("Legacy check payment rejection error:", error);
     res.status(500).json({ error: "Error rejecting check payment" });
   }
 });
 
 /**
- * Process approved check order - trigger all automated systems
+ * Process approved cheque order - trigger all automated systems
  */
-async function processApprovedCheckOrder(order, adminUser) {
+async function processApprovedChequeOrder(order, adminUser) {
   try {
     console.log(`🔄 Processing approved check order: ${order._id}`);
 
@@ -1675,17 +1854,17 @@ async function processApprovedCheckOrder(order, adminUser) {
 }
 
 // =====================================================
-// 🔄 SIMPLE CHECK PAYMENT FORM SUBMISSION
+// 🔄 SIMPLE CHEQUE PAYMENT FORM SUBMISSION
 // =====================================================
-router.post("/simple-check-payment-submit", authenticateToken, async (req, res) => {
+router.post("/simple-cheque-payment-submit", authenticateToken, async (req, res) => {
   try {
-    console.log("📝 Simple check payment form submitted:", req.body);
+    console.log("📝 Simple cheque payment form submitted:", req.body);
     
     const { 
       orderId, 
-      checkNumber, 
+      chequeNumber, 
       bankName, 
-      checkDate, 
+      chequeDate, 
       utrNumber
     } = req.body;
 
@@ -1697,40 +1876,43 @@ router.post("/simple-check-payment-submit", authenticateToken, async (req, res) 
     const order = await Order.findOne({
       _id: orderId,
       user_id: req.user.id,
-      paymentType: 'check',
+      $or: [
+        { paymentType: 'check' },
+        { paymentType: 'cheque' }
+      ],
       status: 'pending_payment_verification'
     });
 
     if (!order) {
-      return res.status(404).json({ error: "Order not found or not eligible for check payment" });
+      return res.status(404).json({ error: "Order not found or not eligible for cheque payment" });
     }
 
-    // Update order with check payment details
+    // Update order with cheque payment details
     const updateData = {
       'paymentDetails.status': 'pending_verification', // This is what admin panel looks for
-      'paymentDetails.checkNumber': checkNumber,
+      'paymentDetails.chequeNumber': chequeNumber,
       'paymentDetails.bankName': bankName,
-      'paymentDetails.checkDate': checkDate ? new Date(checkDate) : null,
+      'paymentDetails.chequeDate': chequeDate ? new Date(chequeDate) : null,
       'paymentDetails.utrNumber': utrNumber,
       'paymentDetails.updatedAt': new Date()
     };
 
     const updatedOrder = await Order.findByIdAndUpdate(orderId, updateData, { new: true });
 
-    console.log(`✅ Check payment details updated for order: ${orderId}`);
+    console.log(`✅ Cheque payment details updated for order: ${orderId}`);
     console.log(`📋 Order status: ${updatedOrder.status}`);
     console.log(`📋 Payment details status: ${updatedOrder.paymentDetails.status}`);
 
     res.json({ 
       success: true, 
-      message: "Check payment details submitted successfully",
+      message: "Cheque payment details submitted successfully",
       orderId: orderId,
       status: "pending_verification"
     });
 
   } catch (error) {
-    console.error("Simple check payment submission error:", error);
-    res.status(500).json({ error: "Error processing check payment submission" });
+    console.error("Simple cheque payment submission error:", error);
+    res.status(500).json({ error: "Error processing cheque payment submission" });
   }
 });
 

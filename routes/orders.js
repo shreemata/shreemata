@@ -2,22 +2,25 @@
 const express = require("express");
 const Order = require("../models/Order");
 const User = require("../models/User");
+const Bundle = require("../models/Bundle");
+const Book = require("../models/Book");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { sendDeliveryStatusEmail } = require("../utils/emailService");
 
 const router = express.Router();
 
 /**
- * GET PENDING CHECK PAYMENTS (Admin Only)
+ * GET PENDING CHEQUE PAYMENTS (Admin Only)
  */
-router.get("/check-payments/pending", authenticateToken, isAdmin, async (req, res) => {
+router.get("/cheque-payments/pending", authenticateToken, isAdmin, async (req, res) => {
     try {
-        console.log("📋 Admin fetching pending check payments and bank transfers...");
+        console.log("📋 Admin fetching pending cheque payments and bank transfers...");
 
-        // Find orders with check payment OR bank transfer pending verification
+        // Find orders with cheque/check payment OR bank transfer pending verification
         const orders = await Order.find({
             $or: [
                 { paymentType: 'check' },
+                { paymentType: 'cheque' },
                 { paymentType: 'transfer' }
             ],
             'paymentDetails.status': 'pending_verification'
@@ -43,8 +46,8 @@ router.get("/check-payments/pending", authenticateToken, isAdmin, async (req, re
             user: order.user_id // Rename for easier access
         }));
 
-        console.log(`✅ Found ${orders.length} pending payments (check + bank transfer)`);
-        console.log(`   - Check payments: ${orders.filter(o => o.paymentType === 'check').length}`);
+        console.log(`✅ Found ${orders.length} pending payments (cheque + bank transfer)`);
+        console.log(`   - Cheque payments: ${orders.filter(o => o.paymentType === 'cheque' || o.paymentType === 'check').length}`);
         console.log(`   - Bank transfers: ${orders.filter(o => o.paymentType === 'transfer').length}`);
 
         res.json({
@@ -54,7 +57,55 @@ router.get("/check-payments/pending", authenticateToken, isAdmin, async (req, re
         });
 
     } catch (error) {
-        console.error("Error fetching pending check payments:", error);
+        console.error("Error fetching pending cheque payments:", error);
+        res.status(500).json({ error: "Error fetching pending cheque payments" });
+    }
+});
+
+/**
+ * BACKWARD COMPATIBILITY: GET PENDING CHECK PAYMENTS (Admin Only)
+ */
+router.get("/check-payments/pending", authenticateToken, isAdmin, async (req, res) => {
+    console.log("📝 Legacy check-payments/pending endpoint called - redirecting to cheque endpoint");
+    
+    try {
+        // Find orders with check/cheque payment OR bank transfer pending verification
+        const orders = await Order.find({
+            $or: [
+                { paymentType: 'check' },
+                { paymentType: 'cheque' },
+                { paymentType: 'transfer' }
+            ],
+            'paymentDetails.status': 'pending_verification'
+        })
+        .populate('user_id', 'name email phone')
+        .sort({ 'paymentDetails.updatedAt': -1 })
+        .lean();
+
+        // Format orders for frontend
+        const formattedOrders = orders.map(order => ({
+            ...order,
+            _id: order._id.toString(),
+            user_id: order.user_id ? {
+                ...order.user_id,
+                _id: order.user_id._id.toString()
+            } : null
+        }));
+
+        console.log(`✅ Found ${orders.length} pending payments (legacy endpoint)`);
+
+        res.json({
+            success: true,
+            orders: formattedOrders,
+            stats: {
+                total: orders.length,
+                checkPayments: orders.filter(o => o.paymentType === 'check' || o.paymentType === 'cheque').length,
+                bankTransfers: orders.filter(o => o.paymentType === 'transfer').length
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching pending check payments (legacy):", error);
         res.status(500).json({ error: "Error fetching pending check payments" });
     }
 });
@@ -88,10 +139,12 @@ router.post("/", authenticateToken, async (req, res) => {
 });
 
 /**
- * CREATE PENDING ORDER (For Check/Bank Transfer Payments)
+ * CREATE PENDING ORDER (For Cheque/Bank Transfer Payments)
  */
 router.post("/create-pending", authenticateToken, async (req, res) => {
     try {
+        console.log('📝 Create pending order request:', req.body);
+        
         const { 
             bookId, 
             quantity, 
@@ -103,7 +156,19 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
             itemType = 'book' // Default to book, can be 'bundle'
         } = req.body;
 
+        console.log('Extracted fields:', {
+            bookId,
+            quantity,
+            deliveryMethod,
+            paymentType,
+            basePrice,
+            courierCharge,
+            totalAmount,
+            itemType
+        });
+
         if (!bookId || !quantity || !paymentType) {
+            console.error('Missing required fields:', { bookId, quantity, paymentType });
             return res.status(400).json({ error: "Missing required fields" });
         }
 
@@ -111,13 +176,15 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
         
         if (itemType === 'bundle') {
             // Fetch bundle details
-            const Bundle = require("../models/Bundle");
+            console.log('Fetching bundle with ID:', bookId);
             const bundle = await Bundle.findById(bookId);
             
             if (!bundle) {
+                console.error('Bundle not found:', bookId);
                 return res.status(404).json({ error: "Bundle not found" });
             }
             
+            console.log('Bundle found:', bundle.name);
             itemData = {
                 id: bookId,
                 title: bundle.name,
@@ -129,13 +196,15 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
             };
         } else {
             // Fetch book details
-            const Book = require("../models/Book");
+            console.log('Fetching book with ID:', bookId);
             const book = await Book.findById(bookId);
             
             if (!book) {
+                console.error('Book not found:', bookId);
                 return res.status(404).json({ error: "Book not found" });
             }
             
+            console.log('Book found:', book.title);
             itemData = {
                 id: bookId,
                 title: book.title,
@@ -149,6 +218,15 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
 
         // Create order item with all required fields
         const items = [itemData];
+        
+        console.log('Creating order with data:', {
+            user_id: req.user.id,
+            items,
+            totalAmount,
+            deliveryMethod,
+            courierCharge,
+            paymentType
+        });
 
         // Create Order in pending state
         const order = await Order.create({
@@ -157,7 +235,7 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
             totalAmount,
             deliveryMethod,
             courierCharge,
-            paymentType, // 'check' or 'transfer'
+            paymentType, // 'cheque' or 'transfer'
             status: "pending_payment_verification",
             rewardApplied: false,
             paymentDetails: {
@@ -167,6 +245,8 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
             }
         });
 
+        console.log('✅ Order created successfully:', order._id);
+
         return res.json({ 
             message: "Pending order created", 
             orderId: order._id.toString(),
@@ -174,8 +254,9 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
         });
 
     } catch (err) {
-        console.error("Pending order create error:", err);
-        res.status(500).json({ error: "Error creating pending order" });
+        console.error("❌ Pending order create error:", err);
+        console.error("Error stack:", err.stack);
+        res.status(500).json({ error: "Error creating pending order: " + err.message });
     }
 });
 
@@ -333,7 +414,7 @@ router.put("/update-utr/:orderId", authenticateToken, async (req, res) => {
         }
 
         // Verify order is eligible for UTR update
-        if (!order.paymentType || !['check', 'transfer'].includes(order.paymentType)) {
+        if (!order.paymentType || !['check', 'cheque', 'transfer'].includes(order.paymentType)) {
             return res.status(400).json({ error: "This order doesn't support UTR updates" });
         }
 
@@ -369,7 +450,7 @@ router.put("/update-utr/:orderId", authenticateToken, async (req, res) => {
 });
 
 /**
- * CREATE CART PENDING ORDER (For Check/Bank Transfer Payments - Multiple Items)
+ * CREATE CART PENDING ORDER (For Cheque/Bank Transfer Payments - Multiple Items)
  */
 router.post("/create-cart-pending", authenticateToken, async (req, res) => {
     try {
@@ -447,7 +528,7 @@ router.post("/create-cart-pending", authenticateToken, async (req, res) => {
             totalAmount,
             deliveryMethod,
             courierCharge,
-            paymentType, // 'check' or 'transfer'
+            paymentType, // 'cheque' or 'transfer'
             status: "pending_payment_verification",
             rewardApplied: false,
             paymentDetails: {
@@ -469,6 +550,47 @@ router.post("/create-cart-pending", authenticateToken, async (req, res) => {
     } catch (err) {
         console.error("Cart pending order create error:", err);
         res.status(500).json({ error: "Error creating cart order" });
+    }
+});
+
+/**
+ * ADMIN — DELETE ORDER
+ */
+router.delete("/admin/delete/:orderId", authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        console.log(`🗑️ Admin attempting to delete order: ${orderId}`);
+
+        // Find the order first to verify it exists
+        const order = await Order.findById(orderId);
+        if (!order) {
+            console.log(`❌ Order not found: ${orderId}`);
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        // Log order details before deletion
+        console.log(`📋 Order details before deletion:`, {
+            orderId: order._id,
+            userId: order.user_id,
+            totalAmount: order.totalAmount,
+            status: order.status,
+            createdAt: order.createdAt
+        });
+
+        // Delete the order
+        await Order.findByIdAndDelete(orderId);
+
+        console.log(`✅ Order deleted successfully: ${orderId}`);
+
+        res.json({ 
+            message: "Order deleted successfully",
+            deletedOrderId: orderId
+        });
+
+    } catch (err) {
+        console.error("❌ Delete order error:", err);
+        res.status(500).json({ error: "Error deleting order: " + err.message });
     }
 });
 

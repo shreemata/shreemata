@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Check Payment Form - Shree Mata</title>
+    <title>Cheque Payment Form - Shree Mata</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -115,11 +115,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>📋 Check Payment Verification</h1>
+        <h1>📋 Cheque Payment Verification</h1>
         
         <div id="message"></div>
         
-        <form id="checkPaymentForm">
+        <form id="chequePaymentForm">
             <div class="form-group">
                 <label for="orderId">Order ID *</label>
                 <input type="text" id="orderId" name="orderId" readonly class="readonly">
@@ -146,8 +146,8 @@
             </div>
             
             <div class="form-group">
-                <label for="checkNumber">Check Number *</label>
-                <input type="text" id="checkNumber" name="checkNumber" required placeholder="Enter check number">
+                <label for="chequeNumber">Cheque Number *</label>
+                <input type="text" id="chequeNumber" name="chequeNumber" required placeholder="Enter cheque number">
             </div>
             
             <div class="form-group">
@@ -156,8 +156,8 @@
             </div>
             
             <div class="form-group">
-                <label for="checkDate">Check Date *</label>
-                <input type="date" id="checkDate" name="checkDate" required>
+                <label for="chequeDate">Cheque Date *</label>
+                <input type="date" id="chequeDate" name="chequeDate" required>
             </div>
             
             <div class="form-group">
@@ -166,19 +166,19 @@
             </div>
             
             <div class="form-group">
-                <label>Upload Check Image *</label>
-                <div class="file-upload" onclick="document.getElementById('checkImage').click()">
-                    <input type="file" id="checkImage" name="checkImage" accept="image/*" required style="display: none;">
-                    <p>📷 Click to upload check image or drag & drop</p>
+                <label>Upload Cheque Image *</label>
+                <div class="file-upload" onclick="document.getElementById('chequeImage').click()">
+                    <input type="file" id="chequeImage" name="chequeImage" accept="image/*" required style="display: none;">
+                    <p>📷 Click to upload cheque image or drag & drop</p>
                     <small>Supported formats: JPG, PNG, GIF (Max 5MB)</small>
                 </div>
                 <div class="file-preview" id="filePreview">
-                    <img id="previewImage" src="" alt="Check Preview">
+                    <img id="previewImage" src="" alt="Cheque Preview">
                     <p id="fileName"></p>
                 </div>
             </div>
             
-            <button type="submit" id="submitBtn">Submit Check Payment Details</button>
+            <button type="submit" id="submitBtn">Submit Cheque Payment Details</button>
         </form>
     </div>
 
@@ -200,7 +200,7 @@
         document.getElementById('phone').value = phone;
         
         // File upload handling
-        const fileInput = document.getElementById('checkImage');
+        const fileInput = document.getElementById('chequeImage');
         const fileUpload = document.querySelector('.file-upload');
         const filePreview = document.getElementById('filePreview');
         const previewImage = document.getElementById('previewImage');
@@ -254,7 +254,7 @@
         }
         
         // Form submission
-        document.getElementById('checkPaymentForm').addEventListener('submit', async (e) => {
+        document.getElementById('chequePaymentForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const submitBtn = document.getElementById('submitBtn');
@@ -264,7 +264,7 @@
             try {
                 const token = localStorage.getItem('token');
                 if (!token) {
-                    showMessage('❌ Please login to submit check payment details.', 'error');
+                    showMessage('❌ Please login to submit cheque payment details.', 'error');
                     return;
                 }
                 
@@ -275,9 +275,9 @@
                     
                     const imageFormData = new FormData();
                     imageFormData.append('orderId', orderId);
-                    imageFormData.append('checkImage', fileInput.files[0]);
+                    imageFormData.append('chequeImage', fileInput.files[0]);
                     
-                    const imageResponse = await fetch(`${window.API_URL}/payments/upload-check-image`, {
+                    const imageResponse = await fetch(`${window.API_URL}/payments/upload-cheque-image`, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${token}`
@@ -300,15 +300,15 @@
                 
                 const formData = {
                     orderId: orderId,
-                    checkNumber: document.getElementById('checkNumber').value,
+                    chequeNumber: document.getElementById('chequeNumber').value,
                     bankName: document.getElementById('bankName').value,
-                    checkDate: document.getElementById('checkDate').value,
+                    chequeDate: document.getElementById('chequeDate').value,
                     utrNumber: document.getElementById('utrNumber').value
                 };
                 
-                console.log('Submitting check payment data:', formData);
+                console.log('Submitting cheque payment data:', formData);
                 
-                const response = await fetch(`${window.API_URL}/payments/simple-check-payment-submit`, {
+                const response = await fetch(`${window.API_URL}/payments/simple-cheque-payment-submit`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -321,9 +321,9 @@
                 console.log('Submission result:', result);
                 
                 if (response.ok && result.success) {
-                    let successMessage = '✅ Check payment details submitted successfully!';
+                    let successMessage = '✅ Cheque payment details submitted successfully!';
                     if (imageUploaded) {
-                        successMessage += ' Your check image has been uploaded.';
+                        successMessage += ' Your cheque image has been uploaded.';
                     }
                     successMessage += ' Our team will review and approve your payment within 24 hours.';
                     
@@ -342,7 +342,7 @@
                 showMessage(`❌ Error submitting form: ${error.message}`, 'error');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Submit Check Payment Details';
+                submitBtn.textContent = 'Submit Cheque Payment Details';
             }
         });
         

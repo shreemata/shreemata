@@ -9,7 +9,7 @@
  */
 
 // Your webhook URL
-const WEBHOOK_URL = 'https://shreemata.com/api/payments/webhook/check-payment-submitted';
+const WEBHOOK_URL = 'https://shreemata.com/api/payments/webhook/cheque-payment-submitted';
 
 /**
  * This function runs when the form is submitted

@@ -383,9 +383,21 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Courier Charge</label>
-                    <input type="text" id="courierCharge" readonly placeholder="₹0.00">
+                    <label>Auto Courier Charge</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="autoCourierCharge" readonly placeholder="₹0.00" style="flex: 1;">
+                        <button type="button" onclick="copyAutoCourierCharge()" class="btn" style="padding: 8px 12px; font-size: 12px; background: #4CAF50;">Use This</button>
+                    </div>
                     <small style="color: #ff9800;">₹25 per kg (rounded up), max ₹100</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Bundle Courier Charge *</label>
+                    <input type="number" id="courierCharge" step="0.01" min="0" required placeholder="Enter courier charge for this bundle">
+                    <small style="color: #2196F3;">
+                        Set custom courier charge for this bundle (overrides auto calculation)<br>
+                        <strong>Tip:</strong> Use auto charge as reference, then adjust based on bundle value/size
+                    </small>
                 </div>
 
                 <div class="form-group">
@@ -440,6 +452,14 @@
             if (totalWeight <= 0) return 0;
             const charge = Math.ceil(totalWeight) * 25;
             return Math.min(charge, 100);
+        }
+
+        // Copy auto courier charge to manual field
+        function copyAutoCourierCharge() {
+            const autoCharge = document.getElementById("autoCourierCharge").value;
+            const chargeValue = autoCharge.replace('₹', '');
+            document.getElementById("courierCharge").value = chargeValue;
+            console.log('Copied auto courier charge:', chargeValue);
         }
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -579,10 +599,7 @@
                                     }
                                     return (weight || 0).toFixed(2);
                                 })()} kg</strong></span>
-                                <span style="color: #e65100; font-size: 13px; margin-left: 15px;">Courier: <strong>₹${(() => {
-                                    const weight = bundle.weight || (bundle.books && bundle.books.length ? bundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0) : 0);
-                                    return calculateCourierCharge(weight).toFixed(2);
-                                })()}</strong></span>
+                                <span style="color: #e65100; font-size: 13px; margin-left: 15px;">Courier: <strong>₹${(bundle.courierCharge || 0).toFixed(2)}</strong></span>
                             </div>
 
                             <p style="color: #666; font-size: 14px;">
@@ -630,6 +647,10 @@
             document.getElementById("modalTitle").textContent = "Create Bundle";
             document.getElementById("bundleForm").reset();
             document.getElementById("imagePreview").innerHTML = '';
+            
+            // Initialize courier charge field to 0
+            document.getElementById("courierCharge").value = "0.00";
+            
             renderBookSelector();
             document.getElementById("bundleModal").style.display = "block";
             console.log("Modal opened");
@@ -672,6 +693,7 @@
                 document.getElementById("bundleDescription").value = bundle.description || '';
                 document.getElementById("bundleImage").value = bundle.image || '';
                 document.getElementById("bundlePrice").value = bundle.bundlePrice || '';
+                document.getElementById("courierCharge").value = bundle.courierCharge || 0;
                 document.getElementById("rewardPoints").value = bundle.rewardPoints || 0;
                 document.getElementById("cashbackAmount").value = bundle.cashbackAmount || 0;
                 document.getElementById("cashbackPercentage").value = bundle.cashbackPercentage || 0;
@@ -798,10 +820,16 @@
 
             document.getElementById("originalPrice").value = total.toFixed(2);
             
-            // Update weight and courier charge
+            // Update weight and auto courier charge
             document.getElementById("totalWeight").value = totalWeight.toFixed(2) + " kg";
-            const courierCharge = calculateCourierCharge(totalWeight);
-            document.getElementById("courierCharge").value = "₹" + courierCharge.toFixed(2);
+            const autoCourierCharge = calculateCourierCharge(totalWeight);
+            document.getElementById("autoCourierCharge").value = "₹" + autoCourierCharge.toFixed(2);
+            
+            // Set default courier charge if not already set
+            const courierChargeInput = document.getElementById("courierCharge");
+            if (!courierChargeInput.value) {
+                courierChargeInput.value = autoCourierCharge.toFixed(2);
+            }
 
             const bundlePrice = parseFloat(document.getElementById("bundlePrice").value) || 0;
             if (bundlePrice > 0 && total > 0) {
@@ -880,12 +908,20 @@
 
                 submitBtn.textContent = isEditing ? "Updating bundle..." : "Creating bundle...";
 
+                // Validate courier charge
+                const courierChargeValue = parseFloat(document.getElementById("courierCharge").value);
+                if (isNaN(courierChargeValue) || courierChargeValue < 0) {
+                    alert("Please enter a valid courier charge (0 or greater)");
+                    return;
+                }
+
                 const bundleData = {
                     name: document.getElementById("bundleName").value,
                     description: document.getElementById("bundleDescription").value,
                     image: imageUrl,
                     bookIds,
                     bundlePrice: parseFloat(document.getElementById("bundlePrice").value),
+                    courierCharge: courierChargeValue,
                     validUntil: document.getElementById("validUntil").value || null,
                     rewardPoints: parseInt(document.getElementById("rewardPoints").value) || 0,
                     cashbackAmount: parseFloat(document.getElementById("cashbackAmount").value) || 0,

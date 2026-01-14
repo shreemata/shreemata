@@ -167,7 +167,7 @@ router.post("/admin/upload-image", authenticateToken, isAdmin, upload.single('im
  */
 router.post("/admin/create", authenticateToken, isAdmin, async (req, res) => {
     try {
-        const { name, description, bookIds, bundlePrice, image, validUntil, rewardPoints, cashbackAmount, cashbackPercentage } = req.body;
+        const { name, description, bookIds, bundlePrice, courierCharge, image, validUntil, rewardPoints, cashbackAmount, cashbackPercentage } = req.body;
 
         if (!name || !bookIds || bookIds.length < 1) {
             return res.status(400).json({ 
@@ -207,6 +207,7 @@ router.post("/admin/create", authenticateToken, isAdmin, async (req, res) => {
             originalPrice,
             bundlePrice,
             weight: totalWeight,
+            courierCharge: courierCharge || 0,
             image,
             validUntil: validUntil || null,
             rewardPoints: rewardPoints || 0,
@@ -249,7 +250,7 @@ router.get("/admin/all", authenticateToken, isAdmin, async (req, res) => {
  */
 router.put("/admin/update/:id", authenticateToken, isAdmin, async (req, res) => {
     try {
-        const { name, description, bookIds, bundlePrice, image, validUntil, isActive, rewardPoints, cashbackAmount, cashbackPercentage } = req.body;
+        const { name, description, bookIds, bundlePrice, courierCharge, image, validUntil, isActive, rewardPoints, cashbackAmount, cashbackPercentage } = req.body;
 
         const bundle = await Bundle.findById(req.params.id);
         if (!bundle) {
@@ -260,6 +261,7 @@ router.put("/admin/update/:id", authenticateToken, isAdmin, async (req, res) => 
         if (name) bundle.name = name;
         if (description !== undefined) bundle.description = description;
         if (image) bundle.image = image;
+        if (courierCharge !== undefined) bundle.courierCharge = courierCharge;
         if (validUntil !== undefined) bundle.validUntil = validUntil;
         if (isActive !== undefined) bundle.isActive = isActive;
         if (rewardPoints !== undefined) bundle.rewardPoints = rewardPoints;

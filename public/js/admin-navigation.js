@@ -11,7 +11,7 @@ const adminNavConfig = {
         { href: "/admin.html", icon: "📚", text: "Books", id: "books", title: "Manage Books" },
         { href: "/admin-bundles.html", icon: "📦", text: "Bundles", id: "bundles", title: "Manage Bundles" },
         { href: "/admin-orders.html", icon: "🛒", text: "Orders", id: "orders", title: "Manage Orders" },
-        { href: "/admin-check-payments.html", icon: "📋", text: "Check Payments", id: "check-payments", title: "Check Payment Approvals" },
+        { href: "/admin-check-payments.html", icon: "📋", text: "Cheque Payments", id: "cheque-payments", title: "Cheque Payment Approvals" },
         { href: "/admin-withdrawals.html", icon: "💰", text: "Withdrawals", id: "withdrawals", title: "Manage Withdrawals" },
         { href: "/admin-bank-requests.html", icon: "🏦", text: "Bank Requests", id: "bank-requests", title: "Bank Change Requests" },
         { href: "/admin-notifications.html", icon: "📢", text: "Notifications", id: "notifications", title: "Manage Notifications" },
@@ -172,7 +172,7 @@ function createAdminNavHTML(currentPageId) {
                         <div class="popup-menu-group">
                             <div class="popup-group-title">Orders & Payments</div>
                             <a href="/admin-orders.html"><span class="icon">🛒</span> Orders</a>
-                            <a href="/admin-check-payments.html"><span class="icon">📋</span> Check Payment Approvals</a>
+                            <a href="/admin-check-payments.html"><span class="icon">📋</span> Cheque Payment Approvals</a>
                             <a href="/admin-withdrawals.html"><span class="icon">💰</span> Withdrawals</a>
                             <a href="/admin-bank-requests.html"><span class="icon">🏦</span> Bank Requests</a>
                         </div>
@@ -691,7 +691,7 @@ function detectCurrentPage() {
     let currentPageId = '';
     
     if (path.includes('admin-bundles')) currentPageId = 'bundles';
-    else if (path.includes('admin-check-payments')) currentPageId = 'check-payments';
+    else if (path.includes('admin-check-payments')) currentPageId = 'cheque-payments';
     else if (path.includes('admin-orders')) currentPageId = 'orders';
     else if (path.includes('admin-withdrawals')) currentPageId = 'withdrawals';
     else if (path.includes('admin-notifications')) currentPageId = 'notifications';

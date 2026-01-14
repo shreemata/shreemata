@@ -73,14 +73,14 @@ const orderSchema = new mongoose.Schema({
     razorpay_order_id: { type: String },
     razorpay_payment_id: { type: String },
 
-    // Payment Type and Details (for check/bank transfer)
+    // Payment Type and Details (for cheque/bank transfer)
     paymentType: { 
         type: String, 
-        enum: ["online", "check", "transfer"], 
+        enum: ["online", "check", "cheque", "transfer"], 
         default: "online" 
     },
     paymentDetails: {
-        type: { type: String }, // 'check' or 'transfer'
+        type: { type: String }, // 'check', 'cheque' or 'transfer'
         status: { 
             type: String, 
             enum: ["awaiting_upload", "awaiting_utr", "pending_verification", "verified", "rejected"],

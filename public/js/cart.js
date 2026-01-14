@@ -1153,10 +1153,10 @@ function proceedWithCartOnlinePayment() {
     showAddressModal();
 }
 
-function proceedWithCartCheckPayment() {
+function proceedWithCartChequePayment() {
     closeCartPaymentMethodModal();
-    // Use the new integrated check payment system
-    createCartOrderWithCheckPayment();
+    // Use the new integrated cheque payment system
+    createCartOrderWithChequePayment();
 }
 
 function proceedWithCartAccountTransfer() {
@@ -1167,8 +1167,10 @@ function proceedWithCartAccountTransfer() {
 
 /* ------------------------------
     Create Cart Order with Check Payment (New Integrated System)
+/* ------------------------------
+    Create Cart Order with Cheque Payment (New Integrated System)
 ------------------------------ */
-async function createCartOrderWithCheckPayment() {
+async function createCartOrderWithChequePayment() {
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
     const cart = getCart();
@@ -1218,7 +1220,7 @@ async function createCartOrderWithCheckPayment() {
         isDigital: false
     }));
     
-    console.log('Creating check payment order:', {
+    console.log('Creating cheque payment order:', {
         totalAmount,
         itemCount: orderItems.length,
         deliveryMethod,
@@ -1241,7 +1243,7 @@ async function createCartOrderWithCheckPayment() {
                 courierCharge: courierCharge,
                 totalWeight: totalWeight,
                 deliveryMethod: deliveryMethod,
-                paymentMethod: 'check' // This triggers the check payment flow
+                paymentMethod: 'cheque' // This triggers the cheque payment flow
             })
         });
 

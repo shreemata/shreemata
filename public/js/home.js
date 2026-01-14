@@ -102,6 +102,8 @@ async function loadNotifications() {
 
         if (data.notifications && data.notifications.length > 0) {
             displayNotifications(data.notifications);
+            // Show drop-up notification for offers
+            showDropupNotification(data.notifications);
         }
     } catch (err) {
         console.error("Error loading notifications:", err);
@@ -124,6 +126,167 @@ function displayNotifications(notifications) {
     `).join('');
     
     section.style.display = 'block';
+}
+
+// Drop-up notification functionality
+let currentOfferIndex = 0;
+let allOffers = [];
+let offerCycleInterval = null;
+
+// Expose variables globally for navigation functions
+window.currentOfferIndex = 0;
+window.allOffers = [];
+window.offerCycleInterval = null;
+window.displayCurrentOffer = displayCurrentOffer;
+
+function showDropupNotification(notifications) {
+    // Find all offers to display
+    allOffers = notifications.filter(notif => 
+        notif.type === 'offer' || notif.type === 'discount'
+    );
+    
+    // Update global variables
+    window.allOffers = allOffers;
+    
+    if (allOffers.length === 0) return;
+    
+    // Reset index
+    currentOfferIndex = 0;
+    window.currentOfferIndex = 0;
+    
+    // Show navigation if multiple offers
+    const navigationElement = document.getElementById('dropupNavigation');
+    if (navigationElement) {
+        if (allOffers.length > 1) {
+            navigationElement.style.display = 'flex';
+            createOfferDots();
+        } else {
+            navigationElement.style.display = 'none';
+        }
+    }
+    
+    // Show the first offer
+    displayCurrentOffer();
+    
+    // If there are multiple offers, cycle through them
+    if (allOffers.length > 1) {
+        // Clear any existing interval
+        if (offerCycleInterval) {
+            clearInterval(offerCycleInterval);
+        }
+        
+        // Cycle through offers every 4 seconds
+        offerCycleInterval = setInterval(() => {
+            currentOfferIndex = (currentOfferIndex + 1) % allOffers.length;
+            window.currentOfferIndex = currentOfferIndex;
+            displayCurrentOffer();
+        }, 4000);
+    }
+    
+    // Show the drop-up after a delay
+    setTimeout(() => {
+        const dropupElement = document.getElementById('dropupNotification');
+        if (dropupElement) {
+            dropupElement.classList.add('show');
+        }
+    }, 2000);
+    
+    // Auto-hide after 15 seconds (longer for multiple offers)
+    setTimeout(() => {
+        const dropupElement = document.getElementById('dropupNotification');
+        if (dropupElement && dropupElement.classList.contains('show')) {
+            hideDropupNotification();
+        }
+    }, 15000);
+}
+
+function createOfferDots() {
+    const dotsContainer = document.getElementById('dropupDots');
+    if (!dotsContainer) return;
+    
+    dotsContainer.innerHTML = '';
+    
+    for (let i = 0; i < allOffers.length; i++) {
+        const dot = document.createElement('div');
+        dot.className = `dropup-dot ${i === currentOfferIndex ? 'active' : ''}`;
+        dot.onclick = () => goToOffer(i);
+        dotsContainer.appendChild(dot);
+    }
+}
+
+function displayCurrentOffer() {
+    if (allOffers.length === 0) return;
+    
+    const offer = allOffers[currentOfferIndex];
+    
+    // Update drop-up content
+    const dropupElement = document.getElementById('dropupNotification');
+    const titleElement = document.getElementById('dropupOfferTitle');
+    const messageElement = document.getElementById('dropupOfferMessage');
+    const iconElement = document.getElementById('dropupOfferIcon');
+    const counterElement = document.getElementById('dropupOfferCounter');
+    
+    if (dropupElement && titleElement && messageElement && iconElement) {
+        titleElement.textContent = offer.title;
+        
+        // Create enhanced message with offer details if available
+        let message = offer.message;
+        if (offer.offerDetails && offer.offerDetails.minAmount && offer.offerDetails.discountValue) {
+            const minAmount = offer.offerDetails.minAmount;
+            const discountValue = offer.offerDetails.discountValue;
+            const discountType = offer.offerDetails.discountType;
+            
+            if (discountType === 'percentage') {
+                message = `Buy above ₹${minAmount} and get ${discountValue}% off!`;
+            } else {
+                message = `Buy above ₹${minAmount} and get ₹${discountValue} off!`;
+            }
+        }
+        
+        messageElement.textContent = message;
+        
+        // Set appropriate icon based on offer type
+        iconElement.textContent = offer.type === 'offer' ? '🎉' : '💰';
+        
+        // Update counter if there are multiple offers
+        if (counterElement) {
+            if (allOffers.length > 1) {
+                counterElement.textContent = `${currentOfferIndex + 1} of ${allOffers.length}`;
+                counterElement.style.display = 'block';
+            } else {
+                counterElement.style.display = 'none';
+            }
+        }
+        
+        // Update dots
+        updateOfferDots();
+        
+        // Add click handler to navigate to books section
+        dropupElement.onclick = function(e) {
+            if (e.target.classList.contains('dropup-close') || 
+                e.target.classList.contains('dropup-nav-btn') ||
+                e.target.classList.contains('dropup-dot')) return;
+            
+            // Scroll to books section
+            const booksSection = document.getElementById('booksSection');
+            if (booksSection) {
+                booksSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            hideDropupNotification();
+        };
+    }
+}
+
+function updateOfferDots() {
+    const dots = document.querySelectorAll('.dropup-dot');
+    dots.forEach((dot, index) => {
+        if (index === currentOfferIndex) {
+            dot.classList.add('active');
+        } else {
+            dot.classList.remove('active');
+        }
+    });
 }
 
 /* ------------------------------
