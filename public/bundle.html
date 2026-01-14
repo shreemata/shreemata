@@ -527,7 +527,6 @@
                         <img src="${book.cover_image || 'https://via.placeholder.com/200x300?text=Book'}" alt="${book.title}">
                         <h4>${book.title}</h4>
                         <p style="color: #666; font-size: 14px;">${book.author}</p>
-                        <p style="font-weight: bold;">₹${book.price}</p>
                         <div class="view-details-btn" style="margin-top: 10px; padding: 8px 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; font-size: 12px; font-weight: 600; transition: all 0.3s ease;">
                             📖 Click to View Details & Preview
                         </div>
@@ -1406,8 +1405,8 @@
                 clickedBook.style.transform = 'scale(0.98)';
             }
             
-            // Navigate to the book page with the book ID
-            window.location.href = `/book.html?id=${bookId}`;
+            // Navigate to the book page with the book ID and fromBundle parameter
+            window.location.href = `/book.html?id=${bookId}&fromBundle=true`;
         }
     </script>
 

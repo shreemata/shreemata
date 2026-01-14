@@ -184,6 +184,7 @@ function logout() {
 async function loadBookDetails() {
     const urlParams = new URLSearchParams(window.location.search);
     const bookId = urlParams.get("id");
+    const fromBundle = urlParams.get("fromBundle"); // Check if coming from bundle
 
     if (!bookId) return showError();
 
@@ -196,7 +197,7 @@ async function loadBookDetails() {
         document.getElementById("loadingSpinner").style.display = "none";
         document.getElementById("bookDetails").style.display = "block";
 
-        await displayBookDetails(data.book);
+        await displayBookDetails(data.book, fromBundle === 'true');
 
     } catch (err) {
         console.error("Error loading book:", err);
@@ -207,12 +208,78 @@ async function loadBookDetails() {
 /* -----------------------------------
    DISPLAY BOOK DETAILS
 ----------------------------------- */
-async function displayBookDetails(book) {
+async function displayBookDetails(book, hidePrice = false) {
     // Store book globally for addToCart
     window.currentBook = book;
     
     document.getElementById("bookTitle").textContent = book.title;
     document.getElementById("bookAuthor").textContent = book.author;
+    
+    // Display description
+    document.getElementById("bookDescription").textContent =
+        book.description || "No description available.";
+    
+    // Display cover image - ALWAYS show this
+    const cover = document.getElementById("bookCover");
+    cover.src = book.cover_image || "https://via.placeholder.com/400x600?text=No+Cover";
+    cover.onerror = () => (cover.src = "https://via.placeholder.com/400x600?text=No+Cover");
+
+    // Display preview images - ALWAYS show this
+    const previewGrid = document.getElementById("previewImages");
+    const noPreview = document.getElementById("noPreview");
+
+    if (book.preview_images?.length) {
+        previewGrid.innerHTML = "";
+        
+        // Store preview images globally for lightbox
+        window.previewImages = book.preview_images;
+        
+        book.preview_images.forEach((imgURL, index) => {
+            const img = document.createElement("img");
+            img.src = imgURL;
+            img.alt = `Preview ${index + 1}`;
+            img.classList.add("preview-image");
+            img.onerror = () => (img.src = "https://via.placeholder.com/400x600?text=Unavailable");
+            
+            // Add click event to open lightbox
+            img.addEventListener("click", () => openLightbox(index));
+            
+            previewGrid.appendChild(img);
+        });
+    } else {
+        noPreview.style.display = "block";
+    }
+    
+    // Hide pricing section if coming from bundle
+    if (hidePrice) {
+        const pricingSection = document.querySelector(".pricing-section");
+        if (pricingSection) {
+            pricingSection.style.display = "none";
+        }
+        
+        // Hide all purchase buttons
+        const buyPickupBtn = document.getElementById("buyPickupBtn");
+        const buyCourierBtn = document.getElementById("buyCourierBtn");
+        const addToCartBtn = document.getElementById("addToCartBtn");
+        
+        if (buyPickupBtn) buyPickupBtn.style.display = "none";
+        if (buyCourierBtn) buyCourierBtn.style.display = "none";
+        if (addToCartBtn) addToCartBtn.style.display = "none";
+        
+        // Add a notice that this book is part of a bundle
+        const bookInfo = document.querySelector(".book-info");
+        if (bookInfo) {
+            const bundleNotice = document.createElement("div");
+            bundleNotice.style.cssText = "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;";
+            bundleNotice.innerHTML = `
+                <p style="margin: 0; font-weight: 600;">📦 This book is part of a bundle</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">Individual purchase is not available. Please purchase the complete bundle.</p>
+            `;
+            bookInfo.insertBefore(bundleNotice, bookInfo.firstChild);
+        }
+        
+        return; // Skip the rest of the function (pricing logic)
+    }
     
     // Check stock status and disable buttons if out of stock
     const isOutOfStock = book.trackStock && book.stockStatus === 'out_of_stock';
@@ -334,35 +401,6 @@ async function displayBookDetails(book) {
     }
     if (document.getElementById("bookCourierCharge")) {
         document.getElementById("bookCourierCharge").textContent = `₹${courierCharge.toFixed(2)}`;
-    }
-
-    const cover = document.getElementById("bookCover");
-    cover.src = book.cover_image || "https://via.placeholder.com/400x600?text=No+Cover";
-    cover.onerror = () => (cover.src = "https://via.placeholder.com/400x600?text=No+Cover");
-
-    const previewGrid = document.getElementById("previewImages");
-    const noPreview = document.getElementById("noPreview");
-
-    if (book.preview_images?.length) {
-        previewGrid.innerHTML = "";
-        
-        // Store preview images globally for lightbox
-        window.previewImages = book.preview_images;
-        
-        book.preview_images.forEach((imgURL, index) => {
-            const img = document.createElement("img");
-            img.src = imgURL;
-            img.alt = `Preview ${index + 1}`;
-            img.classList.add("preview-image");
-            img.onerror = () => (img.src = "https://via.placeholder.com/400x600?text=Unavailable");
-            
-            // Add click event to open lightbox
-            img.addEventListener("click", () => openLightbox(index));
-            
-            previewGrid.appendChild(img);
-        });
-    } else {
-        noPreview.style.display = "block";
     }
 }
 
