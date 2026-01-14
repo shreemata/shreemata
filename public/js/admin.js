@@ -102,56 +102,97 @@ async function loadClassesAndSubjectsForFilters() {
 
 /* EVENT LISTENERS */
 function setupEventListeners() {
-    document.getElementById('logoutBtn').addEventListener('click', logout);
-    document.getElementById('toggleFormBtn').addEventListener('click', toggleForm);
-    document.getElementById('bookForm').addEventListener('submit', handleFormSubmit);
-    document.getElementById('cancelBtn').addEventListener('click', resetForm);
+    // Add null checks for all elements before adding event listeners
+    const logoutBtn = document.getElementById('logoutBtn');
+    const toggleFormBtn = document.getElementById('toggleFormBtn');
+    const bookForm = document.getElementById('bookForm');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const previewImages = document.getElementById('previewImages');
+    const trackStock = document.getElementById('trackStock');
+    
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logout);
+    } else {
+        console.warn('Admin: logoutBtn element not found');
+    }
+    
+    if (toggleFormBtn) {
+        toggleFormBtn.addEventListener('click', toggleForm);
+    } else {
+        console.warn('Admin: toggleFormBtn element not found');
+    }
+    
+    if (bookForm) {
+        bookForm.addEventListener('submit', handleFormSubmit);
+    } else {
+        console.warn('Admin: bookForm element not found');
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', resetForm);
+    } else {
+        console.warn('Admin: cancelBtn element not found');
+    }
 
-    document.getElementById('previewImages').addEventListener('change', (e) => {
-        // No limit on preview images - removed the 4 image limit
-        console.log(`📷 Selected ${e.target.files.length} preview images`);
-    });
+    if (previewImages) {
+        previewImages.addEventListener('change', (e) => {
+            // No limit on preview images - removed the 4 image limit
+            console.log(`📷 Selected ${e.target.files.length} preview images`);
+        });
+    } else {
+        console.warn('Admin: previewImages element not found');
+    }
 
     // Stock tracking toggle
-    document.getElementById('trackStock').addEventListener('change', (e) => {
-        const stockFields = document.getElementById('stockFields');
-        const stockQuantity = document.getElementById('stockQuantity');
-        const lowStockThreshold = document.getElementById('lowStockThreshold');
-        
-        if (e.target.checked) {
-            stockFields.style.display = 'flex';
-            stockQuantity.required = true;
-        } else {
-            stockFields.style.display = 'none';
-            stockQuantity.required = false;
-            // Set default values for unlimited stock
-            stockQuantity.value = 999999;
-            lowStockThreshold.value = 0;
-        }
-    });
+    if (trackStock) {
+        trackStock.addEventListener('change', (e) => {
+            const stockFields = document.getElementById('stockFields');
+            const stockQuantity = document.getElementById('stockQuantity');
+            const lowStockThreshold = document.getElementById('lowStockThreshold');
+            
+            if (e.target.checked) {
+                stockFields.style.display = 'flex';
+                stockQuantity.required = true;
+            } else {
+                stockFields.style.display = 'none';
+                stockQuantity.required = false;
+                // Set default values for unlimited stock
+                stockQuantity.value = 999999;
+                lowStockThreshold.value = 0;
+            }
+        });
+    } else {
+        console.warn('Admin: trackStock element not found');
+    }
 
     // Auto-calculate online price when physical price changes
-    document.getElementById('price').addEventListener('input', (e) => {
-        const physicalPrice = parseFloat(e.target.value) || 0;
-        // Remove digital content auto-calculation
-    });
+    const priceInput = document.getElementById('price');
+    if (priceInput) {
+        priceInput.addEventListener('input', (e) => {
+            const physicalPrice = parseFloat(e.target.value) || 0;
+            // Remove digital content auto-calculation
+        });
+    }
 
     // Auto-update stock status based on quantity
-    document.getElementById('stockQuantity').addEventListener('input', (e) => {
-        const quantity = parseInt(e.target.value) || 0;
-        const threshold = parseInt(document.getElementById('lowStockThreshold').value) || 5;
-        const stockStatusEl = document.getElementById('stockStatus');
-        
-        if (quantity === 0) {
-            stockStatusEl.value = 'out_of_stock';
-        } else if (quantity <= threshold) {
-            stockStatusEl.value = 'limited_stock';
-        } else {
-            stockStatusEl.value = 'in_stock';
-        }
-        
-        console.log('📦 Auto-updated stock status:', stockStatusEl.value, 'for quantity:', quantity);
-    });
+    const stockQuantityInput = document.getElementById('stockQuantity');
+    if (stockQuantityInput) {
+        stockQuantityInput.addEventListener('input', (e) => {
+            const quantity = parseInt(e.target.value) || 0;
+            const threshold = parseInt(document.getElementById('lowStockThreshold').value) || 5;
+            const stockStatusEl = document.getElementById('stockStatus');
+            
+            if (quantity === 0) {
+                stockStatusEl.value = 'out_of_stock';
+            } else if (quantity <= threshold) {
+                stockStatusEl.value = 'limited_stock';
+            } else {
+                stockStatusEl.value = 'in_stock';
+            }
+            
+            console.log('📦 Auto-updated stock status:', stockStatusEl.value, 'for quantity:', quantity);
+        });
+    }
 
     document.getElementById("adminApplyFilter").addEventListener("click", () => {
         const filters = {
