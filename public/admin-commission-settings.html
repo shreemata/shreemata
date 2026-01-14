@@ -535,6 +535,7 @@
                     <div class="popup-menu-group">
                         <div class="popup-group-title">Communications</div>
                         <a href="/admin-notifications.html"><span class="icon">📢</span> Notifications</a>
+                        <a href="/admin-home-settings.html"><span class="icon">🏡</span> Home Settings</a>
                     </div>
                     
                     <div class="popup-menu-group">
@@ -548,6 +549,8 @@
                     <div class="popup-menu-group">
                         <div class="popup-group-title">Settings</div>
                         <a href="/admin-commission-settings.html" class="active"><span class="icon">⚙️</span> Commission Settings</a>
+                        <a href="/admin-receipt-settings.html"><span class="icon">🧾</span> Receipt Settings</a>
+                        <a href="/admin-home-settings.html"><span class="icon">🏡</span> Home Page Settings</a>
                     </div>
                     
                     <div class="popup-menu-group">
@@ -711,6 +714,38 @@
                     </div>
                     <div id="treeLevels" class="level-inputs"></div>
                     <button class="btn" onclick="addLevel()" style="margin-top: 10px;">+ Add Level</button>
+                </div>
+
+                <!-- Home Page Settings Card -->
+                <div class="setting-card" style="margin: 20px 0; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border: 2px solid #667eea;">
+                    <h3>🏡 Home Page Settings</h3>
+                    <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Control which sections are visible on the home page</p>
+                    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <div>
+                                <strong style="color: #333;">🎁 Special Combo Offers (Bundles)</strong>
+                                <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">Show bundle offers section with discounted book combinations</p>
+                            </div>
+                            <label style="position: relative; display: inline-block; width: 60px; height: 30px; margin-left: 20px;">
+                                <input type="checkbox" id="showBundlesToggle" checked style="opacity: 0; width: 0; height: 0;">
+                                <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: 0.4s; border-radius: 30px;"></span>
+                                <span style="position: absolute; content: ''; height: 22px; width: 22px; left: 4px; bottom: 4px; background-color: white; transition: 0.4s; border-radius: 50%;"></span>
+                            </label>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <div>
+                                <strong style="color: #333;">📖 Featured Books</strong>
+                                <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">Show featured books section with all available books</p>
+                            </div>
+                            <label style="position: relative; display: inline-block; width: 60px; height: 30px; margin-left: 20px;">
+                                <input type="checkbox" id="showFeaturedBooksToggle" checked style="opacity: 0; width: 0; height: 0;">
+                                <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: 0.4s; border-radius: 30px;"></span>
+                                <span style="position: absolute; content: ''; height: 22px; width: 22px; left: 4px; bottom: 4px; background-color: white; transition: 0.4s; border-radius: 50%;"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="saveHomeSettings()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">💾 Save Home Settings</button>
+                    <a href="/admin-home-settings.html" class="btn btn-secondary" style="display: inline-block; margin-left: 10px; text-decoration: none;">🔗 Open Full Settings Page</a>
                 </div>
 
                 <div style="display: flex; gap: 15px; margin-top: 30px;">
@@ -1268,6 +1303,9 @@
                 // Load tree commission levels
                 renderTreeLevels();
                 
+                // Load home page settings
+                loadHomePageSettings();
+                
             } catch (error) {
                 console.error("Error loading settings:", error);
                 showAlert(`❌ Error loading settings: ${error.message}`, "error");
@@ -1284,6 +1322,89 @@
                 renderTreeLevels();
             }
         }
+
+        // Load home page settings
+        async function loadHomePageSettings() {
+            try {
+                const response = await fetch(`${API_URL}/home-settings`);
+                const data = await response.json();
+
+                if (data.success && data.settings) {
+                    document.getElementById('showBundlesToggle').checked = data.settings.showBundles;
+                    document.getElementById('showFeaturedBooksToggle').checked = data.settings.showFeaturedBooks;
+                    updateToggleStyles();
+                }
+            } catch (error) {
+                console.error("Error loading home page settings:", error);
+            }
+        }
+
+        // Save home page settings
+        async function saveHomeSettings() {
+            try {
+                const settings = {
+                    showBundles: document.getElementById('showBundlesToggle').checked,
+                    showFeaturedBooks: document.getElementById('showFeaturedBooksToggle').checked,
+                    bundlesOrder: 1,
+                    featuredBooksOrder: 2
+                };
+
+                const response = await fetch(`${API_URL}/home-settings`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('✅ Home page settings saved successfully!', 'success');
+                } else {
+                    showAlert('❌ Error saving home settings: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error saving home settings:', error);
+                showAlert('❌ Error saving home settings. Please try again.', 'error');
+            }
+        }
+
+        // Update toggle switch styles
+        function updateToggleStyles() {
+            const bundlesToggle = document.getElementById('showBundlesToggle');
+            const booksToggle = document.getElementById('showFeaturedBooksToggle');
+            
+            updateSingleToggle(bundlesToggle);
+            updateSingleToggle(booksToggle);
+        }
+
+        function updateSingleToggle(checkbox) {
+            const slider = checkbox.nextElementSibling;
+            const knob = slider.nextElementSibling;
+            
+            if (checkbox.checked) {
+                slider.style.backgroundColor = '#667eea';
+                knob.style.transform = 'translateX(30px)';
+            } else {
+                slider.style.backgroundColor = '#ccc';
+                knob.style.transform = 'translateX(0)';
+            }
+        }
+
+        // Add event listeners for toggle switches
+        document.addEventListener('DOMContentLoaded', function() {
+            const bundlesToggle = document.getElementById('showBundlesToggle');
+            const booksToggle = document.getElementById('showFeaturedBooksToggle');
+            
+            if (bundlesToggle) {
+                bundlesToggle.addEventListener('change', updateToggleStyles);
+            }
+            if (booksToggle) {
+                booksToggle.addEventListener('change', updateToggleStyles);
+            }
+        });
 
         // Initialize the page
         console.log('🔧 Initializing page...');

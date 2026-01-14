@@ -67,6 +67,7 @@ app.use("/api", require("./routes/commissionSettings")); // Also mount publicly 
 app.use("/api", require("./routes/receiptSettings")); // Receipt settings routes
 app.use("/api/bundles", require("./routes/bundles"));
 app.use("/api/notifications", require("./routes/notifications"));
+app.use("/api/home-settings", require("./routes/homeSettings")); // Home page settings
 app.use("/api/points", require("./routes/points"));
 app.use("/api", require("./routes/otp"));
 app.use("/api/password-reset", require("./routes/passwordReset"));

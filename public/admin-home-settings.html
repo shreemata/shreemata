@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page Settings - Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .main-container {
+            max-width: 900px;
+            margin: 120px auto 40px;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .settings-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .settings-section h3 {
+            margin: 0 0 20px 0;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .setting-description {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            margin-left: 20px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 30px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #667eea;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(30px);
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-visible {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-hidden {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .save-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .save-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .save-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .preview-section {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #ffc107;
+            margin-bottom: 25px;
+        }
+
+        .preview-section h4 {
+            margin: 0 0 10px 0;
+            color: #856404;
+        }
+
+        .preview-section p {
+            margin: 0;
+            color: #856404;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 80px 15px 20px;
+                padding: 25px 20px;
+            }
+
+            .setting-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .toggle-switch {
+                margin-left: 0;
+                margin-top: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container navbar-content">
+            <div class="logo">
+                <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none; color: white;">
+                    <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 36px; height: 36px; border-radius: 50%;">
+                    <span>Shree Mata Admin</span>
+                </a>
+            </div>
+            <div class="nav-links">
+                <a href="/admin.html">📚 Books</a>
+                <a href="/admin-bundles.html">📦 Bundles</a>
+                <a href="/admin-notifications.html">📢 Notifications</a>
+                <a href="/admin-home-settings.html" class="active">🏠 Home Settings</a>
+                <a href="/" id="logoutBtn">🚪 Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <h1>🏠 Home Page Settings</h1>
+        <p class="subtitle">Control which sections are visible on the home page</p>
+
+        <div class="preview-section">
+            <h4>💡 How it works</h4>
+            <p>Toggle the switches below to show or hide sections on the home page. Changes will be visible to all users immediately after saving.</p>
+        </div>
+
+        <div class="settings-section">
+            <h3>📋 Section Visibility</h3>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-title">
+                        🎁 Special Combo Offers (Bundles)
+                        <span id="bundlesStatus" class="status-badge status-visible">Visible</span>
+                    </div>
+                    <div class="setting-description">
+                        Show bundle offers section with discounted book combinations
+                    </div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="showBundles" checked onchange="updateStatus('bundles')">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-title">
+                        📖 Featured Books
+                        <span id="booksStatus" class="status-badge status-visible">Visible</span>
+                    </div>
+                    <div class="setting-description">
+                        Show featured books section with all available books
+                    </div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="showFeaturedBooks" checked onchange="updateStatus('books')">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="save-button" onclick="saveSettings()">
+                💾 Save Settings
+            </button>
+        </div>
+
+        <div id="successMessage" style="display: none; background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: center; border: 1px solid #c3e6cb;">
+            ✅ Settings saved successfully!
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+        const API = window.API_URL;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAdminAuth();
+            loadSettings();
+        });
+
+        function checkAdminAuth() {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+            if (!token || !user || user.role !== 'admin') {
+                alert('Admin access required');
+                window.location.href = '/login.html';
+                return;
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const res = await fetch(`${API}/home-settings`);
+                const data = await res.json();
+
+                if (data.success && data.settings) {
+                    document.getElementById('showBundles').checked = data.settings.showBundles;
+                    document.getElementById('showFeaturedBooks').checked = data.settings.showFeaturedBooks;
+                    
+                    updateStatus('bundles');
+                    updateStatus('books');
+                }
+            } catch (err) {
+                console.error('Error loading settings:', err);
+            }
+        }
+
+        function updateStatus(type) {
+            if (type === 'bundles') {
+                const checkbox = document.getElementById('showBundles');
+                const status = document.getElementById('bundlesStatus');
+                
+                if (checkbox.checked) {
+                    status.textContent = 'Visible';
+                    status.className = 'status-badge status-visible';
+                } else {
+                    status.textContent = 'Hidden';
+                    status.className = 'status-badge status-hidden';
+                }
+            } else if (type === 'books') {
+                const checkbox = document.getElementById('showFeaturedBooks');
+                const status = document.getElementById('booksStatus');
+                
+                if (checkbox.checked) {
+                    status.textContent = 'Visible';
+                    status.className = 'status-badge status-visible';
+                } else {
+                    status.textContent = 'Hidden';
+                    status.className = 'status-badge status-hidden';
+                }
+            }
+        }
+
+        async function saveSettings() {
+            const token = localStorage.getItem('token');
+            const saveButton = document.querySelector('.save-button');
+            
+            saveButton.disabled = true;
+            saveButton.textContent = '💾 Saving...';
+
+            try {
+                const settings = {
+                    showBundles: document.getElementById('showBundles').checked,
+                    showFeaturedBooks: document.getElementById('showFeaturedBooks').checked,
+                    bundlesOrder: 1,
+                    featuredBooksOrder: 2
+                };
+
+                const res = await fetch(`${API}/home-settings`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    const successMsg = document.getElementById('successMessage');
+                    successMsg.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        successMsg.style.display = 'none';
+                    }, 3000);
+                } else {
+                    alert('Error saving settings: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error('Error saving settings:', err);
+                alert('Error saving settings. Please try again.');
+            } finally {
+                saveButton.disabled = false;
+                saveButton.textContent = '💾 Save Settings';
+            }
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+        });
+    </script>
+</body>
+</html>

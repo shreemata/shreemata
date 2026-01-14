@@ -16,10 +16,12 @@ let totalBooks = 0;
 let allBooks = [];
 let filteredBooks = [];
 let currentView = 'grid';
+let homeSettings = { showBundles: true, showFeaturedBooks: true }; // Store home settings
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("HOME USING API:", API_URL);
     checkAuth();
+    loadHomeSettings(); // Load home page settings first
     loadNotifications(); // Load notifications/offers
     loadBundles(); // Load combo offers
     loadClassesAndSubjects(); // Load dynamic classes and subjects
@@ -89,6 +91,44 @@ async function loadClassesAndSubjects() {
         console.error("Error loading classes and subjects:", err);
         console.error("API URL:", API_URL);
         console.error("Full URL:", `${API_URL}/books`);
+    }
+}
+
+/* ------------------------------
+   LOAD HOME SETTINGS
+--------------------------------*/
+async function loadHomeSettings() {
+    try {
+        const res = await fetch(`${API_URL}/home-settings`);
+        const data = await res.json();
+
+        if (data.success && data.settings) {
+            // Store settings globally
+            homeSettings = data.settings;
+            
+            // Apply visibility settings
+            const bundlesSection = document.getElementById('bundlesSection');
+            const booksSection = document.getElementById('booksSection');
+
+            if (bundlesSection) {
+                bundlesSection.style.display = data.settings.showBundles ? 'block' : 'none';
+            }
+
+            if (booksSection) {
+                booksSection.style.display = data.settings.showFeaturedBooks ? 'block' : 'none';
+            }
+
+            console.log('✅ Home settings applied:', data.settings);
+        }
+    } catch (err) {
+        console.error("Error loading home settings:", err);
+        // On error, show both sections by default
+        homeSettings = { showBundles: true, showFeaturedBooks: true };
+        const bundlesSection = document.getElementById('bundlesSection');
+        const booksSection = document.getElementById('booksSection');
+        
+        if (bundlesSection) bundlesSection.style.display = 'block';
+        if (booksSection) booksSection.style.display = 'block';
     }
 }
 
@@ -554,7 +594,12 @@ async function loadBundles() {
             const limit = isMobile ? 3 : 5;
             const limitedBundles = data.bundles.slice(0, limit);
             displayBundles(limitedBundles, data.bundles.length, limit);
-            document.getElementById("bundlesSection").style.display = "block";
+            
+            // Only show if home settings allow it
+            const bundlesSection = document.getElementById("bundlesSection");
+            if (bundlesSection && homeSettings.showBundles) {
+                bundlesSection.style.display = "block";
+            }
         }
     } catch (err) {
         console.error("Error loading bundles:", err);
