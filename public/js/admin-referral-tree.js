@@ -404,11 +404,17 @@ function renderSingleNode(node) {
     const referralStatusText = node.referralStatus?.joinedWithoutReferrer ? 'No Referrer' : 'Has Referrer';
     const referralStatusBadge = node.referralStatus?.joinedWithoutReferrer ? 'no-referrer' : 'has-referrer';
     
+    // Check if this is a virtual card
+    const isVirtual = node.isVirtual || false;
+    const virtualClass = isVirtual ? 'virtual-card' : '';
+    const virtualBadge = isVirtual ? '<span class="virtual-badge">🤖 Virtual Card</span>' : '';
+    const nameDisplay = isVirtual ? `${node.name} (Virtual)` : node.name;
+    
     return `
-        <div class="tree-node horizontal-node ${referralStatusClass}" data-user-id="${node.id}">
+        <div class="tree-node horizontal-node ${referralStatusClass} ${virtualClass}" data-user-id="${node.id}">
             <div class="node-header">
                 <div class="node-info">
-                    <div class="node-name">${node.name}</div>
+                    <div class="node-name">${nameDisplay} ${virtualBadge}</div>
                     <div class="node-details">
                         <span class="level-indicator">Level ${node.treeLevel}</span>
                         <span class="referral-status ${referralStatusBadge}">${referralStatusText}</span>
@@ -440,11 +446,17 @@ function renderLevelUsers(users, level) {
             const referralStatusText = user.referralStatus.joinedWithoutReferrer ? 'No Referrer' : 'Has Referrer';
             const referralStatusBadge = user.referralStatus.joinedWithoutReferrer ? 'no-referrer' : 'has-referrer';
             
+            // Check if this is a virtual card
+            const isVirtual = user.isVirtual || false;
+            const virtualClass = isVirtual ? 'virtual-card' : '';
+            const virtualBadge = isVirtual ? '<span class="virtual-badge">🤖 Virtual Card</span>' : '';
+            const nameDisplay = isVirtual ? `${user.name} (Virtual)` : user.name;
+            
             return `
-                <div class="tree-node ${referralStatusClass}" data-user-id="${user.id}">
+                <div class="tree-node ${referralStatusClass} ${virtualClass}" data-user-id="${user.id}">
                     <div class="node-header">
                         <div class="node-info">
-                            <div class="node-name">${user.name}</div>
+                            <div class="node-name">${nameDisplay} ${virtualBadge}</div>
                             <div class="node-details">
                                 <span class="level-indicator">Level ${user.treeLevel}</span>
                                 <span class="referral-status ${referralStatusBadge}">${referralStatusText}</span>

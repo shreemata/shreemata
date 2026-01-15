@@ -333,6 +333,47 @@ body {
     white-space: nowrap;
 }
 
+/* Virtual Card Styles */
+.tree-node.virtual-card {
+    border: 3px dashed #ff9800 !important;
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%) !important;
+}
+
+.tree-node.virtual-card::before {
+    content: '🤖';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 20px;
+    opacity: 0.2;
+}
+
+.virtual-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    color: white;
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    margin-left: 4px;
+    box-shadow: 0 2px 4px rgba(255, 152, 0, 0.3);
+    vertical-align: middle;
+}
+
+.tree-node.virtual-card .tree-name {
+    color: #e65100 !important;
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.tree-node.virtual-card:hover {
+    border-color: #ff9800 !important;
+    box-shadow: 0 12px 40px rgba(255, 152, 0, 0.3) !important;
+}
+
 /* Connection lines and animations */
 .custom-connection-line {
     transition: opacity 0.3s ease;
@@ -1346,16 +1387,25 @@ function adjustConnectionLines() {
 function createHorizontalUserNode(user) {
     const node = document.createElement('div');
     node.className = 'tree-node horizontal-node';
+    
+    // Check if this is a virtual card
+    const isVirtual = user.isVirtual || false;
+    if (isVirtual) {
+        node.classList.add('virtual-card');
+    }
+    
     node.setAttribute('data-user-id', user.id || user._id || '');
     node.setAttribute('data-parent-id', user.treeParent || user.parentId || '');
     
     // Safe content
     const name = escapeHtml(user.name || user.fullName || user.displayName || 'Unnamed');
+    const nameDisplay = isVirtual ? `${name} (Virtual)` : name;
+    const virtualBadge = isVirtual ? '<span class="virtual-badge">🤖 Virtual</span>' : '';
     const wallet = Number(user.wallet || (user.account?.wallet) || 0).toFixed(2);
     const referrals = (user.referrals !== undefined) ? user.referrals : (user.childrenCount || (user.relationships && user.relationships.treeChildrenCount) || 0);
     
     node.innerHTML = `
-        <div class="tree-name">${name}</div>
+        <div class="tree-name">${nameDisplay} ${virtualBadge}</div>
         <div class="tree-meta">Wallet: ₹${wallet}</div>
         <div class="tree-meta">${referrals} referrals</div>
     `;
@@ -1371,7 +1421,7 @@ function createHorizontalUserNode(user) {
     node.addEventListener('mouseenter', () => {
         node.style.transform = 'translateY(-5px) scale(1.05)';
         node.style.boxShadow = '0 15px 35px rgba(102, 126, 234, 0.3)';
-        node.style.borderColor = '#667eea';
+        node.style.borderColor = isVirtual ? '#ff9800' : '#667eea';
     });
     
     node.addEventListener('mouseleave', () => {
@@ -1452,14 +1502,23 @@ function buildTreeElement(node, isRoot=false){
 function createUserNodeElement(user){
     const node = document.createElement('div');
     node.className = 'tree-node';
+    
+    // Check if this is a virtual card
+    const isVirtual = user.isVirtual || false;
+    if (isVirtual) {
+        node.classList.add('virtual-card');
+    }
+    
     node.setAttribute('data-user-id', user.id || user._id || user._id_str || '');
     // safe content
     const name = escapeHtml(user.name || user.fullName || user.displayName || 'Unnamed');
+    const nameDisplay = isVirtual ? `${name} (Virtual)` : name;
+    const virtualBadge = isVirtual ? '<span class="virtual-badge">🤖 Virtual</span>' : '';
     const wallet = Number(user.wallet || (user.account?.wallet) || 0).toFixed(2);
     const referrals = (user.referrals !== undefined) ? user.referrals : (user.childrenCount || (user.relationships && user.relationships.treeChildrenCount) || 0);
 
     node.innerHTML = `
-        <div class="tree-name">${name}</div>
+        <div class="tree-name">${nameDisplay} ${virtualBadge}</div>
         <div class="tree-meta">Wallet: ₹${wallet}</div>
         <div class="tree-meta">${referrals} referrals</div>
     `;

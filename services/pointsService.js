@@ -73,7 +73,8 @@ async function createVirtualReferral(userId, session = null) {
     referredBy: user.referralCode,
     role: 'virtual',
     isVirtual: true,
-    originalUser: userId
+    originalUserId: userId,
+    firstPurchaseDone: true // Mark as purchased so it appears in tree
   });
 
   // Find tree placement for virtual user

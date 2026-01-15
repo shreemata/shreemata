@@ -24,7 +24,7 @@ async function buildLevelGroupedTree(rootUsers, currentDepth = 0, maxDepth = 20)
         const users = await User.find({ 
             _id: { $in: userIds },
             firstPurchaseDone: true // Only show users who made purchases
-        }).select("name email referralCode wallet treeLevel treePosition treeChildren treeParent referredBy createdAt directCommissionEarned treeCommissionEarned firstPurchaseDone");
+        }).select("name email referralCode wallet treeLevel treePosition treeChildren treeParent referredBy createdAt directCommissionEarned treeCommissionEarned firstPurchaseDone isVirtual originalUserId");
 
         for (const user of users) {
             if (processedUsers.has(user._id.toString())) continue;
@@ -58,7 +58,9 @@ async function buildLevelGroupedTree(rootUsers, currentDepth = 0, maxDepth = 20)
                     tree: user.treeCommissionEarned || 0
                 },
                 childrenCount: user.treeChildren.length,
-                children: [] // No nested children for horizontal layout
+                children: [], // No nested children for horizontal layout
+                isVirtual: user.isVirtual || false, // Include virtual status
+                originalUserId: user.originalUserId || null // Include original user reference
             };
 
             // Group by level
@@ -97,7 +99,7 @@ async function buildCompleteTree(rootUsers, currentDepth = 0, maxDepth = 20) {
 
     for (const userId of rootUsers) {
         const user = await User.findById(userId)
-            .select("name email referralCode wallet treeLevel treePosition treeChildren referredBy createdAt directCommissionEarned treeCommissionEarned firstPurchaseDone")
+            .select("name email referralCode wallet treeLevel treePosition treeChildren referredBy createdAt directCommissionEarned treeCommissionEarned firstPurchaseDone isVirtual originalUserId")
             .populate('treeChildren', '_id');
 
         if (!user) continue;
@@ -139,7 +141,9 @@ async function buildCompleteTree(rootUsers, currentDepth = 0, maxDepth = 20) {
                 tree: user.treeCommissionEarned || 0
             },
             childrenCount: user.treeChildren.length,
-            children: children
+            children: children,
+            isVirtual: user.isVirtual || false, // Include virtual status
+            originalUserId: user.originalUserId || null // Include original user reference
         });
     }
 
@@ -277,7 +281,7 @@ router.get("/level/:level", authenticateToken, isAdmin, async (req, res) => {
             treeLevel: level,
             firstPurchaseDone: true 
         })
-            .select("name email referralCode wallet treePosition treeParent treeChildren referredBy createdAt directCommissionEarned treeCommissionEarned")
+            .select("name email referralCode wallet treePosition treeParent treeChildren referredBy createdAt directCommissionEarned treeCommissionEarned isVirtual originalUserId")
             .populate('treeParent', 'name email referralCode')
             .populate('treeChildren', 'name email referralCode')
             .sort({ treePosition: 1, createdAt: 1 })
@@ -321,7 +325,9 @@ router.get("/level/:level", authenticateToken, isAdmin, async (req, res) => {
                         email: child.email,
                         referralCode: child.referralCode
                     }))
-                }
+                },
+                isVirtual: user.isVirtual || false, // Include virtual status
+                originalUserId: user.originalUserId || null // Include original user reference
             };
         });
 
