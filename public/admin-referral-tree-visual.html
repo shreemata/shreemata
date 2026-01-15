@@ -315,7 +315,7 @@ body {
     right: 8%;
 }
 
-/* Enhanced tree nodes - Smaller and more compact */
+/* Enhanced tree nodes - Smaller and more compact with performance optimizations */
 .tree-node {
     background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
     border: 2px solid #e8ecf4;
@@ -331,6 +331,112 @@ body {
     overflow: hidden;
     flex-shrink: 0;
     white-space: nowrap;
+    /* Performance optimizations */
+    will-change: transform;
+    backface-visibility: hidden;
+    transform: translateZ(0); /* Force hardware acceleration */
+}
+
+/* Performance-optimized hover effects */
+.tree-node:hover {
+    transform: translateY(-8px) scale(1.02) translateZ(0);
+    box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
+    border-color: #667eea;
+    background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
+}
+
+/* Optimized connection lines - HIDDEN BY DEFAULT */
+.tree-connection-svg {
+    /* Use CSS containment for better performance */
+    contain: layout style paint;
+}
+
+.tree-connection-svg line {
+    /* Optimize line rendering */
+    shape-rendering: optimizeSpeed;
+    vector-effect: non-scaling-stroke;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.3s ease, stroke 0.3s ease, stroke-width 0.3s ease;
+}
+
+/* Show connection lines when highlighted */
+.tree-connection-svg line.highlighted {
+    opacity: 1;
+    stroke: #667eea !important;
+    stroke-width: 4 !important;
+    filter: drop-shadow(0 2px 8px rgba(102, 126, 234, 0.4));
+}
+
+/* Show all lines when a node is selected */
+.tree-connection-svg.show-all-lines line {
+    opacity: 0.3;
+}
+
+.tree-connection-svg.show-all-lines line.highlighted {
+    opacity: 1;
+}
+
+/* Performance optimizations for large trees */
+.tree-root-wrap {
+    /* Enable hardware acceleration */
+    transform: translateZ(0);
+    will-change: scroll-position;
+    /* Optimize scrolling */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    /* Use CSS containment */
+    contain: layout style;
+}
+
+.tree-level {
+    /* Optimize level rendering */
+    contain: layout style;
+    margin-bottom: 80px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.level-nodes {
+    /* Optimize node container */
+    contain: layout;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    flex-wrap: wrap;
+    margin-left: 100px;
+    max-width: calc(100% - 120px);
+}
+
+/* Virtualization performance indicators */
+.performance-indicator {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 12px;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.performance-indicator.good {
+    background: rgba(40, 167, 69, 0.9);
+}
+
+.performance-indicator.warning {
+    background: rgba(255, 193, 7, 0.9);
+    color: #856404;
+}
+
+.performance-indicator.critical {
+    background: rgba(220, 53, 69, 0.9);
 }
 
 /* Virtual Card Styles */
@@ -967,16 +1073,44 @@ body {
             <h2>Referral Tree (Visual)</h2>
             <div class="tree-controls">
                 <input id="searchInput" class="tree-search" placeholder="Search user by name or code..." />
+                <select id="levelFilter" class="tree-search" style="width: 120px;">
+                    <option value="">All Levels</option>
+                    <option value="1">Level 1</option>
+                    <option value="2">Level 2</option>
+                    <option value="3">Level 3</option>
+                    <option value="4">Level 4</option>
+                    <option value="5">Level 5+</option>
+                </select>
+                <select id="pageSizeSelect" class="tree-search" style="width: 100px;">
+                    <option value="50">50 users</option>
+                    <option value="100" selected>100 users</option>
+                    <option value="200">200 users</option>
+                    <option value="500">500 users</option>
+                </select>
+                <button id="prevPageBtn" class="btn-primary">← Prev</button>
+                <span id="pageInfo" style="padding: 8px 12px; background: rgba(255,255,255,0.8); border-radius: 8px; font-size: 12px;">Page 1 of 1</span>
+                <button id="nextPageBtn" class="btn-primary">Next →</button>
                 <button id="zoomOutBtn" class="btn-primary">🔍- Zoom Out</button>
                 <button id="zoomInBtn" class="btn-primary">🔍+ Zoom In</button>
                 <button id="refreshBtn" class="btn-primary">Refresh</button>
                 <button id="exportBtn" class="btn-secondary">Export PNG</button>
                 <button id="exportFullBtn" class="btn-secondary">📸 Export Full Tree</button>
-                <button id="debugBtn" class="btn-primary">🔍 Debug Connections</button>
+                <button id="toggleVirtualizationBtn" class="btn-secondary">🚀 Virtualization: ON</button>
             </div>
         </div>
 
-        <p style="color:#666; margin:8px 0 12px;">Displays your full referral network. Click a node to open details. Use Ctrl+scroll to zoom or scroll horizontally to see all nodes.</p>
+        <p style="color:#666; margin:8px 0 12px;">
+            <strong>💡 How to use:</strong> 
+            <span style="background: #f0f4ff; padding: 4px 8px; border-radius: 4px; margin-left: 8px;">
+                Hover over any card to see its connections
+            </span>
+            <span style="background: #f0f4ff; padding: 4px 8px; border-radius: 4px; margin-left: 8px;">
+                Long press (mobile) to view connections
+            </span>
+            <span style="background: #f0f4ff; padding: 4px 8px; border-radius: 4px; margin-left: 8px;">
+                Click to view full details
+            </span>
+        </p>
 
         <div id="loading">Loading referral tree…</div>
         <div id="treeWrap" class="tree-root-wrap" style="display:none;">
@@ -1028,11 +1162,31 @@ const searchInput = document.getElementById('searchInput');
 const refreshBtn = document.getElementById('refreshBtn');
 const exportBtn = document.getElementById('exportBtn');
 const exportFullBtn = document.getElementById('exportFullBtn');
-const debugBtn = document.getElementById('debugBtn');
 const zoomInBtn = document.getElementById('zoomInBtn');
 const zoomOutBtn = document.getElementById('zoomOutBtn');
 
+// New performance controls
+const levelFilter = document.getElementById('levelFilter');
+const pageSizeSelect = document.getElementById('pageSizeSelect');
+const prevPageBtn = document.getElementById('prevPageBtn');
+const nextPageBtn = document.getElementById('nextPageBtn');
+const pageInfo = document.getElementById('pageInfo');
+const toggleVirtualizationBtn = document.getElementById('toggleVirtualizationBtn');
+
 let currentZoom = 1;
+let currentPage = 1;
+let totalPages = 1;
+let currentPageSize = 100;
+let currentLevelFilter = '';
+let virtualizationEnabled = true;
+let allLevelsData = [];
+let visibleNodes = new Set();
+let nodePool = [];
+let connectionPool = [];
+
+// Performance monitoring
+let renderStartTime = 0;
+let lastRenderTime = 0;
 
 refreshBtn.addEventListener('click', loadTree);
 exportBtn.addEventListener('click', exportTreeAsImage);
@@ -1040,47 +1194,445 @@ exportFullBtn.addEventListener('click', exportFullTreeAsImageSimple);
 zoomInBtn.addEventListener('click', () => adjustZoom(0.1));
 zoomOutBtn.addEventListener('click', () => adjustZoom(-0.1));
 
-// Debug function to check tree content and connections
-debugBtn.addEventListener('click', () => {
-    console.log('🔍 DEBUG: Tree content and connections');
-    console.log('Tree dimensions:', {
-        width: treeWrap.offsetWidth,
-        height: treeWrap.offsetHeight,
-        scrollWidth: treeWrap.scrollWidth,
-        scrollHeight: treeWrap.scrollHeight
+levelFilter.addEventListener('change', handleLevelFilter);
+pageSizeSelect.addEventListener('change', handlePageSizeChange);
+prevPageBtn.addEventListener('click', () => changePage(currentPage - 1));
+nextPageBtn.addEventListener('click', () => changePage(currentPage + 1));
+toggleVirtualizationBtn.addEventListener('click', toggleVirtualization);
+
+searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') performSearch(); });
+
+/* ---------- PERFORMANCE OPTIMIZATION FUNCTIONS ---------- */
+
+// Handle level filtering
+function handleLevelFilter() {
+    currentLevelFilter = levelFilter.value;
+    currentPage = 1;
+    renderCurrentPage();
+}
+
+// Handle page size change
+function handlePageSizeChange() {
+    currentPageSize = parseInt(pageSizeSelect.value);
+    currentPage = 1;
+    renderCurrentPage();
+}
+
+// Change page
+function changePage(newPage) {
+    if (newPage < 1 || newPage > totalPages) return;
+    currentPage = newPage;
+    renderCurrentPage();
+}
+
+// Toggle virtualization
+function toggleVirtualization() {
+    virtualizationEnabled = !virtualizationEnabled;
+    toggleVirtualizationBtn.textContent = `🚀 Virtualization: ${virtualizationEnabled ? 'ON' : 'OFF'}`;
+    toggleVirtualizationBtn.style.background = virtualizationEnabled 
+        ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)' 
+        : 'linear-gradient(135deg, #dc3545 0%, #fd7e14 100%)';
+    
+    if (allLevelsData.length > 0) {
+        renderCurrentPage();
+    }
+}
+
+// Update page controls
+function updatePageControls() {
+    prevPageBtn.disabled = currentPage <= 1;
+    nextPageBtn.disabled = currentPage >= totalPages;
+    pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+    
+    // Update button styles based on state
+    prevPageBtn.style.opacity = currentPage <= 1 ? '0.5' : '1';
+    nextPageBtn.style.opacity = currentPage >= totalPages ? '0.5' : '1';
+}
+
+// Object pooling for better memory management
+function getNodeFromPool() {
+    if (nodePool.length > 0) {
+        return nodePool.pop();
+    }
+    return document.createElement('div');
+}
+
+function returnNodeToPool(node) {
+    // Clean up the node
+    node.className = '';
+    node.innerHTML = '';
+    node.removeAttribute('data-user-id');
+    node.removeAttribute('data-parent-id');
+    node.style.cssText = '';
+    nodePool.push(node);
+}
+
+// Virtualization: Only render visible nodes
+function renderCurrentPage() {
+    if (!allLevelsData || allLevelsData.length === 0) return;
+    
+    renderStartTime = performance.now();
+    
+    // Clear existing content
+    treeWrap.innerHTML = '';
+    visibleNodes.clear();
+    
+    // Filter data based on current filters
+    let filteredLevels = allLevelsData;
+    if (currentLevelFilter) {
+        const targetLevel = parseInt(currentLevelFilter);
+        if (targetLevel === 5) {
+            // Level 5+ means level 5 and above
+            filteredLevels = allLevelsData.filter(level => level.level >= 5);
+        } else {
+            filteredLevels = allLevelsData.filter(level => level.level === targetLevel);
+        }
+    }
+    
+    // Calculate pagination
+    const totalUsers = filteredLevels.reduce((sum, level) => sum + level.users.length, 0);
+    totalPages = Math.ceil(totalUsers / currentPageSize);
+    
+    if (virtualizationEnabled && totalUsers > currentPageSize) {
+        renderVirtualizedTree(filteredLevels);
+    } else {
+        renderFullTree(filteredLevels);
+    }
+    
+    updatePageControls();
+    
+    // Performance monitoring
+    lastRenderTime = performance.now() - renderStartTime;
+    const nodeCount = document.querySelectorAll('.tree-node').length;
+    console.log(`🚀 Tree rendered in ${lastRenderTime.toFixed(2)}ms (${totalUsers} users, ${nodeCount} nodes, virtualization: ${virtualizationEnabled})`);
+    
+    // Update performance monitor
+    updatePerformanceMonitor(lastRenderTime, nodeCount, virtualizationEnabled && totalUsers > currentPageSize);
+    
+    // Add connection lines after rendering
+    setTimeout(() => {
+        if (virtualizationEnabled) {
+            addOptimizedConnections();
+        } else {
+            addTreeConnections(filteredLevels);
+        }
+    }, 50);
+}
+
+// Render virtualized tree (only current page)
+function renderVirtualizedTree(levelsData) {
+    let userCount = 0;
+    const startIndex = (currentPage - 1) * currentPageSize;
+    const endIndex = startIndex + currentPageSize;
+    
+    // Create a performance info display
+    const perfInfo = document.createElement('div');
+    perfInfo.style.cssText = `
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(40, 167, 69, 0.9);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 11px;
+        z-index: 100;
+        font-family: monospace;
+    `;
+    perfInfo.textContent = `🚀 Virtualized: Page ${currentPage}/${totalPages} (${currentPageSize} users/page) - Rendered in ${lastRenderTime.toFixed(1)}ms`;
+    treeWrap.appendChild(perfInfo);
+    
+    for (const levelData of levelsData) {
+        const levelDiv = document.createElement('div');
+        levelDiv.className = 'tree-level';
+        levelDiv.setAttribute('data-level', levelData.level);
+        
+        // Level header
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'level-header';
+        headerDiv.innerHTML = `
+            <h3>Level ${levelData.level}</h3>
+            <span class="level-count">${levelData.users.length} users</span>
+        `;
+        levelDiv.appendChild(headerDiv);
+        
+        // Create nodes container
+        const nodesDiv = document.createElement('div');
+        nodesDiv.className = 'level-nodes';
+        
+        // Only render users within current page range
+        const levelStartIndex = Math.max(0, startIndex - userCount);
+        const levelEndIndex = Math.max(0, endIndex - userCount);
+        const levelUsers = levelData.users.slice(levelStartIndex, levelEndIndex);
+        
+        if (levelUsers.length > 0) {
+            levelUsers.forEach(user => {
+                const userNode = createOptimizedUserNode(user);
+                nodesDiv.appendChild(userNode);
+                visibleNodes.add(user.id || user._id);
+            });
+        }
+        
+        if (nodesDiv.children.length > 0) {
+            levelDiv.appendChild(nodesDiv);
+            treeWrap.appendChild(levelDiv);
+        }
+        
+        userCount += levelData.users.length;
+    }
+}
+
+// Render full tree (all users)
+function renderFullTree(levelsData) {
+    // Add performance warning for large datasets
+    const totalUsers = levelsData.reduce((sum, level) => sum + level.users.length, 0);
+    if (totalUsers > 500) {
+        const warning = document.createElement('div');
+        warning.style.cssText = `
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 193, 7, 0.9);
+            color: #856404;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            z-index: 100;
+        `;
+        warning.textContent = `⚠️ Large dataset (${totalUsers} users) - Consider enabling virtualization`;
+        treeWrap.appendChild(warning);
+    }
+    
+    buildHorizontalLevelTree(levelsData);
+}
+
+// Optimized user node creation with minimal DOM operations
+function createOptimizedUserNode(user) {
+    const node = getNodeFromPool();
+    node.className = 'tree-node horizontal-node';
+    
+    // Check if this is a virtual card
+    const isVirtual = user.isVirtual || false;
+    if (isVirtual) {
+        node.classList.add('virtual-card');
+    }
+    
+    node.setAttribute('data-user-id', user.id || user._id || '');
+    node.setAttribute('data-parent-id', user.treeParent || user.parentId || '');
+    
+    // Use template literals for better performance
+    const name = escapeHtml(user.name || user.fullName || user.displayName || 'Unnamed');
+    const nameDisplay = isVirtual ? `${name} (Virtual)` : name;
+    const virtualBadge = isVirtual ? '<span class="virtual-badge">🤖 Virtual</span>' : '';
+    const wallet = Number(user.wallet || (user.account?.wallet) || 0).toFixed(2);
+    const referrals = (user.referrals !== undefined) ? user.referrals : (user.childrenCount || (user.relationships && user.relationships.treeChildrenCount) || 0);
+    
+    // Use innerHTML once instead of multiple DOM operations
+    node.innerHTML = `
+        <div class="tree-name">${nameDisplay} ${virtualBadge}</div>
+        <div class="tree-meta">₹${wallet}</div>
+        <div class="tree-meta">${referrals} refs</div>
+    `;
+    
+    // Add hover event listeners to show connections
+    node.addEventListener('mouseenter', handleNodeHover);
+    node.addEventListener('mouseleave', handleNodeLeave);
+    
+    // Add long press for mobile
+    let longPressTimer;
+    node.addEventListener('touchstart', (e) => {
+        longPressTimer = setTimeout(() => {
+            handleNodeHover.call(node, e);
+        }, 500); // 500ms long press
     });
     
-    // Check all nodes
-    const allNodes = document.querySelectorAll('.horizontal-node');
-    console.log(`Found ${allNodes.length} nodes:`);
-    allNodes.forEach(node => {
-        const userId = node.getAttribute('data-user-id');
-        const name = node.querySelector('.tree-name').textContent;
-        const rect = node.getBoundingClientRect();
-        console.log(`  ${name} (${userId}): x=${rect.left}, y=${rect.top}, w=${rect.width}, h=${rect.height}`);
+    node.addEventListener('touchend', () => {
+        clearTimeout(longPressTimer);
     });
     
-    // Check SVG connections
+    node.addEventListener('touchmove', () => {
+        clearTimeout(longPressTimer);
+    });
+    
+    // Click to open modal
+    node.addEventListener('click', handleNodeClick, { passive: true });
+    
+    return node;
+}
+
+// Track currently hovered node
+let hoveredNodeId = null;
+
+// Handle node hover - show connections
+function handleNodeHover(e) {
+    const node = e.currentTarget || this;
+    const uid = node.getAttribute('data-user-id');
+    
+    if (hoveredNodeId === uid) return; // Already showing
+    
+    hoveredNodeId = uid;
+    highlightNodeConnections(uid, node);
+}
+
+// Handle node leave - hide connections
+function handleNodeLeave(e) {
+    hoveredNodeId = null;
+    clearNodeHighlight();
+}
+
+// Optimized event handling - click to open modal
+function handleNodeClick(e) {
+    e.stopPropagation();
+    const node = e.currentTarget;
+    const uid = node.getAttribute('data-user-id');
+    const userData = findUserDataById(uid);
+    openUserModal(uid, userData);
+}
+
+// Clear all node highlights
+function clearNodeHighlight() {
+    // Remove highlight from all nodes
+    document.querySelectorAll('.tree-node').forEach(n => {
+        n.style.borderColor = '';
+        n.style.boxShadow = '';
+        n.style.transform = '';
+    });
+    
+    // Hide all connection lines
+    document.querySelectorAll('.tree-connection-svg line').forEach(line => {
+        line.classList.remove('highlighted');
+    });
+    
+    // Remove show-all class from SVG
     const svg = document.querySelector('.tree-connection-svg');
     if (svg) {
-        const lines = svg.querySelectorAll('line');
-        console.log(`Found ${lines.length} connection lines`);
-        lines.forEach((line, index) => {
-            console.log(`  Line ${index}: (${line.getAttribute('x1')}, ${line.getAttribute('y1')}) → (${line.getAttribute('x2')}, ${line.getAttribute('y2')})`);
+        svg.classList.remove('show-all-lines');
+    }
+}
+
+// Highlight connections for a specific node
+function highlightNodeConnections(userId, hoveredNode) {
+    // Clear previous highlights
+    clearNodeHighlight();
+    
+    // Highlight the hovered node
+    hoveredNode.style.borderColor = '#667eea';
+    hoveredNode.style.boxShadow = '0 8px 30px rgba(102, 126, 234, 0.4)';
+    hoveredNode.style.transform = 'translateY(-5px) scale(1.05)';
+    
+    const svg = document.querySelector('.tree-connection-svg');
+    if (!svg) return;
+    
+    // Show all lines with reduced opacity
+    svg.classList.add('show-all-lines');
+    
+    // Find and highlight connections where this user is parent or child
+    const allLines = svg.querySelectorAll('line');
+    const parentId = hoveredNode.getAttribute('data-parent-id');
+    
+    allLines.forEach(line => {
+        const lineParentId = line.getAttribute('data-parent-id');
+        const lineChildId = line.getAttribute('data-child-id');
+        
+        // Highlight if this node is the parent or child in the connection
+        if (lineParentId === userId || lineChildId === userId) {
+            line.classList.add('highlighted');
+            
+            // Also highlight the connected nodes
+            if (lineParentId === userId) {
+                const childNode = document.querySelector(`[data-user-id="${lineChildId}"]`);
+                if (childNode) {
+                    childNode.style.borderColor = '#43e97b';
+                    childNode.style.boxShadow = '0 6px 20px rgba(67, 233, 123, 0.3)';
+                }
+            }
+            if (lineChildId === userId) {
+                const parentNode = document.querySelector(`[data-user-id="${lineParentId}"]`);
+                if (parentNode) {
+                    parentNode.style.borderColor = '#f5576c';
+                    parentNode.style.boxShadow = '0 6px 20px rgba(245, 87, 108, 0.3)';
+                }
+            }
+        }
+    });
+}
+
+// Find user data by ID (cached lookup)
+function findUserDataById(userId) {
+    for (const level of allLevelsData) {
+        const user = level.users.find(u => (u.id || u._id) === userId);
+        if (user) return user;
+    }
+    return null;
+}
+
+// Optimized connection drawing with reduced calculations
+function addOptimizedConnections() {
+    // Only draw connections for visible nodes
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('tree-connection-svg');
+    svg.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 3;
+    `;
+    
+    treeWrap.appendChild(svg);
+    
+    // Use requestAnimationFrame for smooth rendering
+    requestAnimationFrame(() => {
+        const visibleNodesArray = Array.from(document.querySelectorAll('.horizontal-node'));
+        const fragment = document.createDocumentFragment();
+        
+        visibleNodesArray.forEach(childNode => {
+            const parentId = childNode.getAttribute('data-parent-id');
+            if (!parentId) return;
+            
+            const parentNode = document.querySelector(`[data-user-id="${parentId}"]`);
+            if (parentNode) {
+                const line = createOptimizedConnectionLine(parentNode, childNode);
+                if (line) fragment.appendChild(line);
+            }
         });
-    } else {
-        console.log('No SVG connections found');
-    }
+        
+        svg.appendChild(fragment);
+    });
+}
+
+// Create optimized connection line
+function createOptimizedConnectionLine(parentNode, childNode) {
+    const treeWrapRect = treeWrap.getBoundingClientRect();
+    const parentRect = parentNode.getBoundingClientRect();
+    const childRect = childNode.getBoundingClientRect();
     
-    // Force redraw connections
-    if (window.currentLevelsData) {
-        console.log('Redrawing connections...');
-        addTreeConnections(window.currentLevelsData);
-    }
+    // Calculate positions relative to tree container
+    const startX = parentRect.left - treeWrapRect.left + parentRect.width / 2;
+    const startY = parentRect.bottom - treeWrapRect.top;
+    const endX = childRect.left - treeWrapRect.left + childRect.width / 2;
+    const endY = childRect.top - treeWrapRect.top;
     
-    alert('Check console for debug info');
-});
-searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') performSearch(); });
+    // Create line element
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', startX);
+    line.setAttribute('y1', startY);
+    line.setAttribute('x2', endX);
+    line.setAttribute('y2', endY);
+    line.setAttribute('stroke', '#2c3e50');
+    line.setAttribute('stroke-width', '2');
+    line.setAttribute('stroke-linecap', 'round');
+    
+    // Add data attributes for connection tracking
+    const parentId = parentNode.getAttribute('data-user-id');
+    const childId = childNode.getAttribute('data-user-id');
+    line.setAttribute('data-parent-id', parentId);
+    line.setAttribute('data-child-id', childId);
+    
+    return line;
+}
 
 document.getElementById('modalClose').addEventListener('click', closeModal);
 document.getElementById('modalBackdrop').addEventListener('click', (e) => { if (e.target.id === 'modalBackdrop') closeModal(); });
@@ -1153,6 +1705,7 @@ async function loadTree(){
         }
         
         console.log('✅ Successfully loaded data from:', usedEndpoint);
+        console.log('📦 Full API response:', JSON.stringify(data, null, 2));
 
         // Normalize data to display by levels horizontally
         let levelsData = [];
@@ -1160,6 +1713,7 @@ async function loadTree(){
         if (data.levels && Array.isArray(data.levels)) {
             // New level-grouped format - perfect for horizontal display
             console.log('📊 Processing level-grouped data:', data.levels.length, 'levels');
+            console.log('📊 Levels data:', data.levels);
             levelsData = data.levels.map(level => ({
                 level: level.level || 1,
                 users: level.users || []
@@ -1182,15 +1736,35 @@ async function loadTree(){
             }
         }
 
+        console.log('📊 Final levelsData:', levelsData);
+        console.log('📊 Total levels:', levelsData.length);
+        console.log('📊 Total users:', levelsData.reduce((sum, level) => sum + level.users.length, 0));
+
         if (!levelsData || levelsData.length === 0) {
             messageEl.style.display = 'block';
-            messageEl.textContent = 'No referral records found.';
+            messageEl.innerHTML = `
+                <strong>No referral records found.</strong><br><br>
+                <div style="text-align: left; background: #f8f9ff; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                    <strong>Possible reasons:</strong><br>
+                    • No users have made purchases yet (only users with purchases appear in tree)<br>
+                    • Database query filters are too restrictive<br>
+                    • Check browser console for API response details<br><br>
+                    <strong>API Response:</strong><br>
+                    <code style="font-size: 11px;">${JSON.stringify(data, null, 2).substring(0, 500)}...</code>
+                </div>
+            `;
             return;
         }
 
         // Build horizontal level-based tree
         treeWrap.innerHTML = '';
-        buildHorizontalLevelTree(levelsData);
+        
+        // Store all levels data for pagination and filtering
+        allLevelsData = levelsData;
+        
+        // Use performance-optimized rendering
+        renderCurrentPage();
+        
         treeWrap.style.display = 'block';
         
         // Store levels data for connection redrawing
@@ -1410,24 +1984,31 @@ function createHorizontalUserNode(user) {
         <div class="tree-meta">${referrals} referrals</div>
     `;
     
+    // Add hover event listeners to show connections
+    node.addEventListener('mouseenter', handleNodeHover);
+    node.addEventListener('mouseleave', handleNodeLeave);
+    
+    // Add long press for mobile
+    let longPressTimer;
+    node.addEventListener('touchstart', (e) => {
+        longPressTimer = setTimeout(() => {
+            handleNodeHover.call(node, e);
+        }, 500); // 500ms long press
+    });
+    
+    node.addEventListener('touchend', () => {
+        clearTimeout(longPressTimer);
+    });
+    
+    node.addEventListener('touchmove', () => {
+        clearTimeout(longPressTimer);
+    });
+    
     // Click opens modal
     node.addEventListener('click', (e) => {
         e.stopPropagation();
         const uid = node.getAttribute('data-user-id');
         openUserModal(uid, user);
-    });
-    
-    // Simple hover effects
-    node.addEventListener('mouseenter', () => {
-        node.style.transform = 'translateY(-5px) scale(1.05)';
-        node.style.boxShadow = '0 15px 35px rgba(102, 126, 234, 0.3)';
-        node.style.borderColor = isVirtual ? '#ff9800' : '#667eea';
-    });
-    
-    node.addEventListener('mouseleave', () => {
-        node.style.transform = '';
-        node.style.boxShadow = '';
-        node.style.borderColor = '';
     });
     
     return node;
@@ -1556,35 +2137,119 @@ async function fetchAndPopulateUser(userId, fallbackUser){
         const token = localStorage.getItem('token');
         if (!token) { populateModalWithData({ name: 'Not authenticated' }); return; }
 
-        // Try likely user endpoints
-        const userEndpoints = [
-            `${API}/admin/users/${userId}`,
-            `${API}/admin/users/user/${userId}`,
-            `${API}/users/${userId}`
-        ];
-
-        let userData = null;
-        for (const ep of userEndpoints) {
-            try {
-                const res = await fetch(ep, { headers: { 'Authorization': 'Bearer ' + token, 'Content-Type':'application/json' } });
-                if (!res.ok) continue;
-                const json = await res.json();
-                // Accept { user: {...} } or {...}
-                if (json.user) userData = json.user;
-                else userData = json;
-                break;
-            } catch(err) {
-                continue;
+        // Fetch detailed user data from admin endpoint
+        const userEndpoint = `${API}/admin/users/${userId}`;
+        
+        try {
+            const res = await fetch(userEndpoint, { 
+                headers: { 
+                    'Authorization': 'Bearer ' + token, 
+                    'Content-Type':'application/json' 
+                } 
+            });
+            
+            if (!res.ok) {
+                console.error('Failed to fetch user details:', res.status);
+                populateModalWithData(fallbackUser || { name: 'No details available' });
+                return;
             }
+            
+            const json = await res.json();
+            const userData = json.user || json;
+            
+            // Fetch the referrer's name if they have one
+            let referrerName = null;
+            if (userData.referredBy) {
+                try {
+                    const referrerRes = await fetch(`${API}/users/by-code/${userData.referredBy}`, {
+                        headers: { 
+                            'Authorization': 'Bearer ' + token, 
+                            'Content-Type':'application/json' 
+                        }
+                    });
+                    if (referrerRes.ok) {
+                        const referrerData = await referrerRes.json();
+                        referrerName = referrerData.user?.name || referrerData.name;
+                    }
+                } catch (err) {
+                    console.log('Could not fetch referrer name:', err);
+                }
+            }
+            
+            // Fetch tree parent's name if they have one
+            let treeParentName = null;
+            if (userData.treeParent) {
+                try {
+                    const parentRes = await fetch(`${API}/admin/users/${userData.treeParent}`, {
+                        headers: { 
+                            'Authorization': 'Bearer ' + token, 
+                            'Content-Type':'application/json' 
+                        }
+                    });
+                    if (parentRes.ok) {
+                        const parentData = await parentRes.json();
+                        treeParentName = parentData.user?.name || parentData.name;
+                    }
+                } catch (err) {
+                    console.log('Could not fetch tree parent name:', err);
+                }
+            }
+            
+            // Fetch children names
+            let childrenNames = [];
+            if (userData.treeChildren && userData.treeChildren.length > 0) {
+                try {
+                    const childrenIds = userData.treeChildren.slice(0, 10); // Limit to first 10 for performance
+                    const childrenPromises = childrenIds.map(childId => 
+                        fetch(`${API}/admin/users/${childId}`, {
+                            headers: { 
+                                'Authorization': 'Bearer ' + token, 
+                                'Content-Type':'application/json' 
+                            }
+                        }).then(res => res.ok ? res.json() : null)
+                    );
+                    
+                    const childrenResults = await Promise.all(childrenPromises);
+                    childrenNames = childrenResults
+                        .filter(result => result)
+                        .map(result => ({
+                            id: result.user?._id || result._id,
+                            name: result.user?.name || result.name,
+                            email: result.user?.email || result.email,
+                            referralCode: result.user?.referralCode || result.referralCode,
+                            wallet: result.user?.wallet || result.wallet || 0,
+                            commission: (result.user?.directCommissionEarned || result.directCommissionEarned || 0) + 
+                                       (result.user?.treeCommissionEarned || result.treeCommissionEarned || 0)
+                        }));
+                } catch (err) {
+                    console.log('Could not fetch children names:', err);
+                }
+            }
+            
+            // Fetch additional referral statistics
+            const statsEndpoint = `${API}/admin/users/${userId}/referral-stats`;
+            let referralStats = null;
+            
+            try {
+                const statsRes = await fetch(statsEndpoint, {
+                    headers: { 
+                        'Authorization': 'Bearer ' + token, 
+                        'Content-Type':'application/json' 
+                    }
+                });
+                if (statsRes.ok) {
+                    referralStats = await statsRes.json();
+                }
+            } catch (err) {
+                console.log('Could not fetch referral stats:', err);
+            }
+            
+            populateEnhancedModalWithData(userData, referralStats, referrerName, treeParentName, childrenNames);
+            
+        } catch(err) {
+            console.error('Error fetching user:', err);
+            populateModalWithData(fallbackUser || { name: 'Error loading details' });
         }
-
-        if (!userData) {
-            // fallback to minimal
-            populateModalWithData(fallbackUser || { name: 'No details available' });
-            return;
-        }
-
-        populateModalWithData(userData);
 
     } catch (err) {
         console.error('fetchAndPopulateUser', err);
@@ -1592,6 +2257,281 @@ async function fetchAndPopulateUser(userId, fallbackUser){
     }
 }
 
+function populateEnhancedModalWithData(user, referralStats, referrerName, treeParentName, childrenNames) {
+    const joinDate = user.joinDate ? (new Date(user.joinDate)).toLocaleDateString() : 'N/A';
+    const wallet = Number(user.wallet || 0).toFixed(2);
+    const directCommission = Number(user.directCommissionEarned || 0).toFixed(2);
+    const treeCommission = Number(user.treeCommissionEarned || 0).toFixed(2);
+    const totalCommission = (Number(user.directCommissionEarned || 0) + Number(user.treeCommissionEarned || 0)).toFixed(2);
+    
+    // Referral information with names
+    const referredByCode = user.referredBy || null;
+    const referredByDisplay = referrerName 
+        ? `${escapeHtml(referrerName)} (${escapeHtml(referredByCode)})` 
+        : (referredByCode ? escapeHtml(referredByCode) : 'Direct Signup (No Referrer)');
+    const hasReferrer = !!referredByCode;
+    
+    const treeParentDisplay = treeParentName 
+        ? escapeHtml(treeParentName)
+        : (user.treeParent ? 'Unknown Parent' : 'Root User');
+    
+    const referralCode = user.referralCode || 'N/A';
+    const treeLevel = user.treeLevel || 0;
+    const treePosition = user.treePosition || 'N/A';
+    
+    // Children information
+    const directChildren = user.treeChildren?.length || 0;
+    const totalDescendants = referralStats?.totalDescendants || directChildren;
+    
+    // Commission from referrals
+    const commissionFromDirectReferrals = Number(user.directCommissionEarned || 0).toFixed(2);
+    const commissionFromTreeReferrals = Number(user.treeCommissionEarned || 0).toFixed(2);
+    
+    // Virtual user indicator
+    const isVirtual = user.isVirtual || false;
+    const virtualBadge = isVirtual ? '<span style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; margin-left: 8px;">🤖 Virtual Card</span>' : '';
+
+    // Build children list HTML
+    const childrenListHTML = childrenNames.length > 0 ? `
+        <div style="margin-top: 15px;">
+            <h5 style="margin-bottom: 10px;">👥 Direct Children (${childrenNames.length}${directChildren > childrenNames.length ? ` of ${directChildren}` : ''}):</h5>
+            <div style="max-height: 300px; overflow-y: auto;">
+                ${childrenNames.map(child => `
+                    <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #667eea; cursor: pointer;" onclick="openUserModal('${child.id}')">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">
+                                    ${escapeHtml(child.name)}
+                                </div>
+                                <div style="font-size: 12px; color: #666;">
+                                    📧 ${escapeHtml(child.email)}<br>
+                                    🔑 Code: ${escapeHtml(child.referralCode)}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 14px; color: #28a745; font-weight: 600;">
+                                    ₹${Number(child.wallet).toFixed(2)}
+                                </div>
+                                <div style="font-size: 11px; color: #666;">
+                                    Earned: ₹${Number(child.commission).toFixed(2)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            ${directChildren > childrenNames.length ? `
+                <div style="text-align: center; padding: 10px; color: #666; font-size: 12px;">
+                    Showing first ${childrenNames.length} of ${directChildren} children
+                </div>
+            ` : ''}
+        </div>
+    ` : `
+        <div style="margin-top: 15px; padding: 20px; background: #f8f9ff; border-radius: 8px; text-align: center; color: #666;">
+            No direct children yet
+        </div>
+    `;
+
+    modalContent.innerHTML = `
+        <button class="close" id="modalCloseInner" aria-label="Close">&times;</button>
+        <h3 style="margin-top:6px; display: flex; align-items: center;">
+            ${escapeHtml(user.name || user.fullName || 'User')}
+            ${virtualBadge}
+        </h3>
+        
+        <!-- Quick Stats Grid -->
+        <div class="stat-grid" style="margin: 20px 0;">
+            <div class="stat-card" style="border-left-color: #28a745;">
+                <strong>💰 Current Wallet</strong>
+                <div style="font-size: 24px; color: #28a745;">₹${wallet}</div>
+            </div>
+            <div class="stat-card" style="border-left-color: #667eea;">
+                <strong>📊 Total Earned</strong>
+                <div style="font-size: 24px; color: #667eea;">₹${totalCommission}</div>
+            </div>
+            <div class="stat-card" style="border-left-color: #f5576c;">
+                <strong>👥 Direct Children</strong>
+                <div style="font-size: 24px; color: #f5576c;">${directChildren}</div>
+            </div>
+            <div class="stat-card" style="border-left-color: #764ba2;">
+                <strong>🌳 Tree Level</strong>
+                <div style="font-size: 24px; color: #764ba2;">${treeLevel}</div>
+            </div>
+        </div>
+
+        <!-- Detailed Information Tabs -->
+        <div style="border-top: 2px solid #e8ecf4; padding-top: 20px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e8ecf4;">
+                <button class="modal-tab-btn active" onclick="switchModalTab('overview')" style="padding: 10px 20px; border: none; background: none; cursor: pointer; border-bottom: 3px solid #667eea; font-weight: 600; color: #667eea;">
+                    📋 Overview
+                </button>
+                <button class="modal-tab-btn" onclick="switchModalTab('referrals')" style="padding: 10px 20px; border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; font-weight: 600; color: #666;">
+                    👥 Referrals
+                </button>
+                <button class="modal-tab-btn" onclick="switchModalTab('commissions')" style="padding: 10px 20px; border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; font-weight: 600; color: #666;">
+                    💰 Commissions
+                </button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="modal-overview-tab" class="modal-tab-content">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4 style="color: #667eea; margin-bottom: 10px;">👤 Personal Information</h4>
+                        <div style="background: #f8f9ff; padding: 15px; border-radius: 8px;">
+                            <div style="margin-bottom: 8px;">
+                                <strong>Email:</strong> ${escapeHtml(user.email || 'N/A')}
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <strong>Referral Code:</strong> 
+                                <code style="background: #e8ecf4; padding: 4px 8px; border-radius: 4px; font-weight: 600;">${escapeHtml(referralCode)}</code>
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <strong>Join Date:</strong> ${joinDate}
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <strong>Account Type:</strong> ${escapeHtml(user.role || 'User')}
+                            </div>
+                            <div>
+                                <strong>First Purchase:</strong> ${user.firstPurchaseDone ? '✅ Yes' : '❌ No'}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 style="color: #667eea; margin-bottom: 10px;">🌳 Tree Position</h4>
+                        <div style="background: #f8f9ff; padding: 15px; border-radius: 8px;">
+                            <div style="margin-bottom: 8px;">
+                                <strong>Tree Level:</strong> Level ${treeLevel}
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <strong>Position:</strong> ${treePosition}
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <strong>Tree Parent:</strong> 
+                                <span style="color: #667eea; font-weight: 600;">
+                                    ${treeParentDisplay}
+                                </span>
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <strong>Referred By:</strong> 
+                                <span style="color: ${hasReferrer ? '#28a745' : '#dc3545'}; font-weight: 600;">
+                                    ${hasReferrer ? '✅' : '❌'} ${referredByDisplay}
+                                </span>
+                            </div>
+                            <div>
+                                <strong>Total Descendants:</strong> ${totalDescendants}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Referrals Tab -->
+            <div id="modal-referrals-tab" class="modal-tab-content" style="display: none;">
+                <h4 style="color: #667eea; margin-bottom: 15px;">👥 Referral Network</h4>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 32px; font-weight: 700;">${directChildren}</div>
+                        <div style="font-size: 14px; opacity: 0.9;">Direct Children</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 32px; font-weight: 700;">${totalDescendants}</div>
+                        <div style="font-size: 14px; opacity: 0.9;">Total Descendants</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 32px; font-weight: 700;">${treeLevel}</div>
+                        <div style="font-size: 14px; opacity: 0.9;">Tree Level</div>
+                    </div>
+                </div>
+
+                <div style="background: #f8f9ff; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h5 style="margin-bottom: 10px;">📊 Referral Hierarchy</h5>
+                    <div style="margin-bottom: 12px; padding: 12px; background: white; border-radius: 6px; border-left: 4px solid ${hasReferrer ? '#28a745' : '#dc3545'};">
+                        <strong>Who Referred This User:</strong><br>
+                        <span style="color: ${hasReferrer ? '#28a745' : '#dc3545'}; font-size: 16px; font-weight: 600;">
+                            ${hasReferrer ? '✅ ' : '❌ '}${referredByDisplay}
+                        </span>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Tree Parent:</strong> 
+                        <span style="color: #667eea; font-weight: 600;">${treeParentDisplay}</span>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Direct Referrals Made:</strong> ${directChildren} users
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Users Under This Person:</strong> ${totalDescendants} users (including all levels)
+                    </div>
+                    <div>
+                        <strong>Referral Code:</strong> 
+                        <code style="background: #667eea; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 14px;">${escapeHtml(referralCode)}</code>
+                    </div>
+                </div>
+
+                ${childrenListHTML}
+            </div>
+
+            <!-- Commissions Tab -->
+            <div id="modal-commissions-tab" class="modal-tab-content" style="display: none;">
+                <h4 style="color: #667eea; margin-bottom: 15px;">💰 Commission Breakdown</h4>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px;">
+                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Direct Commission</div>
+                        <div style="font-size: 28px; font-weight: 700;">₹${directCommission}</div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">From ${directChildren} direct referrals</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 20px; border-radius: 12px;">
+                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Tree Commission</div>
+                        <div style="font-size: 28px; font-weight: 700;">₹${treeCommission}</div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">From tree structure</div>
+                    </div>
+                </div>
+
+                <div style="background: #f8f9ff; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h5 style="margin: 0;">Total Commission Earned</h5>
+                        <div style="font-size: 32px; font-weight: 700; color: #28a745;">₹${totalCommission}</div>
+                    </div>
+                    <div style="background: #e8ecf4; height: 8px; border-radius: 4px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #667eea 0%, #43e97b 100%); height: 100%; width: ${Number(totalCommission) > 0 ? '100' : '0'}%; transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
+
+                <div style="background: #f8f9ff; padding: 15px; border-radius: 8px;">
+                    <h5 style="margin-bottom: 10px;">📊 Commission Details</h5>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Commission from Direct Referrals:</strong> ₹${commissionFromDirectReferrals}
+                        <div style="font-size: 12px; color: #666;">Earned from ${directChildren} direct children</div>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Commission from Tree:</strong> ₹${commissionFromTreeReferrals}
+                        <div style="font-size: 12px; color: #666;">Earned from tree structure (levels below)</div>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Current Wallet Balance:</strong> ₹${wallet}
+                        <div style="font-size: 12px; color: #666;">Available for withdrawal</div>
+                    </div>
+                    <div>
+                        <strong>Commission Rate:</strong>
+                        <div style="font-size: 12px; color: #666;">
+                            ${Number(directCommission) > 0 ? `${((Number(directCommission) / Number(totalCommission)) * 100).toFixed(1)}% Direct` : '0% Direct'} | 
+                            ${Number(treeCommission) > 0 ? `${((Number(treeCommission) / Number(totalCommission)) * 100).toFixed(1)}% Tree` : '0% Tree'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Wire inner close button
+    const innerClose = document.getElementById('modalCloseInner');
+    if (innerClose) innerClose.addEventListener('click', closeModal);
+}
+
+// Fallback function for simple modal display (when detailed fetch fails)
 function populateModalWithData(user) {
     const joinDate = user.joinDate ? (new Date(user.joinDate)).toLocaleDateString() : 'N/A';
     const wallet = Number(user.wallet || 0).toFixed(2);
@@ -1618,7 +2558,31 @@ function populateModalWithData(user) {
     if (innerClose) innerClose.addEventListener('click', closeModal);
 }
 
-/* ---------- search ---------- */
+// Global function for tab switching in modal
+window.switchModalTab = function(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.modal-tab-content').forEach(tab => {
+        tab.style.display = 'none';
+    });
+    
+    // Remove active class from all buttons
+    document.querySelectorAll('.modal-tab-btn').forEach(btn => {
+        btn.style.borderBottomColor = 'transparent';
+        btn.style.color = '#666';
+    });
+    
+    // Show selected tab
+    const selectedTab = document.getElementById(`modal-${tabName}-tab`);
+    if (selectedTab) {
+        selectedTab.style.display = 'block';
+    }
+    
+    // Add active class to clicked button
+    event.target.style.borderBottomColor = '#667eea';
+    event.target.style.color = '#667eea';
+};
+
+/* ---------- Enhanced search with performance optimization ---------- */
 function performSearch(){
     const q = (searchInput.value || '').trim().toLowerCase();
     if (!q) return;
@@ -1626,23 +2590,115 @@ function performSearch(){
     // Clear previous highlights
     document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('highlight'));
 
-    // Find first node whose text matches name/code
-    let found = null;
-    document.querySelectorAll('.tree-node').forEach(node => {
-        const txt = (node.textContent || '').toLowerCase();
-        if (found) return;
-        if (txt.includes(q)) found = node;
-    });
-
-    if (found) {
-        found.classList.add('highlight');
-        // ensure it's visible
-        found.scrollIntoView({ behavior:'smooth', block:'center' });
-        // remove highlight after a bit
-        setTimeout(() => found.classList.remove('highlight'), 4000);
-    } else {
-        alert('No matching user found in currently loaded tree.');
+    // Search in all data, not just visible nodes
+    let foundUser = null;
+    let foundLevel = null;
+    
+    for (const level of allLevelsData) {
+        const user = level.users.find(u => {
+            const name = (u.name || '').toLowerCase();
+            const code = (u.referralCode || '').toLowerCase();
+            const email = (u.email || '').toLowerCase();
+            return name.includes(q) || code.includes(q) || email.includes(q);
+        });
+        
+        if (user) {
+            foundUser = user;
+            foundLevel = level.level;
+            break;
+        }
     }
+
+    if (foundUser) {
+        // Navigate to the page containing this user if using virtualization
+        if (virtualizationEnabled) {
+            // Calculate which page contains this user
+            let userIndex = 0;
+            let found = false;
+            
+            for (const level of allLevelsData) {
+                if (currentLevelFilter && parseInt(currentLevelFilter) !== level.level) {
+                    continue;
+                }
+                
+                for (const user of level.users) {
+                    if ((user.id || user._id) === (foundUser.id || foundUser._id)) {
+                        found = true;
+                        break;
+                    }
+                    userIndex++;
+                }
+                if (found) break;
+            }
+            
+            const targetPage = Math.ceil((userIndex + 1) / currentPageSize);
+            if (targetPage !== currentPage) {
+                currentPage = targetPage;
+                renderCurrentPage();
+                
+                // Wait for render to complete, then highlight
+                setTimeout(() => highlightFoundUser(foundUser.id || foundUser._id), 100);
+                return;
+            }
+        }
+        
+        highlightFoundUser(foundUser.id || foundUser._id);
+    } else {
+        alert('No matching user found in the tree.');
+    }
+}
+
+function highlightFoundUser(userId) {
+    const node = document.querySelector(`[data-user-id="${userId}"]`);
+    if (node) {
+        node.classList.add('highlight');
+        node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => node.classList.remove('highlight'), 4000);
+    }
+}
+
+/* ---------- Performance monitoring ---------- */
+function createPerformanceMonitor() {
+    const monitor = document.createElement('div');
+    monitor.id = 'performanceMonitor';
+    monitor.className = 'performance-indicator';
+    monitor.style.display = 'none';
+    document.body.appendChild(monitor);
+    return monitor;
+}
+
+function updatePerformanceMonitor(renderTime, nodeCount, virtualized) {
+    let monitor = document.getElementById('performanceMonitor');
+    if (!monitor) {
+        monitor = createPerformanceMonitor();
+    }
+    
+    monitor.style.display = 'block';
+    
+    let status = 'good';
+    let message = `✅ ${renderTime.toFixed(1)}ms`;
+    
+    if (renderTime > 100) {
+        status = 'warning';
+        message = `⚠️ ${renderTime.toFixed(1)}ms`;
+    }
+    
+    if (renderTime > 500) {
+        status = 'critical';
+        message = `🔥 ${renderTime.toFixed(1)}ms`;
+    }
+    
+    monitor.className = `performance-indicator ${status}`;
+    monitor.innerHTML = `
+        ${message}<br>
+        ${nodeCount} nodes<br>
+        ${virtualized ? '🚀 Virtualized' : '📊 Full render'}
+    `;
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        monitor.style.display = 'none';
+    }, 3000);
 }
 
 /* ---------- export ---------- */
@@ -2146,6 +3202,14 @@ document.addEventListener('DOMContentLoaded', () => {
         resizeTimeout = setTimeout(() => {
             adjustConnectionLines();
         }, 250);
+    });
+    
+    // Clear highlights when clicking on background
+    treeWrap.addEventListener('click', (e) => {
+        if (e.target === treeWrap || e.target.classList.contains('tree-level') || e.target.classList.contains('level-nodes')) {
+            clearNodeHighlight();
+            selectedNodeId = null;
+        }
     });
 });
 
