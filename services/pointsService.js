@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const PointsTransaction = require('../models/PointsTransaction');
+const AdminSettings = require('../models/AdminSettings');
 const { findTreePlacement } = require('./treePlacement');
 
 /**
@@ -33,21 +34,57 @@ async function awardPoints(userId, points, source, sourceId, orderId, session = 
 
   console.log(`Awarded ${points} points to user ${user.email}`);
 
-  // Check if user can create virtual referral
-  await checkAndCreateVirtualReferral(userId, session);
+  // Process points with priority system (Virtual Trees → Cash)
+  await processUserPointsWithPriority(userId, session);
 
   return transaction;
 }
 
 /**
- * Check if user has 100+ points and create virtual referral
+ * Process user points with priority system: Virtual Trees FIRST, then keep points
  */
-async function checkAndCreateVirtualReferral(userId, session = null) {
+async function processUserPointsWithPriority(userId, session = null) {
   const user = await User.findById(userId).session(session);
+  const settings = await AdminSettings.getSettings();
   
-  if (user.pointsWallet >= 100) {
-    await createVirtualReferral(userId, session);
+  if (!user) {
+    throw new Error('User not found');
   }
+
+  const { virtualTreeSettings } = settings;
+  
+  console.log(`🎯 Processing points for ${user.email}: ${user.pointsWallet} points, ${user.virtualReferralsCreated} virtual trees`);
+  
+  let virtualTreesCreated = 0;
+  
+  // PRIORITY 1: Create Virtual Trees (if enabled and under limit)
+  if (virtualTreeSettings.enabled && virtualTreeSettings.autoCreateEnabled) {
+    while (user.pointsWallet >= virtualTreeSettings.pointsPerVirtualTree && 
+           user.virtualReferralsCreated < virtualTreeSettings.maxVirtualTreesPerUser) {
+      
+      await createVirtualReferral(userId, session);
+      
+      // Refresh user data after each creation
+      const refreshedUser = await User.findById(userId).session(session);
+      user.pointsWallet = refreshedUser.pointsWallet;
+      user.virtualReferralsCreated = refreshedUser.virtualReferralsCreated;
+      
+      virtualTreesCreated++;
+      
+      console.log(`🌳 Created virtual tree #${user.virtualReferralsCreated}. Remaining points: ${user.pointsWallet}`);
+    }
+  }
+  
+  // NO AUTOMATIC CASH CONVERSION - Points remain as points until user manually converts
+  
+  const maxVirtualTreesReached = user.virtualReferralsCreated >= virtualTreeSettings.maxVirtualTreesPerUser;
+  
+  return {
+    virtualTreesCreated,
+    cashConverted: 0, // No automatic conversion
+    maxVirtualTreesReached,
+    remainingPoints: user.pointsWallet
+  };
 }
 
 /**
@@ -55,12 +92,20 @@ async function checkAndCreateVirtualReferral(userId, session = null) {
  */
 async function createVirtualReferral(userId, session = null) {
   const user = await User.findById(userId).session(session);
+  const settings = await AdminSettings.getSettings();
+  
   if (!user) {
     throw new Error('User not found');
   }
 
-  if (user.pointsWallet < 100) {
-    throw new Error('Insufficient points for virtual referral');
+  const pointsRequired = settings.virtualTreeSettings.pointsPerVirtualTree;
+  
+  if (user.pointsWallet < pointsRequired) {
+    throw new Error(`Insufficient points for virtual referral. Need ${pointsRequired} points.`);
+  }
+
+  if (user.virtualReferralsCreated >= settings.virtualTreeSettings.maxVirtualTreesPerUser) {
+    throw new Error(`Maximum virtual trees reached (${settings.virtualTreeSettings.maxVirtualTreesPerUser})`);
   }
 
   // Create virtual user
@@ -73,7 +118,7 @@ async function createVirtualReferral(userId, session = null) {
     referredBy: user.referralCode,
     role: 'virtual',
     isVirtual: true,
-    originalUserId: userId,
+    originalUser: userId,
     firstPurchaseDone: true // Mark as purchased so it appears in tree
   });
 
@@ -91,7 +136,7 @@ async function createVirtualReferral(userId, session = null) {
   await parent.save({ session });
 
   // Deduct points from user
-  user.pointsWallet -= 100;
+  user.pointsWallet -= pointsRequired;
   user.virtualReferralsCreated += 1;
   await user.save({ session });
 
@@ -99,9 +144,9 @@ async function createVirtualReferral(userId, session = null) {
   const transaction = new PointsTransaction({
     user: userId,
     type: 'redeemed',
-    points: -100,
+    points: -pointsRequired,
     virtualUserId: virtualUser._id,
-    description: `Redeemed 100 points for virtual referral: ${virtualUser.name}`,
+    description: `Redeemed ${pointsRequired} points for virtual referral: ${virtualUser.name}`,
     balanceAfter: user.pointsWallet
   });
   await transaction.save({ session });
@@ -137,9 +182,69 @@ async function getPointsHistory(userId, page = 1, limit = 20) {
   };
 }
 
+/**
+ * Manually convert points to cash (user-initiated)
+ */
+async function convertPointsToCash(userId, pointsToConvert, session = null) {
+  const user = await User.findById(userId).session(session);
+  const settings = await AdminSettings.getSettings();
+  
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  const { cashConversionSettings } = settings;
+  
+  if (!cashConversionSettings.enabled) {
+    throw new Error('Cash conversion is currently disabled');
+  }
+
+  if (pointsToConvert <= 0) {
+    throw new Error('Points to convert must be greater than 0');
+  }
+
+  if (user.pointsWallet < pointsToConvert) {
+    throw new Error(`Insufficient points. You have ${user.pointsWallet} points, trying to convert ${pointsToConvert}`);
+  }
+
+  // Check if points are in valid conversion increments
+  if (pointsToConvert % cashConversionSettings.pointsPerConversion !== 0) {
+    throw new Error(`Points must be in increments of ${cashConversionSettings.pointsPerConversion}. You can convert: ${Math.floor(user.pointsWallet / cashConversionSettings.pointsPerConversion) * cashConversionSettings.pointsPerConversion} points`);
+  }
+
+  const conversions = pointsToConvert / cashConversionSettings.pointsPerConversion;
+  const cashToAdd = conversions * cashConversionSettings.cashPerConversion;
+
+  // Convert points to cash
+  user.pointsWallet -= pointsToConvert;
+  user.wallet += cashToAdd;
+  await user.save({ session });
+
+  // Create conversion transaction
+  const transaction = new PointsTransaction({
+    user: userId,
+    type: 'manual_converted_to_cash',
+    points: -pointsToConvert,
+    cashAmount: cashToAdd,
+    description: `Manually converted ${pointsToConvert} points to ₹${cashToAdd} (${conversions} conversions)`,
+    balanceAfter: user.pointsWallet
+  });
+  await transaction.save({ session });
+
+  console.log(`User ${user.email} manually converted ${pointsToConvert} points to ₹${cashToAdd}`);
+
+  return {
+    pointsConverted: pointsToConvert,
+    cashReceived: cashToAdd,
+    remainingPoints: user.pointsWallet,
+    newCashBalance: user.wallet
+  };
+}
+
 module.exports = {
   awardPoints,
-  checkAndCreateVirtualReferral,
+  processUserPointsWithPriority,
   createVirtualReferral,
+  convertPointsToCash,
   getPointsHistory
 };

@@ -9,6 +9,7 @@ const bookRoutes = require("./routes/books");
 const categoryRoutes = require("./routes/categories");
 const orderRoutes = require("./routes/orders");
 const paymentRoutes = require("./routes/payments");
+const dailyReportRoutes = require("./routes/dailyReport");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -59,9 +60,11 @@ app.use("/api/referral", require("./routes/referral"));
 app.use("/api/referral", require("./routes/referralTree"));
 app.use("/api/admin/withdrawals", require("./routes/adminWithdraw"));
 app.use("/api/admin/fix-rewards", require("./routes/fixDuplicateRewards"));
+app.use("/api/admin", require("./routes/adminSettings"));
 app.use("/api/admin", require("./routes/adminTrustFunds"));
 app.use("/api/admin", require("./routes/adminUsers"));
 app.use("/api/admin/referral-tree", require("./routes/adminReferralTree"));
+app.use("/api/admin", dailyReportRoutes);
 app.use("/api/admin", require("./routes/commissionSettings"));
 app.use("/api", require("./routes/commissionSettings")); // Also mount publicly for shipping settings
 app.use("/api", require("./routes/receiptSettings")); // Receipt settings routes

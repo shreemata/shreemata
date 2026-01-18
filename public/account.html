@@ -244,15 +244,68 @@
             </div>
 
             <div class="redeem-section">
-                <h3>Redeem Points</h3>
-                <p>You can redeem 100 points to create a virtual referral in your tree.</p>
+                <h3>🌳 Create Virtual Referral</h3>
+                <p>You can redeem <span id="virtualTreeCost">100</span> points to create a virtual referral in your tree.</p>
                 <button class="btn-primary" id="redeemBtn" onclick="redeemVirtualReferral()">
-                    🎁 Redeem 100 Points for Virtual Referral
+                    🎁 Redeem <span id="virtualTreeCostBtn">100</span> Points for Virtual Referral
                 </button>
             </div>
 
-            <div class="points-history">
-                <h3>Points History</h3>
+            <div class="cash-conversion-section" style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 12px; border: 2px solid #e9ecef;">
+                <h3 style="margin-top: 0; color: #495057;">💰 Convert Points to Cash</h3>
+                
+                <!-- Current Conversion Rate Display -->
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                    <h4 style="margin: 0 0 10px 0; color: #1976d2;">📊 Current Conversion Rate</h4>
+                    <div style="font-size: 24px; font-weight: bold; color: #1976d2;" id="conversionRateDisplay">
+                        50 Points = ₹25
+                    </div>
+                    <div style="font-size: 14px; color: #666; margin-top: 5px;">
+                        (1 Point = ₹<span id="perPointValue">0.50</span>)
+                    </div>
+                </div>
+
+                <!-- Available Points Info -->
+                <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 600;">Available for conversion:</span>
+                        <span style="font-size: 18px; font-weight: bold; color: #f57c00;" id="availableForConversion">0 points</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                        <span style="font-weight: 600;">Maximum cash you can get:</span>
+                        <span style="font-size: 18px; font-weight: bold; color: #388e3c;">₹<span id="maxCashPossible">0</span></span>
+                    </div>
+                </div>
+                
+                <!-- Conversion Form -->
+                <div class="conversion-form">
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                        <input type="number" id="pointsToConvert" placeholder="Enter points to convert" 
+                               min="0" step="50" style="flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
+                        <button class="btn-primary" onclick="convertPointsToCash()" id="convertBtn" disabled
+                                style="padding: 12px 20px; font-size: 16px; font-weight: 600;">
+                            💸 Convert to Cash
+                        </button>
+                    </div>
+                    
+                    <!-- Live Calculation Display -->
+                    <div id="conversionPreview" style="background: #e8f5e9; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none;">
+                        <div style="text-align: center;">
+                            <span style="font-size: 18px; font-weight: bold; color: #2e7d32;">
+                                <span id="previewPoints">0</span> Points → ₹<span id="previewCash">0</span>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <small style="color: #666; display: block; text-align: center;">
+                        Points must be in increments of <span id="conversionIncrement">50</span>. 
+                        Conversion is instant and irreversible.
+                    </small>
+                </div>
+            </div>
+
+            <div class="points-history" style="margin-top: 30px;">
+                <h3>📋 Points History</h3>
                 <div id="pointsHistoryList">Loading...</div>
             </div>
         </div>

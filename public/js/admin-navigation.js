@@ -18,7 +18,8 @@ const adminNavConfig = {
         { href: "/admin-income.html", icon: "💵", text: "Income", id: "income", title: "Income Dashboard" },
         { href: "/admin-users.html", icon: "👥", text: "Users", id: "users", title: "User Management" },
         { href: "/admin-password-requests.html", icon: "🔐", text: "Password Requests", id: "password-requests", title: "Password Reset Requests" },
-        { href: "/admin-commission-settings.html", icon: "⚙️", text: "Settings", id: "settings", title: "Commission Settings" },
+        { href: "/admin-commission-settings.html", icon: "⚙️", text: "Commission", id: "commission-settings", title: "Commission Settings" },
+        { href: "/admin-settings.html", icon: "🎛️", text: "Points System", id: "admin-settings", title: "Points & Virtual Tree Settings" },
         { href: "/admin-receipt-settings.html", icon: "🧾", text: "Receipt Settings", id: "receipt-settings", title: "Receipt Settings" },
         { href: "/admin-referral-tree.html", icon: "🌳", text: "Referral Tree", id: "referral-tree", title: "Referral Tree" },
         { href: "/admin-referral-tree-visual.html", icon: "📊", text: "Tree Visual", id: "tree-visual", title: "Referral Tree Visual" },
@@ -188,11 +189,13 @@ function createAdminNavHTML(currentPageId) {
                             <a href="/admin-users.html"><span class="icon">👥</span> Manage Users</a>
                             <a href="/admin-referral-tree.html"><span class="icon">🌳</span> Referral Tree</a>
                             <a href="/admin-referral-tree-visual.html"><span class="icon">📊</span> Tree Visual</a>
+                            <button onclick="downloadDailyReport()" class="daily-report-btn"><span class="icon">📄</span> Download Daily Report</button>
                         </div>
                         
                         <div class="popup-menu-group">
                             <div class="popup-group-title">Settings</div>
-                            <a href="/admin-commission-settings.html" class="${currentPageId === 'settings' ? 'active' : ''}"><span class="icon">⚙️</span> Commission Settings</a>
+                            <a href="/admin-commission-settings.html" class="${currentPageId === 'commission-settings' ? 'active' : ''}"><span class="icon">⚙️</span> Commission Settings</a>
+                            <a href="/admin-settings.html" class="${currentPageId === 'admin-settings' ? 'active' : ''}"><span class="icon">🎛️</span> Points System</a>
                             <a href="/admin-receipt-settings.html" class="${currentPageId === 'receipt-settings' ? 'active' : ''}"><span class="icon">🧾</span> Receipt Settings</a>
                         </div>
                         
@@ -421,6 +424,39 @@ function setupMobileMenu() {
             }
             
             .popup-menu-links a .icon {
+                margin-right: 15px;
+                font-size: 18px;
+                width: 24px;
+                text-align: center;
+                flex-shrink: 0;
+            }
+            
+            /* Daily Report Button */
+            .daily-report-btn {
+                display: flex;
+                align-items: center;
+                padding: 15px 25px;
+                color: #333;
+                text-decoration: none;
+                font-size: 15px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                border-left: 4px solid transparent;
+                background: none;
+                border: none;
+                width: 100%;
+                text-align: left;
+                cursor: pointer;
+            }
+            
+            .daily-report-btn:hover {
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                color: white;
+                border-left-color: white;
+                transform: translateX(5px);
+            }
+            
+            .daily-report-btn .icon {
                 margin-right: 15px;
                 font-size: 18px;
                 width: 24px;
@@ -698,7 +734,8 @@ function detectCurrentPage() {
     else if (path.includes('admin-income')) currentPageId = 'income';
     else if (path.includes('admin-users')) currentPageId = 'users';
     else if (path.includes('admin-password-requests')) currentPageId = 'password-requests';
-    else if (path.includes('admin-commission-settings')) currentPageId = 'settings';
+    else if (path.includes('admin-commission-settings')) currentPageId = 'commission-settings';
+    else if (path.includes('admin-settings')) currentPageId = 'admin-settings';
     else if (path.includes('admin-receipt-settings')) currentPageId = 'receipt-settings';
     else if (path.includes('admin-referral-tree-visual')) currentPageId = 'tree-visual';
     else if (path.includes('admin-referral-tree')) currentPageId = 'referral-tree';
@@ -850,4 +887,255 @@ window.forceCloseMenu = function() {
 // Export for manual initialization
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { initAdminNavigation, adminNavConfig };
+}
+
+// Daily Report Download Function
+window.downloadDailyReport = async function() {
+    try {
+        console.log('📄 Starting daily report download...');
+        
+        // Show date selection popup
+        const selectedDate = await showDateSelectionPopup();
+        if (!selectedDate) {
+            return; // User cancelled
+        }
+        
+        // Show loading indicator
+        const originalText = event.target.innerHTML;
+        event.target.innerHTML = '<span class="icon">⏳</span> Generating Report...';
+        event.target.disabled = true;
+        
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('❌ Authentication required. Please login again.');
+            return;
+        }
+        
+        const apiUrl = window.location.hostname === 'localhost' 
+            ? `http://localhost:3000/api/admin/daily-report?date=${selectedDate}`
+            : `${window.API_URL}/admin/daily-report?date=${selectedDate}`;
+        
+        // Make API call to generate daily report
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        // Get the PDF blob
+        const blob = await response.blob();
+        
+        // Verify it's a PDF blob
+        if (!blob.type.includes('pdf') && blob.size > 0) {
+            throw new Error('Server returned invalid file format. Please try again.');
+        }
+        
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Generate filename with selected date
+        const dateStr = selectedDate === 'today' ? new Date().toISOString().split('T')[0] : selectedDate;
+        a.download = `Business_Report_${dateStr}.pdf`;
+        
+        // Trigger download
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // Clean up after a delay to ensure download starts
+        setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+        }, 1000);
+        
+        console.log('✅ Daily report downloaded successfully');
+        
+        // Close the popup menu
+        closeAdminPopupMenu();
+        
+    } catch (error) {
+        console.error('❌ Error downloading daily report:', error);
+        alert(`❌ Error generating daily report: ${error.message}`);
+    } finally {
+        // Restore button
+        if (event && event.target) {
+            event.target.innerHTML = originalText;
+            event.target.disabled = false;
+        }
+    }
+};
+
+// Date Selection Popup Function
+function showDateSelectionPopup() {
+    return new Promise((resolve) => {
+        // Create popup overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 20px;
+        `;
+        
+        // Create popup modal
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 100%;
+            padding: 0;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+        `;
+        
+        modal.innerHTML = `
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 16px 16px 0 0; text-align: center;">
+                <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600;">📊 Select Report Date</h2>
+                <p style="margin: 0; font-size: 14px; opacity: 0.9;">Choose the date for your business report</p>
+            </div>
+            
+            <div style="padding: 30px;">
+                <div style="margin-bottom: 20px;">
+                    <button id="todayBtn" style="
+                        width: 100%;
+                        padding: 15px;
+                        margin-bottom: 15px;
+                        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        font-size: 16px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                    ">
+                        📅 Today's Report
+                    </button>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">
+                            📆 Select Custom Date:
+                        </label>
+                        <input type="date" id="customDate" style="
+                            width: 100%;
+                            padding: 12px;
+                            border: 2px solid #e0e0e0;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            box-sizing: border-box;
+                        ">
+                    </div>
+                    
+                    <button id="customBtn" style="
+                        width: 100%;
+                        padding: 15px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        font-size: 16px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                    ">
+                        📋 Generate Custom Report
+                    </button>
+                </div>
+                
+                <div style="display: flex; justify-content: center;">
+                    <button id="cancelBtn" style="
+                        padding: 10px 20px;
+                        background: #6c757d;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    ">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        // Animate in
+        setTimeout(() => {
+            modal.style.transform = 'scale(1)';
+        }, 10);
+        
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('customDate').value = today;
+        
+        // Event listeners
+        document.getElementById('todayBtn').addEventListener('click', () => {
+            cleanup();
+            resolve('today');
+        });
+        
+        document.getElementById('customBtn').addEventListener('click', () => {
+            const selectedDate = document.getElementById('customDate').value;
+            if (!selectedDate) {
+                alert('Please select a date');
+                return;
+            }
+            cleanup();
+            resolve(selectedDate);
+        });
+        
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            cleanup();
+            resolve(null);
+        });
+        
+        // Close on overlay click
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                cleanup();
+                resolve(null);
+            }
+        });
+        
+        // Close on escape key
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                cleanup();
+                resolve(null);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        function cleanup() {
+            document.removeEventListener('keydown', escapeHandler);
+            document.body.removeChild(overlay);
+        }
+    });
 }

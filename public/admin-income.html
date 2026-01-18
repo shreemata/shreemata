@@ -170,6 +170,12 @@
                             <div class="amount">₹<span id="totalWithdrawals">0.00</span></div>
                             <div class="transactions"><span id="totalWithdrawalRequests">0</span> approved requests</div>
                         </div>
+
+                        <div class="income-card" style="background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%); box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);">
+                            <h3>💳 Total User Wallets</h3>
+                            <div class="amount">₹<span id="totalUserWallets">0.00</span></div>
+                            <div class="transactions"><span id="totalUsersWithBalance">0</span> users with balance</div>
+                        </div>
                     </div>
 
                     <div class="transactions-section">
@@ -259,6 +265,10 @@
                         
                         document.getElementById("totalWithdrawals").textContent = statisticsData.totalWithdrawals.amount.toFixed(2);
                         document.getElementById("totalWithdrawalRequests").textContent = statisticsData.totalWithdrawals.requests;
+                        
+                        // Update total user wallets card
+                        document.getElementById("totalUserWallets").textContent = statisticsData.totalUserWallets.amount.toFixed(2);
+                        document.getElementById("totalUsersWithBalance").textContent = statisticsData.totalUserWallets.usersWithBalance;
                     } else {
                         console.warn("Statistics endpoint not available, using fallback values");
                         // Set fallback values
@@ -266,6 +276,8 @@
                         document.getElementById("totalUserTransactions").textContent = "0";
                         document.getElementById("totalWithdrawals").textContent = "0.00";
                         document.getElementById("totalWithdrawalRequests").textContent = "0";
+                        document.getElementById("totalUserWallets").textContent = "0.00";
+                        document.getElementById("totalUsersWithBalance").textContent = "0";
                     }
                 } catch (statsError) {
                     console.warn("Statistics endpoint error:", statsError);
@@ -274,6 +286,8 @@
                     document.getElementById("totalUserTransactions").textContent = "0";
                     document.getElementById("totalWithdrawals").textContent = "0.00";
                     document.getElementById("totalWithdrawalRequests").textContent = "0";
+                    document.getElementById("totalUserWallets").textContent = "0.00";
+                    document.getElementById("totalUsersWithBalance").textContent = "0";
                 }
 
                 // Populate Trust Fund transactions

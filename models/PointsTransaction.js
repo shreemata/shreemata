@@ -9,7 +9,7 @@ const pointsTransactionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['earned', 'redeemed'],
+    enum: ['earned', 'redeemed', 'auto_converted_to_cash', 'manual_converted_to_cash'],
     required: true
   },
   points: {
@@ -31,11 +31,16 @@ const pointsTransactionSchema = new mongoose.Schema({
     ref: 'Order',
     required: function() { return this.type === 'earned'; }
   },
-  // For redeemed points
+  // For redeemed points or cash conversion
   virtualUserId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: function() { return this.type === 'redeemed'; }
+  },
+  // For cash conversion
+  cashAmount: {
+    type: Number,
+    required: function() { return this.type === 'auto_converted_to_cash' || this.type === 'manual_converted_to_cash'; }
   },
   description: String,
   // Balance after this transaction

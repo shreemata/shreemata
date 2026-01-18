@@ -1326,6 +1326,7 @@
                         <th>Customer</th>
                         <th>Items</th>
                         <th>Amount</th>
+                        <th>Payment Method</th>
                         <th>Delivery Address</th>
                         <th>Payment Status</th>
                         <th>Delivery Status</th>
@@ -1632,6 +1633,33 @@
                         </small>`;
                     }
 
+                    // Format payment method display
+                    let paymentMethodText = 'Online Payment';
+                    let paymentMethodIcon = '💳';
+                    let paymentMethodColor = '#667eea';
+                    
+                    if (order.paymentType) {
+                        switch (order.paymentType.toLowerCase()) {
+                            case 'check':
+                            case 'cheque':
+                                paymentMethodText = 'Cheque';
+                                paymentMethodIcon = '📝';
+                                paymentMethodColor = '#ff9800';
+                                break;
+                            case 'transfer':
+                                paymentMethodText = 'Bank Transfer';
+                                paymentMethodIcon = '🏦';
+                                paymentMethodColor = '#4caf50';
+                                break;
+                            case 'online':
+                            default:
+                                paymentMethodText = 'Online Payment';
+                                paymentMethodIcon = '💳';
+                                paymentMethodColor = '#667eea';
+                                break;
+                        }
+                    }
+
                     const serialNumber = (currentPage - 1) * ordersPerPage + index + 1;
                     tr.innerHTML = `
                         <td><strong>${serialNumber}</strong></td>
@@ -1642,6 +1670,11 @@
                         </td>
                         <td>${itemsList}</td>
                         <td><strong>₹${order.totalAmount}</strong></td>
+                        <td>
+                            <span style="color: ${paymentMethodColor}; font-weight: 600;">
+                                ${paymentMethodIcon} ${paymentMethodText}
+                            </span>
+                        </td>
                         <td>${addressText}</td>
                         <td>
                             <span class="status-badge ${paymentStatusClass}">${paymentStatus}</span>
@@ -1753,6 +1786,33 @@
                                        deliveryStatus === 'shipped' ? 'status-pending' : 
                                        deliveryStatus === 'processing' ? 'status-pending' : 'status-failed';
 
+            // Format payment method display
+            let paymentMethodText = 'Online Payment';
+            let paymentMethodIcon = '💳';
+            let paymentMethodColor = '#667eea';
+            
+            if (order.paymentType) {
+                switch (order.paymentType.toLowerCase()) {
+                    case 'check':
+                    case 'cheque':
+                        paymentMethodText = 'Cheque';
+                        paymentMethodIcon = '📝';
+                        paymentMethodColor = '#ff9800';
+                        break;
+                    case 'transfer':
+                        paymentMethodText = 'Bank Transfer';
+                        paymentMethodIcon = '🏦';
+                        paymentMethodColor = '#4caf50';
+                        break;
+                    case 'online':
+                    default:
+                        paymentMethodText = 'Online Payment';
+                        paymentMethodIcon = '💳';
+                        paymentMethodColor = '#667eea';
+                        break;
+                }
+            }
+
             let addressText = 'Not provided';
             if (order.deliveryAddress && order.deliveryAddress.street) {
                 const addr = order.deliveryAddress;
@@ -1784,6 +1844,15 @@
                 <div class="order-card-section">
                     <div class="order-card-label">📚 Items</div>
                     <div class="order-card-value">${itemsList}</div>
+                </div>
+
+                <div class="order-card-section">
+                    <div class="order-card-label">💰 Payment Method</div>
+                    <div class="order-card-value">
+                        <span style="color: ${paymentMethodColor}; font-weight: 600;">
+                            ${paymentMethodIcon} ${paymentMethodText}
+                        </span>
+                    </div>
                 </div>
 
                 <div class="order-card-section">
@@ -2023,6 +2092,24 @@
                     deliveryAddress = `${addr.street}, ${addr.taluk || addr.city}, ${addr.district || ''}, ${addr.state} - ${addr.pincode}`;
                 }
 
+                // Format payment method for Excel
+                let paymentMethod = 'Online Payment';
+                if (order.paymentType) {
+                    switch (order.paymentType.toLowerCase()) {
+                        case 'check':
+                        case 'cheque':
+                            paymentMethod = 'Cheque';
+                            break;
+                        case 'transfer':
+                            paymentMethod = 'Bank Transfer';
+                            break;
+                        case 'online':
+                        default:
+                            paymentMethod = 'Online Payment';
+                            break;
+                    }
+                }
+
                 return {
                     'S.No': index + 1,
                     'Order ID': order._id,
@@ -2030,6 +2117,7 @@
                     'Customer Email': order.user_id?.email || '',
                     'Items': itemsList,
                     'Amount (₹)': order.totalAmount,
+                    'Payment Method': paymentMethod,
                     'Payment Status': order.status || 'pending',
                     'Delivery Status': order.deliveryStatus || 'pending',
                     'Delivery Address': deliveryAddress,
@@ -2052,6 +2140,7 @@
                 { wch: 30 }, // Customer Email
                 { wch: 40 }, // Items
                 { wch: 12 }, // Amount
+                { wch: 15 }, // Payment Method
                 { wch: 15 }, // Payment Status
                 { wch: 15 }, // Delivery Status
                 { wch: 50 }, // Delivery Address

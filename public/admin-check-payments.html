@@ -995,6 +995,77 @@
             
             const notes = document.getElementById('approvalNotes').value;
             
+            // Find the current order to get UTR number
+            const orders = window.currentOrders || [];
+            const currentOrder = orders.find(o => o._id === currentOrderId);
+            
+            if (!currentOrder) {
+                alert('❌ Order not found. Please refresh the page.');
+                return;
+            }
+            
+            // Check if this is a bank transfer with UTR number
+            const utrNumber = currentOrder.paymentDetails?.utrNumber;
+            if (currentOrder.paymentType === 'transfer' && utrNumber) {
+                console.log('🔍 Checking UTR number:', utrNumber);
+                
+                try {
+                    // Check for duplicate UTR
+                    const token = localStorage.getItem('token');
+                    const utrCheckResponse = await fetch(`${window.API_URL}/payments/admin/check-utr-duplicate`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            utrNumber: utrNumber,
+                            currentOrderId: currentOrderId 
+                        })
+                    });
+                    
+                    if (!utrCheckResponse.ok) {
+                        throw new Error('Failed to check UTR number');
+                    }
+                    
+                    const utrCheckResult = await utrCheckResponse.json();
+                    
+                    if (utrCheckResult.isDuplicate) {
+                        const duplicateUser = utrCheckResult.existingOrder?.user?.name || 'Unknown User';
+                        const duplicateOrderId = utrCheckResult.existingOrder?._id || 'Unknown';
+                        const duplicateDate = utrCheckResult.existingOrder?.createdAt ? 
+                            new Date(utrCheckResult.existingOrder.createdAt).toLocaleDateString() : 'Unknown Date';
+                        
+                        const confirmDuplicate = confirm(
+                            `⚠️ DUPLICATE UTR NUMBER DETECTED!\n\n` +
+                            `UTR Number: ${utrNumber}\n` +
+                            `Previously used by: ${duplicateUser}\n` +
+                            `Order ID: ${duplicateOrderId}\n` +
+                            `Date: ${duplicateDate}\n\n` +
+                            `This UTR number has already been used for another order. ` +
+                            `Are you sure you want to approve this payment?\n\n` +
+                            `Click OK to approve anyway, or Cancel to review.`
+                        );
+                        
+                        if (!confirmDuplicate) {
+                            return; // User cancelled, don't proceed with approval
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error('Error checking UTR:', error);
+                    const proceedAnyway = confirm(
+                        `⚠️ Unable to verify UTR number uniqueness.\n\n` +
+                        `Error: ${error.message}\n\n` +
+                        `Do you want to proceed with approval anyway?`
+                    );
+                    
+                    if (!proceedAnyway) {
+                        return;
+                    }
+                }
+            }
+            
             try {
                 const token = localStorage.getItem('token');
                 const response = await fetch(`${window.API_URL}/payments/admin/approve-cheque-payment/${currentOrderId}`, {

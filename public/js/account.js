@@ -478,18 +478,129 @@ async function loadPoints() {
         });
         const balanceData = await balanceRes.json();
 
-        document.getElementById("pointsWallet").textContent = balanceData.pointsWallet || 0;
-        document.getElementById("totalPointsEarned").textContent = balanceData.totalPointsEarned || 0;
-        document.getElementById("virtualReferralsCreated").textContent = balanceData.virtualReferralsCreated || 0;
+        // Update basic points display with null checks
+        const pointsWalletEl = document.getElementById("pointsWallet");
+        const totalPointsEarnedEl = document.getElementById("totalPointsEarned");
+        const virtualReferralsCreatedEl = document.getElementById("virtualReferralsCreated");
+        
+        if (pointsWalletEl) pointsWalletEl.textContent = balanceData.pointsWallet || 0;
+        if (totalPointsEarnedEl) totalPointsEarnedEl.textContent = balanceData.totalPointsEarned || 0;
+        if (virtualReferralsCreatedEl) virtualReferralsCreatedEl.textContent = balanceData.virtualReferralsCreated || 0;
 
-        // Enable/disable redeem button
+        // Update virtual tree cost displays
+        const virtualTreeCost = balanceData.settings?.virtualTree?.cost || 100;
+        const virtualTreeCostEl = document.getElementById("virtualTreeCost");
+        const virtualTreeCostBtnEl = document.getElementById("virtualTreeCostBtn");
+        
+        if (virtualTreeCostEl) virtualTreeCostEl.textContent = virtualTreeCost;
+        if (virtualTreeCostBtnEl) virtualTreeCostBtnEl.textContent = virtualTreeCost;
+
+        // Enable/disable redeem button and hide section if max virtual trees reached
         const redeemBtn = document.getElementById("redeemBtn");
-        if (balanceData.canCreateVirtual) {
-            redeemBtn.disabled = false;
-            redeemBtn.textContent = "Redeem 100 Points for Virtual Referral";
+        const redeemSection = document.querySelector(".redeem-section");
+        
+        if (redeemBtn && redeemSection) {
+            if (balanceData.capabilities?.maxVirtualTreesReached) {
+                // Hide the entire redeem section when max virtual trees reached
+                redeemSection.style.display = "none";
+            } else {
+                // Show the redeem section
+                redeemSection.style.display = "block";
+                
+                if (balanceData.capabilities?.canCreateVirtual) {
+                    redeemBtn.disabled = false;
+                    redeemBtn.innerHTML = `🎁 Redeem ${virtualTreeCost} Points for Virtual Referral`;
+                } else {
+                    redeemBtn.disabled = true;
+                    const needed = virtualTreeCost - balanceData.pointsWallet;
+                    redeemBtn.innerHTML = `Need ${needed} more points`;
+                }
+            }
+        }
+
+        // Update cash conversion section
+        const cashSettings = balanceData.settings?.cashConversion;
+        if (cashSettings && cashSettings.enabled) {
+            const conversionRate = `${cashSettings.pointsPerConversion} Points = ₹${cashSettings.cashPerConversion}`;
+            const perPointValue = (cashSettings.cashPerConversion / cashSettings.pointsPerConversion).toFixed(2);
+            
+            // Update conversion rate display with null checks
+            const conversionRateDisplayEl = document.getElementById("conversionRateDisplay");
+            const perPointValueEl = document.getElementById("perPointValue");
+            const conversionIncrementEl = document.getElementById("conversionIncrement");
+            
+            if (conversionRateDisplayEl) conversionRateDisplayEl.textContent = conversionRate;
+            if (perPointValueEl) perPointValueEl.textContent = perPointValue;
+            if (conversionIncrementEl) conversionIncrementEl.textContent = cashSettings.pointsPerConversion;
+
+            // Calculate available points for conversion (after virtual trees)
+            const pointsAfterVirtuals = balanceData.pointsWallet - (balanceData.capabilities?.possibleVirtualTrees * virtualTreeCost);
+            const availableForConversion = Math.max(0, Math.floor(pointsAfterVirtuals / cashSettings.pointsPerConversion) * cashSettings.pointsPerConversion);
+            const maxCashPossible = (availableForConversion / cashSettings.pointsPerConversion) * cashSettings.cashPerConversion;
+            
+            const availableForConversionEl = document.getElementById("availableForConversion");
+            const maxCashPossibleEl = document.getElementById("maxCashPossible");
+            
+            if (availableForConversionEl) availableForConversionEl.textContent = `${availableForConversion} points`;
+            if (maxCashPossibleEl) maxCashPossibleEl.textContent = maxCashPossible.toFixed(2);
+            
+            // Update conversion form
+            const pointsInput = document.getElementById("pointsToConvert");
+            const convertBtn = document.getElementById("convertBtn");
+            const conversionPreview = document.getElementById("conversionPreview");
+            
+            if (pointsInput && convertBtn) {
+                pointsInput.max = availableForConversion;
+                pointsInput.step = cashSettings.pointsPerConversion;
+                
+                if (availableForConversion >= cashSettings.pointsPerConversion) {
+                    convertBtn.disabled = false;
+                    pointsInput.disabled = false;
+                    pointsInput.placeholder = `Enter points (multiples of ${cashSettings.pointsPerConversion})`;
+                } else {
+                    convertBtn.disabled = true;
+                    pointsInput.disabled = true;
+                    pointsInput.placeholder = `Need ${cashSettings.pointsPerConversion - availableForConversion} more points`;
+                }
+
+                // Update cash calculation on input change
+                pointsInput.oninput = function() {
+                    const points = parseInt(this.value) || 0;
+                    const cash = (points / cashSettings.pointsPerConversion) * cashSettings.cashPerConversion;
+                    
+                    // Show/hide preview with null checks
+                    if (points > 0) {
+                        const previewPointsEl = document.getElementById("previewPoints");
+                        const previewCashEl = document.getElementById("previewCash");
+                        
+                        if (previewPointsEl) previewPointsEl.textContent = points;
+                        if (previewCashEl) previewCashEl.textContent = cash.toFixed(2);
+                        if (conversionPreview) conversionPreview.style.display = "block";
+                    } else {
+                        if (conversionPreview) conversionPreview.style.display = "none";
+                    }
+                    
+                    // Enable/disable convert button
+                    const isValid = points > 0 && points <= availableForConversion && points % cashSettings.pointsPerConversion === 0;
+                    convertBtn.disabled = !isValid;
+                    
+                    if (points > availableForConversion) {
+                        convertBtn.textContent = "❌ Not enough points";
+                    } else if (points > 0 && points % cashSettings.pointsPerConversion !== 0) {
+                        convertBtn.textContent = `❌ Use multiples of ${cashSettings.pointsPerConversion}`;
+                    } else if (isValid) {
+                        convertBtn.textContent = "💸 Convert to Cash";
+                    } else {
+                        convertBtn.textContent = "💸 Convert to Cash";
+                    }
+                };
+            }
         } else {
-            redeemBtn.disabled = true;
-            redeemBtn.textContent = `Need ${100 - balanceData.pointsWallet} more points`;
+            // Hide conversion section if disabled
+            const conversionSection = document.querySelector(".cash-conversion-section");
+            if (conversionSection) {
+                conversionSection.style.display = "none";
+            }
         }
 
         // Load points history
@@ -514,17 +625,42 @@ async function loadPoints() {
             const div = document.createElement("div");
             div.classList.add("points-transaction");
             
-            const typeColor = tx.type === 'earned' ? '#28a745' : '#dc3545';
-            const sign = tx.type === 'earned' ? '+' : '';
+            let typeColor = '#666';
+            let sign = '';
+            let typeIcon = '📝';
+            
+            switch(tx.type) {
+                case 'earned':
+                    typeColor = '#28a745';
+                    sign = '+';
+                    typeIcon = '💰';
+                    break;
+                case 'redeemed':
+                    typeColor = '#dc3545';
+                    sign = '-';
+                    typeIcon = '🌳';
+                    break;
+                case 'manual_converted_to_cash':
+                    typeColor = '#ff9800';
+                    sign = '-';
+                    typeIcon = '💸';
+                    break;
+                case 'auto_converted_to_cash':
+                    typeColor = '#17a2b8';
+                    sign = '-';
+                    typeIcon = '🔄';
+                    break;
+            }
             
             div.innerHTML = `
-                <div class="transaction-row">
+                <div class="transaction-row" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     <div>
-                        <p style="font-weight: 600;">${tx.description}</p>
-                        <p style="font-size: 0.9em; color: #666;">${new Date(tx.createdAt).toLocaleString()}</p>
+                        <p style="font-weight: 600; margin: 0 0 5px 0;">${typeIcon} ${tx.description}</p>
+                        <p style="font-size: 0.9em; color: #666; margin: 0;">${new Date(tx.createdAt).toLocaleString()}</p>
+                        ${tx.cashAmount ? `<p style="font-size: 0.9em; color: #28a745; margin: 5px 0 0 0;">💰 Received: ₹${tx.cashAmount}</p>` : ''}
                     </div>
                     <div style="text-align: right;">
-                        <p style="color: ${typeColor}; font-weight: 600; font-size: 1.2em;">${sign}${tx.points}</p>
+                        <p style="color: ${typeColor}; font-weight: 600; font-size: 1.2em;">${sign}${Math.abs(tx.points)}</p>
                         <p style="font-size: 0.9em; color: #666;">Balance: ${tx.balanceAfter}</p>
                     </div>
                 </div>
@@ -754,6 +890,80 @@ async function requestWithdrawal() {
     } catch (err) {
         console.error("Error requesting withdrawal:", err);
         alert("Error processing withdrawal request. Please try again.");
+    }
+}
+
+/* -----------------------------------------
+   CONVERT POINTS TO CASH (MANUAL)
+----------------------------------------- */
+async function convertPointsToCash() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("Login required");
+        return;
+    }
+
+    const pointsInput = document.getElementById("pointsToConvert");
+    if (!pointsInput) {
+        console.error("Points input element not found");
+        return;
+    }
+
+    const pointsToConvert = parseInt(pointsInput.value);
+    
+    if (!pointsToConvert || pointsToConvert <= 0) {
+        alert("Please enter a valid number of points to convert");
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to convert ${pointsToConvert} points to cash?\n\nThis action cannot be undone.`)) {
+        return;
+    }
+
+    const convertBtn = document.getElementById("convertBtn");
+    if (!convertBtn) {
+        console.error("Convert button element not found");
+        return;
+    }
+
+    const originalText = convertBtn.textContent;
+    convertBtn.disabled = true;
+    convertBtn.textContent = "Converting...";
+
+    try {
+        const res = await fetch(`${API}/points/convert-to-cash`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ pointsToConvert })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || "Failed to convert points");
+        }
+
+        alert(`✅ Success!\n\nConverted: ${data.result.pointsConverted} points\nReceived: ₹${data.result.cashReceived}\nRemaining Points: ${data.result.remainingPoints}\nNew Cash Balance: ₹${data.result.newCashBalance}`);
+        
+        // Clear the input and reset UI with null checks
+        const pointsInputClear = document.getElementById("pointsToConvert");
+        const conversionPreviewClear = document.getElementById("conversionPreview");
+        
+        if (pointsInputClear) pointsInputClear.value = "";
+        if (conversionPreviewClear) conversionPreviewClear.style.display = "none";
+        loadPoints(); // Reload points display
+
+    } catch (err) {
+        console.error("Convert points error:", err);
+        alert("Error: " + err.message);
+    } finally {
+        if (convertBtn) {
+            convertBtn.disabled = false;
+            convertBtn.textContent = originalText;
+        }
     }
 }
 

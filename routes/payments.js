@@ -4,7 +4,7 @@ const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const Order = require("../models/Order");
 const User = require("../models/User");
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { sendOrderConfirmationEmail, sendAdminNotification } = require("../utils/emailService");
 const { distributeCommissions } = require("../services/commissionDistribution");
 const { awardPoints } = require("../services/pointsService");
@@ -1492,6 +1492,58 @@ router.post("/webhook/bank-transfer-submitted", async (req, res) => {
   } catch (error) {
     console.error("Bank transfer webhook error:", error);
     res.status(500).json({ error: "Error processing bank transfer submission" });
+  }
+});
+
+// =====================================================
+// 🔍 ADMIN: CHECK UTR DUPLICATE
+// =====================================================
+router.post("/admin/check-utr-duplicate", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { utrNumber, currentOrderId } = req.body;
+    
+    if (!utrNumber) {
+      return res.status(400).json({ error: 'UTR number is required' });
+    }
+    
+    console.log(`🔍 Checking UTR duplicate: ${utrNumber} (excluding order: ${currentOrderId})`);
+    
+    // Search for orders with the same UTR number (excluding current order)
+    const duplicateOrder = await Order.findOne({
+      'paymentDetails.utrNumber': utrNumber,
+      _id: { $ne: currentOrderId }, // Exclude current order
+      status: { $in: ['completed', 'pending_payment_verification'] } // Only check processed orders
+    }).populate('user_id', 'name email').sort({ createdAt: -1 });
+    
+    if (duplicateOrder) {
+      console.log(`⚠️ Duplicate UTR found: Order ${duplicateOrder._id} by ${duplicateOrder.user_id?.name}`);
+      
+      return res.json({
+        isDuplicate: true,
+        existingOrder: {
+          _id: duplicateOrder._id,
+          user: {
+            name: duplicateOrder.user_id?.name,
+            email: duplicateOrder.user_id?.email
+          },
+          createdAt: duplicateOrder.createdAt,
+          totalAmount: duplicateOrder.totalAmount,
+          status: duplicateOrder.status
+        },
+        message: `UTR number ${utrNumber} was previously used by ${duplicateOrder.user_id?.name || 'Unknown User'}`
+      });
+    }
+    
+    console.log(`✅ UTR number ${utrNumber} is unique`);
+    
+    res.json({
+      isDuplicate: false,
+      message: 'UTR number is unique'
+    });
+    
+  } catch (err) {
+    console.error('UTR duplicate check error:', err);
+    res.status(500).json({ error: 'Error checking UTR duplicate', details: err.message });
   }
 });
 

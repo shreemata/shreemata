@@ -432,6 +432,17 @@ router.get("/trust-funds/statistics", authenticateToken, isAdmin, async (req, re
 
         console.log(`Total withdrawals: ₹${totalWithdrawals}, Requests: ${totalWithdrawalRequests}`);
 
+        // Get total user wallet balances
+        const allUsers = await User.find({ 
+            isVirtual: { $ne: true },
+            wallet: { $gt: 0 }
+        }).select("wallet");
+        
+        const totalUserWallets = allUsers.reduce((sum, user) => sum + (user.wallet || 0), 0);
+        const usersWithBalance = allUsers.length;
+        
+        console.log(`Total user wallets: ₹${totalUserWallets}, Users with balance: ${usersWithBalance}`);
+
         // Get trust fund data for existing cards
         const trustFund = await TrustFund.findOne({ fundType: 'trust' });
         const developmentFund = await TrustFund.findOne({ fundType: 'development' });
@@ -444,6 +455,10 @@ router.get("/trust-funds/statistics", authenticateToken, isAdmin, async (req, re
             totalWithdrawals: {
                 amount: totalWithdrawals,
                 requests: totalWithdrawalRequests
+            },
+            totalUserWallets: {
+                amount: totalUserWallets,
+                usersWithBalance: usersWithBalance
             },
             trustFund: {
                 balance: trustFund?.balance || 0,
