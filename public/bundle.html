@@ -1,0 +1,2203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Bundle Details - Shree Mata</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        .bundle-container {
+            max-width: 1200px;
+            margin: 100px auto 50px;
+            padding: 20px;
+        }
+        .bundle-header {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        .bundle-image {
+            flex: 0 0 300px;
+        }
+        .bundle-image img {
+            width: 100%;
+            border-radius: 8px;
+        }
+        .bundle-info {
+            flex: 1;
+        }
+        .discount-badge {
+            background: #ff4444;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 20px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        .price-section {
+            margin: 20px 0;
+        }
+        .original-price {
+            text-decoration: line-through;
+            color: #999;
+            font-size: 24px;
+        }
+        .bundle-price {
+            font-size: 36px;
+            color: #ff4444;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .savings {
+            color: #4CAF50;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .books-included {
+            margin-top: 40px;
+        }
+        .books-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .book-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .clickable-book {
+            cursor: pointer;
+        }
+        
+        .clickable-book:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+        
+        .book-item img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .action-buttons button {
+            flex: 1;
+            padding: 15px;
+            font-size: 18px;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .bundle-header {
+                flex-direction: column;
+                gap: 20px;
+            }
+            .bundle-image {
+                flex: none;
+                max-width: 300px;
+                margin: 0 auto;
+            }
+            .price-section > div:first-child {
+                grid-template-columns: 1fr !important;
+                gap: 8px !important;
+            }
+            .action-buttons > div {
+                flex-direction: column;
+                gap: 8px !important;
+            }
+            .action-buttons button {
+                margin-bottom: 5px;
+                font-size: 13px !important;
+                padding: 8px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <div class="container navbar-content">
+                <div class="logo">
+                                        <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                        <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 36px; height: 36px; border-radius: 50%;">
+                        <span>Shree Mata</span>
+                    </a>
+                </div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="cart.html">🛒 Cart</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="bundle-container">
+        <div id="loadingSpinner" class="loading">Loading bundle...</div>
+        
+        <div id="bundleContent" style="display: none;">
+            <div class="bundle-header">
+                <div class="bundle-image">
+                    <img id="bundleImage" src="" alt="Bundle">
+                    
+                    <!-- Quantity Selector -->
+                    <div style="margin-top: 15px; text-align: center;">
+                        <div style="margin-bottom: 10px;">
+                            <span style="font-weight: 600; color: #333; font-size: 14px;">Quantity:</span>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px;">
+                            <button onclick="decreaseQuantity()" style="width: 35px; height: 35px; border: none; background: #667eea; color: white; border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: bold; display: flex; align-items: center; justify-content: center;">−</button>
+                            <input type="number" id="bundleQuantity" value="1" min="1" max="10" onchange="updateBundlePrices()" style="width: 50px; height: 35px; text-align: center; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 16px; font-weight: 600;">
+                            <button onclick="increaseQuantity()" style="width: 35px; height: 35px; border: none; background: #667eea; color: white; border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: bold; display: flex; align-items: center; justify-content: center;">+</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Buy Buttons -->
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                        <button onclick="buyNow('pickup')" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            🏪 Buy through Store
+                        </button>
+                        <button onclick="buyNow('courier')" style="width: 100%; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            🚚 Buy by Courier
+                        </button>
+                        <button onclick="addToCartOnly('courier')" style="width: 100%; padding: 12px; background: #e91e63; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            🛒 Add to Cart
+                        </button>
+                    </div>
+                </div>
+                <div class="bundle-info">
+                    <span class="discount-badge" id="discountBadge"></span>
+                    <h1 id="bundleName"></h1>
+                    <p id="bundleDescription" style="color: #666; font-size: 16px; margin: 20px 0;"></p>
+                    
+                    <!-- Reward Points Badge -->
+                    <div id="rewardPointsBadge" style="display: none; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 12px 16px; border-radius: 12px; margin: 20px 0; text-align: center; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3); font-weight: 700; font-size: 16px;">
+                        <span style="font-size: 20px; margin-right: 8px;">🎁</span>
+                        <span>Earn <span id="bundleRewardPoints">0</span> Points on Purchase!</span>
+                    </div>
+                    
+                    <!-- Cashback Badge -->
+                    <div id="cashbackBadge" style="display: none; background: linear-gradient(135deg, #ff6f61 0%, #ff9800 100%); color: white; padding: 12px 16px; border-radius: 12px; margin: 20px 0; text-align: center; box-shadow: 0 4px 12px rgba(255, 111, 97, 0.3); font-weight: 700; font-size: 16px;">
+                        <span style="font-size: 20px; margin-right: 8px;">💰</span>
+                        <span>Get ₹<span id="bundleCashbackAmount">0</span> Cashback!</span>
+                    </div>
+                    
+                    <div class="price-section">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                            <!-- Book-stall Purchase Option -->
+                            <div class="pricing-option pickup-pricing" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 12px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);">
+                                <h4 style="margin: 0 0 5px 0; font-size: 14px; font-weight: 600;">🏪 Book-stall</h4>
+                                <p style="font-size: 18px; font-weight: bold; margin: 5px 0;" id="pickupPrice">₹<span id="bundlePickupPrice"></span></p>
+                                <p style="margin: 0; font-size: 10px; opacity: 0.9;">Store pickup</p>
+                            </div>
+                            
+                            <!-- Courier Delivery Option -->
+                            <div class="pricing-option courier-pricing" style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; padding: 12px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);">
+                                <h4 style="margin: 0 0 5px 0; font-size: 14px; font-weight: 600;">🚚 Courier</h4>
+                                <p style="font-size: 18px; font-weight: bold; margin: 5px 0;" id="courierPrice">₹<span id="bundleCourierPrice"></span></p>
+                                <p style="margin: 0; font-size: 10px; opacity: 0.9;">Home delivery</p>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center;">
+                            <p class="original-price" style="margin: 5px 0;">Original: ₹<span id="originalPrice"></span></p>
+                            <p class="savings" style="margin: 5px 0;">You Save: ₹<span id="savings"></span></p>
+                        </div>
+                    </div>
+
+                    <div style="background: #fff3e0; padding: 12px 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ff9800;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #e65100; font-weight: 600;">📦 Total Weight:</span>
+                            <span id="bundleWeight" style="color: #e65100; font-weight: 600;">0 kg</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <span style="color: #e65100; font-size: 13px;">Courier Charge:</span>
+                            <span id="bundleCourierCharge" style="color: #e65100; font-size: 13px;">₹0</span>
+                        </div>
+                    </div>
+
+                    <p style="color: #666;">
+                        <strong id="bookCount"></strong> books included in this bundle
+                    </p>
+                </div>
+            </div>
+
+            <div class="books-included">
+                <h2>Books Included in This Bundle</h2>
+                <div id="booksGrid" class="books-grid"></div>
+            </div>
+        </div>
+
+        <div id="errorState" style="display: none; text-align: center; padding: 50px;">
+            <h2>Bundle Not Found</h2>
+            <p>This bundle may have been removed or is no longer available.</p>
+            <a href="/" class="btn-primary">Back to Home</a>
+        </div>
+    </div>
+
+    <!-- Address Confirmation Modal -->
+    <div id="addressModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; backdrop-filter: blur(4px);">
+        <div style="background: white; margin: 50px auto; padding: 35px; width: 90%; max-width: 600px; border-radius: 16px; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">Confirm Delivery Address</h2>
+                <button onclick="closeAddressModal()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #999; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+            </div>
+
+            <div id="addressDisplay" style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 10px 0;"><strong>🏠 Home Address 1:</strong> <span id="modalHomeAddress1">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>🏠 Home Address 2:</strong> <span id="modalHomeAddress2">-</span></p>
+                <p style="margin: 10px 0;"><strong>🛣️ Street Name:</strong> <span id="modalStreetName">-</span></p>
+                <p style="margin: 10px 0;"><strong>📍 Landmark:</strong> <span id="modalLandmark">-</span></p>
+                <p style="margin: 10px 0;"><strong>🏘️ Village/Area:</strong> <span id="modalVillage">-</span></p>
+                <p style="margin: 10px 0;"><strong>🏘️ Taluk:</strong> <span id="modalTaluk">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>🏙️ District:</strong> <span id="modalDistrict">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>🗺️ State:</strong> <span id="modalState">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>📮 Pincode:</strong> <span id="modalPincode">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>📱 Phone:</strong> <span id="modalPhone">Not set</span></p>
+            </div>
+
+            <button onclick="toggleAddressForm()" class="btn-secondary" style="margin-bottom: 15px;">✏️ Edit Address</button>
+
+            <form id="addressEditForm" style="display: none; margin-bottom: 20px;">
+                <div style="margin: 15px 0;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Home Address 1 *</label>
+                    <input type="text" id="editHomeAddress1" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="House/Building number and name">
+                </div>
+                <div style="margin: 15px 0;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Home Address 2 (Optional)</label>
+                    <input type="text" id="editHomeAddress2" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Apartment, suite, floor, etc.">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Street Name</label>
+                        <input type="text" id="editStreetName" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Street name">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Landmark</label>
+                        <input type="text" id="editLandmark" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Near landmark">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Village/Area</label>
+                        <input type="text" id="editVillage" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Village or area name">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Taluk *</label>
+                        <input type="text" id="editTaluk" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Taluk name">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">District *</label>
+                        <input type="text" id="editDistrict" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="District name">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">State *</label>
+                        <input type="text" id="editState" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="State name">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Pincode *</label>
+                        <input type="text" id="editPincode" required pattern="[0-9]{6}" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="6-digit pincode">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Phone Number *</label>
+                        <input type="tel" id="editPhone" required pattern="[0-9]{10}" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="10-digit phone number">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">💾 Save Address</button>
+            </form>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="proceedToBundlePayment()" class="btn-primary" style="flex: 1;">🔒 Proceed to Payment</button>
+                <button onclick="closeAddressModal()" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/successPopup.js"></script>
+    <script src="js/cartUtils.js"></script>
+    <script src="js/shipping-calculator.js"></script>
+    <script>
+        const API = window.API_URL;
+        let currentBundle = null;
+
+        // Calculate courier charge
+        function calculateCourierCharge(totalWeight) {
+            if (totalWeight <= 0) return 0;
+            const charge = Math.ceil(totalWeight) * 25;
+            return Math.min(charge, 100);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadBundleDetails();
+        });
+
+        async function loadBundleDetails() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const bundleId = urlParams.get("id");
+
+            if (!bundleId) return showError();
+
+            try {
+                const res = await fetch(`${API}/bundles/${bundleId}`);
+                const data = await res.json();
+
+                if (!res.ok) throw new Error("Bundle not found");
+
+                currentBundle = data.bundle;
+                await displayBundle(currentBundle);
+
+                document.getElementById("loadingSpinner").style.display = "none";
+                document.getElementById("bundleContent").style.display = "block";
+
+                // Check for direct purchase flow parameters from home page
+                const shouldBuy = urlParams.get("buy");
+                const deliveryMethod = urlParams.get("delivery");
+                const paymentMethod = urlParams.get("payment");
+
+                if (shouldBuy === "true" && deliveryMethod && paymentMethod) {
+                    console.log("🛒 Direct purchase flow detected:", { deliveryMethod, paymentMethod });
+                    
+                    // Store the selected methods
+                    window.selectedDeliveryMethod = deliveryMethod;
+                    
+                    // Auto-trigger the purchase flow after a short delay
+                    setTimeout(() => {
+                        if (paymentMethod === 'online') {
+                            // Start with billing address collection for online payment
+                            showBillingAddressModal();
+                        } else if (paymentMethod === 'cheque') {
+                            // Start with billing address collection for cheque payment
+                            showBillingAddressModal();
+                        } else if (paymentMethod === 'transfer') {
+                            // Start with billing address collection for bank transfer
+                            showBillingAddressModal();
+                        }
+                    }, 500); // Small delay to ensure page is fully loaded
+                }
+
+            } catch (err) {
+                console.error("Error loading bundle:", err);
+                showError();
+            }
+        }
+
+        async function displayBundle(bundle) {
+            document.getElementById("bundleName").textContent = bundle.name;
+            document.getElementById("bundleDescription").textContent = bundle.description || '';
+            document.getElementById("bundleImage").src = bundle.image || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="400"%3E%3Crect fill="%23ddd" width="300" height="400"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="24" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EBundle%3C/text%3E%3C/svg%3E';
+            
+            // Check stock status of books in the bundle
+            const outOfStockBooks = bundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'out_of_stock'
+            );
+            const limitedStockBooks = bundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'limited_stock'
+            );
+            
+            // Get all purchase buttons
+            const buyPickupBtn = document.querySelector('button[onclick="buyNow(\'pickup\')"]');
+            const buyCourierBtn = document.querySelector('button[onclick="buyNow(\'courier\')"]');
+            const addToCartBtn = document.querySelector('button[onclick="addToCartOnly(\'courier\')"]');
+            
+            if (outOfStockBooks.length > 0) {
+                // Disable all purchase buttons if any book is out of stock
+                if (buyPickupBtn) {
+                    buyPickupBtn.disabled = true;
+                    buyPickupBtn.textContent = "❌ Bundle Unavailable";
+                    buyPickupBtn.style.background = "#dc3545";
+                    buyPickupBtn.style.cursor = "not-allowed";
+                }
+                
+                if (buyCourierBtn) {
+                    buyCourierBtn.disabled = true;
+                    buyCourierBtn.textContent = "❌ Bundle Unavailable";
+                    buyCourierBtn.style.background = "#dc3545";
+                    buyCourierBtn.style.cursor = "not-allowed";
+                }
+                
+                if (addToCartBtn) {
+                    addToCartBtn.disabled = true;
+                    addToCartBtn.textContent = "❌ Bundle Unavailable";
+                    addToCartBtn.style.background = "#dc3545";
+                    addToCartBtn.style.cursor = "not-allowed";
+                }
+                
+                // Add out of stock notice
+                const priceSection = document.querySelector(".price-section");
+                const stockNotice = document.createElement("div");
+                stockNotice.style.cssText = "background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 16px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);";
+                stockNotice.innerHTML = `❌ Bundle unavailable - Some books are out of stock:<br><small style="font-size: 14px;">${outOfStockBooks.map(book => book.title).join(', ')}</small>`;
+                priceSection.parentNode.insertBefore(stockNotice, priceSection);
+                
+            } else if (limitedStockBooks.length > 0) {
+                // Show limited stock warning
+                const priceSection = document.querySelector(".price-section");
+                const stockNotice = document.createElement("div");
+                stockNotice.style.cssText = "background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 16px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);";
+                const minStock = Math.min(...limitedStockBooks.map(book => book.stockQuantity || 0));
+                stockNotice.innerHTML = `⚠️ Limited Stock - Only ${minStock} bundles available!<br><small style="font-size: 14px;">Limited books: ${limitedStockBooks.map(book => book.title).join(', ')}</small>`;
+                priceSection.parentNode.insertBefore(stockNotice, priceSection);
+                
+                // Update quantity selector max value to available stock
+                const quantityInput = document.getElementById("bundleQuantity");
+                if (quantityInput && minStock > 0) {
+                    quantityInput.max = minStock;
+                    if (parseInt(quantityInput.value) > minStock) {
+                        quantityInput.value = minStock;
+                    }
+                }
+            }
+            
+            const discount = bundle.discount || Math.round(((bundle.originalPrice - bundle.bundlePrice) / bundle.originalPrice) * 100);
+            document.getElementById("discountBadge").textContent = `${discount}% OFF`;
+            
+            // Show reward points badge if bundle has reward points
+            if (bundle.rewardPoints && bundle.rewardPoints > 0) {
+                document.getElementById("bundleRewardPoints").textContent = bundle.rewardPoints;
+                document.getElementById("rewardPointsBadge").style.display = "block";
+            } else {
+                document.getElementById("rewardPointsBadge").style.display = "none";
+            }
+            
+            // Show cashback badge if bundle has cashback
+            let cashbackAmount = 0;
+            if (bundle.cashbackAmount > 0) {
+                cashbackAmount = bundle.cashbackAmount;
+            } else if (bundle.cashbackPercentage > 0) {
+                cashbackAmount = (bundle.bundlePrice * bundle.cashbackPercentage) / 100;
+            }
+            
+            if (cashbackAmount > 0) {
+                document.getElementById("bundleCashbackAmount").textContent = cashbackAmount.toFixed(0);
+                document.getElementById("cashbackBadge").style.display = "block";
+            } else {
+                document.getElementById("cashbackBadge").style.display = "none";
+            }
+            
+            // Calculate pricing
+            const basePrice = bundle.bundlePrice;
+            const weight = bundle.weight || bundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0);
+            
+            // Use bundle's courier charge if set, otherwise calculate from weight
+            let courierCharge = 0;
+            if (bundle.courierCharge !== undefined && bundle.courierCharge !== null) {
+                courierCharge = parseFloat(bundle.courierCharge) || 0;
+                console.log('Using bundle courier charge:', courierCharge);
+            } else {
+                // Fallback to weight-based calculation
+                try {
+                    courierCharge = await calculateCourierCharge(weight);
+                    courierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
+                    console.log('Calculated courier charge from weight:', courierCharge);
+                } catch (error) {
+                    console.error('Error calculating courier charge:', error);
+                    courierCharge = 0;
+                }
+            }
+            
+            // Display pickup price (same as bundle price)
+            document.getElementById("bundlePickupPrice").textContent = basePrice.toFixed(2);
+            
+            // Display courier price (bundle price + courier charge)
+            const courierTotalPrice = basePrice + courierCharge;
+            document.getElementById("bundleCourierPrice").textContent = courierTotalPrice.toFixed(2);
+            
+            document.getElementById("originalPrice").textContent = bundle.originalPrice.toFixed(2);
+            document.getElementById("savings").textContent = (bundle.originalPrice - basePrice).toFixed(2);
+            document.getElementById("bookCount").textContent = bundle.books.length;
+
+            // Display weight and courier charge
+            document.getElementById("bundleWeight").textContent = `${weight.toFixed(2)} kg`;
+            document.getElementById("bundleCourierCharge").textContent = `₹${courierCharge.toFixed(2)}`;
+
+            // Display books with stock status
+            const grid = document.getElementById("booksGrid");
+            grid.innerHTML = bundle.books.map(book => {
+                let stockBadge = '';
+                if (book.trackStock) {
+                    if (book.stockStatus === 'out_of_stock') {
+                        stockBadge = '<div style="position: absolute; top: 5px; right: 5px; background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">OUT OF STOCK</div>';
+                    } else if (book.stockStatus === 'limited_stock') {
+                        stockBadge = '<div style="position: absolute; top: 5px; right: 5px; background: #ff9800; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">LIMITED</div>';
+                    }
+                }
+                
+                return `
+                    <div class="book-item clickable-book" style="position: relative; cursor: pointer; transition: all 0.3s ease;" 
+                         onclick="navigateToBook('${book._id}')" 
+                         onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(102, 126, 234, 0.3)'; this.querySelector('.view-details-btn').style.background='linear-gradient(135deg, #5a67d8 0%, #667eea 100%)'" 
+                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'; this.querySelector('.view-details-btn').style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'">
+                        ${stockBadge}
+                        <img src="${book.cover_image || 'https://via.placeholder.com/200x300?text=Book'}" alt="${book.title}">
+                        <h4>${book.title}</h4>
+                        <p style="color: #666; font-size: 14px;">${book.author}</p>
+                        <div class="view-details-btn" style="margin-top: 10px; padding: 8px 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; font-size: 12px; font-weight: 600; transition: all 0.3s ease;">
+                            📖 Click to View Details & Preview
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addToCart(deliveryMethod = "courier") {
+            if (!currentBundle) return;
+
+            // Check stock status before adding to cart
+            const outOfStockBooks = currentBundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'out_of_stock'
+            );
+            
+            if (outOfStockBooks.length > 0) {
+                alert(`❌ This bundle cannot be added to cart because some books are out of stock:\n${outOfStockBooks.map(book => book.title).join(', ')}`);
+                return;
+            }
+
+            const quantity = parseInt(document.getElementById('bundleQuantity').value) || 1;
+            
+            // Check if requested quantity is available for limited stock books
+            const limitedStockBooks = currentBundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'limited_stock'
+            );
+            
+            if (limitedStockBooks.length > 0) {
+                const minStock = Math.min(...limitedStockBooks.map(book => book.stockQuantity || 0));
+                if (quantity > minStock) {
+                    alert(`❌ Only ${minStock} bundles are available. Please reduce the quantity.`);
+                    return;
+                }
+            }
+            
+            let cart = getCart();
+
+            // Check if bundle with same delivery method already exists
+            const existingItemIndex = cart.findIndex(item => 
+                item.bundleId === currentBundle._id && item.deliveryMethod === deliveryMethod
+            );
+
+            if (existingItemIndex !== -1) {
+                // Check if increasing quantity would exceed stock for limited stock books
+                const newQuantity = cart[existingItemIndex].quantity + quantity;
+                if (limitedStockBooks.length > 0) {
+                    const minStock = Math.min(...limitedStockBooks.map(book => book.stockQuantity || 0));
+                    if (newQuantity > minStock) {
+                        alert(`❌ Cannot add more. Only ${minStock} bundles are available and you already have ${cart[existingItemIndex].quantity} in cart.`);
+                        return;
+                    }
+                }
+                
+                // If stock check passes, increase quantity by selected amount
+                cart[existingItemIndex].quantity = newQuantity;
+                
+                // Recalculate pricing for updated quantity
+                const weight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * cart[existingItemIndex].quantity;
+                
+                // Use bundle's courier charge if set, otherwise calculate from weight
+                let courierCharge = 0;
+                if (deliveryMethod === "courier") {
+                    if (currentBundle.courierCharge !== undefined && currentBundle.courierCharge !== null) {
+                        courierCharge = parseFloat(currentBundle.courierCharge) * cart[existingItemIndex].quantity;
+                    } else {
+                        courierCharge = calculateCourierCharge(weight);
+                    }
+                }
+                
+                const totalPrice = (currentBundle.bundlePrice * cart[existingItemIndex].quantity) + courierCharge;
+                
+                cart[existingItemIndex].price = totalPrice;
+                cart[existingItemIndex].courierCharge = courierCharge;
+                cart[existingItemIndex].weight = weight;
+                
+                saveCart(cart);
+                const methodText = deliveryMethod === 'pickup' ? 'Book-stall Pickup' : 'Courier Delivery';
+                return alert(`${quantity}x Bundle quantity updated in cart (${methodText})!`);
+            }
+
+            // Calculate pricing based on delivery method and quantity
+            const basePrice = currentBundle.bundlePrice * quantity;
+            const weight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * quantity;
+            
+            // Use bundle's courier charge if set, otherwise calculate from weight
+            let courierCharge = 0;
+            if (deliveryMethod === "courier") {
+                if (currentBundle.courierCharge !== undefined && currentBundle.courierCharge !== null) {
+                    courierCharge = parseFloat(currentBundle.courierCharge) * quantity;
+                } else {
+                    courierCharge = calculateCourierCharge(weight);
+                }
+            }
+            
+            const totalPrice = basePrice + courierCharge;
+
+            // Add bundle to cart
+            cart.push({
+                bundleId: currentBundle._id,
+                isBundle: true,
+                title: currentBundle.name,
+                price: totalPrice,
+                basePrice: basePrice,
+                courierCharge: courierCharge,
+                originalPrice: currentBundle.originalPrice * quantity,
+                books: currentBundle.books,
+                quantity: quantity,
+                weight: weight,
+                deliveryMethod: deliveryMethod,
+                coverImage: currentBundle.image || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="250" height="300"%3E%3Crect fill="%23ddd" width="250" height="300"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="20" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EBundle%3C/text%3E%3C/svg%3E'
+            });
+
+            saveCart(cart);
+            const methodText = deliveryMethod === 'pickup' ? 'Book-stall Pickup' : 'Courier Delivery';
+            alert(`${quantity}x Bundle "${currentBundle.name}" added to cart for ${methodText}!`);
+        }
+
+        function buyNow(deliveryMethod = "courier") {
+            // Check stock status before proceeding
+            if (!currentBundle) {
+                alert("Bundle details not loaded");
+                return;
+            }
+            
+            const outOfStockBooks = currentBundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'out_of_stock'
+            );
+            
+            if (outOfStockBooks.length > 0) {
+                alert(`❌ This bundle cannot be purchased because some books are out of stock:\n${outOfStockBooks.map(book => book.title).join(', ')}`);
+                return;
+            }
+            
+            // Check if requested quantity is available for limited stock books
+            const quantity = parseInt(document.getElementById("bundleQuantity").value) || 1;
+            const limitedStockBooks = currentBundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'limited_stock'
+            );
+            
+            if (limitedStockBooks.length > 0) {
+                const minStock = Math.min(...limitedStockBooks.map(book => book.stockQuantity || 0));
+                if (quantity > minStock) {
+                    alert(`❌ Only ${minStock} bundles are available. Please reduce the quantity.`);
+                    return;
+                }
+            }
+            
+            // Store delivery method globally for later use
+            window.selectedDeliveryMethod = deliveryMethod;
+            
+            // Show billing address collection modal first (for all payment methods)
+            showBillingAddressModal();
+        }
+
+        // Billing Address Modal Functions
+        async function showBillingAddressModal() {
+            const token = localStorage.getItem("token");
+            const user = JSON.parse(localStorage.getItem("user") || "null");
+
+            if (!token || !user) {
+                const id = new URLSearchParams(window.location.search).get("id");
+                localStorage.setItem("redirectAfterLogin", `/bundle.html?id=${id}`);
+                return window.location.href = "/login.html";
+            }
+
+            // Show/hide delivery address section based on delivery method
+            const deliverySection = document.getElementById("deliveryAddressSection");
+            const modalTitle = document.getElementById("billingModalTitle");
+            
+            console.log("Selected delivery method:", window.selectedDeliveryMethod);
+            console.log("Delivery section element:", deliverySection);
+            
+            if (window.selectedDeliveryMethod === "courier") {
+                console.log("Showing delivery address section for courier");
+                deliverySection.style.display = "block";
+                modalTitle.textContent = "📋 Billing & Delivery Details";
+            } else {
+                console.log("Hiding delivery address section for pickup");
+                deliverySection.style.display = "none";
+                modalTitle.textContent = "📋 Billing Details (Store Pickup)";
+            }
+
+            try {
+                // Fetch user data from server
+                const res = await fetch(`${API}/users/profile`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                const data = await res.json();
+                
+                if (data.user) {
+                    const userData = data.user;
+                    
+                    // Pre-fill billing address with user data
+                    document.getElementById("billingName").value = userData.name || "";
+                    document.getElementById("billingPhone").value = userData.phone || "";
+                    document.getElementById("billingEmail").value = userData.email || "";
+                    
+                    // Pre-fill address fields
+                    if (userData.address) {
+                        document.getElementById("billingAddress1").value = userData.address.homeAddress1 || userData.address.street || "";
+                        document.getElementById("billingAddress2").value = userData.address.homeAddress2 || "";
+                        document.getElementById("billingTaluk").value = userData.address.taluk || "";
+                        document.getElementById("billingDistrict").value = userData.address.district || "";
+                        document.getElementById("billingState").value = userData.address.state || "";
+                        document.getElementById("billingPincode").value = userData.address.pincode || "";
+                        
+                        // Pre-fill delivery address with same data initially
+                        document.getElementById("deliveryName").value = userData.name || "";
+                        document.getElementById("deliveryPhone").value = userData.address.phone || userData.phone || "";
+                        document.getElementById("deliveryAddress1").value = userData.address.homeAddress1 || userData.address.street || "";
+                        document.getElementById("deliveryAddress2").value = userData.address.homeAddress2 || "";
+                        document.getElementById("deliveryTaluk").value = userData.address.taluk || "";
+                        document.getElementById("deliveryDistrict").value = userData.address.district || "";
+                        document.getElementById("deliveryState").value = userData.address.state || "";
+                        document.getElementById("deliveryPincode").value = userData.address.pincode || "";
+                    }
+                }
+
+                // Show modal
+                document.getElementById("billingAddressModal").style.display = "block";
+
+            } catch (err) {
+                console.error("Error loading user data:", err);
+                // Show modal anyway with empty fields
+                document.getElementById("billingAddressModal").style.display = "block";
+            }
+        }
+
+        function closeBillingAddressModal() {
+            document.getElementById("billingAddressModal").style.display = "none";
+        }
+
+        function toggleDeliveryAddress() {
+            const checkbox = document.getElementById("usePermanentAddress");
+            const deliveryFields = document.getElementById("deliveryAddressFields");
+            
+            if (checkbox.checked) {
+                // Copy billing address to delivery address
+                document.getElementById("deliveryName").value = document.getElementById("billingName").value;
+                document.getElementById("deliveryPhone").value = document.getElementById("billingPhone").value;
+                document.getElementById("deliveryAddress1").value = document.getElementById("billingAddress1").value;
+                document.getElementById("deliveryAddress2").value = document.getElementById("billingAddress2").value;
+                document.getElementById("deliveryTaluk").value = document.getElementById("billingTaluk").value;
+                document.getElementById("deliveryDistrict").value = document.getElementById("billingDistrict").value;
+                document.getElementById("deliveryState").value = document.getElementById("billingState").value;
+                document.getElementById("deliveryPincode").value = document.getElementById("billingPincode").value;
+                
+                // Hide delivery fields
+                deliveryFields.style.display = "none";
+            } else {
+                // Show delivery fields
+                deliveryFields.style.display = "block";
+            }
+        }
+
+        // Handle billing address form submission - wait for DOM to be ready
+        document.addEventListener("DOMContentLoaded", function() {
+            const billingForm = document.getElementById("billingAddressForm");
+            if (billingForm) {
+                billingForm.addEventListener("submit", function(e) {
+                    e.preventDefault();
+                    
+                    console.log("Form submitted, processing...");
+                    
+                    // Validate billing address
+                    const billingData = {
+                        name: document.getElementById("billingName").value.trim(),
+                        phone: document.getElementById("billingPhone").value.trim(),
+                        email: document.getElementById("billingEmail").value.trim(),
+                        address1: document.getElementById("billingAddress1").value.trim(),
+                        address2: document.getElementById("billingAddress2").value.trim(),
+                        taluk: document.getElementById("billingTaluk").value.trim(),
+                        district: document.getElementById("billingDistrict").value.trim(),
+                        state: document.getElementById("billingState").value.trim(),
+                        pincode: document.getElementById("billingPincode").value.trim()
+                    };
+                    
+                    // Validate required billing fields
+                    if (!billingData.name || !billingData.phone || !billingData.email || 
+                        !billingData.address1 || !billingData.taluk || !billingData.district || 
+                        !billingData.state || !billingData.pincode) {
+                        alert("Please fill in all required billing fields (marked with *)");
+                        return;
+                    }
+                    
+                    // Validate formats
+                    if (!/^\d{6}$/.test(billingData.pincode)) {
+                        alert("Please enter a valid 6-digit pincode for billing address");
+                        return;
+                    }
+                    
+                    if (!/^\d{10}$/.test(billingData.phone)) {
+                        alert("Please enter a valid 10-digit phone number for billing");
+                        return;
+                    }
+                    
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billingData.email)) {
+                        alert("Please enter a valid email address");
+                        return;
+                    }
+                    
+                    // Validate delivery address if courier delivery
+                    let deliveryData = null;
+                    if (window.selectedDeliveryMethod === "courier") {
+                        const usePermanent = document.getElementById("usePermanentAddress").checked;
+                        
+                        if (usePermanent) {
+                            // Use billing address for delivery
+                            deliveryData = {
+                                name: billingData.name,
+                                phone: billingData.phone,
+                                address1: billingData.address1,
+                                address2: billingData.address2,
+                                taluk: billingData.taluk,
+                                district: billingData.district,
+                                state: billingData.state,
+                                pincode: billingData.pincode
+                            };
+                        } else {
+                            // Use separate delivery address
+                            deliveryData = {
+                                name: document.getElementById("deliveryName").value.trim(),
+                                phone: document.getElementById("deliveryPhone").value.trim(),
+                                address1: document.getElementById("deliveryAddress1").value.trim(),
+                                address2: document.getElementById("deliveryAddress2").value.trim(),
+                                taluk: document.getElementById("deliveryTaluk").value.trim(),
+                                district: document.getElementById("deliveryDistrict").value.trim(),
+                                state: document.getElementById("deliveryState").value.trim(),
+                                pincode: document.getElementById("deliveryPincode").value.trim()
+                            };
+                            
+                            // Validate delivery fields
+                            if (!deliveryData.name || !deliveryData.phone || !deliveryData.address1 || 
+                                !deliveryData.taluk || !deliveryData.district || !deliveryData.state || 
+                                !deliveryData.pincode) {
+                                alert("Please fill in all required delivery fields or use permanent address");
+                                return;
+                            }
+                            
+                            if (!/^\d{6}$/.test(deliveryData.pincode)) {
+                                alert("Please enter a valid 6-digit pincode for delivery address");
+                                return;
+                            }
+                            
+                            if (!/^\d{10}$/.test(deliveryData.phone)) {
+                                alert("Please enter a valid 10-digit phone number for delivery");
+                                return;
+                            }
+                        }
+                    }
+                    
+                    // Store addresses globally for later use
+                    window.billingAddress = billingData;
+                    window.deliveryAddress = deliveryData;
+                    
+                    console.log("Billing address stored:", window.billingAddress);
+                    console.log("Delivery address stored:", window.deliveryAddress);
+                    console.log("Selected delivery method:", window.selectedDeliveryMethod);
+                    
+                    // Close billing modal
+                    closeBillingAddressModal();
+                    
+                    // Check if we have a direct payment method from URL parameters
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const paymentMethod = urlParams.get("payment");
+                    
+                    if (paymentMethod) {
+                        // Direct payment flow from home page
+                        console.log("🎯 Direct payment method from URL:", paymentMethod);
+                        
+                        setTimeout(() => {
+                            if (paymentMethod === 'online') {
+                                proceedWithOnlinePayment();
+                            } else if (paymentMethod === 'cheque') {
+                                proceedWithChequePayment();
+                            } else if (paymentMethod === 'transfer') {
+                                proceedWithAccountTransfer();
+                            }
+                        }, 100);
+                    } else {
+                        // Normal flow - show payment method selection modal
+                        setTimeout(() => {
+                            showPaymentMethodModal();
+                        }, 100);
+                    }
+                });
+            } else {
+                console.error("Billing address form not found!");
+            }
+        });
+
+        function showPaymentMethodModal() {
+            console.log("showPaymentMethodModal called");
+            const modal = document.getElementById("paymentMethodModal");
+            console.log("Payment method modal element:", modal);
+            if (modal) {
+                modal.style.display = "block";
+                console.log("Payment method modal should now be visible");
+            } else {
+                console.error("Payment method modal not found!");
+            }
+        }
+
+        function closePaymentMethodModal() {
+            document.getElementById("paymentMethodModal").style.display = "none";
+        }
+
+        // Payment method handlers
+        function proceedWithOnlinePayment() {
+            closePaymentMethodModal();
+            // Continue with existing Razorpay flow using collected addresses
+            handleBundlePurchaseWithAddresses(window.selectedDeliveryMethod || "courier");
+        }
+
+        function proceedWithChequePayment() {
+            closePaymentMethodModal();
+            // Redirect to cheque payment form with addresses
+            redirectToBundleChequePaymentFormWithAddresses();
+        }
+
+        function proceedWithAccountTransfer() {
+            closePaymentMethodModal();
+            // Redirect to account transfer form with addresses
+            redirectToBundleAccountTransferFormWithAddresses();
+        }
+
+        async function handleBundlePurchase(deliveryMethod = "courier") {
+            const token = localStorage.getItem("token");
+            const user = JSON.parse(localStorage.getItem("user") || "null");
+
+            if (!token || !user) {
+                const id = new URLSearchParams(window.location.search).get("id");
+                localStorage.setItem("redirectAfterLogin", `/bundle.html?id=${id}`);
+                return window.location.href = "/login.html";
+            }
+
+            if (!currentBundle) {
+                alert("Bundle details not loaded");
+                return;
+            }
+
+            // Store delivery method for later use
+            currentBundle.selectedDeliveryMethod = deliveryMethod;
+
+            if (deliveryMethod === "pickup") {
+                // For pickup, proceed directly to payment without address
+                await proceedToBundlePayment();
+            } else {
+                // For courier, show address modal first
+                showAddressModal();
+            }
+        }
+
+        // Address Modal Functions
+        async function showAddressModal() {
+            const token = localStorage.getItem("token");
+
+            try {
+                // Fetch user address from server
+                const res = await fetch(`${API}/users/profile`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                const data = await res.json();
+                
+                if (data.user && data.user.address) {
+                    const userAddress = data.user.address;
+                    
+                    // Display detailed address fields
+                    document.getElementById("modalHomeAddress1").textContent = userAddress.homeAddress1 || userAddress.street || "Not set";
+                    document.getElementById("modalHomeAddress2").textContent = userAddress.homeAddress2 || "-";
+                    document.getElementById("modalStreetName").textContent = userAddress.streetName || "-";
+                    document.getElementById("modalLandmark").textContent = userAddress.landmark || "-";
+                    document.getElementById("modalVillage").textContent = userAddress.village || "-";
+                    document.getElementById("modalTaluk").textContent = userAddress.taluk || "Not set";
+                    document.getElementById("modalDistrict").textContent = userAddress.district || "Not set";
+                    document.getElementById("modalState").textContent = userAddress.state || "Not set";
+                    document.getElementById("modalPincode").textContent = userAddress.pincode || "Not set";
+                    document.getElementById("modalPhone").textContent = userAddress.phone || "Not set";
+
+                    // Pre-fill edit form
+                    document.getElementById("editHomeAddress1").value = userAddress.homeAddress1 || userAddress.street || "";
+                    document.getElementById("editHomeAddress2").value = userAddress.homeAddress2 || "";
+                    document.getElementById("editStreetName").value = userAddress.streetName || "";
+                    document.getElementById("editLandmark").value = userAddress.landmark || "";
+                    document.getElementById("editVillage").value = userAddress.village || "";
+                    document.getElementById("editTaluk").value = userAddress.taluk || "";
+                    document.getElementById("editDistrict").value = userAddress.district || "";
+                    document.getElementById("editState").value = userAddress.state || "";
+                    document.getElementById("editPincode").value = userAddress.pincode || "";
+                    document.getElementById("editPhone").value = userAddress.phone || "";
+                } else {
+                    // Fallback to localStorage if server doesn't have address
+                    const user = JSON.parse(localStorage.getItem("user") || "{}");
+                    
+                    document.getElementById("modalHomeAddress1").textContent = user.homeAddress1 || "Not set";
+                    document.getElementById("modalHomeAddress2").textContent = user.homeAddress2 || "-";
+                    document.getElementById("modalStreetName").textContent = user.streetName || "-";
+                    document.getElementById("modalLandmark").textContent = user.landmark || "-";
+                    document.getElementById("modalVillage").textContent = user.village || "-";
+                    document.getElementById("modalTaluk").textContent = user.taluk || "Not set";
+                    document.getElementById("modalDistrict").textContent = user.district || "Not set";
+                    document.getElementById("modalState").textContent = user.state || "Not set";
+                    document.getElementById("modalPincode").textContent = user.pincode || "Not set";
+                    document.getElementById("modalPhone").textContent = user.phone || "Not set";
+                }
+
+                // Show modal
+                document.getElementById("addressModal").style.display = "block";
+
+            } catch (err) {
+                console.error("Error loading address:", err);
+                // Fallback to localStorage
+                const user = JSON.parse(localStorage.getItem("user") || "{}");
+                
+                document.getElementById("modalHomeAddress1").textContent = user.homeAddress1 || "Not set";
+                document.getElementById("modalHomeAddress2").textContent = user.homeAddress2 || "-";
+                document.getElementById("modalStreetName").textContent = user.streetName || "-";
+                document.getElementById("modalLandmark").textContent = user.landmark || "-";
+                document.getElementById("modalVillage").textContent = user.village || "-";
+                document.getElementById("modalTaluk").textContent = user.taluk || "Not set";
+                document.getElementById("modalDistrict").textContent = user.district || "Not set";
+                document.getElementById("modalState").textContent = user.state || "Not set";
+                document.getElementById("modalPincode").textContent = user.pincode || "Not set";
+                document.getElementById("modalPhone").textContent = user.phone || "Not set";
+                
+                document.getElementById("addressModal").style.display = "block";
+            }
+        }
+
+        function closeAddressModal() {
+            document.getElementById("addressModal").style.display = "none";
+            document.getElementById("addressEditForm").style.display = "none";
+            document.getElementById("addressDisplay").style.display = "block";
+        }
+
+        function toggleAddressForm() {
+            const form = document.getElementById("addressEditForm");
+            const display = document.getElementById("addressDisplay");
+            
+            if (form.style.display === "none") {
+                form.style.display = "block";
+                display.style.display = "none";
+            } else {
+                form.style.display = "none";
+                display.style.display = "block";
+            }
+        }
+
+        // Handle address form submission
+        document.getElementById("addressEditForm").addEventListener("submit", async function(e) {
+            e.preventDefault();
+            
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Please login to update address");
+                return;
+            }
+
+            const addressData = {
+                homeAddress1: document.getElementById("editHomeAddress1").value.trim(),
+                homeAddress2: document.getElementById("editHomeAddress2").value.trim(),
+                streetName: document.getElementById("editStreetName").value.trim(),
+                landmark: document.getElementById("editLandmark").value.trim(),
+                village: document.getElementById("editVillage").value.trim(),
+                taluk: document.getElementById("editTaluk").value.trim(),
+                district: document.getElementById("editDistrict").value.trim(),
+                state: document.getElementById("editState").value.trim(),
+                pincode: document.getElementById("editPincode").value.trim(),
+                phone: document.getElementById("editPhone").value.trim(),
+                // Create legacy street field for backward compatibility
+                street: document.getElementById("editHomeAddress1").value.trim()
+            };
+
+            // Validate required fields
+            if (!addressData.homeAddress1 || !addressData.taluk || !addressData.district || 
+                !addressData.state || !addressData.pincode || !addressData.phone) {
+                alert("Please fill in all required fields (marked with *)");
+                return;
+            }
+
+            // Validate pincode format
+            if (!/^\d{6}$/.test(addressData.pincode)) {
+                alert("Please enter a valid 6-digit pincode");
+                return;
+            }
+
+            // Validate phone format
+            if (!/^\d{10}$/.test(addressData.phone)) {
+                alert("Please enter a valid 10-digit phone number");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API}/users/update-address`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ address: addressData })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Update local storage
+                    const user = JSON.parse(localStorage.getItem("user") || "{}");
+                    Object.assign(user, addressData);
+                    localStorage.setItem("user", JSON.stringify(user));
+                    
+                    // Update display
+                    document.getElementById("modalHomeAddress1").textContent = addressData.homeAddress1;
+                    document.getElementById("modalHomeAddress2").textContent = addressData.homeAddress2 || "-";
+                    document.getElementById("modalStreetName").textContent = addressData.streetName || "-";
+                    document.getElementById("modalLandmark").textContent = addressData.landmark || "-";
+                    document.getElementById("modalVillage").textContent = addressData.village || "-";
+                    document.getElementById("modalTaluk").textContent = addressData.taluk;
+                    document.getElementById("modalDistrict").textContent = addressData.district;
+                    document.getElementById("modalState").textContent = addressData.state;
+                    document.getElementById("modalPincode").textContent = addressData.pincode;
+                    document.getElementById("modalPhone").textContent = addressData.phone;
+                    
+                    // Hide form
+                    document.getElementById("addressEditForm").style.display = "none";
+                    
+                    alert("Address updated successfully!");
+                } else {
+                    throw new Error(data.error || "Failed to update address");
+                }
+            } catch (error) {
+                console.error("Address update error:", error);
+                alert("Error updating address: " + error.message);
+            }
+        });
+
+        async function proceedToBundlePayment() {
+            const token = localStorage.getItem("token");
+            const user = JSON.parse(localStorage.getItem("user") || "null");
+            const deliveryMethod = currentBundle?.selectedDeliveryMethod || "courier";
+            const quantity = parseInt(document.getElementById('bundleQuantity').value) || 1;
+
+            if (!currentBundle) {
+                alert("Bundle details not loaded");
+                return;
+            }
+
+            if (!token || !user) {
+                alert("Please login to continue");
+                return;
+            }
+
+            // For courier delivery, validate address
+            if (deliveryMethod === "courier") {
+                // Check both new and legacy address fields
+                const hasAddress = (user.homeAddress1 || user.street) && user.taluk && user.district && user.state && user.pincode && user.phone;
+                if (!hasAddress) {
+                    alert("Complete delivery address is required for courier delivery. Please update your address.");
+                    return;
+                }
+            }
+
+            // Close address modal if open
+            closeAddressModal();
+
+            // Calculate pricing based on delivery method and quantity
+            const bundleWeight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * quantity;
+            const itemsTotal = currentBundle.bundlePrice * quantity;
+            let courierCharge = 0;
+            let totalAmount = itemsTotal;
+            let confirmMsg = "";
+
+            if (deliveryMethod === "pickup") {
+                confirmMsg = `Order Summary (Book-stall Pickup):\n\nBundle: ${currentBundle.name}\nQuantity: ${quantity}\nPrice: ₹${itemsTotal.toFixed(2)}\nDelivery: Pickup at store (FREE)\n\nTotal Amount: ₹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
+            } else {
+                // Use bundle's courier charge if set, otherwise calculate from weight
+                if (currentBundle.courierCharge !== undefined && currentBundle.courierCharge !== null) {
+                    courierCharge = parseFloat(currentBundle.courierCharge) * quantity;
+                    console.log('Using bundle courier charge for payment:', courierCharge);
+                } else {
+                    courierCharge = calculateCourierCharge(bundleWeight);
+                    console.log('Calculated courier charge for payment:', courierCharge);
+                }
+                totalAmount = itemsTotal + courierCharge;
+                confirmMsg = `Order Summary (Courier Delivery):\n\nBundle: ${currentBundle.name}\nQuantity: ${quantity}\nPrice: ₹${itemsTotal.toFixed(2)}\nWeight: ${bundleWeight.toFixed(2)} kg\nCourier Charge: ₹${courierCharge.toFixed(2)}\n\nTotal Amount: ₹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
+            }
+            
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+
+            const items = [{
+                id: currentBundle._id,
+                title: currentBundle.name,
+                price: currentBundle.bundlePrice,
+                quantity: quantity,
+                coverImage: currentBundle.image,
+                type: 'bundle',
+                weight: bundleWeight / quantity, // per unit weight
+                books: currentBundle.books
+            }];
+
+            // Prepare delivery address for courier
+            let deliveryAddress = null;
+            if (deliveryMethod === "courier") {
+                deliveryAddress = {
+                    homeAddress1: user.homeAddress1 || user.street || "",
+                    homeAddress2: user.homeAddress2 || "",
+                    streetName: user.streetName || "",
+                    landmark: user.landmark || "",
+                    village: user.village || "",
+                    taluk: user.taluk,
+                    district: user.district,
+                    state: user.state,
+                    pincode: user.pincode,
+                    phone: user.phone,
+                    // Legacy field for backward compatibility
+                    street: user.homeAddress1 || user.street || ""
+                };
+            }
+
+            try {
+                // Create backend Razorpay order with delivery method
+                const orderRes = await fetch(`${API}/payments/create-order`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        amount: totalAmount,
+                        items: items,
+                        deliveryAddress: deliveryAddress,
+                        deliveryMethod: deliveryMethod,
+                        courierCharge: courierCharge,
+                        totalWeight: bundleWeight
+                    })
+                });
+
+                const orderData = await orderRes.json();
+
+                if (!orderRes.ok || !orderData.order) {
+                    throw new Error(orderData.error || "Failed to create order");
+                }
+
+                // Razorpay Checkout
+                const RZP_KEY = window.RAZORPAY_KEY || "rzp_live_RqJ96DOclW0PuU";
+                
+                const options = {
+                    key: RZP_KEY,
+                    amount: orderData.order.amount,
+                    currency: "INR",
+                    name: "Shree Mata",
+                    description: `Bundle: ${currentBundle.name}`,
+                    order_id: orderData.order.id,
+                    handler: async function(response) {
+                        try {
+                            // Verify payment on backend
+                            const verifyRes = await fetch(`${API}/payments/verify`, {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature
+                                })
+                            });
+
+                            const verifyData = await verifyRes.json();
+
+                            if (verifyRes.ok && verifyData.success) {
+                                // Show success popup with order details
+                                const orderData = {
+                                    orderId: response.razorpay_payment_id,
+                                    items: 1,
+                                    amount: totalAmount,
+                                    deliveryMethod: deliveryMethod === 'pickup' ? 'Store Pickup' : 'Courier Delivery',
+                                    paymentMethod: 'Online Payment'
+                                };
+                                
+                                showSuccessPopup(orderData);
+                            } else {
+                                throw new Error(verifyData.error || "Payment verification failed");
+                            }
+                        } catch (err) {
+                            console.error("Payment verification error:", err);
+                            alert("Payment verification failed. Please contact support.");
+                        }
+                    },
+                    prefill: {
+                        name: user.name,
+                        email: user.email,
+                        contact: user.phone || ""
+                    },
+                    theme: {
+                        color: "#667eea"
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.open();
+
+            } catch (err) {
+                console.error("Payment error:", err);
+                alert("Error processing payment: " + err.message);
+            }
+        }
+
+        function addToCartOnly(deliveryMethod = "courier") {
+            if (!currentBundle) return;
+
+            // Check stock status before adding to cart
+            const outOfStockBooks = currentBundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'out_of_stock'
+            );
+            
+            if (outOfStockBooks.length > 0) {
+                alert(`❌ This bundle cannot be added to cart because some books are out of stock:\n${outOfStockBooks.map(book => book.title).join(', ')}`);
+                return;
+            }
+
+            const quantity = parseInt(document.getElementById('bundleQuantity').value) || 1;
+            
+            // Check if requested quantity is available for limited stock books
+            const limitedStockBooks = currentBundle.books.filter(book => 
+                book.trackStock && book.stockStatus === 'limited_stock'
+            );
+            
+            if (limitedStockBooks.length > 0) {
+                const minStock = Math.min(...limitedStockBooks.map(book => book.stockQuantity || 0));
+                if (quantity > minStock) {
+                    alert(`❌ Only ${minStock} bundles are available. Please reduce the quantity.`);
+                    return;
+                }
+            }
+            
+            let cart = getCart();
+
+            // Check if bundle with same delivery method already exists
+            const existingItemIndex = cart.findIndex(item => 
+                item.bundleId === currentBundle._id && item.deliveryMethod === deliveryMethod
+            );
+
+            if (existingItemIndex !== -1) {
+                // Check if increasing quantity would exceed stock for limited stock books
+                const newQuantity = cart[existingItemIndex].quantity + quantity;
+                if (limitedStockBooks.length > 0) {
+                    const minStock = Math.min(...limitedStockBooks.map(book => book.stockQuantity || 0));
+                    if (newQuantity > minStock) {
+                        alert(`❌ Cannot add more. Only ${minStock} bundles are available and you already have ${cart[existingItemIndex].quantity} in cart.`);
+                        return;
+                    }
+                }
+                
+                // If stock check passes, increase quantity by selected amount
+                cart[existingItemIndex].quantity = newQuantity;
+                
+                // Recalculate pricing for updated quantity
+                const weight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * cart[existingItemIndex].quantity;
+                const courierCharge = deliveryMethod === "courier" ? calculateCourierCharge(weight) : 0;
+                const totalPrice = (currentBundle.bundlePrice * cart[existingItemIndex].quantity) + courierCharge;
+                
+                cart[existingItemIndex].price = totalPrice;
+                cart[existingItemIndex].courierCharge = courierCharge;
+                cart[existingItemIndex].weight = weight;
+                
+                saveCart(cart);
+                alert(`${quantity}x Bundle quantity updated in cart!`);
+                return;
+            }
+
+            // Calculate pricing based on delivery method and quantity
+            const basePrice = currentBundle.bundlePrice * quantity;
+            const weight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * quantity;
+            const courierCharge = deliveryMethod === "courier" ? calculateCourierCharge(weight) : 0;
+            const totalPrice = basePrice + courierCharge;
+
+            // Add bundle to cart
+            cart.push({
+                bundleId: currentBundle._id,
+                isBundle: true,
+                title: currentBundle.name,
+                price: totalPrice,
+                basePrice: basePrice,
+                courierCharge: courierCharge,
+                originalPrice: currentBundle.originalPrice * quantity,
+                books: currentBundle.books,
+                quantity: quantity,
+                weight: weight,
+                deliveryMethod: deliveryMethod,
+                coverImage: currentBundle.image || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="250" height="300"%3E%3Crect fill="%23ddd" width="250" height="300"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="20" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EBundle%3C/text%3E%3C/svg%3E'
+            });
+
+            saveCart(cart);
+            alert(`${quantity}x Bundle "${currentBundle.name}" added to cart!`);
+        }
+
+        function showError() {
+            document.getElementById("loadingSpinner").style.display = "none";
+            document.getElementById("errorState").style.display = "block";
+        }
+
+        // Quantity selector functions
+        function increaseQuantity() {
+            const quantityInput = document.getElementById('bundleQuantity');
+            let currentQuantity = parseInt(quantityInput.value);
+            if (currentQuantity < 10) {
+                quantityInput.value = currentQuantity + 1;
+                updateBundlePrices();
+            }
+        }
+
+        function decreaseQuantity() {
+            const quantityInput = document.getElementById('bundleQuantity');
+            let currentQuantity = parseInt(quantityInput.value);
+            if (currentQuantity > 1) {
+                quantityInput.value = currentQuantity - 1;
+                updateBundlePrices();
+            }
+        }
+
+        async function updateBundlePrices() {
+            if (!currentBundle) return;
+            
+            const quantity = parseInt(document.getElementById('bundleQuantity').value) || 1;
+            
+            // Calculate pricing with quantity
+            const basePrice = currentBundle.bundlePrice * quantity;
+            const weight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * quantity;
+            
+            // Calculate courier charge (async)
+            let courierCharge = 0;
+            try {
+                courierCharge = await calculateCourierCharge(weight);
+                // Ensure courierCharge is a valid number
+                courierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
+            } catch (error) {
+                console.error('Error calculating courier charge:', error);
+                courierCharge = 0;
+            }
+            
+            // Update pickup price (base price only)
+            document.getElementById("bundlePickupPrice").textContent = basePrice.toFixed(2);
+            
+            // Update courier price (base price + courier charge)
+            const courierTotalPrice = basePrice + courierCharge;
+            document.getElementById("bundleCourierPrice").textContent = courierTotalPrice.toFixed(2);
+            
+            // Update original price and savings
+            const originalPrice = currentBundle.originalPrice * quantity;
+            document.getElementById("originalPrice").textContent = originalPrice.toFixed(2);
+            document.getElementById("savings").textContent = (originalPrice - basePrice).toFixed(2);
+            
+            // Update weight and courier charge display
+            document.getElementById("bundleWeight").textContent = `${weight.toFixed(2)} kg`;
+            document.getElementById("bundleCourierCharge").textContent = `₹${courierCharge.toFixed(2)}`;
+        }
+
+        // Bundle Cheque Payment Functions
+        function redirectToBundleChequePaymentForm() {
+            const bundleId = new URLSearchParams(window.location.search).get("id");
+            const deliveryMethod = window.selectedDeliveryMethod || "courier";
+            const quantity = parseInt(document.getElementById("bundleQuantity").value) || 1;
+            
+            if (!currentBundle) {
+                alert("Bundle data not loaded. Please refresh the page and try again.");
+                return;
+            }
+            
+            // Calculate total amount using correct bundle properties
+            const basePrice = parseFloat(currentBundle.bundlePrice) * quantity;
+            const weight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * quantity;
+            
+            console.log('Bundle Cheque Payment:', { bundleId, basePrice, weight, quantity });
+            
+            // Create order in pending state first
+            createBundlePendingOrder('cheque', deliveryMethod, basePrice, weight, bundleId, quantity);
+        }
+
+        function redirectToBundleAccountTransferForm() {
+            const bundleId = new URLSearchParams(window.location.search).get("id");
+            const deliveryMethod = window.selectedDeliveryMethod || "courier";
+            const quantity = parseInt(document.getElementById("bundleQuantity").value) || 1;
+            
+            if (!currentBundle) {
+                alert("Bundle data not loaded. Please refresh the page and try again.");
+                return;
+            }
+            
+            // Calculate total amount using correct bundle properties
+            const basePrice = parseFloat(currentBundle.bundlePrice) * quantity;
+            const weight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * quantity;
+            
+            console.log('Bundle Transfer Payment:', { bundleId, basePrice, weight, quantity });
+            
+            // Create order in pending state first
+            createBundlePendingOrder('transfer', deliveryMethod, basePrice, weight, bundleId, quantity);
+        }
+
+        async function createBundlePendingOrder(paymentType, deliveryMethod, basePrice, weight, bundleId, quantity) {
+            const token = localStorage.getItem("token");
+            const user = JSON.parse(localStorage.getItem("user") || "null");
+            
+            // Validate inputs
+            if (!basePrice || isNaN(basePrice) || basePrice <= 0) {
+                alert("Error: Invalid bundle price. Please refresh the page and try again.");
+                console.error('Invalid basePrice:', basePrice);
+                return;
+            }
+            
+            if (!bundleId) {
+                alert("Error: Bundle ID not found. Please refresh the page and try again.");
+                return;
+            }
+            
+            console.log('Creating bundle pending order:', {
+                bundleId,
+                quantity,
+                deliveryMethod,
+                paymentType,
+                basePrice,
+                weight
+            });
+            
+            try {
+                // Calculate courier charge if needed
+                let courierCharge = 0;
+                if (deliveryMethod === "courier") {
+                    // Use bundle's courier charge if set, otherwise calculate from weight
+                    if (currentBundle && currentBundle.courierCharge !== undefined && currentBundle.courierCharge !== null) {
+                        courierCharge = parseFloat(currentBundle.courierCharge) * quantity;
+                        console.log('Using bundle courier charge:', courierCharge);
+                    } else {
+                        courierCharge = await calculateCourierCharge(weight);
+                        courierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
+                        console.log('Calculated courier charge from weight:', courierCharge);
+                    }
+                }
+                
+                const totalAmount = basePrice + courierCharge;
+                
+                const requestData = {
+                    bookId: bundleId, // Using bookId field for bundle ID
+                    quantity: quantity,
+                    deliveryMethod: deliveryMethod,
+                    paymentType: paymentType, // 'cheque' or 'transfer'
+                    basePrice: basePrice,
+                    courierCharge: courierCharge,
+                    totalAmount: totalAmount,
+                    itemType: 'bundle' // Indicate this is a bundle order
+                };
+                
+                console.log('Sending bundle order request:', requestData);
+                
+                // Create pending order for bundle
+                const orderRes = await fetch(`${API}/orders/create-pending`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const orderData = await orderRes.json();
+
+                if (!orderRes.ok) {
+                    console.error('Server response:', orderRes.status, orderData);
+                    throw new Error(orderData.error || `Server error: ${orderRes.status}`);
+                }
+
+                // Show confirmation and redirect to upload page
+                alert(`Bundle order created! Order ID: ${orderData.orderId}\n\nYou will now be redirected to upload payment details.`);
+                
+                // Redirect to payment upload page with order details
+                window.location.href = `/payment-upload.html?orderId=${orderData.orderId}&amount=${totalAmount}&type=${paymentType}`;
+
+            } catch (err) {
+                console.error("Error creating pending bundle order:", err);
+                alert("Error creating order: " + err.message + "\n\nPlease try again or contact support.");
+            }
+        }
+
+        // Courier charge calculation function using local shipping calculator
+        async function calculateCourierCharge(weight) {
+            try {
+                // Use the global shipping calculator if available
+                if (window.shippingCalculator) {
+                    const shippingResult = window.shippingCalculator.calculateShipping(weight, 0);
+                    return shippingResult.cost || 0;
+                }
+                
+                // Fallback calculation if shipping calculator not available
+                const baseCharge = 50;
+                const ratePerKg = 25;
+                return baseCharge + (weight * ratePerKg);
+            } catch (error) {
+                console.error('Error calculating courier charge:', error);
+                // Fallback calculation
+                const baseCharge = 50;
+                const ratePerKg = 25;
+                return baseCharge + (weight * ratePerKg);
+            }
+        }
+
+        // Navigate to individual book page
+        function navigateToBook(bookId) {
+            if (!bookId) {
+                console.error('Book ID is required for navigation');
+                return;
+            }
+            
+            // Add a subtle loading feedback
+            const clickedBook = event.target.closest('.book-item');
+            if (clickedBook) {
+                clickedBook.style.opacity = '0.7';
+                clickedBook.style.transform = 'scale(0.98)';
+            }
+            
+            // Navigate to the book page with the book ID and fromBundle parameter
+            window.location.href = `/book.html?id=${bookId}&fromBundle=true`;
+        }
+
+        // New functions for handling addresses
+        async function handleBundlePurchaseWithAddresses(deliveryMethod = "courier") {
+            const token = localStorage.getItem("token");
+            const user = JSON.parse(localStorage.getItem("user") || "null");
+
+            if (!token || !user) {
+                alert("Please login to continue");
+                return;
+            }
+
+            if (!currentBundle) {
+                alert("Bundle details not loaded");
+                return;
+            }
+
+            if (!window.billingAddress) {
+                alert("Billing address not collected. Please try again.");
+                return;
+            }
+
+            const quantity = parseInt(document.getElementById('bundleQuantity').value) || 1;
+
+            // Calculate pricing based on delivery method and quantity
+            const bundleWeight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * quantity;
+            const itemsTotal = currentBundle.bundlePrice * quantity;
+            let courierCharge = 0;
+            let totalAmount = itemsTotal;
+
+            if (deliveryMethod === "courier") {
+                // Use bundle's courier charge if set, otherwise calculate from weight
+                if (currentBundle.courierCharge !== undefined && currentBundle.courierCharge !== null) {
+                    courierCharge = parseFloat(currentBundle.courierCharge) * quantity;
+                } else {
+                    courierCharge = await calculateCourierCharge(bundleWeight);
+                    courierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
+                }
+                totalAmount = itemsTotal + courierCharge;
+            }
+
+            const items = [{
+                id: currentBundle._id,
+                title: currentBundle.name,
+                price: currentBundle.bundlePrice,
+                quantity: quantity,
+                coverImage: currentBundle.image,
+                type: 'bundle',
+                weight: bundleWeight / quantity,
+                books: currentBundle.books
+            }];
+
+            // Prepare delivery address for courier (use delivery address if provided, otherwise billing)
+            let deliveryAddress = null;
+            if (deliveryMethod === "courier") {
+                const addressToUse = window.deliveryAddress || window.billingAddress;
+                deliveryAddress = {
+                    homeAddress1: addressToUse.address1,
+                    homeAddress2: addressToUse.address2,
+                    streetName: "",
+                    landmark: "",
+                    village: "",
+                    taluk: addressToUse.taluk,
+                    district: addressToUse.district,
+                    state: addressToUse.state,
+                    pincode: addressToUse.pincode,
+                    phone: addressToUse.phone,
+                    street: addressToUse.address1 // Legacy field
+                };
+            }
+
+            try {
+                // Create backend Razorpay order with addresses
+                const orderRes = await fetch(`${API}/payments/create-order`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        amount: totalAmount,
+                        items: items,
+                        deliveryAddress: deliveryAddress,
+                        billingAddress: window.billingAddress,
+                        deliveryMethod: deliveryMethod,
+                        courierCharge: courierCharge,
+                        totalWeight: bundleWeight
+                    })
+                });
+
+                const orderData = await orderRes.json();
+
+                if (!orderRes.ok || !orderData.order) {
+                    throw new Error(orderData.error || "Failed to create order");
+                }
+
+                // Razorpay Checkout
+                const RZP_KEY = window.RAZORPAY_KEY || "rzp_live_RqJ96DOclW0PuU";
+                
+                const options = {
+                    key: RZP_KEY,
+                    amount: orderData.order.amount,
+                    currency: "INR",
+                    name: "Shree Mata",
+                    description: `Bundle: ${currentBundle.name}`,
+                    order_id: orderData.order.id,
+                    handler: async function(response) {
+                        try {
+                            // Verify payment on backend
+                            const verifyRes = await fetch(`${API}/payments/verify`, {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature
+                                })
+                            });
+
+                            const verifyData = await verifyRes.json();
+
+                            if (verifyRes.ok && verifyData.success) {
+                                // Show success popup with order details
+                                const orderData = {
+                                    orderId: response.razorpay_payment_id,
+                                    items: 1,
+                                    amount: totalAmount,
+                                    deliveryMethod: deliveryMethod === 'pickup' ? 'Store Pickup' : 'Courier Delivery',
+                                    paymentMethod: 'Online Payment'
+                                };
+                                
+                                showSuccessPopup(orderData);
+                            } else {
+                                throw new Error(verifyData.error || "Payment verification failed");
+                            }
+                        } catch (err) {
+                            console.error("Payment verification error:", err);
+                            alert("Payment verification failed. Please contact support.");
+                        }
+                    },
+                    prefill: {
+                        name: window.billingAddress.name,
+                        email: window.billingAddress.email,
+                        contact: window.billingAddress.phone
+                    },
+                    theme: {
+                        color: "#667eea"
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.open();
+
+            } catch (err) {
+                console.error("Payment error:", err);
+                alert("Error processing payment: " + err.message);
+            }
+        }
+
+        function redirectToBundleChequePaymentFormWithAddresses() {
+            const bundleId = new URLSearchParams(window.location.search).get("id");
+            const deliveryMethod = window.selectedDeliveryMethod || "courier";
+            const quantity = parseInt(document.getElementById("bundleQuantity").value) || 1;
+            
+            if (!currentBundle || !window.billingAddress) {
+                alert("Bundle data or billing address not loaded. Please try again.");
+                return;
+            }
+            
+            // Calculate total amount
+            const basePrice = parseFloat(currentBundle.bundlePrice) * quantity;
+            const weight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * quantity;
+            
+            // Create order with addresses
+            createBundlePendingOrderWithAddresses('cheque', deliveryMethod, basePrice, weight, bundleId, quantity);
+        }
+
+        function redirectToBundleAccountTransferFormWithAddresses() {
+            const bundleId = new URLSearchParams(window.location.search).get("id");
+            const deliveryMethod = window.selectedDeliveryMethod || "courier";
+            const quantity = parseInt(document.getElementById("bundleQuantity").value) || 1;
+            
+            if (!currentBundle || !window.billingAddress) {
+                alert("Bundle data or billing address not loaded. Please try again.");
+                return;
+            }
+            
+            // Calculate total amount
+            const basePrice = parseFloat(currentBundle.bundlePrice) * quantity;
+            const weight = (currentBundle.weight || currentBundle.books.reduce((sum, book) => sum + (book.weight || 0.5), 0)) * quantity;
+            
+            // Create order with addresses
+            createBundlePendingOrderWithAddresses('transfer', deliveryMethod, basePrice, weight, bundleId, quantity);
+        }
+
+        async function createBundlePendingOrderWithAddresses(paymentType, deliveryMethod, basePrice, weight, bundleId, quantity) {
+            const token = localStorage.getItem("token");
+            
+            if (!window.billingAddress) {
+                alert("Billing address not collected. Please try again.");
+                return;
+            }
+            
+            try {
+                // Calculate courier charge if needed
+                let courierCharge = 0;
+                if (deliveryMethod === "courier") {
+                    if (currentBundle && currentBundle.courierCharge !== undefined && currentBundle.courierCharge !== null) {
+                        courierCharge = parseFloat(currentBundle.courierCharge) * quantity;
+                    } else {
+                        courierCharge = await calculateCourierCharge(weight);
+                        courierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
+                    }
+                }
+                
+                const totalAmount = basePrice + courierCharge;
+                
+                // Prepare delivery address
+                let deliveryAddress = null;
+                if (deliveryMethod === "courier") {
+                    const addressToUse = window.deliveryAddress || window.billingAddress;
+                    deliveryAddress = {
+                        homeAddress1: addressToUse.address1,
+                        homeAddress2: addressToUse.address2,
+                        taluk: addressToUse.taluk,
+                        district: addressToUse.district,
+                        state: addressToUse.state,
+                        pincode: addressToUse.pincode,
+                        phone: addressToUse.phone,
+                        street: addressToUse.address1
+                    };
+                }
+                
+                const requestData = {
+                    bookId: bundleId,
+                    quantity: quantity,
+                    deliveryMethod: deliveryMethod,
+                    paymentType: paymentType,
+                    basePrice: basePrice,
+                    courierCharge: courierCharge,
+                    totalAmount: totalAmount,
+                    itemType: 'bundle',
+                    billingAddress: window.billingAddress,
+                    deliveryAddress: deliveryAddress
+                };
+                
+                // Create pending order for bundle
+                const orderRes = await fetch(`${API}/orders/create-pending`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const orderData = await orderRes.json();
+
+                if (!orderRes.ok) {
+                    throw new Error(orderData.error || `Server error: ${orderRes.status}`);
+                }
+
+                // Show confirmation and redirect to upload page
+                alert(`Bundle order created! Order ID: ${orderData.orderId}\n\nYou will now be redirected to upload payment details.`);
+                
+                // Redirect to payment upload page with order details
+                window.location.href = `/payment-upload.html?orderId=${orderData.orderId}&amount=${totalAmount}&type=${paymentType}`;
+
+            } catch (err) {
+                console.error("Error creating pending bundle order:", err);
+                alert("Error creating order: " + err.message + "\n\nPlease try again or contact support.");
+            }
+        }
+    </script>
+
+    <!-- Billing Address Collection Modal -->
+    <div id="billingAddressModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 700px; width: 95%; max-height: 90vh; overflow-y: auto; margin: 2% auto;">
+            <div class="modal-header" style="position: sticky; top: 0; z-index: 10; background: white; border-radius: 16px 16px 0 0;">
+                <h3 id="billingModalTitle">📋 Billing & Delivery Details</h3>
+                <span class="close" onclick="closeBillingAddressModal()">&times;</span>
+            </div>
+            <div class="modal-body" style="padding: 25px; padding-top: 10px;">
+                <form id="billingAddressForm">
+                    <!-- Permanent Address (Billing) Section -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 12px; margin-bottom: 25px;">
+                        <h4 style="margin: 0 0 10px 0; font-size: 18px;">🏠 Permanent Address (For Billing)</h4>
+                        <p style="margin: 0; font-size: 14px; opacity: 0.9;">This address will be used for billing and invoice generation</p>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Full Name *</label>
+                            <input type="text" id="billingName" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Full name for billing">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Phone Number *</label>
+                            <input type="tel" id="billingPhone" required pattern="[0-9]{10}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="10-digit phone number">
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">House/Building Address *</label>
+                        <input type="text" id="billingAddress1" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="House number, building name, street">
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Area/Locality (Optional)</label>
+                        <input type="text" id="billingAddress2" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Area, locality, landmark">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Taluk *</label>
+                            <input type="text" id="billingTaluk" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Taluk">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">District *</label>
+                            <input type="text" id="billingDistrict" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="District">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">State *</label>
+                            <input type="text" id="billingState" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="State">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Pincode *</label>
+                            <input type="text" id="billingPincode" required pattern="[0-9]{6}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="6-digit pincode">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Email *</label>
+                            <input type="email" id="billingEmail" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Email for invoice">
+                        </div>
+                    </div>
+                    
+                    <!-- Delivery Address Section (Only for Courier) -->
+                    <div id="deliveryAddressSection" style="display: none;">
+                        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                            <h4 style="margin: 0 0 10px 0; font-size: 18px;">🚚 Delivery Address</h4>
+                            <p style="margin: 0; font-size: 14px; opacity: 0.9;">Where should we deliver your order?</p>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 2px solid #e0e0e0;">
+                                <input type="checkbox" id="usePermanentAddress" onchange="toggleDeliveryAddress()" style="transform: scale(1.2);">
+                                <span style="font-weight: 600; color: #333;">📍 Use permanent address for delivery</span>
+                            </label>
+                        </div>
+                        
+                        <div id="deliveryAddressFields">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery Name *</label>
+                                    <input type="text" id="deliveryName" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Name for delivery">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery Phone *</label>
+                                    <input type="tel" id="deliveryPhone" pattern="[0-9]{10}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="10-digit phone number">
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery Address *</label>
+                                <input type="text" id="deliveryAddress1" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="House number, building name, street">
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Area/Locality (Optional)</label>
+                                <input type="text" id="deliveryAddress2" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Area, locality, landmark">
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Taluk *</label>
+                                    <input type="text" id="deliveryTaluk" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Taluk">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">District *</label>
+                                    <input type="text" id="deliveryDistrict" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="District">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">State *</label>
+                                    <input type="text" id="deliveryState" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="State">
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Pincode *</label>
+                                    <input type="text" id="deliveryPincode" pattern="[0-9]{6}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="6-digit pincode">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sticky Submit Button -->
+                    <div style="position: sticky; bottom: 0; background: white; padding: 20px 0; margin-top: 30px; border-top: 1px solid #e0e0e0;">
+                        <div style="display: flex; gap: 15px;">
+                            <button type="submit" style="flex: 1; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                                💳 Continue to Payment Options
+                            </button>
+                            <button type="button" onclick="closeBillingAddressModal()" style="padding: 15px 25px; background: #6c757d; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Method Selection Modal -->
+    <div id="paymentMethodModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px; width: 90%;">
+            <div class="modal-header">
+                <h3>💳 Select Payment Method</h3>
+                <span class="close" onclick="closePaymentMethodModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div style="display: grid; gap: 20px; margin: 20px 0;">
+                    <button onclick="proceedWithOnlinePayment()" class="payment-method-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 20px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
+                        💳 Online Payment (UPI/Card/Net Banking)
+                        <div style="font-size: 14px; opacity: 0.9; margin-top: 5px;">Instant payment via Razorpay</div>
+                    </button>
+                    
+                    <button onclick="proceedWithChequePayment()" class="payment-method-btn" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; border: none; padding: 20px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
+                        📝 Cheque Payment
+                        <div style="font-size: 14px; opacity: 0.9; margin-top: 5px;">Upload cheque image for verification</div>
+                    </button>
+                    
+                    <button onclick="proceedWithAccountTransfer()" class="payment-method-btn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; padding: 20px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
+                        🏦 Bank Transfer
+                        <div style="font-size: 14px; opacity: 0.9; margin-top: 5px;">Direct bank account transfer</div>
+                    </button>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 14px; color: #666;">
+                    <strong>Note:</strong> For cheque and bank transfer payments, you'll need to upload payment proof and add UTR number later in your account.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .payment-method-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-50px) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .modal-header .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s ease;
+        }
+        
+        .modal-header .close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .modal-body {
+            padding: 25px;
+        }
+    </style>
+</body>
+</html>

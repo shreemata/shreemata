@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Security Answers - Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Security Answers Debug Tool</h1>
+        <p>This tool helps debug why security answers might not be matching.</p>
+        
+        <form id="testForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="answer1">Answer 1:</label>
+                <input type="text" id="answer1" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="answer2">Answer 2:</label>
+                <input type="text" id="answer2" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="answer3">Answer 3:</label>
+                <input type="text" id="answer3" required>
+            </div>
+            
+            <button type="submit">Test Answers</button>
+        </form>
+        
+        <div id="result"></div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const answer1 = document.getElementById('answer1').value;
+            const answer2 = document.getElementById('answer2').value;
+            const answer3 = document.getElementById('answer3').value;
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch(`${API_URL}/password-reset/test-answers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email,
+                        answer1,
+                        answer2,
+                        answer3
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+✅ Test Results:
+
+Questions:
+Q1: ${data.debug.questions.question1}
+Q2: ${data.debug.questions.question2}
+Q3: ${data.debug.questions.question3}
+
+Your Processed Answers:
+A1: "${data.debug.processedAnswers.answer1}"
+A2: "${data.debug.processedAnswers.answer2}"
+A3: "${data.debug.processedAnswers.answer3}"
+
+Verification Results:
+Answer 1: ${data.debug.verification.answer1Match ? '✅ MATCH' : '❌ NO MATCH'}
+Answer 2: ${data.debug.verification.answer2Match ? '✅ MATCH' : '❌ NO MATCH'}
+Answer 3: ${data.debug.verification.answer3Match ? '✅ MATCH' : '❌ NO MATCH'}
+
+Hashed Answers Exist:
+Hash 1: ${data.debug.hashedAnswersExist.answer1 ? '✅ Yes' : '❌ No'}
+Hash 2: ${data.debug.hashedAnswersExist.answer2 ? '✅ Yes' : '❌ No'}
+Hash 3: ${data.debug.hashedAnswersExist.answer3 ? '✅ Yes' : '❌ No'}
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `❌ Error: ${data.error}\n\nDetails: ${data.details || 'No additional details'}`;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ Network Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

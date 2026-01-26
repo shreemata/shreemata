@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Previous Address Feature</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            dressToSave.label);
+                
+            } catch (error) {
+                console.error('❌ Error saving address:', error);
+            }
+        }
+        
+        // Load addresses on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAddresses();
+        });
+    </script>
+</body>
+</html>o beginning of array
+                    savedAddresses.unshift(addressToSave);
+                }
+                
+                // Keep only last 5 addresses
+                if (savedAddresses.length > 5) {
+                    savedAddresses.splice(5);
+                }
+                
+                // Save back to localStorage
+                localStorage.setItem(`savedAddresses_${userId}`, JSON.stringify(savedAddresses));
+                
+                console.log('✅ Address saved for future use:', ady exists
+                const existingIndex = savedAddresses.findIndex(addr => 
+                    addr.address1 === addressData.address1 && 
+                    addr.pincode === addressData.pincode &&
+                    addr.phone === addressData.phone
+                );
+                
+                if (existingIndex >= 0) {
+                    // Update existing address
+                    savedAddresses[existingIndex] = addressToSave;
+                } else {
+                    // Add new address tssData.address1,
+                    address2: addressData.address2 || '',
+                    taluk: addressData.taluk,
+                    district: addressData.district,
+                    state: addressData.state,
+                    pincode: addressData.pincode,
+                    savedAt: new Date().toISOString(),
+                    label: `${addressData.address1}, ${addressData.taluk}` // Short label for display
+                };
+                
+                // Check if similar address alread        if (!userId) return;
+                
+                // Get existing addresses
+                const savedAddresses = JSON.parse(localStorage.getItem(`savedAddresses_${userId}`) || "[]");
+                
+                // Create address object with timestamp
+                const addressToSave = {
+                    id: Date.now().toString(),
+                    type: type,
+                    name: addressData.name,
+                    phone: addressData.phone,
+                    address1: addre= type;
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+        
+        // Copy the functions from cart.js
+        function savePreviousAddress(addressData, type = 'delivery') {
+            try {
+                const user = JSON.parse(localStorage.getItem("user") || "{}");
+                const userId = user.id || user._id;
+                
+        ]");
+            savedAddresses = savedAddresses.filter(addr => addr.id !== addressId);
+            localStorage.setItem(`savedAddresses_${userId}`, JSON.stringify(savedAddresses));
+            
+            showMessage('🗑️ Address deleted', 'success');
+            loadAddresses();
+        }
+        
+        function showMessage(message, type) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className          document.getElementById('testPincode').value = address.pincode;
+                
+                showMessage('✅ Address loaded into form!', 'success');
+            }
+        }
+        
+        function deleteAddress(addressId) {
+            if (!confirm('Delete this address?')) return;
+            
+            const user = JSON.parse(localStorage.getItem("user") || "{}");
+            const userId = user.id;
+            let savedAddresses = JSON.parse(localStorage.getItem(`savedAddresses_${userId}`) || "[ess) {
+                // Fill the test form
+                document.getElementById('testName').value = address.name;
+                document.getElementById('testPhone').value = address.phone;
+                document.getElementById('testAddress').value = address.address1;
+                document.getElementById('testTaluk').value = address.taluk;
+                document.getElementById('testDistrict').value = address.district;
+                document.getElementById('testState').value = address.state;
+       class="btn btn-danger" onclick="deleteAddress('${addr.id}')">Delete</button>
+                </div>
+            `).join('');
+        }
+        
+        function useAddress(addressId) {
+            const user = JSON.parse(localStorage.getItem("user") || "{}");
+            const userId = user.id;
+            const savedAddresses = JSON.parse(localStorage.getItem(`savedAddresses_${userId}`) || "[]");
+            const address = savedAddresses.find(addr => addr.id === addressId);
+            
+            if (addr, index) => `
+                <div class="address-item">
+                    <strong>${addr.name} - ${addr.phone}</strong><br>
+                    ${addr.address1}${addr.address2 ? ', ' + addr.address2 : ''}<br>
+                    ${addr.taluk}, ${addr.district}, ${addr.state} - ${addr.pincode}<br>
+                    <small>Saved: ${new Date(addr.savedAt).toLocaleString()}</small><br>
+                    <button class="btn" onclick="useAddress('${addr.id}')">Use This Address</button>
+                    <button ist').innerHTML = '<p>Please login first</p>';
+                return;
+            }
+            
+            const savedAddresses = JSON.parse(localStorage.getItem(`savedAddresses_${userId}`) || "[]");
+            const addressList = document.getElementById('addressList');
+            
+            if (savedAddresses.length === 0) {
+                addressList.innerHTML = '<p>No saved addresses</p>';
+                return;
+            }
+            
+            addressList.innerHTML = savedAddresses.map((addrlementById('testPincode').value
+            };
+            
+            // Use the same function from cart.js
+            savePreviousAddress(addressData, 'delivery');
+            showMessage('✅ Address saved successfully!', 'success');
+            loadAddresses();
+        }
+        
+        function loadAddresses() {
+            const user = JSON.parse(localStorage.getItem("user") || "{}");
+            const userId = user.id;
+            
+            if (!userId) {
+                document.getElementById('addressL
+            const addressData = {
+                name: document.getElementById('testName').value,
+                phone: document.getElementById('testPhone').value,
+                address1: document.getElementById('testAddress').value,
+                address2: '',
+                taluk: document.getElementById('testTaluk').value,
+                district: document.getElementById('testDistrict').value,
+                state: document.getElementById('testState').value,
+                pincode: document.getE    name: 'Test User',
+                email: 'test@example.com'
+            };
+            localStorage.setItem('user', JSON.stringify(testUser));
+            showMessage('✅ Logged in as Test User', 'success');
+        }
+        
+        function clearData() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('savedAddresses_test123');
+            showMessage('🗑️ All data cleared', 'success');
+            loadAddresses();
+        }
+        
+        function saveTestAddress() {
+        
+        <div>
+            <h3>Saved Addresses</h3>
+            <div id="addressList" class="address-list">
+                <p>No saved addresses</p>
+            </div>
+            <button class="btn" onclick="loadAddresses()">Refresh Address List</button>
+        </div>
+        
+        <div id="messages"></div>
+    </div>
+
+    <script>
+        // Simulate the cart.js functions for testing
+        function simulateLogin() {
+            const testUser = {
+                id: 'test123',
+                        <input type="text" id="testDistrict" value="Bangalore">
+            </div>
+            <div class="form-group">
+                <label>State:</label>
+                <input type="text" id="testState" value="Karnataka">
+            </div>
+            <div class="form-group">
+                <label>Pincode:</label>
+                <input type="text" id="testPincode" value="560001">
+            </div>
+            <button class="btn" onclick="saveTestAddress()">Save Test Address</button>
+        </div>l>
+                <input type="text" id="testPhone" value="9876543210">
+            </div>
+            <div class="form-group">
+                <label>Address:</label>
+                <input type="text" id="testAddress" value="123 Main Street">
+            </div>
+            <div class="form-group">
+                <label>Taluk:</label>
+                <input type="text" id="testTaluk" value="Bangalore North">
+            </div>
+            <div class="form-group">
+                <label>District:</label>
+            <h3>Simulate User Login</h3>
+            <button class="btn" onclick="simulateLogin()">Login as Test User</button>
+            <button class="btn btn-danger" onclick="clearData()">Clear All Data</button>
+        </div>
+        
+        <div>
+            <h3>Add Test Address</h3>
+            <div class="form-group">
+                <label>Name:</label>
+                <input type="text" id="testName" value="John Doe">
+            </div>
+            <div class="form-group">
+                <label>Phone:</labepx 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Previous Address Feature</h1>
+        <p>This page simulates the "Use Previous Address" functionality for testing.</p>
+        
+        <div>
+      .address-list {
+            margin: 20px 0;
+        }
+        .address-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #dee2e6;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background: #5a6fd8;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+      

@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Referral Dashboard - Shree Mata</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .referral-container {
+            max-width: 1200px;
+            margin: 80px auto 40px;
+            padding: 20px;
+        }
+
+        .page-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .page-header h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .page-header p {
+            font-size: 18px;
+            opacity: 0.95;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .stat-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .referral-card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .referral-card h2 {
+            margin: 0 0 20px 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .code-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .code-text {
+            font-size: 32px;
+            font-weight: bold;
+            color: white;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+
+        .link-box {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .link-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #f9f9f9;
+        }
+
+        .copy-btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .withdraw-form {
+            display: grid;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .withdraw-btn {
+            padding: 15px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+        }
+
+        .withdraw-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
+        }
+
+        .tree-btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+        }
+
+        .tree-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .message.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #2e7d32;
+        }
+
+        .message.error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 4px solid #2196f3;
+        }
+
+        .info-box h3 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+
+        .info-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .info-box li {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+
+        .filter-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .page-header h1 {
+                font-size: 32px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-value {
+                font-size: 28px;
+            }
+
+            .code-text {
+                font-size: 24px;
+            }
+
+            .link-box {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <div class="container navbar-content">
+                <div class="logo">
+                    <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                        <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 32px; height: 32px; border-radius: 50%;">
+                        <span>Shree Mata</span>
+                    </a>
+                </div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="/orders.html">My Orders</a>
+                    <span id="userName"></span>
+                    <a href="account.html">Account</a>
+                    <a href="referral.html" class="active">Referral💰</a>
+                    <a href="cart.html" class="cart-icon">🛒 Cart (<span id="cartCount">0</span>)</a>
+                    <a href="#" id="logoutBtn">Logout</a>
+                    <a href="admin.html" id="adminLink" style="display: none;">Admin</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="referral-container">
+            <div class="page-header">
+                <h1>💰 Referral Dashboard</h1>
+                <p>Earn rewards by referring friends to Shree Mata!</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">💵</div>
+                    <div class="stat-value">₹<span id="wallet">0</span></div>
+                    <div class="stat-label">Wallet Balance</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value"><span id="referralCount">0</span></div>
+                    <div class="stat-label">Total Referrals</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">🌳</div>
+                    <div class="stat-value">L<span id="treeLevel">0</span></div>
+                    <div class="stat-label">Your Tree Level</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-value"><span id="treeChildrenCount">0</span></div>
+                    <div class="stat-label">Tree Children</div>
+                </div>
+            </div>
+
+            <div class="referral-card">
+                <h2>🔗 Your Referral Code</h2>
+                <div class="code-box">
+                    <div class="code-text" id="refCode">Loading...</div>
+                    <p style="color: rgba(255,255,255,0.9); margin: 0;">Share this code with your friends</p>
+                </div>
+            </div>
+
+            <div class="referral-card">
+                <h2>📎 Your Referral Link</h2>
+                <div class="link-box">
+                    <input type="text" id="refLink" class="link-input" readonly>
+                    <button class="copy-btn" onclick="copyLink()">📋 Copy Link</button>
+                </div>
+                <p style="color: #666; margin: 10px 0 0 0; font-size: 14px;">Share this link on social media, WhatsApp, or email to earn rewards!</p>
+            </div>
+
+            <div class="referral-card">
+                <h2>💸 Secure Withdrawal System</h2>
+                
+                <!-- Bank Details Setup (First Time) -->
+                <div id="bankSetupSection" style="display:none;">
+                    <div style="background: #fff3cd; padding: 20px; border-radius: 12px; margin-bottom: 25px; border-left: 4px solid #ffc107;">
+                        <h3 style="margin: 0 0 15px 0; color: #856404; display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 24px;">🔒</span>
+                            One-Time Bank Details Setup
+                        </h3>
+                        <p style="margin: 0; color: #856404; font-size: 15px; line-height: 1.5;">
+                            For maximum security, you can only set your bank details <strong>once</strong>. After setup, you'll only need to enter withdrawal amounts.
+                            If you need to change bank details later, please contact our admin team.
+                        </p>
+                    </div>
+                    
+                    <form id="bankDetailsForm" class="withdraw-form">
+                        <div class="form-group">
+                            <label>Account Holder Name *</label>
+                            <input type="text" id="accountHolderName" required placeholder="Full name as per bank account">
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>Account Number</label>
+                                <input type="text" id="accountNumber" placeholder="Bank account number">
+                            </div>
+                            <div class="form-group">
+                                <label>IFSC Code</label>
+                                <input type="text" id="ifscCode" placeholder="IFSC code" style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Bank Name</label>
+                            <input type="text" id="bankName" placeholder="Bank name">
+                        </div>
+                        
+                        <div style="text-align: center; margin: 20px 0; color: #666; font-weight: bold; font-size: 16px;">
+                            OR
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>UPI ID</label>
+                            <input type="text" id="upiId" placeholder="yourname@paytm / yourname@phonepe">
+                        </div>
+                        
+                        <div style="background: #d1ecf1; padding: 20px; border-radius: 12px; border-left: 4px solid #17a2b8; margin: 20px 0;">
+                            <p style="margin: 0; color: #0c5460; font-size: 14px; line-height: 1.5;">
+                                <strong>📝 Note:</strong> Provide either complete bank details (Account Number + IFSC + Bank Name) OR UPI ID. 
+                                Account holder name is mandatory in both cases.
+                            </p>
+                        </div>
+                        
+                        <button type="submit" class="withdraw-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-size: 16px; padding: 18px;">
+                            🔒 Setup Bank Details (One-Time Only)
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Withdrawal Form (After Bank Setup) -->
+                <div id="withdrawalFormSection" style="display:none;">
+                    <!-- Bank Details and Withdrawal Info Side by Side -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
+                        <!-- Bank Details Tile -->
+                        <div style="background: #d4edda; padding: 20px; border-radius: 12px; border-left: 4px solid #28a745;">
+                            <h3 style="margin: 0 0 15px 0; color: #155724; display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 24px;">🔒</span>
+                                Saved Bank Details
+                            </h3>
+                            <div id="maskedBankDetails" style="color: #155724; font-size: 14px; line-height: 1.6;"></div>
+                            <p style="margin: 15px 0 0 0; color: #155724; font-size: 12px;">
+                                <strong>🛡️ Security:</strong> Bank details are locked for your protection. 
+                                <button onclick="openBankChangePopup()" style="background: linear-gradient(135deg, #ffc107 0%, #ff8f00 100%); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-left: 10px;">
+                                    🔄 Request Bank Change
+                                </button>
+                            </p>
+                        </div>
+                        
+                        <!-- Withdrawal Information Tile -->
+                        <div style="background: #e3f2fd; padding: 20px; border-radius: 12px; border-left: 4px solid #2196f3;">
+                            <h3 style="margin: 0 0 15px 0; color: #1976d2; display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 24px;">ℹ️</span>
+                                Withdrawal Information
+                            </h3>
+                            <ul style="margin: 10px 0; padding-left: 20px; color: #1976d2; line-height: 1.6;">
+                                <li>Minimum withdrawal amount: ₹<span id="minWithdrawalInfo">100</span></li>
+                                <li>Processing time: 2-3 business days</li>
+                                <li>Daily limit: ₹<span id="dailyLimitInfo">5,000</span></li>
+                                <li>Monthly limit: ₹<span id="monthlyLimitInfo">50,000</span></li>
+                                <li>Withdrawals are processed to your registered bank details</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Bank Change Request Status -->
+                    <div id="bankChangeStatusDisplay" style="display:none; background: #fff3cd; padding: 20px; border-radius: 12px; margin-bottom: 25px; border-left: 4px solid #ffc107;">
+                        <h3 style="margin: 0 0 15px 0; color: #856404; display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 24px;">⏳</span>
+                            Bank Change Request Status
+                        </h3>
+                        <div id="bankChangeStatusContent"></div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
+                        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">
+                            <div style="font-size: 28px; font-weight: bold;" id="walletBalance">₹0</div>
+                            <div style="font-size: 14px; opacity: 0.9;">Available Balance</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);">
+                            <div style="font-size: 18px; font-weight: bold;" id="minWithdrawal">₹100</div>
+                            <div style="font-size: 14px; opacity: 0.9;">Minimum Withdrawal</div>
+                        </div>
+                    </div>
+                    
+                    <form id="withdrawalForm" class="withdraw-form">
+                        <div class="form-group">
+                            <label>Withdrawal Amount (₹) *</label>
+                            <input type="number" id="withdrawalAmount" required min="100" placeholder="Enter amount to withdraw">
+                            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #666;">
+                                <span>Daily Limit: <span id="dailyLimit">₹5,000</span></span>
+                                <span>Monthly Limit: <span id="monthlyLimit">₹50,000</span></span>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="withdraw-btn" style="font-size: 16px; padding: 18px;">
+                            💰 Submit Withdrawal Request
+                        </button>
+                    </form>
+                    
+                    <div id="withdrawalHistory" style="margin-top: 30px;">
+                        <h3 style="color: #333; margin-bottom: 15px;">📋 Recent Withdrawals</h3>
+                        <div id="withdrawalHistoryList"></div>
+                    </div>
+                </div>
+                
+                <div id="withdrawMsg" class="message"></div>
+            </div>
+
+            <div class="referral-card">
+                <h2>💰 Commission Breakdown</h2>
+                <p style="color: #666; margin-bottom: 20px;">See how your earnings are distributed</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white;">
+                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Direct Commission</div>
+                        <div style="font-size: 28px; font-weight: bold;">₹<span id="directCommission">0</span></div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;"><span id="directPercentage">0</span>% of total</div>
+                    </div>
+                    
+                    <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); padding: 20px; border-radius: 12px; color: white;">
+                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Tree Commission</div>
+                        <div style="font-size: 28px; font-weight: bold;">₹<span id="treeCommission">0</span></div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;"><span id="treePercentage">0</span>% of total</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="referral-card">
+                <h2>🌳 Your Tree Position</h2>
+                <p style="color: #666; margin-bottom: 20px;">Your position in the referral tree structure</p>
+                
+                <div id="treePositionInfo" style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
+                    <div style="display: grid; gap: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border-radius: 8px;">
+                            <span style="color: #666; font-weight: 600;">Tree Level:</span>
+                            <span style="color: #667eea; font-weight: bold; font-size: 18px;">Level <span id="userTreeLevel">0</span></span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border-radius: 8px;">
+                            <span style="color: #666; font-weight: 600;">Tree Parent:</span>
+                            <span id="treeParentInfo" style="color: #333; font-weight: 500;">None</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border-radius: 8px;">
+                            <span style="color: #666; font-weight: 600;">Direct Tree Children:</span>
+                            <span style="color: #28a745; font-weight: bold; font-size: 18px;"><span id="directTreeChildren">0</span> / 5</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="referral-card">
+                <h2>👥 Your Referrals</h2>
+                <p style="color: #666; margin-bottom: 20px;">People who joined using your referral code</p>
+                
+                <div id="referralsLoading" style="text-align: center; padding: 20px; color: #666;">
+                    Loading referrals...
+                </div>
+                
+                <div id="referralsContent" style="display: none;">
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: inline-flex; gap: 10px; margin-bottom: 15px;">
+                            <button onclick="filterReferrals('all')" id="filterAll" class="filter-btn active">All (<span id="countAll">0</span>)</button>
+                            <button onclick="filterReferrals('direct')" id="filterDirect" class="filter-btn">Direct Placement (<span id="countDirect">0</span>)</button>
+                            <button onclick="filterReferrals('spillover')" id="filterSpillover" class="filter-btn">Spillover (<span id="countSpillover">0</span>)</button>
+                        </div>
+                    </div>
+                    
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
+                                    <th style="padding: 12px; text-align: left; font-size: 13px; color: #666;">Name</th>
+                                    <th style="padding: 12px; text-align: left; font-size: 13px; color: #666;">Email</th>
+                                    <th style="padding: 12px; text-align: center; font-size: 13px; color: #666;">Tree Level</th>
+                                    <th style="padding: 12px; text-align: center; font-size: 13px; color: #666;">Placement</th>
+                                    <th style="padding: 12px; text-align: center; font-size: 13px; color: #666;">Joined</th>
+                                </tr>
+                            </thead>
+                            <tbody id="referralsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div id="noReferrals" style="display: none; text-align: center; padding: 40px; color: #999;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">👥</div>
+                        <p>No referrals yet. Start sharing your referral code!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="referral-card" style="text-align: center;">
+                <h2>📊 View Detailed Reports</h2>
+                <p style="color: #666; margin-bottom: 20px;">Access your complete referral network and commission history</p>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <a href="referral-tree.html" class="tree-btn">🌳 View Referral Tree</a>
+                    <a href="commission-history.html" class="tree-btn" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">💰 Commission History</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Bank Change Request Popup Modal -->
+    <div id="bankChangeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+            <h2 style="margin: 0 0 20px 0; color: #333; text-align: center;">🔄 Request Bank Detail Change</h2>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+                <p style="margin: 0; color: #856404; font-size: 14px; line-height: 1.5;">
+                    <strong>⚠️ Important:</strong> Bank detail changes require admin approval for security. 
+                    This process takes 2-3 business days.
+                </p>
+            </div>
+            
+            <form id="bankChangePopupForm">
+                <div style="display: grid; gap: 15px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Account Holder Name *</label>
+                        <input type="text" id="popupAccountHolderName" required placeholder="Full name as per bank account" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box;">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Account Number</label>
+                            <input type="text" id="popupAccountNumber" placeholder="Bank account number" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">IFSC Code</label>
+                            <input type="text" id="popupIfscCode" placeholder="IFSC code" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; text-transform: uppercase; box-sizing: border-box;">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Bank Name</label>
+                        <input type="text" id="popupBankName" placeholder="Bank name" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box;">
+                    </div>
+                    
+                    <div style="text-align: center; margin: 15px 0; color: #666; font-weight: bold;">OR</div>
+                    
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">UPI ID</label>
+                        <input type="text" id="popupUpiId" placeholder="yourname@paytm / yourname@phonepe" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box;">
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Reason for Change *</label>
+                        <textarea id="popupChangeReason" required placeholder="Please provide a detailed reason for changing your bank details (minimum 10 characters)" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; min-height: 80px; resize: vertical; box-sizing: border-box;"></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; margin-top: 20px;">
+                        <button type="submit" style="flex: 1; padding: 15px; background: linear-gradient(135deg, #ffc107 0%, #ff8f00 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px;">
+                            📤 Submit Request
+                        </button>
+                        <button type="button" onclick="closeBankChangePopup()" style="padding: 15px 30px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/referral.js"></script>
+</body>
+</html>

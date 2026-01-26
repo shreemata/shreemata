@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ff6f61">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Sign Up - Shree Mata</title>
+
+    <!-- You can keep this if other pages use it, but not required for this design -->
+    <!-- <link rel="stylesheet" href="css/styles.css"> -->
+
+    <style>
+        /* ---------- Page Background ---------- */
+        body {
+            margin: 0;
+            font-family: "Poppins", sans-serif;
+            background: linear-gradient(135deg, #f7ede2, #f5cac3);
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #333;
+        }
+
+        /* Decorative Book Illustration */
+        .books-bg {
+            background-image: url("https://cdn-icons-png.flaticon.com/512/3145/3145765.png");
+            background-size: 300px;
+            background-repeat: no-repeat;
+            opacity: 0.08;
+            position: absolute;
+            top: 20%;
+            right: 5%;
+            width: 300px;
+            height: 300px;
+            pointer-events: none;
+        }
+
+        /* ---------- Generic Container ---------- */
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* ---------- Navbar ---------- */
+        .navbar {
+            background: #fff;
+            padding: 15px 0;
+            box-shadow: 0px 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo a {
+            text-decoration: none;
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff6f61, #ff9800);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            padding: 8px 12px;
+            border-radius: 12px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .logo a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 111, 97, 0.1), rgba(255, 152, 0, 0.1));
+            border-radius: 12px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: -1;
+        }
+
+        .logo a:hover::before {
+            opacity: 1;
+        }
+
+        .logo a:hover {
+            transform: translateY(-2px);
+        }
+
+        .nav-links a {
+            margin-left: 20px;
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* ---------- Auth Layout ---------- */
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 0 50px;
+        }
+
+        .auth-box {
+            width: 100%;
+            max-width: 480px;
+            padding: 34px 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.65);
+            box-shadow: 0 8px 26px rgba(0,0,0,0.12);
+            animation: fadeIn 0.9s ease;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 11px;
+            font-weight: 600;
+            color: #ff6f61;
+            margin-bottom: 8px;
+        }
+
+        .badge span {
+            font-size: 14px;
+        }
+
+        .auth-box h1 {
+            text-align: center;
+            margin: 6px 0 6px;
+            color: #333;
+            font-size: 26px;
+        }
+
+        .auth-subtitle {
+            text-align: center;
+            margin-bottom: 18px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Small progress / steps indicator */
+        .steps {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+
+        .step-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #ffe0da;
+        }
+
+        .step-dot.active {
+            background: #ff6f61;
+        }
+
+        /* ---------- Form Styling ---------- */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
+        input {
+            width: 100%;
+            padding: 11px 12px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            outline: none;
+            transition: 0.3s;
+            font-size: 14px;
+        }
+
+        input:focus {
+            border-color: #ff6f61;
+            box-shadow: 0 0 6px rgba(255,111,97,0.35);
+        }
+
+        /* ---------- Button ---------- */
+        .btn-primary {
+            background: #ff6f61;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #ff3f34;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(255,63,52,0.35);
+        }
+
+        .btn-large {
+            font-size: 16px;
+        }
+
+        .error-message {
+            color: #d90429;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+
+        .auth-footer a {
+            color: #ff6f61;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ---------- Footer ---------- */
+        footer {
+            text-align: center;
+            margin-top: 10px;
+            color: #444;
+            font-size: 13px;
+            padding-bottom: 16px;
+        }
+
+        /* Fade-in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive tweaks */
+        @media (max-width: 600px) {
+            .auth-box {
+                padding: 26px 20px;
+            }
+        }
+
+        #phoneStatus.success {
+    color: #2b9348;
+    font-weight: 600;
+    background-color: #eafaf1;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border-left: 3px solid #2b9348;
+}
+
+#phoneStatus.error {
+    color: #d90429;
+    font-weight: 600;
+    background-color: #ffeaea;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border-left: 3px solid #d90429;
+}
+
+#emailStatus.success, #otpStatus.success {
+    color: #2b9348;
+    font-weight: 600;
+    background-color: #eafaf1;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border-left: 3px solid #2b9348;
+}
+
+#emailStatus.error, #otpStatus.error {
+    color: #d90429;
+    font-weight: 600;
+    background-color: #ffeaea;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border-left: 3px solid #d90429;
+}
+
+#emailStatus.info, #otpStatus.info {
+    color: #0c5460;
+    font-weight: 600;
+    background-color: #d1ecf1;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border-left: 3px solid #bee5eb;
+}
+
+    </style>
+</head>
+<body>
+    <!-- Decorative Book Background -->
+    <div class="books-bg"></div>
+
+    <header>
+        <div class="navbar">
+            <div class="container navbar-content">
+                <div class="logo">
+                    <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                        <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 32px; height: 32px; border-radius: 50%;">
+                        <span>Shree Mata</span>
+                    </a>
+                </div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="login.html">Login</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="auth-container">
+                <div class="auth-box">
+                    <div class="badge">
+                        ⭐ New here? <span>Create your free account</span>
+                    </div>
+
+                    <div style="text-align: center; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center;">
+                        <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                        <h1 style="margin: 0; font-size: 24px;">Create Account</h1>
+                    </div>
+                    <p class="auth-subtitle">Join Shree Mata to start your reading journey</p>
+
+                    <div class="steps">
+                        <div class="step-dot active"></div>
+                        <div class="step-dot"></div>
+                        <div class="step-dot"></div>
+                    </div>
+
+                    <form id="signupForm">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" name="name" required placeholder="Enter your full name">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" required placeholder="Enter your email">
+                            <button type="button" id="verifyEmailBtn" class="btn-primary" style="margin-top: 8px; padding: 8px 16px; font-size: 13px; display: none;">
+                                Verify Email
+                            </button>
+                            <div id="emailStatus" style="margin-top: 5px; font-size: 13px;"></div>
+                        </div>
+
+                        <!-- Email OTP Verification Section -->
+                        <div id="emailOtpSection" class="form-group" style="display: none; background: #f0f8ff; padding: 15px; border-radius: 8px; border-left: 4px solid #2196F3;">
+                            <label for="emailOtp">Email Verification Code</label>
+                            <input type="text" id="emailOtp" name="emailOtp" placeholder="Enter 6-digit code sent to your email" maxlength="6" pattern="[0-9]{6}">
+                            <button type="button" id="verifyOtpBtn" class="btn-primary" style="margin-top: 8px; padding: 8px 16px; font-size: 13px;">
+                                Verify Code
+                            </button>
+                            <button type="button" id="resendOtpBtn" class="btn-primary" style="margin-top: 8px; margin-left: 8px; padding: 8px 16px; font-size: 13px; background: #6c757d;">
+                                Resend Code
+                            </button>
+                            <div id="otpStatus" style="margin-top: 5px; font-size: 13px;"></div>
+                        </div>
+
+                        <!-- Phone Number (no OTP) -->
+                        <div class="form-group">
+                            <label for="phone">Mobile Number</label>
+                            <input type="text" id="phone" name="phone" placeholder="Enter 10-digit mobile number" required maxlength="10" pattern="[6-9][0-9]{9}">
+                            <div id="phoneStatus" style="margin-top: 5px; font-size: 13px;"></div>
+                        </div>
+
+
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" required placeholder="Enter your password (min 6 characters)">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm Password</label>
+                            <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Confirm your password">
+                        </div>
+
+
+
+                        <!-- Referral Code (optional) -->
+                        <div class="form-group">
+                            <label for="referralInput">Referral Code (optional)</label>
+                            <input type="text" id="referralInput" name="referralInput" placeholder="Enter referral code (optional)">
+                        </div>
+
+                        <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+                        <button type="submit" class="btn-primary btn-large" id="signupBtn">
+                            Create Account
+                        </button>
+                    </form>
+
+                    <p class="auth-footer">
+                        Already have an account? <a href="login.html">Login here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Keep your JS for API/validation logic -->
+    <script src="js/config.js"></script>   
+    <script src="js/signup.js"></script>
+</body>
+</html>

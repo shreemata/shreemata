@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Admin Panel - Shree Mata</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        nav { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            padding: 15px 0; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            z-index: 100;
+            max-height: 160px;
+        }
+        nav .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 0 20px; 
+        }
+        nav h1 { 
+            color: white; 
+            margin: 0 0 10px 0; 
+            font-size: 20px; 
+            text-align: center; 
+        }
+        nav .nav-content { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            width: 100%; 
+        }
+        nav .user-info { 
+            color: white; 
+            margin-bottom: 10px; 
+            font-weight: 500; 
+            font-size: 14px;
+        }
+        nav .nav-grid { 
+            display: grid; 
+            grid-template-columns: repeat(8, 1fr); 
+            gap: 4px; 
+            width: 100%; 
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        nav a { 
+            color: white; 
+            text-decoration: none; 
+            padding: 6px 4px; 
+            border-radius: 4px; 
+            transition: all 0.3s ease; 
+            font-weight: 500; 
+            text-align: center;
+            font-size: 11px;
+            white-space: nowrap;
+            display: block;
+            min-height: 30px;
+            line-height: 30px;
+        }
+        nav a:hover, nav a.active { 
+            background: rgba(255,255,255,0.2); 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .main-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 180px;
+        }
+        .admin-section {
+            margin: 30px 0;
+        }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .admin-header h2 {
+            margin: 0;
+            color: #333;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+        }
+        .btn-secondary:hover {
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+        }
+        .admin-form {
+            background: #f9f9f9;
+            padding: 25px;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+            margin-top: 20px;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        .form-group small a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .form-group small a:hover {
+            text-decoration: underline;
+        }
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .admin-filter-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        .admin-filter-row label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        .admin-filter-row input, .admin-filter-row select {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .admin-filter-row input:focus, .admin-filter-row select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .admin-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .admin-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .admin-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .admin-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+        .admin-table img {
+            width: 60px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .admin-table button {
+            padding: 6px 12px;
+            margin: 0 3px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .admin-table button:hover {
+            transform: translateY(-1px);
+        }
+        .edit-btn {
+            background: #4CAF50;
+            color: white;
+        }
+        .delete-btn {
+            background: #f44336;
+            color: white;
+        }
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 4px solid #c62828;
+        }
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 4px solid #2e7d32;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 16px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 16px;
+        }
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 60px;
+        }
+
+        /* Mobile Books Card Layout */
+        .mobile-books {
+            display: none;
+        }
+        
+        .mobile-book-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .mobile-book-header {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .mobile-book-cover {
+            width: 80px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+        
+        .mobile-book-info {
+            flex: 1;
+        }
+        
+        .mobile-book-info h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .mobile-book-info p {
+            margin: 3px 0;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .mobile-book-price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+            margin-top: 8px;
+        }
+        
+        .mobile-book-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .mobile-book-actions button {
+            flex: 1;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            nav .container {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            nav h1 {
+                font-size: 20px;
+            }
+            
+            nav div {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            nav a {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .main-container {
+                padding: 15px;
+                margin-top: 160px;
+            }
+            
+            .admin-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch !important;
+            }
+            
+            .admin-header h2 {
+                font-size: 18px;
+            }
+            
+            .btn {
+                width: 100%;
+                padding: 10px 20px;
+            }
+            
+            /* Hide table on mobile, show cards */
+            .admin-table {
+                display: none !important;
+            }
+            
+            .mobile-books {
+                display: block !important;
+            }
+            
+            .admin-filter-row {
+                flex-direction: column;
+                align-items: stretch !important;
+            }
+            
+            .admin-filter-row input,
+            .admin-filter-row select {
+                width: 100%;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Modal adjustments */
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+                margin: 20px auto;
+            }
+            
+            .modal-content h2 {
+                font-size: 18px;
+            }
+            
+            .form-group input,
+            .form-group textarea,
+            .form-group select {
+                font-size: 16px !important; /* Prevents zoom on iOS */
+            }
+            
+            .modal-content form > div:last-child {
+                flex-direction: column !important;
+            }
+            
+            .modal-content form > div:last-child button {
+                width: 100%;
+            }
+
+            /* Mobile responsive navigation */
+            nav .nav-grid { 
+                grid-template-columns: repeat(3, 1fr) !important; 
+                gap: 6px; 
+                max-width: 600px;
+            }
+            nav a { 
+                padding: 6px 4px; 
+                font-size: 10px; 
+                min-height: 40px;
+            }
+            .main-container { 
+                margin-top: 240px; 
+                padding: 20px; 
+            }
+            
+            /* Enhanced mobile navigation */
+            nav .container {
+                padding: 15px 10px;
+                position: relative;
+            }
+
+            /* Mobile menu toggle button */
+            .mobile-menu-toggle {
+                display: none;
+                background: rgba(255, 255, 255, 0.2);
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                color: white;
+                padding: 10px 15px;
+                border-radius: 8px;
+                font-size: 16px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                align-self: flex-end;
+            }
+
+            .mobile-menu-toggle:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+
+            /* Navigation links container */
+            nav .container > div:last-child {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+                transition: all 0.3s ease;
+            }
+
+            nav a {
+                padding: 8px 12px;
+                font-size: 12px;
+                min-width: auto;
+                white-space: nowrap;
+            }
+
+            /* Mobile dropdown menu */
+            @media (max-width: 768px) {
+                .mobile-menu-toggle {
+                    display: block;
+                }
+
+                nav .container > div:last-child {
+                    position: absolute;
+                    top: 100%;
+                    left: 10px;
+                    right: 10px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    border-radius: 12px;
+                    padding: 20px;
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+                    flex-direction: column;
+                    gap: 12px;
+                    max-height: 0;
+                    overflow: hidden;
+                    opacity: 0;
+                    transform: translateY(-10px);
+                    z-index: 1000;
+                }
+
+                nav .container > div:last-child.mobile-menu-open {
+                    max-height: 500px;
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+
+                nav a {
+                    padding: 12px 16px;
+                    font-size: 14px;
+                    border-radius: 8px;
+                    transition: all 0.3s ease;
+                    text-align: center;
+                }
+
+                nav a:hover, nav a.active {
+                    background: rgba(255, 255, 255, 0.2);
+                    transform: translateX(5px);
+                }
+
+                #userName {
+                    text-align: center;
+                    padding: 10px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 8px;
+                    margin-bottom: 10px;
+                }
+            }
+
+            /* Main content adjustments */
+            main {
+                padding: 20px 10px;
+            }
+
+            .admin-header {
+                padding: 20px 15px;
+                text-align: center;
+            }
+
+            .admin-header h1 {
+                font-size: 24px;
+            }
+
+            .admin-header p {
+                font-size: 14px;
+            }
+
+            /* Stats grid mobile */
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .stat-card {
+                padding: 20px 15px;
+            }
+
+            .stat-card h3 {
+                font-size: 16px;
+            }
+
+            .stat-card .number {
+                font-size: 28px;
+            }
+
+            /* Quick actions mobile */
+            .quick-actions {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .action-card {
+                padding: 20px 15px;
+            }
+
+            .action-card h3 {
+                font-size: 16px;
+            }
+
+            .action-card p {
+                font-size: 13px;
+            }
+
+            /* Form improvements */
+            .admin-form {
+                padding: 20px 15px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .form-group input, .form-group textarea, .form-group select {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+
+            /* Button adjustments */
+            .btn, .btn-primary, .btn-secondary {
+                padding: 12px 20px;
+                font-size: 14px;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            nav .nav-grid { 
+                grid-template-columns: repeat(2, 1fr) !important; 
+                gap: 5px; 
+                max-width: 400px;
+            }
+            nav a { 
+                padding: 5px 3px; 
+                font-size: 9px; 
+                min-height: 35px;
+            }
+            .main-container { 
+                margin-top: 280px; 
+                padding: 15px; 
+            }
+            nav h1 { 
+                font-size: 18px; 
+            }
+            
+            nav .container {
+                padding: 10px 5px;
+            }
+
+            main {
+                padding: 15px 5px;
+            }
+
+            .admin-header {
+                padding: 15px 10px;
+            }
+
+            .admin-header h1 {
+                font-size: 20px;
+            }
+
+            .stat-card, .action-card {
+                padding: 15px 12px;
+            }
+
+            .admin-form {
+                padding: 15px 12px;
+            }
+
+            .form-group input, .form-group textarea, .form-group select {
+                padding: 10px 12px;
+            }
+
+            .btn, .btn-primary, .btn-secondary {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <div class="nav-content">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 40px; height: 40px; border-radius: 50%;">
+                    <h1 style="margin: 0;">Shree Mata Admin</h1>
+                </div>
+                <div class="user-info">
+                    <span id="userName">Hello, Admin</span>
+                </div>
+                <div class="nav-grid">
+                    <a href="/">🏠 Home</a>
+                    <a href="/admin.html" class="active">📚 Books</a>
+                    <a href="/admin-bundles.html">📦 Bundles</a>
+                    <a href="/admin-orders.html">🛒 Orders</a>
+                    <a href="/admin-withdrawals.html">💰 Withdrawals</a>
+                    <a href="/admin-bank-requests.html">🏦 Bank Requests</a>
+                    <a href="/admin-notifications.html">📢 Notifications</a>
+                    <a href="/admin-home-settings.html">🏡 Home Settings</a>
+                    <a href="/admin-income.html">💵 Income</a>
+                    <a href="/admin-users.html">👥 Users</a>
+                    <a href="/admin-password-requests.html">🔐 Password Requests</a>
+                    <a href="/admin-commission-settings.html">⚙️ Settings</a>
+                    <a href="/admin-receipt-settings.html">🧾 Receipt</a>
+                    <a href="/admin-referral-tree.html">🌳 Referral Tree</a>
+                    <a href="/admin-referral-tree-visual.html">📊 Tree Visual</a>
+                    <a href="/" id="logoutBtn">🚪 Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            <div class="main-container">
+                <div style="margin-bottom: 30px;">
+                    <h1 style="margin: 0 0 5px 0;">Manage Books</h1>
+                    <p style="color: #666; margin: 0;">Add, edit, and manage your book inventory</p>
+                </div>
+
+                <div class="admin-section">
+                    <div class="admin-header">
+                        <h2>Add New Book</h2>
+                        <button id="toggleFormBtn" class="btn">Show Form</button>
+                    </div>
+
+                    <div id="addBookForm" class="admin-form" style="display: none;">
+                        <form id="bookForm" enctype="multipart/form-data">
+                            <input type="hidden" id="bookId" name="bookId">
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="title">Book Title *</label>
+                                    <input type="text" id="title" name="title" required placeholder="Enter book title">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="author">Author *</label>
+                                    <input type="text" id="author" name="author" required placeholder="Enter author name">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="price">Physical Price (₹) *</label>
+                                    <input type="number" id="price" name="price" step="0.01" min="0" required placeholder="0.00">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="weight">Weight (kg) *</label>
+                                    <input type="number" id="weight" name="weight" step="0.1" min="0.1" value="0.5" required placeholder="0.5">
+                                    <small>Used for courier charge calculation</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="rewardPoints">Reward Points</label>
+                                    <input type="number" id="rewardPoints" name="rewardPoints" min="0" value="0" placeholder="0">
+                                    <small>Points awarded to buyer on purchase</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cashbackAmount">Fixed Cashback Amount (₹)</label>
+                                    <input type="number" id="cashbackAmount" name="cashbackAmount" step="0.01" min="0" value="0" placeholder="0.00">
+                                    <small>Fixed cashback amount (takes priority over percentage)</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cashbackPercentage">Cashback Percentage (%)</label>
+                                    <input type="number" id="cashbackPercentage" name="cashbackPercentage" step="0.1" min="0" max="100" value="0" placeholder="0.0">
+                                    <small>Percentage of book price as cashback (used if fixed amount is 0)</small>
+                                </div>
+                            </div>
+
+                            <!-- Stock Management Section -->
+                            <div class="form-section" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+                                <h3 style="margin: 0 0 15px 0; color: #155724; display: flex; align-items: center; gap: 8px;">
+                                    📦 Stock Management
+                                </h3>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="trackStock" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                            <input type="checkbox" id="trackStock" name="trackStock" checked style="width: 18px; height: 18px;">
+                                            Track Stock for this Book
+                                        </label>
+                                        <small>Uncheck if this book has unlimited availability</small>
+                                    </div>
+                                </div>
+                                
+                                <div id="stockFields" class="form-row">
+                                    <div class="form-group">
+                                        <label for="stockQuantity">Stock Quantity *</label>
+                                        <input type="number" id="stockQuantity" name="stockQuantity" min="0" value="10" placeholder="10">
+                                        <small>Current number of books available</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="lowStockThreshold">Low Stock Alert</label>
+                                        <input type="number" id="lowStockThreshold" name="lowStockThreshold" min="0" value="5" placeholder="5">
+                                        <small>Alert when stock falls below this number</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="stockStatus">Stock Status</label>
+                                        <select id="stockStatus" name="stockStatus" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                            <option value="in_stock">In Stock</option>
+                                            <option value="limited_stock">Limited Stock</option>
+                                            <option value="out_of_stock">Out of Stock</option>
+                                        </select>
+                                        <small>Manual override for stock status</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="description">Description</label>
+                                <textarea id="description" name="description" rows="4" placeholder="Enter book description"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="coverImage">Cover Image</label>
+                                <input type="file" id="coverImage" name="coverImage" accept="image/*">
+                                <small>Upload a cover image for the book</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="previewImages">Preview Images</label>
+                                <input type="file" id="previewImages" name="previewImages[]" accept="image/*" multiple>
+                                <small>Upload preview page images (max 4 images, keep files small for best performance)</small>
+                            </div>
+
+                            <div id="formErrorMessage" class="error-message" style="display: none;"></div>
+                            <div id="formSuccessMessage" class="success-message" style="display: none;"></div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="bookClass">Class *</label>
+                                    <input type="text" id="bookClass" name="class" required placeholder="e.g., 1, 2, 3, 10, 12, Nursery, KG" list="classSuggestions">
+                                    <datalist id="classSuggestions">
+                                        <option value="1">
+                                        <option value="2">
+                                        <option value="3">
+                                        <option value="4">
+                                        <option value="5">
+                                        <option value="6">
+                                        <option value="7">
+                                        <option value="8">
+                                        <option value="9">
+                                        <option value="10">
+                                        <option value="11">
+                                        <option value="12">
+                                        <option value="Nursery">
+                                        <option value="KG">
+                                        <option value="Pre-KG">
+                                    </datalist>
+                                    <small>Enter class (suggestions will appear as you type)</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="subject">Subject *</label>
+                                    <input type="text" id="subject" name="subject" required placeholder="e.g., Mathematics, Science, English" list="subjectSuggestions">
+                                    <datalist id="subjectSuggestions">
+                                        <option value="Mathematics">
+                                        <option value="Science">
+                                        <option value="English">
+                                        <option value="Hindi">
+                                        <option value="Social Studies">
+                                        <option value="Physics">
+                                        <option value="Chemistry">
+                                        <option value="Biology">
+                                        <option value="History">
+                                        <option value="Geography">
+                                        <option value="Economics">
+                                        <option value="Political Science">
+                                        <option value="Computer Science">
+                                        <option value="Physical Education">
+                                        <option value="Art & Craft">
+                                        <option value="Music">
+                                        <option value="General Knowledge">
+                                    </datalist>
+                                    <small>Enter subject name (suggestions will appear as you type)</small>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn" id="submitBtn">Add Book</button>
+                                <button type="button" class="btn-secondary" id="cancelBtn">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2>All Books</h2>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="refreshBooksBtn" class="btn-secondary" style="padding: 8px 16px; font-size: 14px;">
+                                🔄 Refresh
+                            </button>
+                        </div>
+                    </div>
+
+<div class="admin-filter-row">
+    <label>Class</label>
+    <select id="adminFilterClass">
+        <option value="">All Classes</option>
+    </select>
+
+    <label>Subject</label>
+    <select id="adminFilterSubject">
+        <option value="">All Subjects</option>
+    </select>
+
+    <label>Search</label>
+    <input type="text" id="adminFilterSearch" placeholder="Search title or author">
+
+    <label>Min ₹</label>
+    <input type="number" id="adminFilterMin" style="width:70px" placeholder="0">
+
+    <label>Max ₹</label>
+    <input type="number" id="adminFilterMax" style="width:70px" placeholder="1000">
+
+    <button id="adminApplyFilter" class="btn">Apply Filters</button>
+</div>
+
+                    <div id="loadingSpinner" class="loading">Loading books...</div>
+                    <div id="booksTable" style="display: none;">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Cover</th>
+                                    <th>Title</th>
+                                    <th>Author</th>
+                                    <th>Class</th>
+                                    <th>Subject</th>
+                                    <th>Physical Price</th>
+                                    <th>Stock Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="booksTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="mobile-books" id="mobileBooksContainer"></div>
+                    <div id="emptyState" class="empty-state" style="display: none;">
+                        <p>No books added yet. Add your first book above!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Digital Content Management Modal - REMOVED -->
+
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+<script src="js/config.js"></script>
+<script src="js/imageCompressor.js"></script>
+<script src="js/admin-navigation.js"></script>
+<script src="js/cloudinaryUpload.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

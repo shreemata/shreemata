@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Phone Validation</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .form-group { margin: 15px 0; }
+        input { padding: 10px; margin: 5px; width: 200px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px 15px; margin: 5px; background: #ff6f61; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        
+        #otpStatus.success {
+            color: #2b9348;
+            font-weight: 600;
+            background-color: #eafaf1;
+            padding: 5px 8px;
+            border-radius: 4px;
+            border-left: 3px solid #2b9348;
+        }
+
+        #otpStatus.error {
+            color: #d90429;
+            font-weight: 600;
+            background-color: #ffeaea;
+            padding: 5px 8px;
+            border-radius: 4px;
+            border-left: 3px solid #d90429;
+        }
+    </style>
+</head>
+<body>
+    <h2>Debug Phone Validation</h2>
+    
+    <div class="form-group">
+        <label for="phone">Mobile Number</label><br>
+        <input type="text" id="phone" placeholder="Enter 10-digit mobile number" maxlength="10">
+        <button id="sendOtpBtn">Send OTP</button>
+        <div id="otpStatus" style="margin-top: 5px; font-size: 13px;"></div>
+    </div>
+    
+    <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+        <h4>Try typing these to test validation:</h4>
+        <ul>
+            <li>Type "0" - should show error about leading zero</li>
+            <li>Type "1234567890" - should show error about starting digit</li>
+            <li>Type "98765abc" - should show error about letters</li>
+            <li>Type "98765" then click outside - should show error about length</li>
+            <li>Type "9876543210" - should show success message</li>
+        </ul>
+    </div>
+
+    <script>
+        const phoneInput = document.getElementById("phone");
+        const statusEl = document.getElementById("otpStatus");
+
+        // Add input validation with real-time feedback
+        phoneInput.addEventListener("input", function(e) {
+            const originalValue = e.target.value;
+            let value = originalValue.replace(/\D/g, ''); // Remove non-digits
+            
+            console.log("Input event:", originalValue, "->", value);
+            
+            // Show error for leading zero
+            if (originalValue.startsWith('0') && originalValue.length > 1) {
+                statusEl.textContent = "Please don't start with 0. Enter mobile number like 9449171605";
+                statusEl.className = "error";
+                console.log("Leading zero error shown");
+                value = value.substring(1); // Remove leading zero
+            }
+            // Show error for non-digits
+            else if (originalValue !== value && originalValue.length > 0) {
+                statusEl.textContent = "Please enter numbers only.";
+                statusEl.className = "error";
+                console.log("Non-digits error shown");
+            }
+            // Show error for too many digits
+            else if (value.length > 10) {
+                statusEl.textContent = "Mobile number should be exactly 10 digits.";
+                statusEl.className = "error";
+                console.log("Too long error shown");
+                value = value.substring(0, 10);
+            }
+            // Show error for invalid starting digit
+            else if (value.length > 0 && !/^[6-9]/.test(value)) {
+                statusEl.textContent = "Mobile number should start with 6, 7, 8, or 9.";
+                statusEl.className = "error";
+                console.log("Invalid start digit error shown");
+            }
+            // Clear error when input looks good
+            else if (value.length >= 6 && /^[6-9]\d*$/.test(value)) {
+                statusEl.textContent = "";
+                statusEl.className = "";
+                console.log("Error cleared");
+            }
+            
+            e.target.value = value;
+        });
+
+        // Add blur validation for complete phone number
+        phoneInput.addEventListener("blur", function(e) {
+            const phone = e.target.value.trim();
+            
+            console.log("Blur event:", phone);
+            
+            if (phone.length === 0) {
+                statusEl.textContent = "";
+                statusEl.className = "";
+                return;
+            }
+            
+            if (phone.length < 10) {
+                statusEl.textContent = `Please enter complete 10-digit mobile number. You entered ${phone.length} digits.`;
+                statusEl.className = "error";
+                console.log("Short number error shown");
+            } else if (phone.length === 10 && /^[6-9]\d{9}$/.test(phone)) {
+                // Check for all same digits
+                if (/^(\d)\1{9}$/.test(phone)) {
+                    statusEl.textContent = "Please enter a valid mobile number.";
+                    statusEl.className = "error";
+                    console.log("Same digits error shown");
+                } else {
+                    statusEl.textContent = "✓ Valid mobile number format";
+                    statusEl.className = "success";
+                    console.log("Success message shown");
+                }
+            }
+        });
+
+        // Clear status when user focuses on input
+        phoneInput.addEventListener("focus", function(e) {
+            if (statusEl.className === "error" && e.target.value.length === 0) {
+                statusEl.textContent = "";
+                statusEl.className = "";
+                console.log("Status cleared on focus");
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>My Orders - Shree Mata</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f5f5f5;
+        }
+
+        .orders-container {
+            max-width: 1200px;
+            margin: 80px auto 40px;
+            padding: 20px;
+        }
+
+        .page-header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .page-header h1 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .order-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .order-card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .order-id {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .order-date {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .order-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-completed {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-pending {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .status-processing {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .status-shipped {
+            background: #f3e5f5;
+            color: #6a1b9a;
+        }
+
+        .status-delivered {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .order-items {
+            margin: 20px 0;
+        }
+
+        .order-item {
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .order-item img {
+            width: 80px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .order-item-info {
+            flex: 1;
+        }
+
+        .order-item-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .order-item-price {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .order-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .order-total {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .delivery-address {
+            background: #f0f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .delivery-address h4 {
+            margin: 0 0 10px 0;
+            color: #667eea;
+            font-size: 14px;
+        }
+
+        .delivery-address p {
+            margin: 5px 0;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .tracking-info {
+            background: #fff9e6;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #ffa726;
+        }
+
+        .tracking-info h4 {
+            margin: 0 0 10px 0;
+            color: #f57c00;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 12px;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 18px;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .order-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .order-item {
+                flex-direction: column;
+            }
+
+            .order-item img {
+                width: 100%;
+                height: 200px;
+            }
+
+            .order-footer {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <div class="container navbar-content">
+                <div class="logo">
+                    <a href="/">📚 Shree Mata</a>
+                </div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="/orders.html" class="active">My Orders</a>
+                    <span id="userName"></span>
+                    <a href="account.html">Account</a>
+                    <a href="referral.html" id="referralLink">Referral💰</a>
+                    <a href="cart.html" class="cart-icon">🛒 Cart (<span id="cartCount">0</span>)</a>
+                    <a href="#" id="logoutBtn">Logout</a>
+                    <a href="admin.html" id="adminLink" style="display: none;">Admin</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="orders-container">
+            <div class="page-header">
+                <h1>📦 My Orders</h1>
+                <p style="color: #666; margin: 0;">Track and manage your book orders</p>
+            </div>
+
+            <div id="loadingSpinner" class="loading">
+                <div style="display: inline-block; animation: spin 1s linear infinite;">⏳</div>
+                Loading your orders...
+            </div>
+
+            <div id="ordersContainer"></div>
+
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-state-icon">📦</div>
+                <h2>No Orders Yet</h2>
+                <p style="color: #666; margin: 20px 0;">You haven't placed any orders yet.</p>
+                <a href="/" class="btn-primary">Start Shopping</a>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <style>
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+
+    <script src="js/config.js"></script>
+    <script src="js/cartUtils.js"></script>
+    <script>
+        // API_URL is already defined in config.js
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadOrders();
+        });
+
+        function checkAuth() {
+            const token = localStorage.getItem("token");
+            const user = JSON.parse(localStorage.getItem("user") || "null");
+
+            if (!token || !user) {
+                alert("Please login to view your orders");
+                window.location.href = "/login.html";
+                return;
+            }
+
+            document.getElementById("userName").textContent = `Hello, ${user.name}`;
+
+            if (user.role === "admin") {
+                document.getElementById("adminLink").style.display = "block";
+            }
+
+            document.getElementById("logoutBtn").addEventListener("click", () => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                window.location.href = "/";
+            });
+
+            updateCartCount();
+        }
+
+        function updateCartCount() {
+            const cart = typeof getCart === 'function' ? getCart() : JSON.parse(localStorage.getItem("cart_guest") || "[]");
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById("cartCount").textContent = count;
+        }
+
+        async function loadOrders() {
+            const token = localStorage.getItem("token");
+
+            try {
+                const res = await fetch(`${window.API_URL}/orders`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                const data = await res.json();
+                
+                document.getElementById("loadingSpinner").style.display = "none";
+
+                if (!data.orders || data.orders.length === 0) {
+                    document.getElementById("emptyState").style.display = "block";
+                    return;
+                }
+
+                displayOrders(data.orders);
+            } catch (err) {
+                console.error("Error loading orders:", err);
+                document.getElementById("loadingSpinner").style.display = "none";
+                document.getElementById("emptyState").style.display = "block";
+            }
+        }
+
+        function displayOrders(orders) {
+            const container = document.getElementById("ordersContainer");
+            container.innerHTML = "";
+
+            orders.forEach(order => {
+                const card = document.createElement("div");
+                card.className = "order-card";
+
+                const statusClass = getStatusClass(order.deliveryStatus || order.status);
+                const statusText = order.deliveryStatus || order.status;
+
+                const itemsHTML = order.items.map(item => `
+                    <div class="order-item">
+                        <img src="${item.coverImage || 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"280\"%3E%3Crect fill=\"%23ddd\" width=\"200\" height=\"280\"/%3E%3Ctext fill=\"%23999\" font-family=\"Arial\" font-size=\"16\" x=\"50%25\" y=\"50%25\" text-anchor=\"middle\" dy=\".3em\"%3EBook%3C/text%3E%3C/svg%3E'}" alt="${item.title}">
+                        <div class="order-item-info">
+                            <div class="order-item-title">${item.title}</div>
+                            <div style="font-size: 13px; color: #666;">${item.author || 'Unknown Author'}</div>
+                            <div style="font-size: 13px; color: #999; margin-top: 5px;">Quantity: ${item.quantity}</div>
+                            <div class="order-item-price">₹${item.price}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+                let addressHTML = '';
+                if (order.deliveryAddress && order.deliveryAddress.street) {
+                    const addr = order.deliveryAddress;
+                    addressHTML = `
+                        <div class="delivery-address">
+                            <h4>📍 Delivery Address</h4>
+                            <p><strong>${addr.street}</strong></p>
+                            <p>${addr.city}, ${addr.state} - ${addr.pincode}</p>
+                            <p>📞 ${addr.phone}</p>
+                        </div>
+                    `;
+                }
+
+                let trackingHTML = '';
+                if (order.trackingInfo) {
+                    trackingHTML = `
+                        <div class="tracking-info">
+                            <h4>🚚 Tracking Information</h4>
+                            <p>${order.trackingInfo}</p>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="order-header">
+                        <div>
+                            <div class="order-id">Order ID: ${order._id}</div>
+                            <div class="order-date">Placed on ${new Date(order.createdAt).toLocaleDateString()} at ${new Date(order.createdAt).toLocaleTimeString()}</div>
+                        </div>
+                        <div class="order-status ${statusClass}">${statusText.toUpperCase()}</div>
+                    </div>
+
+                    <div class="order-items">
+                        ${itemsHTML}
+                    </div>
+
+                    ${addressHTML}
+                    ${trackingHTML}
+
+                    ${order.appliedOffer ? `
+                        <div style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;">
+                            <div style="font-weight: 600; color: #155724; margin-bottom: 8px;">🎉 ${order.appliedOffer.offerTitle}</div>
+                            <div style="font-size: 13px; color: #155724; margin-bottom: 8px;">
+                                ${order.appliedOffer.discountType === 'percentage' 
+                                    ? `${order.appliedOffer.discountValue}% discount applied` 
+                                    : `₹${order.appliedOffer.discountValue} discount applied`}
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 14px; color: #155724; margin-bottom: 5px;">
+                                <span>Original Amount:</span>
+                                <span>₹${order.appliedOffer.originalAmount.toFixed(2)}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 14px; color: #155724; margin-bottom: 5px;">
+                                <span>Discount:</span>
+                                <span>- ₹${order.appliedOffer.savings.toFixed(2)}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 600; color: #155724; padding-top: 8px; border-top: 1px solid #28a745;">
+                                <span>You Paid:</span>
+                                <span>₹${order.appliedOffer.discountedAmount.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${order.courierCharge > 0 ? `
+                        <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ff9800;">
+                            <div style="font-weight: 600; color: #e65100; margin-bottom: 8px;">📦 Courier Charges</div>
+                            <div style="display: flex; justify-content: space-between; font-size: 14px; color: #e65100; margin-bottom: 5px;">
+                                <span>Total Weight:</span>
+                                <span>${order.totalWeight ? order.totalWeight.toFixed(2) : '0.00'} kg</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 14px; color: #e65100;">
+                                <span>Courier Charge:</span>
+                                <span>₹${order.courierCharge.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <div class="order-footer">
+                        <div class="order-total">Total: ₹${order.totalAmount}</div>
+                        <div style="font-size: 13px; color: #666;">
+                            Payment ID: ${order.razorpay_payment_id || 'N/A'}
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        function getStatusClass(status) {
+            const statusMap = {
+                'completed': 'status-completed',
+                'pending': 'status-pending',
+                'processing': 'status-processing',
+                'shipped': 'status-shipped',
+                'delivered': 'status-delivered',
+                'failed': 'status-pending'
+            };
+            return statusMap[status.toLowerCase()] || 'status-pending';
+        }
+    </script>
+</body>
+</html>
