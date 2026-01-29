@@ -129,6 +129,30 @@
                 padding: 8px !important;
             }
         }
+        
+        /* Previous Address Button Styles */
+        #useOldAddressBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        #useOldAddressBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Previous Billing Address Button Styles */
+        #usePreviousBillingAddressBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+        
+        #usePreviousBillingAddressBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
     </style>
 </head>
 <body>
@@ -1682,6 +1706,320 @@
         }
 
         // New functions for handling addresses
+        
+        /* -----------------------------------
+           PREVIOUS ADDRESS FUNCTIONS
+        ----------------------------------- */
+        async function loadPreviousAddresses() {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Please login to access previous addresses");
+                return;
+            }
+
+            try {
+                // Show loading state
+                const btn = document.getElementById("useOldAddressBtn");
+                const originalText = btn.textContent;
+                btn.textContent = "Loading...";
+                btn.disabled = true;
+
+                // Fetch user's previous orders to get addresses (only completed orders)
+                const response = await fetch(`${API}/orders?status=completed`, {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch previous orders");
+                }
+
+                const data = await response.json();
+                const orders = data.orders || [];
+
+                // Extract unique addresses from previous orders
+                const addresses = [];
+                const addressMap = new Map();
+
+                orders.forEach(order => {
+                    if (order.deliveryAddress && (order.deliveryAddress.homeAddress1 || order.deliveryAddress.street)) {
+                        const addr = order.deliveryAddress;
+                        // Handle both new format (homeAddress1) and legacy format (street)
+                        const primaryAddress = addr.homeAddress1 || addr.street || '';
+                        
+                        // Create a unique key for the address
+                        const key = `${primaryAddress}-${addr.taluk}-${addr.district}-${addr.pincode}`;
+                        
+                        if (!addressMap.has(key) && primaryAddress) {
+                            addressMap.set(key, {
+                                homeAddress1: primaryAddress,
+                                homeAddress2: addr.homeAddress2 || '',
+                                streetName: addr.streetName || '',
+                                landmark: addr.landmark || '',
+                                village: addr.village || '',
+                                taluk: addr.taluk || '',
+                                district: addr.district || '',
+                                state: addr.state || '',
+                                pincode: addr.pincode || '',
+                                phone: addr.phone || '',
+                                name: addr.name || '',
+                                orderDate: order.createdAt
+                            });
+                        }
+                    }
+                });
+
+                // Convert map to array and sort by most recent
+                const uniqueAddresses = Array.from(addressMap.values())
+                    .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+
+                // Reset button
+                btn.textContent = originalText;
+                btn.disabled = false;
+
+                if (uniqueAddresses.length === 0) {
+                    alert("No previous addresses found. Please enter your address manually.");
+                    return;
+                }
+
+                // Populate the dropdown
+                const select = document.getElementById("previousAddressSelect");
+                select.innerHTML = '<option value="">-- Select a previous address --</option>';
+
+                uniqueAddresses.forEach((addr, index) => {
+                    const option = document.createElement("option");
+                    option.value = index;
+                    option.textContent = `${addr.homeAddress1}, ${addr.taluk}, ${addr.district} - ${addr.pincode}`;
+                    select.appendChild(option);
+                });
+
+                // Store addresses for later use
+                window.previousAddresses = uniqueAddresses;
+
+                // Show the dropdown section
+                document.getElementById("previousAddressesSection").style.display = "block";
+
+            } catch (error) {
+                console.error("Error loading previous addresses:", error);
+                alert("Failed to load previous addresses. Please try again.");
+                
+                // Reset button
+                const btn = document.getElementById("useOldAddressBtn");
+                btn.textContent = "📋 Use My Previous Address";
+                btn.disabled = false;
+            }
+        }
+
+        function fillAddressFromPrevious() {
+            const select = document.getElementById("previousAddressSelect");
+            const selectedIndex = select.value;
+
+            if (selectedIndex === "" || !window.previousAddresses) {
+                return;
+            }
+
+            const address = window.previousAddresses[selectedIndex];
+
+            // Fill the delivery address fields
+            document.getElementById("deliveryName").value = address.name || '';
+            document.getElementById("deliveryPhone").value = address.phone || '';
+            document.getElementById("deliveryAddress1").value = address.homeAddress1 || '';
+            document.getElementById("deliveryAddress2").value = address.homeAddress2 || '';
+            document.getElementById("deliveryTaluk").value = address.taluk || '';
+            document.getElementById("deliveryDistrict").value = address.district || '';
+            document.getElementById("deliveryState").value = address.state || '';
+            document.getElementById("deliveryPincode").value = address.pincode || '';
+
+            // Hide the dropdown section
+            hidePreviousAddresses();
+
+            // Show success message
+            const successMsg = document.createElement("div");
+            successMsg.style.cssText = `
+                background: #d4edda;
+                color: #155724;
+                padding: 10px 15px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+                border: 1px solid #c3e6cb;
+                font-size: 14px;
+            `;
+            successMsg.innerHTML = "✅ Address filled successfully! You can modify any field if needed.";
+
+            // Insert the message at the top of delivery address fields
+            const deliveryFields = document.getElementById("deliveryAddressFields");
+            deliveryFields.insertBefore(successMsg, deliveryFields.firstChild);
+
+            // Remove the message after 3 seconds
+            setTimeout(() => {
+                if (successMsg.parentNode) {
+                    successMsg.parentNode.removeChild(successMsg);
+                }
+            }, 3000);
+        }
+
+        function hidePreviousAddresses() {
+            document.getElementById("previousAddressesSection").style.display = "none";
+            document.getElementById("previousAddressSelect").value = "";
+        }
+
+        /* -----------------------------------
+           BILLING ADDRESS PREVIOUS FUNCTIONS
+        ----------------------------------- */
+        async function loadPreviousBillingAddresses() {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Please login to access previous addresses");
+                return;
+            }
+
+            try {
+                // Show loading state
+                const btn = document.getElementById("usePreviousBillingAddressBtn");
+                const originalText = btn.textContent;
+                btn.textContent = "Loading...";
+                btn.disabled = true;
+
+                // Fetch user's previous orders to get addresses (only completed orders)
+                const response = await fetch(`${API}/orders?status=completed`, {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch previous orders");
+                }
+
+                const data = await response.json();
+                const orders = data.orders || [];
+
+                // Extract unique addresses from previous orders
+                const addresses = [];
+                const addressMap = new Map();
+
+                orders.forEach(order => {
+                    if (order.deliveryAddress && (order.deliveryAddress.homeAddress1 || order.deliveryAddress.street)) {
+                        const addr = order.deliveryAddress;
+                        // Handle both new format (homeAddress1) and legacy format (street)
+                        const primaryAddress = addr.homeAddress1 || addr.street || '';
+                        
+                        // Create a unique key for the address
+                        const key = `${primaryAddress}-${addr.taluk}-${addr.district}-${addr.pincode}`;
+                        
+                        if (!addressMap.has(key) && primaryAddress) {
+                            addressMap.set(key, {
+                                homeAddress1: primaryAddress,
+                                homeAddress2: addr.homeAddress2 || '',
+                                streetName: addr.streetName || '',
+                                landmark: addr.landmark || '',
+                                village: addr.village || '',
+                                taluk: addr.taluk || '',
+                                district: addr.district || '',
+                                state: addr.state || '',
+                                pincode: addr.pincode || '',
+                                phone: addr.phone || '',
+                                name: addr.name || '',
+                                orderDate: order.createdAt
+                            });
+                        }
+                    }
+                });
+
+                // Convert map to array and sort by most recent
+                const uniqueAddresses = Array.from(addressMap.values())
+                    .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+
+                // Reset button
+                btn.textContent = originalText;
+                btn.disabled = false;
+
+                if (uniqueAddresses.length === 0) {
+                    alert("No previous addresses found. Please enter your address manually.");
+                    return;
+                }
+
+                // Populate the dropdown
+                const select = document.getElementById("previousBillingAddressSelect");
+                select.innerHTML = '<option value="">-- Select a previous address --</option>';
+
+                uniqueAddresses.forEach((addr, index) => {
+                    const option = document.createElement("option");
+                    option.value = index;
+                    option.textContent = `${addr.homeAddress1}, ${addr.taluk}, ${addr.district} - ${addr.pincode}`;
+                    select.appendChild(option);
+                });
+
+                // Store addresses for later use
+                window.previousBillingAddresses = uniqueAddresses;
+
+                // Show the dropdown section
+                document.getElementById("previousBillingAddressesSection").style.display = "block";
+
+            } catch (error) {
+                console.error("Error loading previous addresses:", error);
+                alert("Failed to load previous addresses. Please try again.");
+                
+                // Reset button
+                const btn = document.getElementById("usePreviousBillingAddressBtn");
+                btn.textContent = "📋 Use My Previous Address";
+                btn.disabled = false;
+            }
+        }
+
+        function fillBillingAddressFromPrevious() {
+            const select = document.getElementById("previousBillingAddressSelect");
+            const selectedIndex = select.value;
+
+            if (selectedIndex === "" || !window.previousBillingAddresses) {
+                return;
+            }
+
+            const address = window.previousBillingAddresses[selectedIndex];
+
+            // Fill the billing address fields
+            document.getElementById("billingName").value = address.name || '';
+            document.getElementById("billingPhone").value = address.phone || '';
+            document.getElementById("billingAddress1").value = address.homeAddress1 || '';
+            document.getElementById("billingAddress2").value = address.homeAddress2 || '';
+            document.getElementById("billingTaluk").value = address.taluk || '';
+            document.getElementById("billingDistrict").value = address.district || '';
+            document.getElementById("billingState").value = address.state || '';
+            document.getElementById("billingPincode").value = address.pincode || '';
+
+            // Hide the dropdown section
+            hidePreviousBillingAddresses();
+
+            // Show success message
+            const successMsg = document.createElement("div");
+            successMsg.style.cssText = `
+                background: #d4edda;
+                color: #155724;
+                padding: 10px 15px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+                border: 1px solid #c3e6cb;
+                font-size: 14px;
+            `;
+            successMsg.innerHTML = "✅ Address filled successfully! You can modify any field if needed.";
+
+            // Insert the message after the dropdown section
+            const billingSection = document.getElementById("previousBillingAddressesSection");
+            billingSection.parentNode.insertBefore(successMsg, billingSection.nextSibling);
+
+            // Remove the message after 3 seconds
+            setTimeout(() => {
+                if (successMsg.parentNode) {
+                    successMsg.parentNode.removeChild(successMsg);
+                }
+            }, 3000);
+        }
+
+        function hidePreviousBillingAddresses() {
+            document.getElementById("previousBillingAddressesSection").style.display = "none";
+            document.getElementById("previousBillingAddressSelect").value = "";
+        }
         async function handleBundlePurchaseWithAddresses(deliveryMethod = "courier") {
             const token = localStorage.getItem("token");
             const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -1972,6 +2310,56 @@
                         <p style="margin: 0; font-size: 14px; opacity: 0.9;">This address will be used for billing and invoice generation</p>
                     </div>
                     
+                    <!-- Use Previous Address Button for Billing -->
+                    <div style="margin-bottom: 20px;">
+                        <button id="usePreviousBillingAddressBtn" type="button" onclick="loadPreviousBillingAddresses()" style="
+                            width: 100%; 
+                            padding: 15px; 
+                            background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+                            color: white; 
+                            border: none; 
+                            border-radius: 12px; 
+                            font-size: 16px; 
+                            font-weight: 600; 
+                            cursor: pointer; 
+                            transition: all 0.3s ease;
+                            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+                        ">
+                            📋 Use My Previous Address
+                        </button>
+                    </div>
+                    
+                    <!-- Previous Addresses Dropdown for Billing (Initially Hidden) -->
+                    <div id="previousBillingAddressesSection" style="display: none; margin-bottom: 20px;">
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; border: 2px solid #e9ecef;">
+                            <h5 style="margin: 0 0 15px 0; color: #495057; font-size: 16px;">📍 Select from Previous Addresses:</h5>
+                            <select id="previousBillingAddressSelect" onchange="fillBillingAddressFromPrevious()" style="
+                                width: 100%; 
+                                padding: 12px; 
+                                border: 2px solid #ced4da; 
+                                border-radius: 8px; 
+                                font-size: 14px; 
+                                background: white;
+                                cursor: pointer;
+                            ">
+                                <option value="">-- Select a previous address --</option>
+                            </select>
+                            <div style="margin-top: 10px; text-align: center;">
+                                <button type="button" onclick="hidePreviousBillingAddresses()" style="
+                                    padding: 8px 16px; 
+                                    background: #6c757d; 
+                                    color: white; 
+                                    border: none; 
+                                    border-radius: 6px; 
+                                    font-size: 12px; 
+                                    cursor: pointer;
+                                ">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                         <div>
                             <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Full Name *</label>
@@ -2024,6 +2412,56 @@
                         <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
                             <h4 style="margin: 0 0 10px 0; font-size: 18px;">🚚 Delivery Address</h4>
                             <p style="margin: 0; font-size: 14px; opacity: 0.9;">Where should we deliver your order?</p>
+                        </div>
+                        
+                        <!-- Use Old Address Button -->
+                        <div style="margin-bottom: 20px;">
+                            <button id="useOldAddressBtn" onclick="loadPreviousAddresses()" style="
+                                width: 100%; 
+                                padding: 15px; 
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                color: white; 
+                                border: none; 
+                                border-radius: 12px; 
+                                font-size: 16px; 
+                                font-weight: 600; 
+                                cursor: pointer; 
+                                transition: all 0.3s ease;
+                                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+                            ">
+                                📋 Use My Previous Address
+                            </button>
+                        </div>
+                        
+                        <!-- Previous Addresses Dropdown (Initially Hidden) -->
+                        <div id="previousAddressesSection" style="display: none; margin-bottom: 20px;">
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; border: 2px solid #e9ecef;">
+                                <h5 style="margin: 0 0 15px 0; color: #495057; font-size: 16px;">📍 Select from Previous Addresses:</h5>
+                                <select id="previousAddressSelect" onchange="fillAddressFromPrevious()" style="
+                                    width: 100%; 
+                                    padding: 12px; 
+                                    border: 2px solid #ced4da; 
+                                    border-radius: 8px; 
+                                    font-size: 14px; 
+                                    background: white;
+                                    cursor: pointer;
+                                ">
+                                    <option value="">-- Select a previous address --</option>
+                                </select>
+                                <div style="margin-top: 10px; text-align: center;">
+                                    <button onclick="hidePreviousAddresses()" style="
+                                        padding: 8px 16px; 
+                                        background: #6c757d; 
+                                        color: white; 
+                                        border: none; 
+                                        border-radius: 6px; 
+                                        font-size: 12px; 
+                                        cursor: pointer;
+                                    ">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         
                         <div style="margin-bottom: 20px;">

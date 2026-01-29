@@ -504,6 +504,30 @@
                 padding-right: 10px !important;
             }
         }
+        
+        /* Previous Address Button Styles */
+        #useOldAddressBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        #useOldAddressBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Previous Billing Address Button Styles */
+        #usePreviousBillingAddressBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+        
+        #usePreviousBillingAddressBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
     </style>
 </head>
 <body>
@@ -599,6 +623,56 @@
                         <p style="margin: 0; font-size: 14px; opacity: 0.9;">This address will be used for billing and invoice generation</p>
                     </div>
                     
+                    <!-- Use Previous Address Button for Billing -->
+                    <div style="margin-bottom: 20px;">
+                        <button id="usePreviousBillingAddressBtn" type="button" onclick="loadPreviousBillingAddresses()" style="
+                            width: 100%; 
+                            padding: 15px; 
+                            background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+                            color: white; 
+                            border: none; 
+                            border-radius: 12px; 
+                            font-size: 16px; 
+                            font-weight: 600; 
+                            cursor: pointer; 
+                            transition: all 0.3s ease;
+                            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+                        ">
+                            📋 Use My Previous Address
+                        </button>
+                    </div>
+                    
+                    <!-- Previous Addresses Dropdown for Billing (Initially Hidden) -->
+                    <div id="previousBillingAddressesSection" style="display: none; margin-bottom: 20px;">
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; border: 2px solid #e9ecef;">
+                            <h5 style="margin: 0 0 15px 0; color: #495057; font-size: 16px;">📍 Select from Previous Addresses:</h5>
+                            <select id="previousBillingAddressSelect" onchange="fillBillingAddressFromPrevious()" style="
+                                width: 100%; 
+                                padding: 12px; 
+                                border: 2px solid #ced4da; 
+                                border-radius: 8px; 
+                                font-size: 14px; 
+                                background: white;
+                                cursor: pointer;
+                            ">
+                                <option value="">-- Select a previous address --</option>
+                            </select>
+                            <div style="margin-top: 10px; text-align: center;">
+                                <button type="button" onclick="hidePreviousBillingAddresses()" style="
+                                    padding: 8px 16px; 
+                                    background: #6c757d; 
+                                    color: white; 
+                                    border: none; 
+                                    border-radius: 6px; 
+                                    font-size: 12px; 
+                                    cursor: pointer;
+                                ">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                         <div>
                             <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Full Name *</label>
@@ -651,6 +725,56 @@
                         <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
                             <h4 style="margin: 0 0 10px 0; font-size: 18px;">🚚 Delivery Address</h4>
                             <p style="margin: 0; font-size: 14px; opacity: 0.9;">Where should we deliver your order?</p>
+                        </div>
+                        
+                        <!-- Use Old Address Button -->
+                        <div style="margin-bottom: 20px;">
+                            <button id="useOldAddressBtn" onclick="loadPreviousAddresses()" style="
+                                width: 100%; 
+                                padding: 15px; 
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                color: white; 
+                                border: none; 
+                                border-radius: 12px; 
+                                font-size: 16px; 
+                                font-weight: 600; 
+                                cursor: pointer; 
+                                transition: all 0.3s ease;
+                                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+                            ">
+                                📋 Use My Previous Address
+                            </button>
+                        </div>
+                        
+                        <!-- Previous Addresses Dropdown (Initially Hidden) -->
+                        <div id="previousAddressesSection" style="display: none; margin-bottom: 20px;">
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; border: 2px solid #e9ecef;">
+                                <h5 style="margin: 0 0 15px 0; color: #495057; font-size: 16px;">📍 Select from Previous Addresses:</h5>
+                                <select id="previousAddressSelect" onchange="fillAddressFromPrevious()" style="
+                                    width: 100%; 
+                                    padding: 12px; 
+                                    border: 2px solid #ced4da; 
+                                    border-radius: 8px; 
+                                    font-size: 14px; 
+                                    background: white;
+                                    cursor: pointer;
+                                ">
+                                    <option value="">-- Select a previous address --</option>
+                                </select>
+                                <div style="margin-top: 10px; text-align: center;">
+                                    <button onclick="hidePreviousAddresses()" style="
+                                        padding: 8px 16px; 
+                                        background: #6c757d; 
+                                        color: white; 
+                                        border: none; 
+                                        border-radius: 6px; 
+                                        font-size: 12px; 
+                                        cursor: pointer;
+                                    ">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         
                         <div style="margin-bottom: 20px;">

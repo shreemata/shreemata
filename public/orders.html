@@ -368,26 +368,70 @@
                 `).join('');
 
                 let addressHTML = '';
-                if (order.deliveryAddress && order.deliveryAddress.street) {
+                if (order.deliveryAddress && (order.deliveryAddress.street || order.deliveryAddress.homeAddress1)) {
                     const addr = order.deliveryAddress;
+                    // Handle both legacy (street) and new (homeAddress1) formats
+                    const primaryAddress = addr.homeAddress1 || addr.street || '';
+                    const secondaryAddress = addr.homeAddress2 || '';
+                    const city = addr.village || addr.city || '';
+                    const taluk = addr.taluk || '';
+                    const district = addr.district || '';
+                    const state = addr.state || '';
+                    const pincode = addr.pincode || '';
+                    const phone = addr.phone || '';
+                    
+                    // Build address display
+                    let fullAddress = primaryAddress;
+                    if (secondaryAddress) fullAddress += ', ' + secondaryAddress;
+                    if (addr.streetName) fullAddress += ', ' + addr.streetName;
+                    if (addr.landmark) fullAddress += ', Near ' + addr.landmark;
+                    
+                    let locationLine = '';
+                    if (city) locationLine += city;
+                    if (taluk && taluk !== city) locationLine += (locationLine ? ', ' : '') + taluk;
+                    if (district && district !== city && district !== taluk) locationLine += (locationLine ? ', ' : '') + district;
+                    if (state) locationLine += (locationLine ? ', ' : '') + state;
+                    if (pincode) locationLine += ' - ' + pincode;
+                    
                     addressHTML = `
                         <div class="delivery-address">
                             <h4>📍 Delivery Address</h4>
-                            <p><strong>${addr.street}</strong></p>
-                            <p>${addr.city}, ${addr.state} - ${addr.pincode}</p>
-                            <p>📞 ${addr.phone}</p>
+                            ${fullAddress ? `<p><strong>${fullAddress}</strong></p>` : ''}
+                            ${locationLine ? `<p>${locationLine}</p>` : ''}
+                            ${phone ? `<p>📞 ${phone}</p>` : ''}
                         </div>
                     `;
                 }
 
                 let trackingHTML = '';
-                if (order.trackingInfo) {
-                    trackingHTML = `
-                        <div class="tracking-info">
-                            <h4>🚚 Tracking Information</h4>
-                            <p>${order.trackingInfo}</p>
-                        </div>
-                    `;
+                if (order.trackingInfo && (order.trackingInfo.trackingId || order.trackingInfo.trackingWebsite)) {
+                    const tracking = order.trackingInfo;
+                    let trackingContent = '';
+                    
+                    if (tracking.trackingId) {
+                        trackingContent += `<p><strong>Tracking ID:</strong> ${tracking.trackingId}</p>`;
+                    }
+                    
+                    if (tracking.trackingWebsite) {
+                        trackingContent += `<p><strong>Courier:</strong> ${tracking.trackingWebsite}</p>`;
+                    }
+                    
+                    if (tracking.trackingUrl) {
+                        trackingContent += `<p><a href="${tracking.trackingUrl}" target="_blank" style="color: #f57c00; text-decoration: none; font-weight: 600;">🔗 Track Your Order</a></p>`;
+                    }
+                    
+                    if (tracking.updatedAt) {
+                        trackingContent += `<p style="font-size: 12px; color: #999; margin-top: 10px;">Last updated: ${new Date(tracking.updatedAt).toLocaleDateString()} at ${new Date(tracking.updatedAt).toLocaleTimeString()}</p>`;
+                    }
+                    
+                    if (trackingContent) {
+                        trackingHTML = `
+                            <div class="tracking-info">
+                                <h4>🚚 Tracking Information</h4>
+                                ${trackingContent}
+                            </div>
+                        `;
+                    }
                 }
 
                 card.innerHTML = `

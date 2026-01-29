@@ -1378,6 +1378,320 @@ function proceedWithAccountTransfer() {
 }
 
 // New functions for handling addresses
+
+/* -----------------------------------
+   PREVIOUS ADDRESS FUNCTIONS
+----------------------------------- */
+async function loadPreviousAddresses() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("Please login to access previous addresses");
+        return;
+    }
+
+    try {
+        // Show loading state
+        const btn = document.getElementById("useOldAddressBtn");
+        const originalText = btn.textContent;
+        btn.textContent = "Loading...";
+        btn.disabled = true;
+
+        // Fetch user's previous orders to get addresses (only completed orders)
+        const response = await fetch(`${API}/orders?status=completed`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch previous orders");
+        }
+
+        const data = await response.json();
+        const orders = data.orders || [];
+
+        // Extract unique addresses from previous orders
+        const addresses = [];
+        const addressMap = new Map();
+
+        orders.forEach(order => {
+            if (order.deliveryAddress && (order.deliveryAddress.homeAddress1 || order.deliveryAddress.street)) {
+                const addr = order.deliveryAddress;
+                // Handle both new format (homeAddress1) and legacy format (street)
+                const primaryAddress = addr.homeAddress1 || addr.street || '';
+                
+                // Create a unique key for the address
+                const key = `${primaryAddress}-${addr.taluk}-${addr.district}-${addr.pincode}`;
+                
+                if (!addressMap.has(key) && primaryAddress) {
+                    addressMap.set(key, {
+                        homeAddress1: primaryAddress,
+                        homeAddress2: addr.homeAddress2 || '',
+                        streetName: addr.streetName || '',
+                        landmark: addr.landmark || '',
+                        village: addr.village || '',
+                        taluk: addr.taluk || '',
+                        district: addr.district || '',
+                        state: addr.state || '',
+                        pincode: addr.pincode || '',
+                        phone: addr.phone || '',
+                        name: addr.name || '',
+                        orderDate: order.createdAt
+                    });
+                }
+            }
+        });
+
+        // Convert map to array and sort by most recent
+        const uniqueAddresses = Array.from(addressMap.values())
+            .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+
+        // Reset button
+        btn.textContent = originalText;
+        btn.disabled = false;
+
+        if (uniqueAddresses.length === 0) {
+            alert("No previous addresses found. Please enter your address manually.");
+            return;
+        }
+
+        // Populate the dropdown
+        const select = document.getElementById("previousAddressSelect");
+        select.innerHTML = '<option value="">-- Select a previous address --</option>';
+
+        uniqueAddresses.forEach((addr, index) => {
+            const option = document.createElement("option");
+            option.value = index;
+            option.textContent = `${addr.homeAddress1}, ${addr.taluk}, ${addr.district} - ${addr.pincode}`;
+            select.appendChild(option);
+        });
+
+        // Store addresses for later use
+        window.previousAddresses = uniqueAddresses;
+
+        // Show the dropdown section
+        document.getElementById("previousAddressesSection").style.display = "block";
+
+    } catch (error) {
+        console.error("Error loading previous addresses:", error);
+        alert("Failed to load previous addresses. Please try again.");
+        
+        // Reset button
+        const btn = document.getElementById("useOldAddressBtn");
+        btn.textContent = "📋 Use My Previous Address";
+        btn.disabled = false;
+    }
+}
+
+function fillAddressFromPrevious() {
+    const select = document.getElementById("previousAddressSelect");
+    const selectedIndex = select.value;
+
+    if (selectedIndex === "" || !window.previousAddresses) {
+        return;
+    }
+
+    const address = window.previousAddresses[selectedIndex];
+
+    // Fill the delivery address fields
+    document.getElementById("deliveryName").value = address.name || '';
+    document.getElementById("deliveryPhone").value = address.phone || '';
+    document.getElementById("deliveryAddress1").value = address.homeAddress1 || '';
+    document.getElementById("deliveryAddress2").value = address.homeAddress2 || '';
+    document.getElementById("deliveryTaluk").value = address.taluk || '';
+    document.getElementById("deliveryDistrict").value = address.district || '';
+    document.getElementById("deliveryState").value = address.state || '';
+    document.getElementById("deliveryPincode").value = address.pincode || '';
+
+    // Hide the dropdown section
+    hidePreviousAddresses();
+
+    // Show success message
+    const successMsg = document.createElement("div");
+    successMsg.style.cssText = `
+        background: #d4edda;
+        color: #155724;
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border: 1px solid #c3e6cb;
+        font-size: 14px;
+    `;
+    successMsg.innerHTML = "✅ Address filled successfully! You can modify any field if needed.";
+
+    // Insert the message at the top of delivery address fields
+    const deliveryFields = document.getElementById("deliveryAddressFields");
+    deliveryFields.insertBefore(successMsg, deliveryFields.firstChild);
+
+    // Remove the message after 3 seconds
+    setTimeout(() => {
+        if (successMsg.parentNode) {
+            successMsg.parentNode.removeChild(successMsg);
+        }
+    }, 3000);
+}
+
+function hidePreviousAddresses() {
+    document.getElementById("previousAddressesSection").style.display = "none";
+    document.getElementById("previousAddressSelect").value = "";
+}
+
+/* -----------------------------------
+   BILLING ADDRESS PREVIOUS FUNCTIONS
+----------------------------------- */
+async function loadPreviousBillingAddresses() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("Please login to access previous addresses");
+        return;
+    }
+
+    try {
+        // Show loading state
+        const btn = document.getElementById("usePreviousBillingAddressBtn");
+        const originalText = btn.textContent;
+        btn.textContent = "Loading...";
+        btn.disabled = true;
+
+        // Fetch user's previous orders to get addresses (only completed orders)
+        const response = await fetch(`${API}/orders?status=completed`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch previous orders");
+        }
+
+        const data = await response.json();
+        const orders = data.orders || [];
+
+        // Extract unique addresses from previous orders
+        const addresses = [];
+        const addressMap = new Map();
+
+        orders.forEach(order => {
+            if (order.deliveryAddress && (order.deliveryAddress.homeAddress1 || order.deliveryAddress.street)) {
+                const addr = order.deliveryAddress;
+                // Handle both new format (homeAddress1) and legacy format (street)
+                const primaryAddress = addr.homeAddress1 || addr.street || '';
+                
+                // Create a unique key for the address
+                const key = `${primaryAddress}-${addr.taluk}-${addr.district}-${addr.pincode}`;
+                
+                if (!addressMap.has(key) && primaryAddress) {
+                    addressMap.set(key, {
+                        homeAddress1: primaryAddress,
+                        homeAddress2: addr.homeAddress2 || '',
+                        streetName: addr.streetName || '',
+                        landmark: addr.landmark || '',
+                        village: addr.village || '',
+                        taluk: addr.taluk || '',
+                        district: addr.district || '',
+                        state: addr.state || '',
+                        pincode: addr.pincode || '',
+                        phone: addr.phone || '',
+                        name: addr.name || '',
+                        orderDate: order.createdAt
+                    });
+                }
+            }
+        });
+
+        // Convert map to array and sort by most recent
+        const uniqueAddresses = Array.from(addressMap.values())
+            .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+
+        // Reset button
+        btn.textContent = originalText;
+        btn.disabled = false;
+
+        if (uniqueAddresses.length === 0) {
+            alert("No previous addresses found. Please enter your address manually.");
+            return;
+        }
+
+        // Populate the dropdown
+        const select = document.getElementById("previousBillingAddressSelect");
+        select.innerHTML = '<option value="">-- Select a previous address --</option>';
+
+        uniqueAddresses.forEach((addr, index) => {
+            const option = document.createElement("option");
+            option.value = index;
+            option.textContent = `${addr.homeAddress1}, ${addr.taluk}, ${addr.district} - ${addr.pincode}`;
+            select.appendChild(option);
+        });
+
+        // Store addresses for later use
+        window.previousBillingAddresses = uniqueAddresses;
+
+        // Show the dropdown section
+        document.getElementById("previousBillingAddressesSection").style.display = "block";
+
+    } catch (error) {
+        console.error("Error loading previous addresses:", error);
+        alert("Failed to load previous addresses. Please try again.");
+        
+        // Reset button
+        const btn = document.getElementById("usePreviousBillingAddressBtn");
+        btn.textContent = "📋 Use My Previous Address";
+        btn.disabled = false;
+    }
+}
+
+function fillBillingAddressFromPrevious() {
+    const select = document.getElementById("previousBillingAddressSelect");
+    const selectedIndex = select.value;
+
+    if (selectedIndex === "" || !window.previousBillingAddresses) {
+        return;
+    }
+
+    const address = window.previousBillingAddresses[selectedIndex];
+
+    // Fill the billing address fields
+    document.getElementById("billingName").value = address.name || '';
+    document.getElementById("billingPhone").value = address.phone || '';
+    document.getElementById("billingAddress1").value = address.homeAddress1 || '';
+    document.getElementById("billingAddress2").value = address.homeAddress2 || '';
+    document.getElementById("billingTaluk").value = address.taluk || '';
+    document.getElementById("billingDistrict").value = address.district || '';
+    document.getElementById("billingState").value = address.state || '';
+    document.getElementById("billingPincode").value = address.pincode || '';
+
+    // Hide the dropdown section
+    hidePreviousBillingAddresses();
+
+    // Show success message
+    const successMsg = document.createElement("div");
+    successMsg.style.cssText = `
+        background: #d4edda;
+        color: #155724;
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border: 1px solid #c3e6cb;
+        font-size: 14px;
+    `;
+    successMsg.innerHTML = "✅ Address filled successfully! You can modify any field if needed.";
+
+    // Insert the message after the dropdown section
+    const billingSection = document.getElementById("previousBillingAddressesSection");
+    billingSection.parentNode.insertBefore(successMsg, billingSection.nextSibling);
+
+    // Remove the message after 3 seconds
+    setTimeout(() => {
+        if (successMsg.parentNode) {
+            successMsg.parentNode.removeChild(successMsg);
+        }
+    }, 3000);
+}
+
+function hidePreviousBillingAddresses() {
+    document.getElementById("previousBillingAddressesSection").style.display = "none";
+    document.getElementById("previousBillingAddressSelect").value = "";
+}
 async function proceedWithRazorpayPaymentWithAddresses() {
     const deliveryMethod = window.selectedDeliveryMethod || "courier";
     const bookId = new URLSearchParams(window.location.search).get("id");

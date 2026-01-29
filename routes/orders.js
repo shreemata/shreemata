@@ -265,7 +265,18 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
  */
 router.get("/", authenticateToken, async (req, res) => {
     try {
-        const orders = await Order.find({ user_id: req.user.id })
+        // Check if this is for previous addresses (only completed orders)
+        // or for order history (all orders)
+        const { status } = req.query;
+        
+        let query = { user_id: req.user.id };
+        
+        // If status filter is provided, use it
+        if (status) {
+            query.status = status;
+        }
+        
+        const orders = await Order.find(query)
             .sort({ createdAt: -1 });
 
         res.json({ orders });

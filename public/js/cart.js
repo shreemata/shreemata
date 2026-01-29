@@ -2766,6 +2766,169 @@ async function createCartPendingOrderWithAddresses(paymentType) {
     PREVIOUS ADDRESS FUNCTIONALITY
 ------------------------------ */
 
+/* -----------------------------------
+   API-BASED PREVIOUS ADDRESS FUNCTIONS
+----------------------------------- */
+async function loadCartPreviousAddresses() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("Please login to access previous addresses");
+        return;
+    }
+
+    try {
+        // Show loading state
+        const btn = document.getElementById("cartUseOldAddressBtn");
+        const originalText = btn.textContent;
+        btn.textContent = "Loading...";
+        btn.disabled = true;
+
+        // Fetch user's previous orders to get addresses (only completed orders)
+        const response = await fetch(`${API}/orders?status=completed`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch previous orders");
+        }
+
+        const data = await response.json();
+        const orders = data.orders || [];
+
+        // Extract unique addresses from previous orders
+        const addresses = [];
+        const addressMap = new Map();
+
+        orders.forEach(order => {
+            if (order.deliveryAddress && (order.deliveryAddress.homeAddress1 || order.deliveryAddress.street)) {
+                const addr = order.deliveryAddress;
+                // Handle both new format (homeAddress1) and legacy format (street)
+                const primaryAddress = addr.homeAddress1 || addr.street || '';
+                
+                // Create a unique key for the address
+                const key = `${primaryAddress}-${addr.taluk}-${addr.district}-${addr.pincode}`;
+                
+                if (!addressMap.has(key) && primaryAddress) {
+                    addressMap.set(key, {
+                        homeAddress1: primaryAddress,
+                        homeAddress2: addr.homeAddress2 || '',
+                        streetName: addr.streetName || '',
+                        landmark: addr.landmark || '',
+                        village: addr.village || '',
+                        taluk: addr.taluk || '',
+                        district: addr.district || '',
+                        state: addr.state || '',
+                        pincode: addr.pincode || '',
+                        phone: addr.phone || '',
+                        name: addr.name || '',
+                        orderDate: order.createdAt
+                    });
+                }
+            }
+        });
+
+        // Convert map to array and sort by most recent
+        const uniqueAddresses = Array.from(addressMap.values())
+            .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+
+        // Reset button
+        btn.textContent = originalText;
+        btn.disabled = false;
+
+        if (uniqueAddresses.length === 0) {
+            alert("No previous addresses found. Please enter your address manually.");
+            return;
+        }
+
+        // Populate the dropdown
+        const select = document.getElementById("cartPreviousAddressSelect");
+        select.innerHTML = '<option value="">-- Select a previous address --</option>';
+
+        uniqueAddresses.forEach((addr, index) => {
+            const option = document.createElement("option");
+            option.value = index;
+            option.textContent = `${addr.homeAddress1}, ${addr.taluk}, ${addr.district} - ${addr.pincode}`;
+            select.appendChild(option);
+        });
+
+        // Store addresses for later use
+        window.cartPreviousAddresses = uniqueAddresses;
+
+        // Show the dropdown section
+        document.getElementById("cartPreviousAddressesSection").style.display = "block";
+
+    } catch (error) {
+        console.error("Error loading previous addresses:", error);
+        alert("Failed to load previous addresses. Please try again.");
+        
+        // Reset button
+        const btn = document.getElementById("cartUseOldAddressBtn");
+        btn.textContent = "📋 Use My Previous Address";
+        btn.disabled = false;
+    }
+}
+
+function fillCartAddressFromPrevious() {
+    const select = document.getElementById("cartPreviousAddressSelect");
+    const selectedIndex = select.value;
+
+    if (selectedIndex === "" || !window.cartPreviousAddresses) {
+        return;
+    }
+
+    const address = window.cartPreviousAddresses[selectedIndex];
+
+    // Fill the delivery address fields (cart uses different field IDs)
+    document.getElementById("cartDeliveryName").value = address.name || '';
+    document.getElementById("cartDeliveryPhone").value = address.phone || '';
+    document.getElementById("cartDeliveryAddress1").value = address.homeAddress1 || '';
+    document.getElementById("cartDeliveryAddress2").value = address.homeAddress2 || '';
+    document.getElementById("cartDeliveryTaluk").value = address.taluk || '';
+    document.getElementById("cartDeliveryDistrict").value = address.district || '';
+    document.getElementById("cartDeliveryState").value = address.state || '';
+    document.getElementById("cartDeliveryPincode").value = address.pincode || '';
+
+    // Hide the dropdown section
+    hideCartPreviousAddresses();
+
+    // Show success message
+    const successMsg = document.createElement("div");
+    successMsg.style.cssText = `
+        background: #d4edda;
+        color: #155724;
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border: 1px solid #c3e6cb;
+        font-size: 14px;
+    `;
+    successMsg.innerHTML = "✅ Address filled successfully! You can modify any field if needed.";
+
+    // Insert the message at the top of delivery address fields
+    const deliveryFields = document.getElementById("cartDeliveryAddressFields");
+    if (deliveryFields) {
+        deliveryFields.insertBefore(successMsg, deliveryFields.firstChild);
+
+        // Remove the message after 3 seconds
+        setTimeout(() => {
+            if (successMsg.parentNode) {
+                successMsg.parentNode.removeChild(successMsg);
+            }
+        }, 3000);
+    }
+}
+
+function hideCartPreviousAddresses() {
+    document.getElementById("cartPreviousAddressesSection").style.display = "none";
+    document.getElementById("cartPreviousAddressSelect").value = "";
+}
+
+/* -----------------------------------
+   LEGACY PREVIOUS ADDRESS FUNCTIONS
+----------------------------------- */
+
 // Save address to localStorage for future use
 function savePreviousAddress(addressData, type = 'delivery') {
     try {
