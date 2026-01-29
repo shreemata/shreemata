@@ -796,7 +796,7 @@ router.post("/verify", authenticateToken, async (req, res) => {
       }
     }
 
-    res.json({ message: "Payment verified", order });
+    res.json({ success: true, message: "Payment verified", order });
 
   } catch (err) {
     console.error("Verify error:", err);
