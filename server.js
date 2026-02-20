@@ -76,6 +76,7 @@ app.use("/api", require("./routes/otp"));
 app.use("/api/password-reset", require("./routes/passwordReset"));
 app.use("/api/razorpay-reports", require("./routes/razorpayReports")); // Razorpay payment reports
 app.use("/api/employees", require("./routes/employees")); // Employee salary management
+app.use("/api/invoices", require("./routes/invoices")); // Invoice management
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/sitemap.xml", (req, res) => {

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Invoices - Shree Mata Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        nav .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        nav h1 {
+            color: white;
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            text-align: center;
+        }
+        nav .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 6px 4px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            text-align: center;
+            font-size: 11px;
+            white-space: nowrap;
+            display: block;
+        }
+        nav a:hover, nav a.active {
+            background: rgba(255,255,255,0.2);
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .main-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 100px;
+        }
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .header-section h1 {
+            margin: 0;
+            color: #333;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+        }
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        .btn-danger {
+            background: #f44336;
+        }
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+        .filters-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        .filter-group input, .filter-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .invoices-table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .invoices-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            background: white;
+        }
+        .invoices-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .invoices-table th {
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .invoices-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .invoices-table tbody tr:hover {
+            background: #f5f5f5;
+        }
+        .invoice-number {
+            font-weight: bold;
+            color: #2e7d32;
+            font-size: 15px;
+        }
+        .amount {
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <h1>Shree Mata Admin - All Invoices</h1>
+            <div class="nav-grid">
+                <a href="/">🏠 Home</a>
+                <a href="/admin.html">📚 Books</a>
+                <a href="/admin-bundles.html">📦 Bundles</a>
+                <a href="/admin-orders.html">🛒 Orders</a>
+                <a href="/admin-invoices.html">🧾 Invoices</a>
+                <a href="/admin-withdrawals.html">💰 Withdrawals</a>
+                <a href="/admin-users.html">👥 Users</a>
+                <a href="/" id="logoutBtn">🚪 Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            <div class="main-container">
+                <div class="header-section">
+                    <h1>📋 All Saved Invoices</h1>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="refreshBtn" class="btn">🔄 Refresh</button>
+                        <a href="/admin-invoices.html" class="btn btn-success">➕ Create New Invoice</a>
+                    </div>
+                </div>
+
+                <!-- Statistics -->
+                <div class="stats-section">
+                    <div class="stat-card">
+                        <h3>Total Invoices</h3>
+                        <div class="value" id="totalInvoices">0</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);">
+                        <h3>Total Amount</h3>
+                        <div class="value" id="totalAmount">₹0</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);">
+                        <h3>This Month</h3>
+                        <div class="value" id="monthInvoices">0</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);">
+                        <h3>Today</h3>
+                        <div class="value" id="todayInvoices">0</div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters-section">
+                    <div class="filter-group">
+                        <label>Search Invoice Number</label>
+                        <input type="text" id="searchInvoice" placeholder="SM202602190001">
+                    </div>
+                    <div class="filter-group">
+                        <label>Search Customer Name</label>
+                        <input type="text" id="searchCustomer" placeholder="Customer name">
+                    </div>
+                    <div class="filter-group">
+                        <label>From Date</label>
+                        <input type="date" id="fromDate">
+                    </div>
+                    <div class="filter-group">
+                        <label>To Date</label>
+                        <input type="date" id="toDate">
+                    </div>
+                    <div class="filter-group">
+                        <label>&nbsp;</label>
+                        <button id="applyFilters" class="btn" style="width: 100%;">🔍 Apply Filters</button>
+                    </div>
+                    <div class="filter-group">
+                        <label>&nbsp;</label>
+                        <button id="clearFilters" class="btn btn-danger" style="width: 100%;">✖️ Clear</button>
+                    </div>
+                </div>
+
+                <!-- Invoices Table -->
+                <div class="invoices-table-container">
+                    <table class="invoices-table">
+                        <thead>
+                            <tr>
+                                <th>Invoice No</th>
+                                <th>Date</th>
+                                <th>Customer Name</th>
+                                <th>Phone</th>
+                                <th>GST Number</th>
+                                <th>Products</th>
+                                <th>Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoicesTableBody">
+                            <tr>
+                                <td colspan="8" class="loading">
+                                    Loading invoices...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script>
+        let allInvoices = [];
+        let filteredInvoices = [];
+
+        // Load all invoices
+        async function loadAllInvoices() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/invoices`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    allInvoices = await response.json();
+                    filteredInvoices = [...allInvoices];
+                    displayInvoices(filteredInvoices);
+                    updateStatistics(allInvoices);
+                } else {
+                    document.getElementById('invoicesTableBody').innerHTML = `
+                        <tr>
+                            <td colspan="8" class="no-data">
+                                Failed to load invoices. Please refresh the page.
+                            </td>
+                        </tr>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading invoices:', error);
+                document.getElementById('invoicesTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="8" class="no-data">
+                            Error: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Display invoices in table
+        function displayInvoices(invoices) {
+            const tbody = document.getElementById('invoicesTableBody');
+            
+            if (invoices.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="no-data">
+                            No invoices found. Try adjusting your filters or create a new invoice!
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = invoices.map(invoice => {
+                // Calculate grand total
+                let grandTotal = 0;
+                invoice.products.forEach(product => {
+                    grandTotal += product.total || 0;
+                });
+                grandTotal += (parseFloat(invoice.forwardingCharges) || 0);
+                grandTotal -= (parseFloat(invoice.discount) || 0);
+                grandTotal += (parseFloat(invoice.otherCharges) || 0);
+
+                const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString('en-GB');
+                const productCount = invoice.products.length;
+
+                return `
+                    <tr>
+                        <td><span class="invoice-number">${invoice.invoiceNumber}</span></td>
+                        <td>${invoiceDate}</td>
+                        <td>${invoice.customerName}</td>
+                        <td>${invoice.phoneNumber || '-'}</td>
+                        <td>${invoice.gstNumber || '-'}</td>
+                        <td>${productCount} item${productCount !== 1 ? 's' : ''}</td>
+                        <td class="amount">₹${grandTotal.toFixed(2)}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button onclick="viewInvoice('${invoice.invoiceNumber}')" class="btn btn-small" title="View Invoice">
+                                    👁️ View
+                                </button>
+                                <button onclick="deleteInvoice('${invoice.invoiceNumber}')" class="btn btn-danger btn-small" title="Delete Invoice">
+                                    🗑️
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update statistics
+        function updateStatistics(invoices) {
+            const total = invoices.length;
+            let totalAmount = 0;
+            let monthCount = 0;
+            let todayCount = 0;
+
+            const today = new Date();
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+            const todayStr = today.toISOString().split('T')[0];
+
+            invoices.forEach(invoice => {
+                // Calculate total amount
+                let grandTotal = 0;
+                invoice.products.forEach(product => {
+                    grandTotal += product.total || 0;
+                });
+                grandTotal += (parseFloat(invoice.forwardingCharges) || 0);
+                grandTotal -= (parseFloat(invoice.discount) || 0);
+                grandTotal += (parseFloat(invoice.otherCharges) || 0);
+                totalAmount += grandTotal;
+
+                // Count this month
+                const invoiceDate = new Date(invoice.invoiceDate);
+                if (invoiceDate.getMonth() === currentMonth && invoiceDate.getFullYear() === currentYear) {
+                    monthCount++;
+                }
+
+                // Count today
+                if (invoice.invoiceDate === todayStr) {
+                    todayCount++;
+                }
+            });
+
+            document.getElementById('totalInvoices').textContent = total;
+            document.getElementById('totalAmount').textContent = '₹' + totalAmount.toFixed(2);
+            document.getElementById('monthInvoices').textContent = monthCount;
+            document.getElementById('todayInvoices').textContent = todayCount;
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const searchInvoice = document.getElementById('searchInvoice').value.toLowerCase();
+            const searchCustomer = document.getElementById('searchCustomer').value.toLowerCase();
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+
+            filteredInvoices = allInvoices.filter(invoice => {
+                // Filter by invoice number
+                if (searchInvoice && !invoice.invoiceNumber.toLowerCase().includes(searchInvoice)) {
+                    return false;
+                }
+
+                // Filter by customer name
+                if (searchCustomer && !invoice.customerName.toLowerCase().includes(searchCustomer)) {
+                    return false;
+                }
+
+                // Filter by date range
+                if (fromDate && invoice.invoiceDate < fromDate) {
+                    return false;
+                }
+                if (toDate && invoice.invoiceDate > toDate) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            displayInvoices(filteredInvoices);
+        }
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('searchInvoice').value = '';
+            document.getElementById('searchCustomer').value = '';
+            document.getElementById('fromDate').value = '';
+            document.getElementById('toDate').value = '';
+            filteredInvoices = [...allInvoices];
+            displayInvoices(filteredInvoices);
+        }
+
+        // View invoice
+        function viewInvoice(invoiceNumber) {
+            window.open(`/admin-invoice-print.html?id=${invoiceNumber}`, '_blank');
+        }
+
+        // Delete invoice
+        async function deleteInvoice(invoiceNumber) {
+            if (!confirm(`Are you sure you want to delete invoice ${invoiceNumber}?\n\nThis action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/invoices/${invoiceNumber}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Invoice deleted successfully');
+                    loadAllInvoices(); // Refresh list
+                } else {
+                    const data = await response.json();
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error deleting invoice:', error);
+                alert('Failed to delete invoice');
+            }
+        }
+
+        // Event listeners
+        document.getElementById('refreshBtn').addEventListener('click', loadAllInvoices);
+        document.getElementById('applyFilters').addEventListener('click', applyFilters);
+        document.getElementById('clearFilters').addEventListener('click', clearFilters);
+
+        // Real-time search
+        document.getElementById('searchInvoice').addEventListener('input', applyFilters);
+        document.getElementById('searchCustomer').addEventListener('input', applyFilters);
+
+        // Load invoices on page load
+        loadAllInvoices();
+    </script>
+</body>
+</html>

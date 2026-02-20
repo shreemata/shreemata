@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Management - Shree Mata Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        nav .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        nav h1 {
+            color: white;
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            text-align: center;
+        }
+        nav .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 6px 4px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            text-align: center;
+            font-size: 11px;
+            white-space: nowrap;
+            display: block;
+        }
+        nav a:hover, nav a.active {
+            background: rgba(255,255,255,0.2);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .main-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 100px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .form-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .form-section h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        #invoiceNumber {
+            background: #e8f5e9;
+            font-weight: bold;
+            font-size: 16px;
+            color: #2e7d32;
+            border: 2px solid #4caf50;
+        }
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        table th, table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        table th {
+            background: #667eea;
+            color: white;
+        }
+        table input, table select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        .btn-danger {
+            background: #f44336;
+        }
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+        .invoice-summary {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .summary-row.total {
+            font-size: 18px;
+            font-weight: bold;
+            border-top: 2px solid #333;
+            border-bottom: 2px solid #333;
+            margin-top: 10px;
+        }
+        @media print {
+            nav, .btn, .form-actions { display: none; }
+            .main-container { margin-top: 0; box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <h1>Shree Mata Admin - Invoice Management</h1>
+            <div class="nav-grid">
+                <a href="/">🏠 Home</a>
+                <a href="/admin.html">📚 Books</a>
+                <a href="/admin-bundles.html">📦 Bundles</a>
+                <a href="/admin-orders.html">🛒 Orders</a>
+                <a href="/admin-invoices.html" class="active">🧾 Invoices</a>
+                <a href="/admin-withdrawals.html">💰 Withdrawals</a>
+                <a href="/admin-users.html">👥 Users</a>
+                <a href="/" id="logoutBtn">🚪 Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            <div class="main-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h1>Invoice Management</h1>
+                    <a href="/admin-invoices-list.html" class="btn" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);">
+                        📋 View All Saved Invoices
+                    </a>
+                </div>
+                
+                <h2 style="margin-top: 10px;">Create New Invoice</h2>
+                
+                <form id="invoiceForm">
+                    <!-- SECTION 1: Invoice Header -->
+                    <div class="form-section">
+                        <h3>📋 Invoice Header Details</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Invoice Number</label>
+                                <input type="text" id="invoiceNumber" readonly value="Auto-generated">
+                            </div>
+                            <div class="form-group">
+                                <label>Invoice Date</label>
+                                <input type="date" id="invoiceDate" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: Customer Details -->
+                    <div class="form-section">
+                        <h3>👤 Customer Details</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Customer Name *</label>
+                                <input type="text" id="customerName" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone Number</label>
+                                <input type="tel" id="phoneNumber">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>GST Number (Optional)</label>
+                                <input type="text" id="gstNumber">
+                            </div>
+                            <div class="form-group">
+                                <label>District / State</label>
+                                <input type="text" id="district">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>PIN Code</label>
+                                <input type="text" id="pinCode">
+                            </div>
+                            <div class="form-group"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Billing Address (TO:)</label>
+                            <textarea id="billingAddress" rows="3" placeholder="Full billing address"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2.5: Shipping Details -->
+                    <div class="form-section">
+                        <h3>📦 Shipping Details</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Ship To Name (Optional)</label>
+                                <input type="text" id="shipToName" placeholder="Leave blank to use customer name">
+                            </div>
+                            <div class="form-group">
+                                <label>Shipping Phone Number (Optional)</label>
+                                <input type="tel" id="shippingPhone" placeholder="Leave blank to use customer phone">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Shipping District / State</label>
+                                <input type="text" id="shippingDistrict" placeholder="Leave blank to use billing district">
+                            </div>
+                            <div class="form-group">
+                                <label>Shipping PIN Code</label>
+                                <input type="text" id="shippingPinCode" placeholder="Leave blank to use billing PIN">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Shipping Address</label>
+                            <textarea id="shippingAddress" rows="3" placeholder="Full shipping address (leave blank to use billing address)"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2.6: Transport Details -->
+                    <div class="form-section">
+                        <h3>🚚 Transport Details</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Transportation Name</label>
+                                <input type="text" id="transportationName" placeholder="Transport company name">
+                            </div>
+                            <div class="form-group">
+                                <label>Vehicle No</label>
+                                <input type="text" id="vehicleNo" placeholder="Vehicle number">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3: Product Details -->
+                    <div class="form-section">
+                        <h3>📦 Product Details</h3>
+                        <table id="productsTable">
+                            <thead>
+                                <tr>
+                                    <th>SI No</th>
+                                    <th>Product Name</th>
+                                    <th>HSN Code</th>
+                                    <th>GST %</th>
+                                    <th>No. of Bundles</th>
+                                    <th>Unit Price</th>
+                                    <th>Taxable Amount</th>
+                                    <th>SGST</th>
+                                    <th>CGST</th>
+                                    <th>Total</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsBody">
+                                <tr>
+                                    <td>1</td>
+                                    <td><input type="text" class="product-name" required></td>
+                                    <td><input type="text" class="hsn-code"></td>
+                                    <td><input type="number" class="gst-percent" value="0" min="0" max="100" step="0.01"></td>
+                                    <td><input type="number" class="bundles" value="1" min="1"></td>
+                                    <td><input type="number" class="unit-price" value="0" min="0" step="0.01"></td>
+                                    <td><input type="number" class="taxable-amount" readonly value="0"></td>
+                                    <td><input type="number" class="sgst-amount" readonly value="0"></td>
+                                    <td><input type="number" class="cgst-amount" readonly value="0"></td>
+                                    <td><input type="number" class="total" readonly value="0"></td>
+                                    <td><button type="button" class="btn btn-danger btn-small remove-row">Remove</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button type="button" id="addProductRow" class="btn btn-secondary btn-small">+ Add Item</button>
+                    </div>
+
+                    <!-- SECTION 4: Additional Charges -->
+                    <div class="form-section">
+                        <h3>💰 Additional Charges</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Forwarding Charges</label>
+                                <input type="number" id="forwardingCharges" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="form-group">
+                                <label>Discount</label>
+                                <input type="number" id="discount" value="0" min="0" step="0.01">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Other Charges</label>
+                                <input type="number" id="otherCharges" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="form-group"></div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 5: Total Calculation Summary -->
+                    <div class="invoice-summary">
+                        <h3>📊 Total Calculation Summary</h3>
+                        <div class="summary-row">
+                            <span>Subtotal (Before GST):</span>
+                            <span id="subtotal">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Total CGST:</span>
+                            <span id="totalCGST">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Total SGST:</span>
+                            <span id="totalSGST">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Total IGST:</span>
+                            <span id="totalIGST">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Total GST:</span>
+                            <span id="totalGST">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Forwarding Charges:</span>
+                            <span id="displayForwarding">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Discount:</span>
+                            <span id="displayDiscount">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Other Charges:</span>
+                            <span id="displayOther">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Round Off:</span>
+                            <span id="roundOff">₹0.00</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Grand Total:</span>
+                            <span id="grandTotal">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 6: Amount in Words -->
+                    <div class="form-section">
+                        <h3>🔤 Amount in Words</h3>
+                        <p id="amountInWords" style="font-size: 16px; font-weight: bold; color: #333;">Zero Rupees Only</p>
+                    </div>
+
+                    <!-- SECTION 7: Bank Details -->
+                    <div class="form-section">
+                        <h3>🏦 Bank Details</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Bank Name</label>
+                                <input type="text" id="bankName">
+                            </div>
+                            <div class="form-group">
+                                <label>Account Number</label>
+                                <input type="text" id="accountNumber">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>IFSC Code</label>
+                                <input type="text" id="ifscCode">
+                            </div>
+                            <div class="form-group">
+                                <label>Branch</label>
+                                <input type="text" id="branch">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 8: Signature Section -->
+                    <div class="form-section">
+                        <h3>✍️ Signature Section</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Received By</label>
+                                <input type="text" id="receivedBy">
+                            </div>
+                            <div class="form-group">
+                                <label>Sent By</label>
+                                <input type="text" id="sentBy">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="digitalSignature">
+                                Digital Signature Approved
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions" style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit" class="btn">Save Invoice</button>
+                        <button type="button" id="previewBtn" class="btn btn-secondary">Preview Invoice</button>
+                        <button type="button" id="resetBtn" class="btn btn-danger">Reset Form</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script>
+        // Set today's date as default
+        document.getElementById('invoiceDate').valueAsDate = new Date();
+
+        // Fetch and display invoice number preview when date changes
+        async function updateInvoiceNumberPreview() {
+            const invoiceDate = document.getElementById('invoiceDate').value;
+            if (!invoiceDate) {
+                document.getElementById('invoiceNumber').value = 'Select date first';
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/invoices/preview-number`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ invoiceDate })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('invoiceNumber').value = data.invoiceNumber;
+                } else {
+                    document.getElementById('invoiceNumber').value = 'Error generating number';
+                }
+            } catch (error) {
+                console.error('Error fetching invoice number:', error);
+                document.getElementById('invoiceNumber').value = 'Error generating number';
+            }
+        }
+
+        // Update invoice number when date changes
+        document.getElementById('invoiceDate').addEventListener('change', updateInvoiceNumberPreview);
+        
+        // Load initial invoice number
+        updateInvoiceNumberPreview();
+
+        let productCounter = 1;
+
+        // Add product row
+        document.getElementById('addProductRow').addEventListener('click', function() {
+            productCounter++;
+            const tbody = document.getElementById('productsBody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${productCounter}</td>
+                <td><input type="text" class="product-name" required></td>
+                <td><input type="text" class="hsn-code"></td>
+                <td><input type="number" class="gst-percent" value="0" min="0" max="100" step="0.01"></td>
+                <td><input type="number" class="bundles" value="1" min="1"></td>
+                <td><input type="number" class="unit-price" value="0" min="0" step="0.01"></td>
+                <td><input type="number" class="taxable-amount" readonly value="0"></td>
+                <td><input type="number" class="sgst-amount" readonly value="0"></td>
+                <td><input type="number" class="cgst-amount" readonly value="0"></td>
+                <td><input type="number" class="total" readonly value="0"></td>
+                <td><button type="button" class="btn btn-danger btn-small remove-row">Remove</button></td>
+            `;
+            tbody.appendChild(row);
+            attachRowListeners(row);
+        });
+
+        // Remove product row
+        document.getElementById('productsBody').addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-row')) {
+                if (document.querySelectorAll('#productsBody tr').length > 1) {
+                    e.target.closest('tr').remove();
+                    updateSINumbers();
+                    calculateTotals();
+                } else {
+                    alert('At least one product row is required');
+                }
+            }
+        });
+
+        // Update SI numbers after removal
+        function updateSINumbers() {
+            const rows = document.querySelectorAll('#productsBody tr');
+            rows.forEach((row, index) => {
+                row.querySelector('td:first-child').textContent = index + 1;
+            });
+            productCounter = rows.length;
+        }
+
+        // Attach listeners to row inputs
+        function attachRowListeners(row) {
+            const bundles = row.querySelector('.bundles');
+            const unitPrice = row.querySelector('.unit-price');
+            const gstPercent = row.querySelector('.gst-percent');
+            const taxableAmount = row.querySelector('.taxable-amount');
+            const sgstAmount = row.querySelector('.sgst-amount');
+            const cgstAmount = row.querySelector('.cgst-amount');
+            const total = row.querySelector('.total');
+
+            function updateRowTotal() {
+                const bundlesVal = parseFloat(bundles.value) || 0;
+                const priceVal = parseFloat(unitPrice.value) || 0;
+                const gstVal = parseFloat(gstPercent.value) || 0;
+                
+                // Calculate taxable amount
+                const taxable = bundlesVal * priceVal;
+                taxableAmount.value = taxable.toFixed(2);
+                
+                // Calculate SGST and CGST (split GST equally)
+                const sgstPercent = gstVal / 2;
+                const cgstPercent = gstVal / 2;
+                
+                const sgst = (taxable * sgstPercent) / 100;
+                const cgst = (taxable * cgstPercent) / 100;
+                
+                sgstAmount.value = sgst.toFixed(2);
+                cgstAmount.value = cgst.toFixed(2);
+                
+                // Calculate total (taxable + SGST + CGST)
+                const totalAmount = taxable + sgst + cgst;
+                total.value = totalAmount.toFixed(2);
+                
+                calculateTotals();
+            }
+
+            bundles.addEventListener('input', updateRowTotal);
+            unitPrice.addEventListener('input', updateRowTotal);
+            gstPercent.addEventListener('input', updateRowTotal);
+        }
+
+        // Attach listeners to initial row
+        document.querySelectorAll('#productsBody tr').forEach(attachRowListeners);
+
+        // Calculate totals
+        function calculateTotals() {
+            const rows = document.querySelectorAll('#productsBody tr');
+            let subtotal = 0;
+            let totalSGST = 0;
+            let totalCGST = 0;
+
+            rows.forEach(row => {
+                const taxable = parseFloat(row.querySelector('.taxable-amount').value) || 0;
+                const sgst = parseFloat(row.querySelector('.sgst-amount').value) || 0;
+                const cgst = parseFloat(row.querySelector('.cgst-amount').value) || 0;
+                
+                subtotal += taxable;
+                totalSGST += sgst;
+                totalCGST += cgst;
+            });
+
+            const forwarding = parseFloat(document.getElementById('forwardingCharges').value) || 0;
+            const discount = parseFloat(document.getElementById('discount').value) || 0;
+            const other = parseFloat(document.getElementById('otherCharges').value) || 0;
+
+            const taxableBase = subtotal + forwarding - discount + other;
+            const totalGST = totalSGST + totalCGST;
+            const grandTotal = taxableBase + totalGST;
+
+            // Update display
+            document.getElementById('subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+            document.getElementById('totalCGST').textContent = `₹${totalCGST.toFixed(2)}`;
+            document.getElementById('totalSGST').textContent = `₹${totalSGST.toFixed(2)}`;
+            document.getElementById('totalIGST').textContent = `₹0.00`;
+            document.getElementById('totalGST').textContent = `₹${totalGST.toFixed(2)}`;
+            document.getElementById('displayForwarding').textContent = `₹${forwarding.toFixed(2)}`;
+            document.getElementById('displayDiscount').textContent = `₹${discount.toFixed(2)}`;
+            document.getElementById('displayOther').textContent = `₹${other.toFixed(2)}`;
+            document.getElementById('roundOff').textContent = `₹0.00`;
+            document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+
+            // Convert to words
+            document.getElementById('amountInWords').textContent = numberToWords(Math.round(grandTotal)) + ' Rupees Only';
+        }
+
+        // Add listeners for additional charges
+        ['forwardingCharges', 'discount', 'otherCharges'].forEach(id => {
+            document.getElementById(id).addEventListener('input', calculateTotals);
+        });
+
+        // Number to words conversion
+        function numberToWords(num) {
+            if (num === 0) return 'Zero';
+            
+            const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+            const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+            const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+            function convertLessThanThousand(n) {
+                if (n === 0) return '';
+                if (n < 10) return ones[n];
+                if (n < 20) return teens[n - 10];
+                if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+                return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convertLessThanThousand(n % 100) : '');
+            }
+
+            if (num < 1000) return convertLessThanThousand(num);
+            if (num < 100000) {
+                const thousands = Math.floor(num / 1000);
+                const remainder = num % 1000;
+                return convertLessThanThousand(thousands) + ' Thousand' + (remainder ? ' ' + convertLessThanThousand(remainder) : '');
+            }
+            if (num < 10000000) {
+                const lakhs = Math.floor(num / 100000);
+                const remainder = num % 100000;
+                return convertLessThanThousand(lakhs) + ' Lakh' + (remainder ? ' ' + numberToWords(remainder) : '');
+            }
+            const crores = Math.floor(num / 10000000);
+            const remainder = num % 10000000;
+            return convertLessThanThousand(crores) + ' Crore' + (remainder ? ' ' + numberToWords(remainder) : '');
+        }
+
+        // Print invoice
+        document.getElementById('previewBtn').addEventListener('click', function() {
+            // Save current form data to localStorage for preview
+            const formData = {
+                invoiceNumber: document.getElementById('invoiceNumber').value,
+                invoiceDate: document.getElementById('invoiceDate').value,
+                customerName: document.getElementById('customerName').value,
+                phoneNumber: document.getElementById('phoneNumber').value,
+                gstNumber: document.getElementById('gstNumber').value,
+                district: document.getElementById('district').value,
+                pinCode: document.getElementById('pinCode').value,
+                billingAddress: document.getElementById('billingAddress').value,
+                shipToName: document.getElementById('shipToName').value,
+                shippingPhone: document.getElementById('shippingPhone').value,
+                shippingAddress: document.getElementById('shippingAddress').value,
+                shippingDistrict: document.getElementById('shippingDistrict').value,
+                shippingPinCode: document.getElementById('shippingPinCode').value,
+                transportationName: document.getElementById('transportationName').value,
+                vehicleNo: document.getElementById('vehicleNo').value,
+                products: [],
+                forwardingCharges: document.getElementById('forwardingCharges').value,
+                discount: document.getElementById('discount').value,
+                otherCharges: document.getElementById('otherCharges').value,
+                bankName: document.getElementById('bankName').value,
+                accountNumber: document.getElementById('accountNumber').value,
+                ifscCode: document.getElementById('ifscCode').value,
+                branch: document.getElementById('branch').value,
+                receivedBy: document.getElementById('receivedBy').value,
+                sentBy: document.getElementById('sentBy').value,
+                digitalSignature: document.getElementById('digitalSignature').checked
+            };
+
+            // Collect products
+            document.querySelectorAll('#productsBody tr').forEach(row => {
+                formData.products.push({
+                    productName: row.querySelector('.product-name').value,
+                    hsnCode: row.querySelector('.hsn-code').value,
+                    gstPercent: parseFloat(row.querySelector('.gst-percent').value) || 0,
+                    bundles: parseFloat(row.querySelector('.bundles').value) || 0,
+                    unitPrice: parseFloat(row.querySelector('.unit-price').value) || 0,
+                    taxableAmount: parseFloat(row.querySelector('.taxable-amount').value) || 0,
+                    sgstAmount: parseFloat(row.querySelector('.sgst-amount').value) || 0,
+                    cgstAmount: parseFloat(row.querySelector('.cgst-amount').value) || 0,
+                    total: parseFloat(row.querySelector('.total').value) || 0
+                });
+            });
+
+            localStorage.setItem('invoicePreview', JSON.stringify(formData));
+            window.open('/admin-invoice-print.html', '_blank');
+        });
+
+        // Reset form
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to reset the form?')) {
+                document.getElementById('invoiceForm').reset();
+                document.getElementById('invoiceDate').valueAsDate = new Date();
+                calculateTotals();
+            }
+        });
+
+        // Form submission
+        document.getElementById('invoiceForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const products = [];
+            document.querySelectorAll('#productsBody tr').forEach(row => {
+                products.push({
+                    productName: row.querySelector('.product-name').value,
+                    hsnCode: row.querySelector('.hsn-code').value,
+                    gstPercent: parseFloat(row.querySelector('.gst-percent').value) || 0,
+                    bundles: parseFloat(row.querySelector('.bundles').value) || 0,
+                    unitPrice: parseFloat(row.querySelector('.unit-price').value) || 0,
+                    taxableAmount: parseFloat(row.querySelector('.taxable-amount').value) || 0,
+                    sgstAmount: parseFloat(row.querySelector('.sgst-amount').value) || 0,
+                    cgstAmount: parseFloat(row.querySelector('.cgst-amount').value) || 0,
+                    total: parseFloat(row.querySelector('.total').value) || 0
+                });
+            });
+
+            const invoiceData = {
+                invoiceDate: document.getElementById('invoiceDate').value,
+                customerName: document.getElementById('customerName').value,
+                phoneNumber: document.getElementById('phoneNumber').value,
+                gstNumber: document.getElementById('gstNumber').value,
+                district: document.getElementById('district').value,
+                state: document.getElementById('district').value.split('/')[1]?.trim() || '',
+                pinCode: document.getElementById('pinCode').value,
+                billingAddress: document.getElementById('billingAddress').value,
+                shipToName: document.getElementById('shipToName').value,
+                shippingPhone: document.getElementById('shippingPhone').value,
+                shippingAddress: document.getElementById('shippingAddress').value,
+                shippingDistrict: document.getElementById('shippingDistrict').value,
+                shippingPinCode: document.getElementById('shippingPinCode').value,
+                transportationName: document.getElementById('transportationName').value,
+                vehicleNo: document.getElementById('vehicleNo').value,
+                products: products,
+                forwardingCharges: document.getElementById('forwardingCharges').value,
+                discount: document.getElementById('discount').value,
+                otherCharges: document.getElementById('otherCharges').value,
+                bankName: document.getElementById('bankName').value,
+                accountNumber: document.getElementById('accountNumber').value,
+                ifscCode: document.getElementById('ifscCode').value,
+                branch: document.getElementById('branch').value,
+                receivedBy: document.getElementById('receivedBy').value,
+                sentBy: document.getElementById('sentBy').value,
+                digitalSignature: document.getElementById('digitalSignature').checked
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/invoices`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(invoiceData)
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Invoice saved successfully! Invoice Number: ' + data.invoice.invoiceNumber);
+                    document.getElementById('invoiceNumber').value = data.invoice.invoiceNumber;
+                    
+                    // Ask if user wants to view all invoices
+                    if (confirm('Invoice saved! Do you want to view all invoices?')) {
+                        window.location.href = '/admin-invoices-list.html';
+                    }
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to save invoice');
+            }
+        });
+
+        // Initial calculation
+        calculateTotals();
+    </script>
+</body>
+</html>

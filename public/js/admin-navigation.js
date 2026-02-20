@@ -176,6 +176,7 @@ function createAdminNavHTML(currentPageId) {
                             <div class="popup-group-title">Orders & Payments</div>
                             <a href="/admin-orders.html"><span class="icon">🛒</span> Orders</a>
                             <a href="/admin-check-payments.html"><span class="icon">📋</span> Cheque Payment Approvals</a>
+                            <a href="/admin-invoices.html"><span class="icon">🧾</span> Invoices</a>
                             <a href="/admin-withdrawals.html"><span class="icon">💰</span> Withdrawals</a>
                             <a href="/admin-bank-requests.html"><span class="icon">🏦</span> Bank Requests</a>
                         </div>
