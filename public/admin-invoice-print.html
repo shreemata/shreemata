@@ -26,27 +26,45 @@
         }
 
         .invoice-header {
-            text-align: center;
+            display: flex;
+            position: relative;
             padding: 20px;
             border-bottom: 2px solid #000;
+            align-items: flex-start;
+            gap: 30px;
         }
 
         .company-logo {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 10px;
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
+    padding: 2;
+    margin-top: -10px;  
+}
+
+        .company-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .company-details {
+            flex: 1;
+            text-align: center;
+            padding-right: 150px; 
+           
         }
 
         .company-name {
-            font-size: 28px;
+            font-size: 36px;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 1px;
+            color: #F68048;
         }
 
         .company-address {
-            font-size: 12px;
-            line-height: 1.5;
-            margin-bottom: 10px;
+            font-size: 13px;
+            line-height: 1.4;
         }
 
         .invoice-title-row {
@@ -54,13 +72,38 @@
             justify-content: space-between;
             align-items: center;
             padding: 10px 20px;
-            border-bottom: 1px solid #000;
+            border-bottom: 2px solid #000;
             font-size: 11px;
         }
 
         .invoice-title {
             font-weight: bold;
             font-size: 13px;
+        }
+
+        .info-section {
+            display: flex;
+            border-bottom: 2px solid #000;
+        }
+
+        .qr-company-section {
+            width: 180px;
+            padding: 15px;
+            border-right: 2px solid #000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .company-info-small {
+            font-size: 10px;
+            line-height: 1.5;
+        }
+
+        .company-info-small strong {
+            display: block;
+            font-size: 11px;
+            margin-bottom: 3px;
         }
 
         .party-details {
@@ -70,9 +113,9 @@
 
         .party-section {
             flex: 1;
-            padding: 15px;
+            padding: 10px;
             font-size: 11px;
-            line-height: 1.6;
+            line-height: 1.2;
         }
 
         .party-section:first-child {
@@ -100,24 +143,6 @@
 
         .detail-value {
             flex: 1;
-        }
-
-        .transport-row {
-            display: flex;
-            padding: 10px 15px;
-            background: #f8f8f8;
-            border-bottom: 2px solid #000;
-            font-size: 11px;
-        }
-
-        .transport-item {
-            flex: 1;
-        }
-
-        .transport-label {
-            font-weight: bold;
-            display: inline-block;
-            margin-right: 10px;
         }
 
         .bill-summary-title {
@@ -158,9 +183,9 @@
 
         .terms-section {
             flex: 1;
-            padding: 15px;
+            padding: 10px;
             font-size: 10px;
-            line-height: 1.6;
+            line-height: 1.2;
             border-right: 1px solid #000;
         }
 
@@ -170,19 +195,19 @@
         }
 
         .terms-section li {
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
 
         .amount-in-words {
-            margin-top: 15px;
-            padding-top: 15px;
+            margin-top: 1px;
+            padding-top: 10px;
             border-top: 1px solid #ddd;
             font-size: 12px;
         }
 
         .amount-in-words strong {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
             font-weight: bold;
             font-size: 13px;
         }
@@ -194,7 +219,7 @@
         }
 
         .totals-column {
-            width: 300px;
+            width: 350px;
             padding: 15px;
         }
 
@@ -303,6 +328,25 @@
             }
         }
 
+        .digital-sign-overlay {
+    position: absolute;
+    font-size: 100px;
+    color: green;
+    opacity: 0.5;
+    top: 0;
+    right: 90px;
+    transform: rotate( 12deg);
+    font-weight: bold;
+    pointer-events: none;
+}
+
+.digital-sign-text {
+    position: relative;
+    z-index: 2;
+    font-size: 11px;
+    margin-top: 60px;
+}
+
         .print-button {
             position: fixed;
             top: 20px;
@@ -370,83 +414,90 @@
     <div class="invoice-container">
         <!-- Header -->
         <div class="invoice-header">
-            <div class="company-logo">
-                <img src="/images/shiva.png" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
-            </div>
-            <div class="company-name">Shree Mata</div>
-            <div class="company-address">
-                Nekar Bhavan, Opp. K.H. Patil College, Vidyanagar,<br>
-                Hubballi, Karnataka - 580031<br>
-                Contact No: 9886086278<br>
-                GSTIN: 29GZTPP0335K1ZL<br>
-                Email: shree.mata.hbl@gmail.com<br>
-                Website: www.shreemata.com
-            </div>
+
+             <!-- LEFT SIDE (Logo + Contact Details) -->
+    <div style="width: 250px; text-align: center;">
+        <div class="company-logo" style="margin: 0 auto;">
+            <img src="/images/shiva.png" alt="Shree Mata Logo">
         </div>
+
+    <div style="margin-top:2px; font-size:12px;">
+    <div><strong>Contact No:</strong> 9886086278</div>
+</div>
+    </div>
+
+    <!-- RIGHT SIDE (Company Name + Address + GST beside Contact) -->
+    <div class="company-details" style="flex:1;">
+        <div class="company-name">SHREE MATA</div>
+
+        <div class="company-address">
+            Nekar Bhavan, Opp. K.H. Patil College, Vidyanagar,<br>
+            Hubballi, Karnataka - 580031<br><br>
+
+
+              <div style="margin-top: -18px; font-size: 12px; line-height: 1.5;">
+            <div><strong>Email:</strong> shree.mata.hbl@gmail.com</div>
+            <div><strong>Website:</strong> www.shreemata.com</div>
+        </div>
+          
+        </div>
+    </div>
+<div style="position:absolute; right:25px; top:135px; font-size:14px;">
+    <strong>GSTIN:</strong> 29GZTPP0335K1ZL
+</div>
+</div>
 
         <!-- Invoice Title Row -->
         <div class="invoice-title-row">
             <div>Invoice Number: <strong id="invoiceNumber">INV-1000</strong></div>
-            <div class="invoice-title">TAX INVOICE (Acknowledgement Copy)</div>
+            <div class="invoice-title">TAX INVOICE (Original for Recipient)</div>
             <div>Bill Date: <strong id="billDate">10-12-2025</strong></div>
         </div>
 
-        <!-- Party Details: Billing and Shipping -->
-        <div class="party-details">
-            <div class="party-section">
-                <div class="party-title">Billed To</div>
-                <div id="billedTo">
-                    <div class="detail-row">
-                        <span class="detail-label">Name:</span>
-                        <span class="detail-value" id="customerName"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Phone:</span>
-                        <span class="detail-value" id="customerPhone"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">GSTIN:</span>
-                        <span class="detail-value" id="customerGSTN"></span>
-                    </div>
-                    <div class="detail-row" style="margin-top: 6px;">
-                        <span class="detail-label">Address:</span>
-                        <div class="detail-value" id="billingAddressFull"></div>
-                    </div>
+        <!-- Info Section with QR Code and Company Details -->
+        <div class="info-section">
+            <div class="qr-company-section">
+                <div class="company-info-small">
+                    <strong>Shree Mata</strong>
+                    Nekar Bhavan, Opp. K.H. Patil<br>
+                    College, Vidyanagar, Hubballi,<br>
+                    580031, Hubli, Karnataka<br>
+                    Contact No - 9886086278<br>
+                    GSTN - 29GZTPP0335K1ZL
                 </div>
             </div>
-            
-            <div class="party-section">
-                <div class="party-title">Ship To</div>
-                <div id="shippedTo">
-                    <div class="detail-row">
-                        <span class="detail-label">Name:</span>
-                        <span class="detail-value" id="shipToName"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Phone:</span>
-                        <span class="detail-value" id="shippingPhone"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">GSTIN:</span>
-                        <span class="detail-value" id="shippingGSTN"></span>
-                    </div>
-                    <div class="detail-row" style="margin-top: 6px;">
-                        <span class="detail-label">Address:</span>
-                        <div class="detail-value" id="shippingAddressFull"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Transport Details -->
-        <div class="transport-row">
-            <div class="transport-item">
-                <span class="transport-label">Transportation Name:</span>
-                <span id="transportationName">-</span>
-            </div>
-            <div class="transport-item">
-                <span class="transport-label">Vehicle No:</span>
-                <span id="vehicleNo">-</span>
+            <!-- Billed To and Ship To Side by Side -->
+            <div style="flex: 1; display: flex; border-left: 2px solid #000;">
+                <!-- Billed To Section -->
+                <div class="party-section" style="flex: 1; border-right: 2px solid #000;">
+                    <div class="party-title">Billed To</div>
+                    <div id="billedTo">
+                        <div class="detail-row">
+                            <span class="detail-value" id="customerName" style="font-weight: bold; font-size: 13px;"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-value" id="billingAddressFull"></span>
+                        </div>
+                        <div class="detail-row" style="margin-top: 4px;">
+                            <span class="detail-label">Phone No -</span>
+                            <span class="detail-value" id="customerPhone"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ship To Section -->
+                <div class="party-section" style="flex: 1;">
+                    <div class="party-title">Ship To</div>
+                    <div id="shippedTo">
+                        <div style="font-weight: bold; font-size: 13px; margin-bottom: 2px;" id="shipToName"></div>
+                        <div id="shippingAddressFull" style="margin-bottom: 5px;"></div>
+                        <div>
+                            <span style="font-weight: bold;">Phone No -</span>
+                            <span id="shippingPhone"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -531,10 +582,13 @@
         <div class="footer-section">
             <div class="footer-column">
                 <strong>Bank Details</strong><br>
-                A/C No: <span id="accountNumber"></span><br>
-                IFSC: <span id="ifscCode"></span><br>
-                Branch: <span id="branch"></span><br>
-                Bank Name: <span id="bankName"></span>
+                A/C Name: Shree Mata<br>
+                Bank Name: IDFC FIRST<br>
+                A/C No: 10198316912<br>
+                IFSC: IDFB0080281<br>
+                Branch: HUBBALLI<br>
+                Recipient Id: 2906792226<br>
+                Vendor code: V2953600095701<br>
             </div>
             
             <div class="footer-column">
@@ -543,22 +597,21 @@
                     <div class="signature-line"></div>
                     <div class="signature-text">Receiver Signature</div>
                     <div class="receiver-details">
-                        Receiver Name: __________<br>
-                        Receiver Phone: __________
+                        Receiver Name & Receiver Phone
                     </div>
                 </div>
             </div>
 
-            <div class="footer-column">
-                <div class="signature-box">
-                    <div class="signature-space"></div>
-                    <div class="signature-line"></div>
-                    <div class="signature-text">Authorized Signature</div>
-                    <div class="signature-subtext">(Digitally Verified Signature)</div>
-                    <div class="promoter-name">Promoter Name: Shree Mata</div>
-                </div>
-            </div>
-        </div>
+<div class="footer-column" style="position: relative; overflow: hidden;">
+    
+    <div class="digital-sign-overlay">
+        ✔
+    </div>
+
+    <div class="digital-sign-text">
+        <div><strong>Digitally signed by SHREE MATA</strong></div>
+    </div>
+</div>
         
         <!-- Page Number (visible on screen, replaced by CSS in print) -->
         <div class="page-number">
@@ -568,6 +621,13 @@
 
     <script src="js/config.js"></script>
     <script>
+
+        function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.textContent = value || '-';
+    }
+}
         // Get invoice data from URL parameters or localStorage
         const urlParams = new URLSearchParams(window.location.search);
         const invoiceId = urlParams.get('id');
@@ -618,10 +678,16 @@
             document.getElementById('billDate').textContent = new Date(invoice.invoiceDate).toLocaleDateString('en-GB');
 
             // Billing details (left side)
-            document.getElementById('customerName').textContent = invoice.customerName;
-            document.getElementById('customerPhone').textContent = invoice.phoneNumber || '-';
-            document.getElementById('customerGSTN').textContent = invoice.gstNumber || '-';
-            document.getElementById('billingAddressFull').textContent = invoice.billingAddress || '-';
+setText('customerName', invoice.customerName);
+setText('customerPhone', invoice.phoneNumber);
+setText('customerGSTN', invoice.gstNumber);
+setText('shippingGSTN', invoice.gstNumber);
+           const customerGSTNEl = document.getElementById('customerGSTN');
+if (customerGSTNEl) {
+    customerGSTNEl.textContent = invoice.gstNumber || '-';
+}
+           document.getElementById('billingAddressFull').innerHTML =
+    (invoice.billingAddress || '-').replace(/\n/g, '<br>');
 
             // Shipping details (right side) - Use shipping fields or fallback to billing
             const shipToName = invoice.shipToName || invoice.customerName;
@@ -631,12 +697,9 @@
             
             document.getElementById('shipToName').textContent = shipToName;
             document.getElementById('shippingPhone').textContent = shippingPhone;
-            document.getElementById('shippingGSTN').textContent = shippingGSTN;
-            document.getElementById('shippingAddressFull').textContent = shippingAddr;
-
-            // Transport details
-            document.getElementById('transportationName').textContent = invoice.transportationName || '-';
-            document.getElementById('vehicleNo').textContent = invoice.vehicleNo || '-';
+            setText('shippingGSTN', shippingGSTN);
+            document.getElementById('shippingAddressFull').innerHTML =
+    (shippingAddr || '-').replace(/\n/g, '<br>');
 
             // Products
             const tbody = document.getElementById('productsTableBody');
@@ -646,32 +709,38 @@
             let totalSGST = 0;
             let totalCGST = 0;
 
-            invoice.products.forEach((product, index) => {
-                const taxableAmt = product.taxableAmount || (product.bundles * product.unitPrice);
-                const sgst = product.sgstAmount || 0;
-                const cgst = product.cgstAmount || 0;
-                const gstPercent = product.gstPercent || 0;
-                const sgstPercent = gstPercent / 2;
-                const cgstPercent = gstPercent / 2;
-                
-                subtotal += taxableAmt;
-                totalSGST += sgst;
-                totalCGST += cgst;
+            // Check if products exist and is an array
+            if (!invoice.products || !Array.isArray(invoice.products) || invoice.products.length === 0) {
+                console.warn('No products found in invoice:', invoice);
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">No products found</td></tr>';
+            } else {
+                invoice.products.forEach((product, index) => {
+                    const taxableAmt = product.taxableAmount || (product.bundles * product.unitPrice);
+                    const sgst = product.sgstAmount || 0;
+                    const cgst = product.cgstAmount || 0;
+                    const gstPercent = product.gstPercent || 0;
+                    const sgstPercent = gstPercent / 2;
+                    const cgstPercent = gstPercent / 2;
+                    
+                    subtotal += taxableAmt;
+                    totalSGST += sgst;
+                    totalCGST += cgst;
 
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${product.productName}</td>
-                    <td>${product.hsnCode || '-'}</td>
-                    <td>${product.unitPrice.toFixed(2)}</td>
-                    <td>${product.bundles || product.qty || 0}</td>
-                    <td>${taxableAmt.toFixed(2)}</td>
-                    <td>${sgst.toFixed(2)} (${sgstPercent.toFixed(2)}%)</td>
-                    <td>${cgst.toFixed(2)} (${cgstPercent.toFixed(2)}%)</td>
-                    <td>${product.total.toFixed(2)}</td>
-                `;
-                tbody.appendChild(row);
-            });
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${product.productName || 'N/A'}</td>
+                        <td>${product.hsnCode || '-'}</td>
+                        <td>${(product.unitPrice || 0).toFixed(2)}</td>
+                        <td>${product.bundles || product.qty || 0}</td>
+                        <td>${taxableAmt.toFixed(2)}</td>
+                        <td>${sgst.toFixed(2)} (${sgstPercent.toFixed(2)}%)</td>
+                        <td>${cgst.toFixed(2)} (${cgstPercent.toFixed(2)}%)</td>
+                        <td>${(product.total || 0).toFixed(2)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
 
             // Totals - Simplified calculation
             const forwarding = parseFloat(invoice.forwardingCharges) || 0;
@@ -694,10 +763,7 @@
             document.getElementById('amountInWords').textContent = amountInWords + ' Rupees Only';
 
             // Bank details
-            document.getElementById('accountNumber').textContent = invoice.accountNumber || '';
-            document.getElementById('ifscCode').textContent = invoice.ifscCode || '';
-            document.getElementById('branch').textContent = invoice.branch || '';
-            document.getElementById('bankName').textContent = invoice.bankName || '';
+
         }
 
         // Number to words conversion (Indian format)
@@ -775,12 +841,30 @@
             populateInvoice(sampleInvoice);
         }
 
-        function generateQRCode(invoiceNumber) {
-            // QR Code generation removed as per requirements
-        }
+
+
+        function setDigitalSignature() {
+    const now = new Date();
+
+    const formatted = now.getFullYear() + "." +
+        String(now.getMonth() + 1).padStart(2, '0') + "." +
+        String(now.getDate()).padStart(2, '0') + " " +
+        String(now.getHours()).padStart(2, '0') + ":" +
+        String(now.getMinutes()).padStart(2, '0') + ":" +
+        String(now.getSeconds()).padStart(2, '0');
+
+    const el = document.getElementById("digitalDateTime");
+    if (el) {
+        el.textContent = formatted;
+    }
+}
+
 
         // Load data on page load
-        loadInvoiceData();
+      loadInvoiceData();
+setDigitalSignature();
+
+
     </script>
 </body>
 </html>
