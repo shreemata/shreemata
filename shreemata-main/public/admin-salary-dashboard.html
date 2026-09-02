@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salary Dashboard - Shree Mata Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/admin-nav.css">
+    <style>
+        .salary-dashboard {
+            padding: 20px;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .dashboard-header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .dashboard-header p {
+            margin: 10px 0 0 0;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .summary-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .summary-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card-employees { border-left: 5px solid #28a745; }
+        .card-employees .icon { color: #28a745; }
+        .card-employees .value { color: #28a745; }
+
+        .card-paid { border-left: 5px solid #007bff; }
+        .card-paid .icon { color: #007bff; }
+        .card-paid .value { color: #007bff; }
+
+        .card-pending { border-left: 5px solid #ffc107; }
+        .card-pending .icon { color: #ffc107; }
+        .card-pending .value { color: #ffc107; }
+
+        .card-current { border-left: 5px solid #17a2b8; }
+        .card-current .icon { color: #17a2b8; }
+        .card-current .value { color: #17a2b8; }
+
+        .controls-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+        }
+
+        .excel-table {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-header h3 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .employee-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .employee-table th {
+            background: #f8f9fa;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .employee-table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: middle;
+        }
+
+        .employee-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active { background: #d4edda; color: #155724; }
+        .status-inactive { background: #f8d7da; color: #721c24; }
+        .status-terminated { background: #d1ecf1; color: #0c5460; }
+
+        .payment-status {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .payment-paid { background: #d4edda; color: #155724; }
+        .payment-pending { background: #fff3cd; color: #856404; }
+        .payment-cancelled { background: #f8d7da; color: #721c24; }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: 6px;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+            border: none;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border: none;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h4 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .otp-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .otp-input {
+            font-size: 1.5rem;
+            text-align: center;
+            letter-spacing: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header h1 {
+                font-size: 2rem;
+            }
+            
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 2% auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="admin-nav-placeholder"></div>
+
+    <div class="salary-dashboard">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <h1>🏢 Shree Mata</h1>
+            <p>Employee Salary Management Dashboard</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card card-employees">
+                <div class="icon">👥</div>
+                <div class="value" id="totalEmployees">-</div>
+                <div class="label">Total Employees</div>
+            </div>
+            <div class="summary-card card-paid">
+                <div class="icon">💰</div>
+                <div class="value" id="totalPaidSalaries">₹-</div>
+                <div class="label">Total Paid Salaries</div>
+            </div>
+            <div class="summary-card card-pending">
+                <div class="icon">⏳</div>
+                <div class="value" id="totalPendingSalaries">₹-</div>
+                <div class="label">Pending Salaries</div>
+            </div>
+            <div class="summary-card card-current">
+                <div class="icon">📅</div>
+                <div class="value" id="currentMonthPayments">₹-</div>
+                <div class="label">Current Month Paid</div>
+            </div>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="controls-section">
+            <div class="controls-row">
+                <button class="btn btn-primary" onclick="showAddEmployeeModal()">
+                    <span>👤</span> Add New Employee
+                </button>
+                <button class="btn btn-success" onclick="showAddSalaryModal()">
+                    <span>💸</span> Add Salary Record
+                </button>
+                <button class="btn btn-warning" onclick="refreshData()">
+                    <span>🔄</span> Refresh Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Employee Table -->
+        <div class="excel-table">
+            <div class="table-header">
+                <h3>📊 Employee Salary Records</h3>
+                <span id="employeeCount">Loading...</span>
+            </div>
+            <div class="table-container">
+                <table class="employee-table">
+                    <thead>
+                        <tr>
+                            <th>Employee ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Designation</th>
+                            <th>Department</th>
+                            <th>Basic Salary</th>
+                            <th>Total Paid</th>
+                            <th>Pending</th>
+                            <th>Status</th>
+                            <th>Email Verified</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeeTableBody">
+                        <tr>
+                            <td colspan="11" class="loading">
+                                <div class="spinner"></div>
+                                Loading employee data...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Employee Modal -->
+    <div id="addEmployeeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>👤 Add New Employee</h4>
+                <span class="close" onclick="closeModal('addEmployeeModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="addEmployeeAlert"></div>
+                <form id="addEmployeeForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="empName">Full Name *</label>
+                            <input type="text" id="empName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="empEmail">Email Address *</label>
+                            <input type="email" id="empEmail" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="empPhone">Phone Number *</label>
+                            <input type="tel" id="empPhone" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="empDesignation">Designation *</label>
+                            <input type="text" id="empDesignation" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="empDepartment">Department *</label>
+                            <input type="text" id="empDepartment" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="empJoiningDate">Joining Date *</label>
+                            <input type="date" id="empJoiningDate" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="empBasicSalary">Basic Salary (₹) *</label>
+                        <input type="number" id="empBasicSalary" class="form-control" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            <span>👤</span> Add Employee (Email Auto-Verified)
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Salary Modal -->
+    <div id="addSalaryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>💸 Add Salary Record</h4>
+                <span class="close" onclick="closeModal('addSalaryModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="addSalaryAlert"></div>
+                <form id="addSalaryForm">
+                    <div class="form-group">
+                        <label for="salaryEmployee">Select Employee *</label>
+                        <select id="salaryEmployee" class="form-control" required>
+                            <option value="">Choose Employee...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="salaryType">Salary Type *</label>
+                        <select id="salaryType" class="form-control" required onchange="updatePeriodFields()">
+                            <option value="">Select Salary Type...</option>
+                            <option value="daily">Daily Salary</option>
+                            <option value="weekly">Weekly Salary</option>
+                            <option value="monthly">Monthly Salary</option>
+                            <option value="yearly">Yearly Salary</option>
+                            <option value="project">Project Based</option>
+                            <option value="hourly">Hourly Rate</option>
+                        </select>
+                    </div>
+                    <div id="periodFields">
+                        <!-- Period fields will be dynamically generated based on salary type -->
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="salaryStartDate">Period Start Date *</label>
+                            <input type="date" id="salaryStartDate" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="salaryEndDate">Period End Date *</label>
+                            <input type="date" id="salaryEndDate" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="salaryDate">Salary Date *</label>
+                        <input type="date" id="salaryDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="salaryBasic">Basic Salary (₹) *</label>
+                        <input type="number" id="salaryBasic" class="form-control" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="salaryAllowances">Allowances (₹)</label>
+                            <input type="number" id="salaryAllowances" class="form-control" min="0" step="0.01" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="salaryBonus">Bonus (₹)</label>
+                            <input type="number" id="salaryBonus" class="form-control" min="0" step="0.01" value="0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="salaryOvertime">Overtime (₹)</label>
+                            <input type="number" id="salaryOvertime" class="form-control" min="0" step="0.01" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="salaryDeductions">Deductions (₹)</label>
+                            <input type="number" id="salaryDeductions" class="form-control" min="0" step="0.01" value="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="salaryPaymentMethod">Payment Method</label>
+                        <select id="salaryPaymentMethod" class="form-control">
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="cash">Cash</option>
+                            <option value="cheque">Cheque</option>
+                            <option value="upi">UPI</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="salaryNotes">Notes</label>
+                        <textarea id="salaryNotes" class="form-control" rows="3" placeholder="Optional notes..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-success" style="width: 100%;">
+                            <span>💰</span> Add Salary Record
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- OTP Verification Modal -->
+    <div id="otpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4>🔐 OTP Verification</h4>
+                <span class="close" onclick="closeModal('otpModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="otpAlert"></div>
+                <div class="otp-section">
+                    <p>An OTP has been sent to the employee's email address.</p>
+                    <p><strong>Please ask the employee to provide the OTP:</strong></p>
+                    <input type="text" id="otpInput" class="form-control otp-input" placeholder="Enter OTP" maxlength="6">
+                    <button class="btn btn-primary" onclick="verifyOTP()" style="margin-top: 15px;">
+                        <span>✅</span> Verify OTP
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/admin-navigation.js"></script>
+    <script>
+        let employees = [];
+        let currentOTPAction = null;
+        let currentOTPData = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Admin navigation is automatically initialized by admin-navigation.js
+            loadSalarySummary();
+            loadEmployees();
+        });
+
+        // Load salary summary
+        async function loadSalarySummary() {
+            try {
+                const response = await fetch('/api/employees/salary-summary', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const summary = data.summary;
+
+                    document.getElementById('totalEmployees').textContent = summary.totalEmployees;
+                    document.getElementById('totalPaidSalaries').textContent = `₹${summary.totalPaidSalaries.toLocaleString()}`;
+                    document.getElementById('totalPendingSalaries').textContent = `₹${summary.totalPendingSalaries.toLocaleString()}`;
+                    document.getElementById('currentMonthPayments').textContent = `₹${summary.currentMonthPayments.toLocaleString()}`;
+                }
+            } catch (error) {
+                console.error('Error loading salary summary:', error);
+            }
+        }
+
+        // Load employees
+        async function loadEmployees() {
+            try {
+                const response = await fetch('/api/employees', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    employees = data.employees;
+                    renderEmployeeTable();
+                    populateEmployeeDropdown();
+                    document.getElementById('employeeCount').textContent = `${employees.length} employees`;
+                } else {
+                    throw new Error('Failed to load employees');
+                }
+            } catch (error) {
+                console.error('Error loading employees:', error);
+                document.getElementById('employeeTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="11" style="text-align: center; color: #dc3545; padding: 40px;">
+                            ❌ Error loading employee data: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Render employee table
+        function renderEmployeeTable() {
+            const tbody = document.getElementById('employeeTableBody');
+            
+            if (employees.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" style="text-align: center; padding: 40px; color: #666;">
+                            👥 No employees found. Add your first employee to get started.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = employees.map(emp => `
+                <tr>
+                    <td><strong>${emp.employeeId}</strong></td>
+                    <td>${emp.name}</td>
+                    <td>${emp.email}</td>
+                    <td>${emp.designation}</td>
+                    <td>${emp.department}</td>
+                    <td>₹${emp.basicSalary.toLocaleString()}</td>
+                    <td>₹${emp.salarySummary.totalPaid.toLocaleString()}</td>
+                    <td>₹${emp.salarySummary.pendingAmount.toLocaleString()}</td>
+                    <td><span class="status-badge status-${emp.status}">${emp.status}</span></td>
+                    <td>${emp.emailVerified ? '✅ Verified' : '❌ Not Verified'}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-info btn-sm" onclick="viewEmployeeSalary('${emp._id}')">
+                                💰 Salary
+                            </button>
+                            <button class="btn btn-secondary btn-sm" onclick="editEmployee('${emp._id}')">
+                                ✏️ Edit
+                            </button>
+                            <button class="btn btn-warning btn-sm" onclick="terminateEmployee('${emp._id}')">
+                                🚫 Terminate
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteEmployee('${emp._id}')">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Populate employee dropdown
+        function populateEmployeeDropdown() {
+            const select = document.getElementById('salaryEmployee');
+            select.innerHTML = '<option value="">Choose Employee...</option>';
+            
+            employees.filter(emp => emp.status === 'active').forEach(emp => {
+                select.innerHTML += `<option value="${emp._id}">${emp.name} (${emp.employeeId})</option>`;
+            });
+        }
+
+        // Show add employee modal
+        function showAddEmployeeModal() {
+            document.getElementById('addEmployeeModal').style.display = 'block';
+            document.getElementById('addEmployeeForm').reset();
+            document.getElementById('addEmployeeAlert').innerHTML = '';
+        }
+
+        // Show add salary modal
+        function showAddSalaryModal() {
+            document.getElementById('addSalaryModal').style.display = 'block';
+            document.getElementById('addSalaryForm').reset();
+            document.getElementById('addSalaryAlert').innerHTML = '';
+            
+            // Set current date as default
+            const now = new Date();
+            document.getElementById('salaryDate').value = now.toISOString().split('T')[0];
+            document.getElementById('salaryStartDate').value = now.toISOString().split('T')[0];
+            document.getElementById('salaryEndDate').value = now.toISOString().split('T')[0];
+            
+            // Clear period fields
+            document.getElementById('periodFields').innerHTML = '';
+        }
+
+        // Update period fields based on salary type
+        function updatePeriodFields() {
+            const salaryType = document.getElementById('salaryType').value;
+            const periodFields = document.getElementById('periodFields');
+            const now = new Date();
+            
+            let fieldsHTML = '';
+            
+            switch(salaryType) {
+                case 'daily':
+                    fieldsHTML = `
+                        <div class="form-group">
+                            <label for="dailyDate">Daily Work Date *</label>
+                            <input type="date" id="dailyDate" class="form-control" required value="${now.toISOString().split('T')[0]}">
+                        </div>
+                    `;
+                    break;
+                    
+                case 'weekly':
+                    const weekStart = new Date(now);
+                    weekStart.setDate(now.getDate() - now.getDay());
+                    const weekEnd = new Date(weekStart);
+                    weekEnd.setDate(weekStart.getDate() + 6);
+                    
+                    fieldsHTML = `
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="weekNumber">Week Number *</label>
+                                <input type="number" id="weekNumber" class="form-control" min="1" max="53" required value="${getWeekNumber(now)}">
+                            </div>
+                            <div class="form-group">
+                                <label for="weekYear">Year *</label>
+                                <input type="number" id="weekYear" class="form-control" required value="${now.getFullYear()}">
+                            </div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'monthly':
+                    fieldsHTML = `
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="salaryMonth">Month *</label>
+                                <select id="salaryMonth" class="form-control" required>
+                                    <option value="">Select Month...</option>
+                                    <option value="01" ${now.getMonth() === 0 ? 'selected' : ''}>January</option>
+                                    <option value="02" ${now.getMonth() === 1 ? 'selected' : ''}>February</option>
+                                    <option value="03" ${now.getMonth() === 2 ? 'selected' : ''}>March</option>
+                                    <option value="04" ${now.getMonth() === 3 ? 'selected' : ''}>April</option>
+                                    <option value="05" ${now.getMonth() === 4 ? 'selected' : ''}>May</option>
+                                    <option value="06" ${now.getMonth() === 5 ? 'selected' : ''}>June</option>
+                                    <option value="07" ${now.getMonth() === 6 ? 'selected' : ''}>July</option>
+                                    <option value="08" ${now.getMonth() === 7 ? 'selected' : ''}>August</option>
+                                    <option value="09" ${now.getMonth() === 8 ? 'selected' : ''}>September</option>
+                                    <option value="10" ${now.getMonth() === 9 ? 'selected' : ''}>October</option>
+                                    <option value="11" ${now.getMonth() === 10 ? 'selected' : ''}>November</option>
+                                    <option value="12" ${now.getMonth() === 11 ? 'selected' : ''}>December</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="salaryYear">Year *</label>
+                                <select id="salaryYear" class="form-control" required>
+                                    <option value="">Select Year...</option>
+                                    ${generateYearOptions(now.getFullYear())}
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'yearly':
+                    fieldsHTML = `
+                        <div class="form-group">
+                            <label for="salaryYear">Year *</label>
+                            <select id="salaryYear" class="form-control" required>
+                                <option value="">Select Year...</option>
+                                ${generateYearOptions(now.getFullYear())}
+                            </select>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'project':
+                    fieldsHTML = `
+                        <div class="form-group">
+                            <label for="projectName">Project Name *</label>
+                            <input type="text" id="projectName" class="form-control" required placeholder="Enter project name">
+                        </div>
+                    `;
+                    break;
+                    
+                case 'hourly':
+                    fieldsHTML = `
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="hoursWorked">Hours Worked *</label>
+                                <input type="number" id="hoursWorked" class="form-control" min="0" step="0.5" required placeholder="8.0">
+                            </div>
+                            <div class="form-group">
+                                <label for="hourlyRate">Hourly Rate (₹) *</label>
+                                <input type="number" id="hourlyRate" class="form-control" min="0" step="0.01" required placeholder="500.00">
+                            </div>
+                        </div>
+                    `;
+                    break;
+            }
+            
+            periodFields.innerHTML = fieldsHTML;
+            
+            // Auto-update start and end dates based on salary type
+            updateDateRanges(salaryType);
+        }
+
+        // Helper function to get week number
+        function getWeekNumber(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+        }
+
+        // Helper function to generate year options
+        function generateYearOptions(currentYear) {
+            let options = '';
+            for (let year = currentYear - 2; year <= currentYear + 1; year++) {
+                const selected = year === currentYear ? 'selected' : '';
+                options += `<option value="${year}" ${selected}>${year}</option>`;
+            }
+            return options;
+        }
+
+        // Update date ranges based on salary type
+        function updateDateRanges(salaryType) {
+            const now = new Date();
+            const startDateField = document.getElementById('salaryStartDate');
+            const endDateField = document.getElementById('salaryEndDate');
+            
+            switch(salaryType) {
+                case 'daily':
+                    startDateField.value = now.toISOString().split('T')[0];
+                    endDateField.value = now.toISOString().split('T')[0];
+                    break;
+                    
+                case 'weekly':
+                    const weekStart = new Date(now);
+                    weekStart.setDate(now.getDate() - now.getDay());
+                    const weekEnd = new Date(weekStart);
+                    weekEnd.setDate(weekStart.getDate() + 6);
+                    startDateField.value = weekStart.toISOString().split('T')[0];
+                    endDateField.value = weekEnd.toISOString().split('T')[0];
+                    break;
+                    
+                case 'monthly':
+                    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    startDateField.value = monthStart.toISOString().split('T')[0];
+                    endDateField.value = monthEnd.toISOString().split('T')[0];
+                    break;
+                    
+                case 'yearly':
+                    const yearStart = new Date(now.getFullYear(), 0, 1);
+                    const yearEnd = new Date(now.getFullYear(), 11, 31);
+                    startDateField.value = yearStart.toISOString().split('T')[0];
+                    endDateField.value = yearEnd.toISOString().split('T')[0];
+                    break;
+                    
+                default:
+                    startDateField.value = now.toISOString().split('T')[0];
+                    endDateField.value = now.toISOString().split('T')[0];
+            }
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Add employee form submission
+        document.getElementById('addEmployeeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('empName').value,
+                email: document.getElementById('empEmail').value,
+                phone: document.getElementById('empPhone').value,
+                designation: document.getElementById('empDesignation').value,
+                department: document.getElementById('empDepartment').value,
+                joiningDate: document.getElementById('empJoiningDate').value,
+                basicSalary: parseFloat(document.getElementById('empBasicSalary').value)
+            };
+
+            try {
+                const response = await fetch('/api/employees', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('addEmployeeAlert').innerHTML = `
+                        <div class="alert alert-success">
+                            ✅ Employee added successfully! Email automatically verified.
+                        </div>
+                    `;
+                    
+                    setTimeout(() => {
+                        closeModal('addEmployeeModal');
+                        refreshData();
+                    }, 2000);
+                } else {
+                    document.getElementById('addEmployeeAlert').innerHTML = `
+                        <div class="alert alert-danger">
+                            ❌ Error: ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('addEmployeeAlert').innerHTML = `
+                    <div class="alert alert-danger">
+                        ❌ Error adding employee: ${error.message}
+                    </div>
+                `;
+            }
+        });
+
+        // Add salary form submission
+        document.getElementById('addSalaryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const salaryType = document.getElementById('salaryType').value;
+            const startDate = document.getElementById('salaryStartDate').value;
+            const endDate = document.getElementById('salaryEndDate').value;
+            
+            // Generate period and period description based on salary type
+            let period = '';
+            let periodDescription = '';
+            
+            switch(salaryType) {
+                case 'daily':
+                    const dailyDate = document.getElementById('dailyDate').value;
+                    period = dailyDate;
+                    periodDescription = new Date(dailyDate).toLocaleDateString('en-GB', { 
+                        day: 'numeric', month: 'long', year: 'numeric' 
+                    });
+                    break;
+                    
+                case 'weekly':
+                    const weekNum = document.getElementById('weekNumber').value;
+                    const weekYear = document.getElementById('weekYear').value;
+                    period = `${weekYear}-W${String(weekNum).padStart(2, '0')}`;
+                    periodDescription = `Week ${weekNum}, ${weekYear}`;
+                    break;
+                    
+                case 'monthly':
+                    const month = document.getElementById('salaryMonth').value;
+                    const year = document.getElementById('salaryYear').value;
+                    period = `${year}-${month}`;
+                    periodDescription = new Date(year, month - 1).toLocaleDateString('en-GB', { 
+                        month: 'long', year: 'numeric' 
+                    });
+                    break;
+                    
+                case 'yearly':
+                    const salaryYear = document.getElementById('salaryYear').value;
+                    period = salaryYear;
+                    periodDescription = `Year ${salaryYear}`;
+                    break;
+                    
+                case 'project':
+                    const projectName = document.getElementById('projectName').value;
+                    period = `project-${Date.now()}`;
+                    periodDescription = `Project: ${projectName}`;
+                    break;
+                    
+                case 'hourly':
+                    const hours = document.getElementById('hoursWorked').value;
+                    period = `hourly-${Date.now()}`;
+                    periodDescription = `${hours} hours worked`;
+                    break;
+            }
+            
+            const formData = {
+                salaryType: salaryType,
+                period: period,
+                periodDescription: periodDescription,
+                startDate: startDate,
+                endDate: endDate,
+                salaryDate: document.getElementById('salaryDate').value,
+                basicSalary: parseFloat(document.getElementById('salaryBasic').value),
+                allowances: parseFloat(document.getElementById('salaryAllowances').value) || 0,
+                bonus: parseFloat(document.getElementById('salaryBonus').value) || 0,
+                overtime: parseFloat(document.getElementById('salaryOvertime').value) || 0,
+                deductions: parseFloat(document.getElementById('salaryDeductions').value) || 0,
+                paymentMethod: document.getElementById('salaryPaymentMethod').value,
+                notes: document.getElementById('salaryNotes').value
+            };
+            
+            // Add specific fields for hourly rate
+            if (salaryType === 'hourly') {
+                formData.hoursWorked = parseFloat(document.getElementById('hoursWorked').value);
+                formData.hourlyRate = parseFloat(document.getElementById('hourlyRate').value);
+                formData.basicSalary = formData.hoursWorked * formData.hourlyRate;
+                document.getElementById('salaryBasic').value = formData.basicSalary;
+            }
+
+            const employeeId = document.getElementById('salaryEmployee').value;
+
+            try {
+                const response = await fetch(`/api/employees/${employeeId}/salary`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('addSalaryAlert').innerHTML = `
+                        <div class="alert alert-success">
+                            ✅ Salary record added successfully!
+                        </div>
+                    `;
+                    
+                    setTimeout(() => {
+                        closeModal('addSalaryModal');
+                        refreshData();
+                    }, 2000);
+                } else {
+                    document.getElementById('addSalaryAlert').innerHTML = `
+                        <div class="alert alert-danger">
+                            ❌ Error: ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('addSalaryAlert').innerHTML = `
+                    <div class="alert alert-danger">
+                        ❌ Error adding salary record: ${error.message}
+                    </div>
+                `;
+            }
+        });
+
+        // Refresh data
+        function refreshData() {
+            loadSalarySummary();
+            loadEmployees();
+        }
+
+        // View employee salary details
+        function viewEmployeeSalary(employeeId) {
+            window.open(`admin-employee-salary.html?id=${employeeId}`, '_blank');
+        }
+
+        // Edit employee
+        function editEmployee(employeeId) {
+            // TODO: Implement edit employee functionality
+            alert('Edit employee functionality will be implemented soon!');
+        }
+
+        // Terminate employee
+        async function terminateEmployee(employeeId) {
+            if (!confirm('Are you sure you want to terminate this employee? This will set their status to terminated but keep their records.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/employees/${employeeId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Employee terminated successfully!');
+                    refreshData();
+                } else {
+                    const data = await response.json();
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`Error terminating employee: ${error.message}`);
+            }
+        }
+
+        // Delete employee permanently
+        async function deleteEmployee(employeeId) {
+            const employee = employees.find(emp => emp._id === employeeId);
+            if (!employee) {
+                alert('Employee not found');
+                return;
+            }
+
+            if (!confirm(`⚠️ PERMANENT DELETE WARNING ⚠️\n\nAre you sure you want to PERMANENTLY DELETE employee "${employee.name}" (${employee.employeeId})?\n\nThis will:\n• Remove the employee completely from the database\n• Delete ALL salary records\n• Cannot be undone\n\nType "DELETE" to confirm this action.`)) {
+                return;
+            }
+
+            const confirmText = prompt('Please type "DELETE" to confirm permanent deletion:');
+            if (confirmText !== 'DELETE') {
+                alert('Deletion cancelled. You must type "DELETE" exactly to confirm.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/employees/${employeeId}/permanent-delete`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Employee deleted permanently!');
+                    refreshData();
+                } else {
+                    const data = await response.json();
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`Error deleting employee: ${error.message}`);
+            }
+        }
+
+        // Auto-fill basic salary when employee is selected
+        document.getElementById('salaryEmployee').addEventListener('change', function() {
+            const employeeId = this.value;
+            if (employeeId) {
+                const employee = employees.find(emp => emp._id === employeeId);
+                if (employee) {
+                    document.getElementById('salaryBasic').value = employee.basicSalary;
+                }
+            }
+        });
+
+        // Close modals when clicking outside
+        window.addEventListener('click', function(event) {
+            const modals = ['addEmployeeModal', 'addSalaryModal', 'otpModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    closeModal(modalId);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

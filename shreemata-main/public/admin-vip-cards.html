@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <title>VIP Master Cards Management - Shree Mata Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f8fafc;
+            margin: 0;
+            padding: 0;
+            padding-top: 90px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .main-container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            margin-top: 20px;
+        }
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .header-title h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header-title p {
+            margin: 5px 0 0 0;
+            color: #64748b;
+            font-size: 14px;
+        }
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .filters input {
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .filters input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.35);
+        }
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+            box-shadow: none;
+        }
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+        .btn-danger:hover {
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
+        }
+        .cards-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            margin-top: 10px;
+        }
+        .cards-table thead {
+            background: #f8fafc;
+        }
+        .cards-table th {
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 700;
+            color: #475569;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .cards-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+            color: #334155;
+        }
+        .cards-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .cards-table tbody tr:hover {
+            background: #f8fafc;
+        }
+        
+        /* Badges & Tiers styling */
+        .badge {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-block;
+            text-transform: uppercase;
+        }
+        .badge-active {
+            background: #dcfce7;
+            color: #15803d;
+        }
+        .badge-revoked {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .badge-expired {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        
+        .tier-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+        .tier-gold {
+            background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+            box-shadow: 0 2px 6px rgba(234, 179, 8, 0.3);
+        }
+        .tier-platinum {
+            background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+            box-shadow: 0 2px 6px rgba(148, 163, 184, 0.3);
+        }
+        .tier-diamond {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+        }
+        .tier-vip {
+            background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+            box-shadow: 0 2px 6px rgba(168, 85, 247, 0.3);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px 0;
+            font-size: 16px;
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            box-sizing: border-box;
+            border: 1px solid #f1f5f9;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .form-group select, .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+        .form-group select:focus, .form-group input:focus {
+            border-color: #667eea;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header navigation dynamic component load -->
+    <nav></nav>
+
+    <main class="container">
+        <div class="main-container">
+            <div class="header-section">
+                <div class="header-title">
+                    <h1>👑 VIP Master Cards Dashboard</h1>
+                    <p style="margin-top: 5px;">Issue, view, and revoke VIP membership tier status cards for customers.</p>
+                </div>
+                <button class="btn" onclick="openIssueModal()">
+                    ➕ Issue New VIP Card
+                </button>
+            </div>
+
+            <div class="filters">
+                <input type="text" id="searchInput" oninput="filterCards()" placeholder="Search by Card Number, Name, or Email...">
+            </div>
+
+            <div id="loadingSpinner" class="loading">Loading VIP Cards...</div>
+
+            <div id="dashboardContent" style="display: none;">
+                <table class="cards-table" id="vipCardsTable">
+                    <thead>
+                        <tr>
+                            <th>S.No</th>
+                            <th>Card Number</th>
+                            <th>User Name</th>
+                            <th>Email</th>
+                            <th>Tier</th>
+                            <th>Issue Date</th>
+                            <th>Expiry Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vipCardsTableBody"></tbody>
+                </table>
+                <div id="noCardsMessage" style="display: none; text-align: center; padding: 50px; color: #64748b; font-size: 15px; font-weight: 500;">
+                    No VIP Master Cards found.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Issue VIP Card Modal -->
+    <div id="issueCardModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #f1f5f9;">
+                <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: #0f172a;">Issue VIP Membership Card</h2>
+                <button type="button" onclick="closeIssueModal()" style="border: none; background: none; font-size: 20px; cursor: pointer; color: #94a3b8; font-weight: bold; line-height: 1;">&times;</button>
+            </div>
+            
+            <form id="issueCardForm" onsubmit="handleIssueCard(event)">
+                <div class="form-group">
+                    <label for="userSelect">Select Customer:</label>
+                    <select id="userSelect" required>
+                        <option value="" disabled selected>Loading users...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="tierSelect">Card Membership Tier:</label>
+                    <select id="tierSelect" required>
+                        <option value="Gold">Gold Card</option>
+                        <option value="Platinum" selected>Platinum Card</option>
+                        <option value="Diamond">Diamond Card</option>
+                        <option value="VIP">Executive VIP Card</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="expirySelect">Expiry Duration:</label>
+                    <select id="expirySelect" required>
+                        <option value="1">1 Month</option>
+                        <option value="3">3 Months</option>
+                        <option value="6">6 Months</option>
+                        <option value="12" selected>12 Months (1 Year)</option>
+                        <option value="24">24 Months (2 Years)</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 30px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeIssueModal()">Cancel</button>
+                    <button type="submit" class="btn">Issue Card</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script Loads -->
+    <script src="js/config.js"></script>
+    <script src="js/admin-navigation.js"></script>
+    <script src="js/admin-vip-cards.js"></script>
+</body>
+</html>

@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Home Page Settings - Shree Mata Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-hover: #1e293b;
+            --accent: #F68048;
+            --accent-hover: #e06d36;
+            --bg-page: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+            --shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Fallback navigation styling (dynamic nav injected by admin-navigation.js) */
+        nav {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 16px 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        nav .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav h1 {
+            color: #ffffff;
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .main-container {
+            max-width: 860px;
+            margin: 110px auto 60px;
+            background: var(--card-bg);
+            padding: 36px 40px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-card);
+        }
+
+        /* Page Title */
+        .page-header-title {
+            margin-bottom: 24px;
+        }
+
+        .page-header-title h1 {
+            color: var(--text-main);
+            margin: 0 0 6px 0;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-header-title .subtitle {
+            color: var(--text-muted);
+            margin: 0;
+            font-size: 14.5px;
+            font-weight: 500;
+        }
+
+        /* Info / How it works Banner */
+        .preview-section {
+            background: #fffbeb;
+            padding: 18px 22px;
+            border-radius: var(--radius-md);
+            border: 1px solid #fde68a;
+            border-left: 4px solid #f59e0b;
+            margin-bottom: 28px;
+        }
+
+        .preview-section h4 {
+            margin: 0 0 6px 0;
+            color: #92400e;
+            font-size: 14.5px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .preview-section p {
+            margin: 0;
+            color: #78350f;
+            font-size: 13.5px;
+            line-height: 1.5;
+        }
+
+        /* Settings Card Section */
+        .settings-section {
+            background: #f8fafc;
+            padding: 24px 28px;
+            border-radius: var(--radius-md);
+            margin-bottom: 28px;
+            border: 1px solid var(--border-color);
+        }
+
+        .settings-section h3 {
+            margin: 0 0 18px 0;
+            color: var(--text-main);
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            background: #ffffff;
+            border-radius: var(--radius-md);
+            margin-bottom: 14px;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .setting-item:hover {
+            border-color: #cbd5e1;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .setting-info {
+            flex: 1;
+            padding-right: 16px;
+        }
+
+        .setting-title {
+            font-weight: 700;
+            color: var(--text-main);
+            font-size: 15px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .setting-description {
+            font-size: 13.5px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 54px;
+            height: 28px;
+            flex-shrink: 0;
+            display: inline-block;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 30px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #ffffff;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #10b981;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: capitalize;
+            display: inline-block;
+        }
+
+        .status-visible {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status-hidden {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        /* Save Button */
+        .save-button-wrap {
+            text-align: center;
+            margin-top: 32px;
+        }
+
+        .save-button {
+            background: #0f172a;
+            color: #ffffff;
+            border: 1px solid transparent;
+            padding: 13px 36px;
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .save-button:hover {
+            background: #1e293b;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+        }
+
+        .save-button:active {
+            transform: translateY(0);
+        }
+
+        .save-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Success Message Banner */
+        #successMessage {
+            display: none;
+            background: #ecfdf5;
+            color: #065f46;
+            padding: 14px 20px;
+            border-radius: var(--radius-md);
+            margin-top: 20px;
+            text-align: center;
+            border: 1px solid #a7f3d0;
+            font-size: 14px;
+            font-weight: 600;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Footer */
+        footer {
+            background: #ffffff;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-muted);
+            text-align: center;
+            padding: 24px 0;
+            margin-top: 40px;
+            font-size: 13.5px;
+        }
+
+        footer p {
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 90px 14px 40px;
+                padding: 24px 18px;
+            }
+
+            .settings-section {
+                padding: 18px 16px;
+            }
+
+            .setting-item {
+                flex-direction: row;
+                align-items: center;
+                gap: 12px;
+                padding: 16px;
+            }
+
+            .setting-info {
+                padding-right: 0;
+            }
+
+            .save-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Top Navigation Container (hydrated by admin-navigation.js) -->
+    <nav id="adminNavFallback">
+        <div class="container">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 32px; height: 32px; border-radius: 50%;">
+                <h1>🏡 Shree Mata Admin - Home Settings</h1>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span id="userName" style="color: white; font-size: 14px; font-weight: 500;">Hello, Admin</span>
+                <a href="/" id="logoutBtn" style="color: #ffffff; text-decoration: none; font-size: 13.5px; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.15);">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            <div class="main-container">
+                <div class="page-header-title">
+                    <h1>🏡 Home Page Settings</h1>
+                    <p class="subtitle">Control which dynamic sections are visible to customers on the store home page</p>
+                </div>
+
+                <div class="preview-section">
+                    <h4>💡 How it works</h4>
+                    <p>Toggle the switches below to show or hide dynamic sections on the main store home page. Changes take effect across the entire website immediately after saving.</p>
+                </div>
+
+                <div class="settings-section">
+                    <h3>📋 Section Visibility</h3>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-title">
+                                🎁 Special Combo Offers (Bundles)
+                                <span id="bundlesStatus" class="status-badge status-visible">Visible</span>
+                            </div>
+                            <div class="setting-description">
+                                Show bundle offers section featuring discounted book combinations and packages
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showBundles" checked onchange="updateStatus('bundles')">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-title">
+                                📖 Featured Books
+                                <span id="booksStatus" class="status-badge status-visible">Visible</span>
+                            </div>
+                            <div class="setting-description">
+                                Show featured books section showcasing all available individual titles
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showFeaturedBooks" checked onchange="updateStatus('books')">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="save-button-wrap">
+                    <button class="save-button" onclick="saveSettings()">
+                        💾 Save Settings
+                    </button>
+                </div>
+
+                <div id="successMessage">
+                    ✅ Settings saved successfully!
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script>
+        const API = window.API_URL;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAdminAuth();
+            loadSettings();
+        });
+
+        function checkAdminAuth() {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+            if (!token || !user || user.role !== 'admin') {
+                alert('Admin access required');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            const userNameEl = document.getElementById('userName');
+            if (userNameEl) {
+                userNameEl.textContent = `Hello, ${user.name || 'Admin'}`;
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const res = await fetch(`${API}/home-settings`);
+                const data = await res.json();
+
+                if (data.success && data.settings) {
+                    document.getElementById('showBundles').checked = !!data.settings.showBundles;
+                    document.getElementById('showFeaturedBooks').checked = !!data.settings.showFeaturedBooks;
+                    
+                    updateStatus('bundles');
+                    updateStatus('books');
+                }
+            } catch (err) {
+                console.error('Error loading settings:', err);
+            }
+        }
+
+        function updateStatus(type) {
+            if (type === 'bundles') {
+                const checkbox = document.getElementById('showBundles');
+                const status = document.getElementById('bundlesStatus');
+                
+                if (checkbox.checked) {
+                    status.textContent = 'Visible';
+                    status.className = 'status-badge status-visible';
+                } else {
+                    status.textContent = 'Hidden';
+                    status.className = 'status-badge status-hidden';
+                }
+            } else if (type === 'books') {
+                const checkbox = document.getElementById('showFeaturedBooks');
+                const status = document.getElementById('booksStatus');
+                
+                if (checkbox.checked) {
+                    status.textContent = 'Visible';
+                    status.className = 'status-badge status-visible';
+                } else {
+                    status.textContent = 'Hidden';
+                    status.className = 'status-badge status-hidden';
+                }
+            }
+        }
+
+        async function saveSettings() {
+            const token = localStorage.getItem('token');
+            const saveButton = document.querySelector('.save-button');
+            
+            saveButton.disabled = true;
+            saveButton.textContent = '💾 Saving...';
+
+            try {
+                const settings = {
+                    showBundles: document.getElementById('showBundles').checked,
+                    showFeaturedBooks: document.getElementById('showFeaturedBooks').checked,
+                    bundlesOrder: 1,
+                    featuredBooksOrder: 2
+                };
+
+                const res = await fetch(`${API}/home-settings`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    const successMsg = document.getElementById('successMessage');
+                    successMsg.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        successMsg.style.display = 'none';
+                    }, 3000);
+                } else {
+                    alert('Error saving settings: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error('Error saving settings:', err);
+                alert('Error saving settings. Please try again.');
+            } finally {
+                saveButton.disabled = false;
+                saveButton.textContent = '💾 Save Settings';
+            }
+        }
+
+        document.getElementById('logoutBtn')?.addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+        });
+    </script>
+    <script src="js/admin-navigation.js"></script>
+</body>
+
+</html>

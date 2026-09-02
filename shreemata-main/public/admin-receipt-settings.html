@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt Settings - Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        nav { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            padding: 15px 0; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            z-index: 100;
+        }
+        nav .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 0 20px; 
+        }
+        nav .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        nav h1 { 
+            color: white; 
+            margin: 0; 
+            font-size: 20px; 
+        }
+        nav .user-info { 
+            color: white; 
+            font-weight: 500; 
+            font-size: 14px;
+        }
+        .mobile-menu-btn {
+            display: none;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        nav .nav-grid { 
+            display: grid; 
+            grid-template-columns: repeat(6, 1fr); 
+            gap: 8px; 
+            width: 100%; 
+        }
+        nav a { 
+            color: white; 
+            text-decoration: none; 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            transition: all 0.3s ease; 
+            font-weight: 500; 
+            text-align: center;
+            font-size: 12px;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            line-height: 1.2;
+        }
+        nav a:hover, nav a.active { 
+            background: rgba(255,255,255,0.2); 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .main-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 120px;
+        }
+        
+        .settings-form {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .form-section h3 {
+            margin: 0 0 20px 0;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .save-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .save-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .preview-btn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+            margin-bottom: 20px;
+        }
+        
+        .preview-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
+        }
+        
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 16px;
+        }
+        
+        /* Preview Modal */
+        .preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .preview-content {
+            background: white;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .preview-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .preview-close {
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+        
+        .preview-close:hover {
+            opacity: 1;
+        }
+        
+        .receipt-preview {
+            padding: 30px;
+            font-family: 'Arial', sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #000;
+        }
+        
+        .receipt-preview .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        
+        .receipt-preview .company-details {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #000;
+        }
+        
+        .receipt-preview .receipt-footer {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+            text-align: center;
+            font-size: 12px;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+            nav .nav-grid { 
+                display: none;
+            }
+            .container {
+                padding: 10px;
+            }
+            .main-container {
+                padding: 20px;
+                margin-top: 100px;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .form-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <div class="nav-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <img src="/images/logo.png" alt="Logo" style="width: 40px; height: 40px; border-radius: 50%;">
+                    <h1>Receipt Settings</h1>
+                </div>
+                <div class="user-info">
+                    <span id="userName">Hello, Admin</span>
+                </div>
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                    ☰ Menu
+                </button>
+            </div>
+            <div class="nav-grid" id="adminNavLinks">
+                <a href="/">🏠 Home</a>
+                <a href="/admin.html">📚 Books</a>
+                <a href="/admin-bundles.html">📦 Bundles</a>
+                <a href="/admin-orders.html">🛒 Orders</a>
+                <a href="/admin-withdrawals.html">💰 Withdrawals</a>
+                <a href="/admin-bank-requests.html">🏦 Bank Requests</a>
+                <a href="/admin-notifications.html">📢 Notifications</a>
+                <a href="/admin-income.html">💵 Income</a>
+                <a href="/admin-users.html">👥 Users</a>
+                <a href="/admin-commission-settings.html">⚙️ Settings</a>
+                <a href="/admin-referral-tree.html">🌳 Referral Tree</a>
+                <a href="/admin-receipt-settings.html" class="active">🧾 Receipt Settings</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="main-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h1 style="margin: 0; color: #333;">🧾 Receipt Settings</h1>
+                <button class="preview-btn" onclick="showPreview()">👁️ Preview Receipt</button>
+            </div>
+
+            <div id="alertContainer"></div>
+            <div id="loadingContainer" class="loading" style="display: none;">Loading settings...</div>
+
+            <form id="receiptSettingsForm" class="settings-form">
+                <div class="form-section">
+                    <h3>🏢 Company Information</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="companyName">Company Name *</label>
+                            <input type="text" id="companyName" name="companyName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="companyTagline">Company Tagline</label>
+                            <input type="text" id="companyTagline" name="companyTagline">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="homeAddress1">Home Address 1 *</label>
+                        <input type="text" id="homeAddress1" name="homeAddress1" placeholder="House/Building number and name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="homeAddress2">Home Address 2 (Optional)</label>
+                        <input type="text" id="homeAddress2" name="homeAddress2" placeholder="Apartment, suite, floor, etc.">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="streetName">Street Name</label>
+                            <input type="text" id="streetName" name="streetName" placeholder="Street name">
+                        </div>
+                        <div class="form-group">
+                            <label for="landmark">Landmark</label>
+                            <input type="text" id="landmark" name="landmark" placeholder="Near landmark">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="village">Village/Area</label>
+                            <input type="text" id="village" name="village" placeholder="Village or area name">
+                        </div>
+                        <div class="form-group">
+                            <label for="taluk">Taluk</label>
+                            <input type="text" id="taluk" name="taluk" placeholder="Taluk name">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="district">District *</label>
+                            <input type="text" id="district" name="district" placeholder="District name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="state">State *</label>
+                            <input type="text" id="state" name="state" placeholder="State name" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="pincode">Pincode *</label>
+                            <input type="text" id="pincode" name="pincode" placeholder="6-digit pincode" pattern="[0-9]{6}" required>
+                        </div>
+                        <div class="form-group">
+                            <!-- Empty div for spacing -->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="gstin">GSTIN</label>
+                        <input type="text" id="gstin" name="gstin" placeholder="GST Identification Number">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>📞 Contact Information</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="phone">Phone Number *</label>
+                            <input type="tel" id="phone" name="phone" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address *</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="website">Website</label>
+                        <input type="text" id="website" name="website" placeholder="www.example.com">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>📄 Receipt Footer</h3>
+                    <div class="form-group">
+                        <label for="footerMessage">Thank You Message</label>
+                        <textarea id="footerMessage" name="footerMessage" placeholder="Thank you message for customers"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactFooter">Contact Footer</label>
+                        <textarea id="contactFooter" name="contactFooter" placeholder="Contact information in footer"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="disclaimer">Disclaimer</label>
+                        <input type="text" id="disclaimer" name="disclaimer" placeholder="Receipt disclaimer text">
+                    </div>
+                </div>
+
+                <button type="submit" class="save-btn" id="saveBtn">
+                    💾 Save Receipt Settings
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-content">
+            <div class="preview-header">
+                <h3>Receipt Preview</h3>
+                <span class="preview-close" onclick="closePreview()">&times;</span>
+            </div>
+            <div class="receipt-preview" id="receiptPreview">
+                <!-- Preview content will be generated here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/admin-navigation.js"></script>
+    <script>
+        let currentSettings = {};
+
+        // Load settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+        });
+
+        // Load current settings
+        async function loadSettings() {
+            try {
+                showLoading(true);
+                const response = await fetch('/api/admin/receipt-settings', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSettings = data.settings;
+                    populateForm(data.settings);
+                } else {
+                    showAlert('Failed to load settings', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+                showAlert('Error loading settings', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Populate form with current settings
+        function populateForm(settings) {
+            document.getElementById('companyName').value = settings.companyName || '';
+            document.getElementById('companyTagline').value = settings.companyTagline || '';
+            document.getElementById('phone').value = settings.phone || '';
+            document.getElementById('email').value = settings.email || '';
+            
+            // Handle address fields - parse from existing address or use individual fields
+            if (settings.homeAddress1) {
+                // New format with individual fields
+                document.getElementById('homeAddress1').value = settings.homeAddress1 || '';
+                document.getElementById('homeAddress2').value = settings.homeAddress2 || '';
+                document.getElementById('streetName').value = settings.streetName || '';
+                document.getElementById('landmark').value = settings.landmark || '';
+                document.getElementById('village').value = settings.village || '';
+                document.getElementById('taluk').value = settings.taluk || '';
+                document.getElementById('district').value = settings.district || '';
+                document.getElementById('state').value = settings.state || '';
+                document.getElementById('pincode').value = settings.pincode || '';
+            } else if (settings.address) {
+                // Legacy format - try to parse the old address format
+                const addressLines = settings.address.split('\n');
+                if (addressLines.length >= 1) document.getElementById('homeAddress1').value = addressLines[0] || '';
+                if (addressLines.length >= 2) {
+                    // Try to extract district and state from last line
+                    const lastLine = addressLines[addressLines.length - 1];
+                    const parts = lastLine.split(' - ');
+                    if (parts.length >= 2) {
+                        document.getElementById('district').value = parts[0].trim();
+                        document.getElementById('pincode').value = parts[1].trim();
+                    }
+                }
+            }
+            
+            document.getElementById('gstin').value = settings.gstin || '';
+            document.getElementById('footerMessage').value = settings.footerMessage || '';
+            document.getElementById('contactFooter').value = settings.contactFooter || '';
+            document.getElementById('website').value = settings.website || '';
+            document.getElementById('disclaimer').value = settings.disclaimer || '';
+        }
+
+        // Handle form submission
+        document.getElementById('receiptSettingsForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const settings = {};
+            
+            // Collect all form data
+            for (let [key, value] of formData.entries()) {
+                settings[key] = value;
+            }
+            
+            // Combine address fields into a formatted address
+            const addressParts = [];
+            if (settings.homeAddress1) addressParts.push(settings.homeAddress1);
+            if (settings.homeAddress2) addressParts.push(settings.homeAddress2);
+            if (settings.streetName) addressParts.push(settings.streetName);
+            if (settings.landmark) addressParts.push(`Near ${settings.landmark}`);
+            if (settings.village) addressParts.push(settings.village);
+            if (settings.taluk) addressParts.push(settings.taluk);
+            if (settings.district) addressParts.push(settings.district);
+            if (settings.state) addressParts.push(settings.state);
+            if (settings.pincode) addressParts.push(`- ${settings.pincode}`);
+            
+            // Create formatted address for receipt display
+            settings.address = addressParts.join('\n');
+
+            try {
+                document.getElementById('saveBtn').disabled = true;
+                document.getElementById('saveBtn').textContent = 'Saving...';
+
+                const response = await fetch('/api/admin/receipt-settings', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSettings = data.settings;
+                    showAlert('Receipt settings updated successfully!', 'success');
+                } else {
+                    showAlert(data.message || 'Failed to update settings', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                showAlert('Error saving settings', 'error');
+            } finally {
+                document.getElementById('saveBtn').disabled = false;
+                document.getElementById('saveBtn').textContent = '💾 Save Receipt Settings';
+            }
+        });
+
+        // Show preview
+        function showPreview() {
+            const formData = new FormData(document.getElementById('receiptSettingsForm'));
+            const settings = {};
+            
+            for (let [key, value] of formData.entries()) {
+                settings[key] = value || currentSettings[key] || '';
+            }
+            
+            // Combine address fields for preview
+            const addressParts = [];
+            if (settings.homeAddress1) addressParts.push(settings.homeAddress1);
+            if (settings.homeAddress2) addressParts.push(settings.homeAddress2);
+            if (settings.streetName) addressParts.push(settings.streetName);
+            if (settings.landmark) addressParts.push(`Near ${settings.landmark}`);
+            if (settings.village) addressParts.push(settings.village);
+            if (settings.taluk) addressParts.push(settings.taluk);
+            if (settings.district) addressParts.push(settings.district);
+            if (settings.state) addressParts.push(settings.state);
+            if (settings.pincode) addressParts.push(`- ${settings.pincode}`);
+            
+            const formattedAddress = addressParts.join('<br>');
+
+            const previewHtml = `
+                <div class="company-name">${settings.companyName}</div>
+                <div class="company-details">
+                    ${settings.companyTagline}<br>
+                    📞 ${settings.phone} 📧 ${settings.email}<br>
+                    🏠 ${formattedAddress}<br>
+                    ${settings.gstin ? `GSTIN: ${settings.gstin}` : ''}
+                </div>
+                
+                <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <strong>Sample Order Items:</strong><br>
+                    Book Name: Sample Book<br>
+                    Quantity: 1<br>
+                    Price: ₹299<br>
+                    <hr>
+                    <strong>Total: ₹299</strong>
+                </div>
+                
+                <div class="receipt-footer">
+                    ${settings.footerMessage}<br><br>
+                    ${settings.contactFooter.replace(/\n/g, '<br>')}<br>
+                    Visit us: ${settings.website}<br><br>
+                    ${settings.disclaimer}
+                </div>
+            `;
+
+            document.getElementById('receiptPreview').innerHTML = previewHtml;
+            document.getElementById('previewModal').style.display = 'flex';
+        }
+
+        // Close preview
+        function closePreview() {
+            document.getElementById('previewModal').style.display = 'none';
+        }
+
+        // Utility functions
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingContainer').style.display = show ? 'block' : 'none';
+            document.getElementById('receiptSettingsForm').style.display = show ? 'none' : 'block';
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('previewModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePreview();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f0e2a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>My Orders - Shree Mata</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =========================================
+           ROYAL NAVY & GOLD THEME
+           ========================================= */
+        body {
+            background: #0f0e2a;
+            background-image: radial-gradient(circle at 10% 20%, rgba(201, 162, 39, 0.05) 0%, transparent 25%),
+                              radial-gradient(circle at 90% 80%, rgba(79, 70, 229, 0.08) 0%, transparent 25%);
+            background-attachment: fixed;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            color: #e2e8f0;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Cosmic Aurora Effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle at 20% 80%, rgba(201,162,39,0.03) 0%, transparent 40%),
+                        radial-gradient(circle at 80% 20%, rgba(79,70,229,0.05) 0%, transparent 40%);
+            animation: auroraShift 30s ease-in-out infinite alternate;
+            z-index: -1;
+            pointer-events: none;
+        }
+        @keyframes auroraShift {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-2%, -2%) rotate(2deg); }
+        }
+
+        /* Floating Golden Dust */
+        .gold-dust {
+            position: fixed; width: 3px; height: 3px;
+            background: #f0c96b; border-radius: 50%;
+            pointer-events: none; z-index: 0;
+            box-shadow: 0 0 10px #c9a227;
+            animation: dustFloat linear infinite;
+            opacity: 0;
+        }
+        @keyframes dustFloat {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 0.8; } 90% { opacity: 0.8; }
+            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(15, 14, 42, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(201,162,39,0.15);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .navbar-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo a {
+            text-decoration: none;
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #c9a227, #f0c96b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-links { display: flex; align-items: center; gap: 20px; }
+        .nav-links a {
+            text-decoration: none;
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .nav-links a:hover, .nav-links a.active {
+            color: #f0c96b;
+            transform: translateY(-2px);
+        }
+        .nav-links a.active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px; left: 0;
+            width: 100%; height: 2px;
+            background: linear-gradient(90deg, #c9a227, #f0c96b);
+            border-radius: 2px;
+        }
+        .cart-icon {
+            background: linear-gradient(135deg, #c9a227, #f0c96b) !important;
+            color: #0f0e2a !important;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 700 !important;
+        }
+
+        /* Container & Header */
+        .orders-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+            position: relative;
+            z-index: 1;
+        }
+        .page-header {
+            background: rgba(15, 14, 42, 0.65);
+            backdrop-filter: blur(20px);
+            padding: 30px;
+            border-radius: 24px;
+            margin-bottom: 30px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+            border: 1px solid rgba(201,162,39,0.15);
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            animation: fadeInUp 0.6s ease both;
+        }
+        .header-content { display: flex; align-items: center; gap: 25px; width: 100%; }
+        .page-header h1 {
+            margin: 0 0 8px 0;
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            background: linear-gradient(135deg, #c9a227, #f0c96b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .page-header p { color: rgba(255,255,255,0.6); margin: 0; font-size: 15px; }
+
+        /* Avatar */
+        .avatar-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100px; height: 100px;
+            flex-shrink: 0;
+        }
+        .avatar-svg {
+            width: 100%; height: 100%;
+            position: relative; z-index: 2;
+            animation: avatarFloat 4s ease-in-out infinite;
+            filter: drop-shadow(0 0 15px rgba(201,162,39,0.4));
+        }
+        .avatar-ring {
+            position: absolute; top: 50%; left: 50%;
+            width: 90px; height: 90px; border-radius: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid rgba(201,162,39,0.3);
+            animation: avatarPulse 3s ease-out infinite;
+        }
+        .avatar-ring.ring-2 {
+            width: 110px; height: 110px;
+            border-color: rgba(79,70,229,0.2);
+            animation-delay: 1.5s;
+        }
+        @keyframes avatarFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(3deg); }
+        }
+        @keyframes avatarPulse {
+            0% { transform: translate(-50%, -50%) scale(0.9); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+        }
+
+        /* Order Cards */
+        .order-card {
+            background: rgba(15, 14, 42, 0.65);
+            backdrop-filter: blur(15px);
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 1px solid rgba(201,162,39,0.1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        .order-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(201,162,39,0.3);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(201,162,39,0.05);
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .order-id { font-size: 14px; color: rgba(255,255,255,0.5); font-family: monospace; }
+        .order-date { font-size: 13px; color: rgba(255,255,255,0.3); margin-top: 4px; }
+
+        /* Status Badges */
+        .order-status {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            border: 1px solid;
+            text-transform: uppercase;
+        }
+        .status-completed, .status-delivered {
+            background: rgba(34, 197, 94, 0.15);
+            color: #86efac;
+            border-color: rgba(34, 197, 94, 0.3);
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.1);
+        }
+        .status-pending, .status-failed {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fcd34d;
+            border-color: rgba(245, 158, 11, 0.3);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.1);
+        }
+        .status-processing {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            border-color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.1);
+        }
+        .status-shipped {
+            background: rgba(168, 85, 247, 0.15);
+            color: #d8b4fe;
+            border-color: rgba(168, 85, 247, 0.3);
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.1);
+        }
+
+        /* Order Items */
+        .order-item {
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(15, 14, 42, 0.5);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.3s ease;
+        }
+        .order-item:hover { border-color: rgba(201,162,39,0.2); }
+        .order-item img {
+            width: 80px;
+            height: 110px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid rgba(201,162,39,0.2);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .order-item-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .order-item-title { font-weight: 700; margin-bottom: 4px; color: #fff; font-size: 16px; }
+        .order-item-author { font-size: 13px; color: rgba(255,255,255,0.6); }
+        .order-item-qty { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+        .order-item-price {
+            color: #f0c96b;
+            font-weight: 700;
+            font-size: 18px;
+            margin-top: 8px;
+            text-shadow: 0 0 10px rgba(201,162,39,0.2);
+        }
+
+        /* Info Boxes (Address, Tracking, Offers, Courier) */
+        .info-box {
+            padding: 16px;
+            border-radius: 12px;
+            margin: 15px 0;
+            border-left: 4px solid;
+            backdrop-filter: blur(10px);
+        }
+        .info-box h4 { margin: 0 0 10px 0; font-size: 14px; font-weight: 700; }
+        .info-box p { margin: 5px 0; font-size: 13px; color: rgba(255,255,255,0.7); }
+
+        .delivery-address {
+            background: rgba(59, 130, 246, 0.08);
+            border-color: #3b82f6;
+        }
+        .delivery-address h4 { color: #93c5fd; }
+
+        .tracking-info {
+            background: rgba(245, 158, 11, 0.08);
+            border-color: #f59e0b;
+        }
+        .tracking-info h4 { color: #fcd34d; }
+        .tracking-link { color: #fcd34d; text-decoration: none; font-weight: 600; border-bottom: 1px dashed rgba(252, 211, 77, 0.4); transition: all 0.3s; }
+        .tracking-link:hover { border-bottom-color: #fcd34d; }
+        .tracking-date { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 10px; }
+
+        .offer-box {
+            background: rgba(34, 197, 94, 0.08);
+            border-color: #22c55e;
+        }
+        .offer-title { font-weight: 700; color: #86efac; margin-bottom: 8px; font-size: 15px; }
+        .offer-detail { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 10px; }
+        .offer-row { display: flex; justify-content: space-between; font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 5px; }
+        .offer-total { font-weight: 700; color: #86efac; padding-top: 8px; border-top: 1px solid rgba(34, 197, 94, 0.2); margin-top: 5px; }
+
+        .courier-box {
+            background: rgba(168, 85, 247, 0.08);
+            border-color: #a855f7;
+        }
+        .courier-title { font-weight: 700; color: #d8b4fe; margin-bottom: 8px; font-size: 15px; }
+        .courier-row { display: flex; justify-content: space-between; font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 5px; }
+
+        /* Footer */
+        .order-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .order-total {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #c9a227, #f0c96b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .order-payment-id {
+            font-size: 12px;
+            color: rgba(255,255,255,0.4);
+            font-family: monospace;
+        }
+        .btn-order-invoice {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #c9a227, #f0c96b);
+            color: #0f0e2a !important;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(201,162,39,0.25);
+        }
+        .btn-order-invoice:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(201,162,39,0.45);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(15, 14, 42, 0.65);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(201,162,39,0.15);
+            animation: fadeInUp 0.6s ease both;
+        }
+        .empty-avatar { margin-bottom: 20px; animation: avatarFloat 4s ease-in-out infinite; }
+        .empty-state h2 { color: #fff; font-family: 'Playfair Display', serif; margin: 0 0 10px 0; }
+        .empty-state p { color: rgba(255,255,255,0.6); margin: 20px 0; }
+        .btn-primary {
+            display: inline-block;
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #c9a227, #f0c96b);
+            color: #0f0e2a;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(201,162,39,0.3);
+        }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(201,162,39,0.5); }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 18px;
+            color: #f0c96b;
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spinner-icon { display: inline-block; animation: spin 1s linear infinite; font-size: 24px; margin-bottom: 10px; }
+
+        /* Footer */
+        footer {
+            background: rgba(15, 14, 42, 0.9);
+            color: rgba(255,255,255,0.5);
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 60px;
+            border-top: 1px solid rgba(201,162,39,0.1);
+            font-size: 13px;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .navbar-content { flex-direction: column; gap: 15px; }
+            .nav-links { flex-wrap: wrap; justify-content: center; gap: 10px; }
+            .page-header { padding: 20px; }
+            .header-content { flex-direction: column; text-align: center; }
+            .order-header { flex-direction: column; gap: 10px; }
+            .order-item { flex-direction: column; align-items: center; text-align: center; }
+            .order-item img { width: 100%; max-width: 200px; height: 250px; }
+            .order-footer { flex-direction: column; align-items: center; text-align: center; }
+            .order-total { font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Effects -->
+    <div class="gold-dust" style="left: 10%; animation-duration: 12s; animation-delay: 0s;"></div>
+    <div class="gold-dust" style="left: 30%; animation-duration: 15s; animation-delay: 2s;"></div>
+    <div class="gold-dust" style="left: 50%; animation-duration: 10s; animation-delay: 4s;"></div>
+    <div class="gold-dust" style="left: 70%; animation-duration: 14s; animation-delay: 1s;"></div>
+    <div class="gold-dust" style="left: 90%; animation-duration: 11s; animation-delay: 3s;"></div>
+
+    <header>
+        <div class="navbar">
+            <div class="navbar-content">
+                <div class="logo">
+                    <a href="/">📚 Shree Mata</a>
+                </div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="/orders.html" class="active">My Orders</a>
+                    <span id="userName" style="color: #f0c96b; font-weight: 600;"></span>
+                    <a href="account.html">Account</a>
+                    <a href="referral.html" id="referralLink">Referral💰</a>
+                    <a href="cart.html" class="cart-icon">🛒 Cart (<span id="cartCount">0</span>)</a>
+                    <a href="#" id="logoutBtn">Logout</a>
+                    <a href="admin.html" id="adminLink" style="display: none;">Admin</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="orders-container">
+            <div class="page-header">
+                <div class="header-content">
+                    <!-- Delivery Owl Avatar -->
+                    <div class="avatar-wrap">
+                        <div class="avatar-ring"></div>
+                        <div class="avatar-ring ring-2"></div>
+                        <svg viewBox="0 0 120 120" class="avatar-svg">
+                            <defs>
+                                <linearGradient id="owlGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#c9a227"/>
+                                    <stop offset="100%" stop-color="#f0c96b"/>
+                                </linearGradient>
+                            </defs>
+                            <!-- Owl Body -->
+                            <ellipse cx="60" cy="75" rx="30" ry="35" fill="url(#owlGold)"/>
+                            <ellipse cx="60" cy="80" rx="20" ry="25" fill="#ffe9a0"/>
+                            <!-- Head -->
+                            <circle cx="60" cy="40" r="25" fill="url(#owlGold)"/>
+                            <!-- Eyes -->
+                            <circle cx="50" cy="40" r="8" fill="#fff"/>
+                            <circle cx="70" cy="40" r="8" fill="#fff"/>
+                            <circle cx="50" cy="40" r="4" fill="#0f0e2a"/>
+                            <circle cx="70" cy="40" r="4" fill="#0f0e2a"/>
+                            <circle cx="51" cy="39" r="1.5" fill="#fff"/>
+                            <circle cx="71" cy="39" r="1.5" fill="#fff"/>
+                            <!-- Beak -->
+                            <path d="M56,48 L60,56 L64,48 Z" fill="#f59e0b"/>
+                            <!-- Delivery Cap -->
+                            <path d="M35,25 Q60,5 85,25 L90,32 L30,32 Z" fill="#1a1860" stroke="#c9a227" stroke-width="1.5"/>
+                            <circle cx="60" cy="15" r="4" fill="#f0c96b"/>
+                            <!-- Package in wing -->
+                            <rect x="80" y="70" width="25" height="25" rx="3" fill="#4f46e5" stroke="#c9a227" stroke-width="2"/>
+                            <line x1="80" y1="82.5" x2="105" y2="82.5" stroke="#c9a227" stroke-width="2"/>
+                            <line x1="92.5" y1="70" x2="92.5" y2="95" stroke="#c9a227" stroke-width="2"/>
+                            <!-- Wing holding package -->
+                            <path d="M85,65 Q95,75 85,85" fill="none" stroke="#c9a227" stroke-width="4" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1>📦 My Orders</h1>
+                        <p>Track and manage your book orders</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="loadingSpinner" class="loading">
+                <div class="spinner-icon">⏳</div>
+                <div>Loading your orders...</div>
+            </div>
+
+            <div id="ordersContainer"></div>
+
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-avatar">
+                    <svg viewBox="0 0 100 100" width="120" height="120">
+                        <rect x="25" y="40" width="50" height="40" rx="4" fill="#1a1860" stroke="#c9a227" stroke-width="2"/>
+                        <line x1="25" y1="60" x2="75" y2="60" stroke="#c9a227" stroke-width="2"/>
+                        <line x1="50" y1="40" x2="50" y2="80" stroke="#c9a227" stroke-width="2"/>
+                        <path d="M40,40 Q50,20 60,40" fill="none" stroke="#c9a227" stroke-width="2"/>
+                        <text x="70" y="30" fill="#f0c96b" font-size="12" font-weight="bold" opacity="0.8">Z</text>
+                        <text x="80" y="20" fill="#f0c96b" font-size="10" font-weight="bold" opacity="0.6">z</text>
+                        <text x="88" y="12" fill="#f0c96b" font-size="8" font-weight="bold" opacity="0.4">z</text>
+                    </svg>
+                </div>
+                <h2>No Orders Yet</h2>
+                <p>Your order history is empty. Start exploring our collection!</p>
+                <a href="/" class="btn-primary">Start Shopping ✨</a>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/cartUtils.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadOrders();
+        });
+
+        function checkAuth() {
+            const token = localStorage.getItem("token");
+            const user = JSON.parse(localStorage.getItem("user") || "null");
+
+            if (!token || !user) {
+                alert("Please login to view your orders");
+                window.location.href = "/login.html";
+                return;
+            }
+
+            document.getElementById("userName").textContent = `Hello, ${user.name}`;
+
+            if (user.role === "admin") {
+                document.getElementById("adminLink").style.display = "block";
+            }
+
+            document.getElementById("logoutBtn").addEventListener("click", () => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                window.location.href = "/";
+            });
+
+            updateCartCount();
+        }
+
+        function updateCartCount() {
+            const cart = typeof getCart === 'function' ? getCart() : JSON.parse(localStorage.getItem("cart_guest") || "[]");
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById("cartCount").textContent = count;
+        }
+
+        async function loadOrders() {
+            const token = localStorage.getItem("token");
+
+            try {
+                const res = await fetch(`${window.API_URL}/orders`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                const data = await res.json();
+                
+                document.getElementById("loadingSpinner").style.display = "none";
+
+                if (!data.orders || data.orders.length === 0) {
+                    document.getElementById("emptyState").style.display = "block";
+                    return;
+                }
+
+                displayOrders(data.orders);
+            } catch (err) {
+                console.error("Error loading orders:", err);
+                document.getElementById("loadingSpinner").style.display = "none";
+                document.getElementById("emptyState").style.display = "block";
+            }
+        }
+
+        function displayOrders(orders) {
+            const container = document.getElementById("ordersContainer");
+            container.innerHTML = "";
+
+            orders.forEach((order, index) => {
+                const card = document.createElement("div");
+                card.className = "order-card";
+                card.style.animationDelay = `${index * 0.1}s`;
+
+                const statusClass = getStatusClass(order.deliveryStatus || order.status);
+                const statusText = order.deliveryStatus || order.status;
+
+                const itemsHTML = order.items.map(item => `
+                    <div class="order-item">
+                        <img src="${item.coverImage || 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"280\"%3E%3Crect fill=\"%231a1860\" width=\"200\" height=\"280\"/%3E%3Ctext fill=\"%23c9a227\" font-family=\"Arial\" font-size=\"16\" x=\"50%25\" y=\"50%25\" text-anchor=\"middle\" dy=\".3em\"%3EBook%3C/text%3E%3C/svg%3E'}" alt="${item.title}">
+                        <div class="order-item-info">
+                            <div class="order-item-title">${item.title}</div>
+                            <div class="order-item-author">${item.author || 'Unknown Author'}</div>
+                            <div class="order-item-qty">Quantity: ${item.quantity}</div>
+                            <div class="order-item-price">₹${item.price}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+                let addressHTML = '';
+                if (order.deliveryAddress && (order.deliveryAddress.street || order.deliveryAddress.homeAddress1)) {
+                    const addr = order.deliveryAddress;
+                    const primaryAddress = addr.homeAddress1 || addr.street || '';
+                    const secondaryAddress = addr.homeAddress2 || '';
+                    const city = addr.village || addr.city || '';
+                    const taluk = addr.taluk || '';
+                    const district = addr.district || '';
+                    const state = addr.state || '';
+                    const pincode = addr.pincode || '';
+                    const phone = addr.phone || '';
+                    
+                    let fullAddress = primaryAddress;
+                    if (secondaryAddress) fullAddress += ', ' + secondaryAddress;
+                    if (addr.streetName) fullAddress += ', ' + addr.streetName;
+                    if (addr.landmark) fullAddress += ', Near ' + addr.landmark;
+                    
+                    let locationLine = '';
+                    if (city) locationLine += city;
+                    if (taluk && taluk !== city) locationLine += (locationLine ? ', ' : '') + taluk;
+                    if (district && district !== city && district !== taluk) locationLine += (locationLine ? ', ' : '') + district;
+                    if (state) locationLine += (locationLine ? ', ' : '') + state;
+                    if (pincode) locationLine += ' - ' + pincode;
+                    
+                    addressHTML = `
+                        <div class="info-box delivery-address">
+                            <h4>📍 Delivery Address</h4>
+                            ${fullAddress ? `<p><strong>${fullAddress}</strong></p>` : ''}
+                            ${locationLine ? `<p>${locationLine}</p>` : ''}
+                            ${phone ? `<p>📞 ${phone}</p>` : ''}
+                        </div>
+                    `;
+                }
+
+                let trackingHTML = '';
+                if (order.trackingInfo && (order.trackingInfo.trackingId || order.trackingInfo.trackingWebsite)) {
+                    const tracking = order.trackingInfo;
+                    let trackingContent = '';
+                    
+                    if (tracking.trackingId) {
+                        trackingContent += `<p><strong>Tracking ID:</strong> ${tracking.trackingId}</p>`;
+                    }
+                    
+                    if (tracking.trackingWebsite) {
+                        trackingContent += `<p><strong>Courier:</strong> ${tracking.trackingWebsite}</p>`;
+                    }
+                    
+                    if (tracking.trackingUrl) {
+                        trackingContent += `<p><a href="${tracking.trackingUrl}" target="_blank" class="tracking-link">🔗 Track Your Order</a></p>`;
+                    }
+                    
+                    if (tracking.updatedAt) {
+                        trackingContent += `<p class="tracking-date">Last updated: ${new Date(tracking.updatedAt).toLocaleDateString()} at ${new Date(tracking.updatedAt).toLocaleTimeString()}</p>`;
+                    }
+                    
+                    if (trackingContent) {
+                        trackingHTML = `
+                            <div class="info-box tracking-info">
+                                <h4>🚚 Tracking Information</h4>
+                                ${trackingContent}
+                            </div>
+                        `;
+                    }
+                }
+
+                let offerHTML = '';
+                if (order.appliedOffer) {
+                    offerHTML = `
+                        <div class="info-box offer-box">
+                            <div class="offer-title">🎉 ${order.appliedOffer.offerTitle}</div>
+                            <div class="offer-detail">
+                                ${order.appliedOffer.discountType === 'percentage' 
+                                    ? `${order.appliedOffer.discountValue}% discount applied` 
+                                    : `₹${order.appliedOffer.discountValue} discount applied`}
+                            </div>
+                            <div class="offer-row"><span>Original Amount:</span><span>₹${order.appliedOffer.originalAmount.toFixed(2)}</span></div>
+                            <div class="offer-row"><span>Discount:</span><span>- ₹${order.appliedOffer.savings.toFixed(2)}</span></div>
+                            <div class="offer-row offer-total"><span>You Paid:</span><span>₹${order.appliedOffer.discountedAmount.toFixed(2)}</span></div>
+                        </div>
+                    `;
+                }
+
+                let courierHTML = '';
+                if (order.courierCharge > 0) {
+                    courierHTML = `
+                        <div class="info-box courier-box">
+                            <div class="courier-title">📦 Courier Charges</div>
+                            <div class="courier-row"><span>Total Weight:</span><span>${order.totalWeight ? order.totalWeight.toFixed(2) : '0.00'} kg</span></div>
+                            <div class="courier-row"><span>Courier Charge:</span><span>₹${order.courierCharge.toFixed(2)}</span></div>
+                        </div>
+                    `;
+                }
+
+                    const isBillable = order.status !== 'cancelled' && order.status !== 'failed';
+                    const invoiceBtnHTML = isBillable ? `
+                        <a href="/invoice.html?orderId=${order._id}" target="_blank" class="btn-order-invoice">
+                            📄 Download Bill / Invoice
+                        </a>
+                    ` : '';
+
+                    card.innerHTML = `
+                    <div class="order-header">
+                        <div>
+                            <div class="order-id">Order ID: ${order._id}</div>
+                            <div class="order-date">Placed on ${new Date(order.createdAt).toLocaleDateString()} at ${new Date(order.createdAt).toLocaleTimeString()}</div>
+                        </div>
+                        <div class="order-status ${statusClass}">${statusText.toUpperCase()}</div>
+                    </div>
+
+                    <div class="order-items">
+                        ${itemsHTML}
+                    </div>
+
+                    ${addressHTML}
+                    ${trackingHTML}
+                    ${offerHTML}
+                    ${courierHTML}
+
+                    <div class="order-footer">
+                        <div>
+                            <div class="order-total">Total: ₹${order.totalAmount}</div>
+                            <div class="order-payment-id">
+                                Payment ID: ${order.razorpay_payment_id || 'N/A'}
+                            </div>
+                        </div>
+                        ${invoiceBtnHTML}
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        function getStatusClass(status) {
+            const statusMap = {
+                'completed': 'status-completed',
+                'pending': 'status-pending',
+                'processing': 'status-processing',
+                'shipped': 'status-shipped',
+                'delivered': 'status-delivered',
+                'failed': 'status-failed'
+            };
+            return statusMap[status.toLowerCase()] || 'status-pending';
+        }
+    </script>
+</body>
+</html>

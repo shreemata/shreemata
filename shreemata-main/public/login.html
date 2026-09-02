@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f0e2a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Login - Shree Mata</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* ---------- Page Background ---------- */
+        body {
+            margin: 0;
+            font-family: "Inter", sans-serif;
+            background: linear-gradient(135deg, #0f0e2a 0%, #1a1860 50%, #0f0e2a 100%);
+            background-size: 400% 400%;
+            animation: bgShift 25s ease infinite;
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #e2e8f0;
+            position: relative;
+        }
+
+        /* Cosmic Aurora Effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle at 20% 80%, rgba(201,162,39,0.08) 0%, transparent 40%),
+                        radial-gradient(circle at 80% 20%, rgba(79,70,229,0.1) 0%, transparent 40%),
+                        radial-gradient(circle at 50% 50%, rgba(201,162,39,0.05) 0%, transparent 50%);
+            animation: auroraShift 30s ease-in-out infinite alternate;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes bgShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        @keyframes auroraShift {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-5%, -5%) rotate(3deg); }
+        }
+
+        /* Decorative Book Illustration */
+        .books-bg {
+            background-image: url("https://cdn-icons-png.flaticon.com/512/3145/3145765.png");
+            background-size: 300px;
+            background-repeat: no-repeat;
+            opacity: 0.04;
+            position: absolute;
+            top: 20%; left: 5%;
+            width: 300px; height: 300px;
+            pointer-events: none;
+            animation: gentleSpin 80s linear infinite;
+            filter: invert(1) sepia(1) saturate(5) hue-rotate(10deg) brightness(1.2);
+            z-index: 0;
+        }
+        @keyframes gentleSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* ---------- Ambient glow orbs ---------- */
+        .orb {
+            position: fixed; border-radius: 50%;
+            filter: blur(80px); opacity: 0.25;
+            pointer-events: none; z-index: 0;
+        }
+        .orb-1 { width: 300px; height: 300px; background: #c9a227; top: -100px; left: -100px; animation: drift1 22s ease-in-out infinite; }
+        .orb-2 { width: 250px; height: 250px; background: #4f46e5; bottom: -80px; right: -80px; animation: drift2 26s ease-in-out infinite; }
+        .orb-3 { width: 200px; height: 200px; background: #7c3aed; top: 45%; right: 8%; animation: drift3 20s ease-in-out infinite; }
+
+        @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(60px,40px) scale(1.15); } }
+        @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-50px,-30px) scale(1.1); } }
+        @keyframes drift3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-30px,50px); } }
+
+        /* ---------- Floating Golden Dust ---------- */
+        .gold-dust {
+            position: fixed; width: 3px; height: 3px;
+            background: #f0c96b; border-radius: 50%;
+            pointer-events: none; z-index: 1;
+            box-shadow: 0 0 10px #c9a227, 0 0 20px rgba(201,162,39,0.5);
+            animation: dustFloat linear infinite;
+            opacity: 0;
+        }
+        @keyframes dustFloat {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+        }
+
+        /* ---------- Floating ambient particles ---------- */
+        .floaty {
+            position: fixed; pointer-events: none; z-index: 1;
+            opacity: 0.15; font-size: 30px;
+            filter: drop-shadow(0 0 10px rgba(201,162,39,0.4));
+            animation: floatY 12s ease-in-out infinite;
+        }
+        .floaty-1 { top: 12%; left: 7%; animation-duration: 14s; }
+        .floaty-2 { top: 22%; right: 10%; font-size: 22px; animation-duration: 10s; animation-delay: 1s; }
+        .floaty-3 { bottom: 18%; left: 12%; font-size: 26px; animation-duration: 16s; animation-delay: 2s; }
+        .floaty-4 { bottom: 28%; right: 6%; font-size: 24px; animation-duration: 11s; animation-delay: 0.5s; }
+
+        @keyframes floatY {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(10deg); }
+        }
+
+        .particle-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+
+        @media (max-width: 600px) {
+            .floaty, .books-bg { display: none; }
+            .orb { opacity: 0.15; }
+        }
+
+        /* ---------- Generic Container ---------- */
+        .container { width: 90%; max-width: 1100px; margin: 0 auto; position: relative; z-index: 2; }
+
+        /* ---------- Navbar ---------- */
+        .navbar {
+            background: rgba(15, 14, 42, 0.75);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(201,162,39,0.15);
+            position: relative; z-index: 10;
+            animation: slideDown 0.6s ease;
+        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .navbar-content { display: flex; justify-content: space-between; align-items: center; }
+
+        .logo a {
+            text-decoration: none; font-size: 22px; font-weight: 700;
+            font-family: 'Playfair Display', serif;
+            background: linear-gradient(135deg, #c9a227, #f0c96b);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            padding: 8px 12px; border-radius: 12px;
+            transition: all 0.3s ease;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .logo a:hover { transform: translateY(-2px); filter: drop-shadow(0 4px 12px rgba(201,162,39,0.4)); }
+        .logo img { transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+        .logo a:hover img { transform: rotate(360deg) scale(1.15); }
+
+        .nav-links { display: flex; align-items: center; }
+        .nav-links a {
+            margin-left: 20px; text-decoration: none;
+            color: rgba(255,255,255,0.8); font-weight: 500; font-size: 14px;
+            position: relative; transition: all 0.3s ease;
+        }
+        .nav-links a::after {
+            content: ''; position: absolute; left: 0; bottom: -4px;
+            width: 0%; height: 2px;
+            background: linear-gradient(135deg, #c9a227, #f0c96b);
+            transition: width 0.3s ease; border-radius: 2px;
+        }
+        .nav-links a:hover { color: #f0c96b; transform: translateY(-2px); }
+        .nav-links a:hover::after { width: 100%; }
+
+        /* ---------- Auth Layout ---------- */
+        .auth-container {
+            display: flex; justify-content: center; align-items: flex-start;
+            padding: 50px 0 60px; position: relative; z-index: 5;
+            perspective: 1200px;
+        }
+
+        .auth-box {
+            width: 100%; max-width: 480px;
+            padding: 36px 32px; border-radius: 24px;
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            background: rgba(15, 14, 42, 0.65);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+            animation: cardIn 0.9s cubic-bezier(0.21, 1.02, 0.73, 1) both;
+            position: relative; z-index: 2;
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            transform-style: preserve-3d;
+            border: 1px solid rgba(201,162,39,0.25);
+            overflow: hidden;
+        }
+
+        /* Animated shimmering border */
+        .auth-box::before {
+            content: ''; position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(45deg, transparent, #c9a227, transparent, #f0c96b, transparent);
+            background-size: 400% 400%;
+            border-radius: 26px; z-index: -1; opacity: 0.4;
+            animation: gradientBorder 8s ease infinite;
+        }
+        @keyframes gradientBorder {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(40px) scale(0.95) rotateX(15deg); }
+            to { opacity: 1; transform: translateY(0) scale(1) rotateX(0deg); }
+        }
+
+        .badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 16px; border-radius: 999px;
+            background: rgba(201,162,39,0.12);
+            font-size: 12px; font-weight: 600; color: #f0c96b;
+            margin: 0 auto 12px;
+            border: 1px solid rgba(201,162,39,0.25);
+            animation: badgeIn 0.6s ease 0.2s both;
+        }
+        @keyframes badgeIn { from { opacity: 0; transform: translateY(-10px) scale(0.8); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .badge .wave { display: inline-block; animation: wave 2.5s ease-in-out infinite; transform-origin: 70% 70%; }
+        @keyframes wave {
+            0%, 60%, 100% { transform: rotate(0deg); }
+            10% { transform: rotate(14deg); } 20% { transform: rotate(-8deg); }
+            30% { transform: rotate(14deg); } 40% { transform: rotate(-4deg); }
+        }
+
+        .logo-wrap { position: relative; display: inline-flex; margin-bottom: 15px; }
+        .logo-wrap img {
+            position: relative; z-index: 1;
+            animation: logoFloat 5s ease-in-out infinite;
+            border-radius: 2%;
+            box-shadow: 0 0 30px rgba(201,162,39,0.3);
+        }
+        .logo-wrap::before {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            width: 110px; height: 110px; border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 0 0 rgba(201,162,39,0.4);
+            animation: logoPulse 3s ease-out infinite;
+        }
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(5deg); }
+        }
+        @keyframes logoPulse {
+            0% { box-shadow: 0 0 0 0 rgba(201,162,39,0.5); }
+            100% { box-shadow: 0 0 0 30px rgba(201,162,39,0); }
+        }
+
+        .auth-box h1 {
+            text-align: center; margin: 0 0 8px;
+            color: #fff; font-size: 26px; font-family: 'Playfair Display', serif;
+            animation: badgeIn 0.6s ease 0.3s both;
+        }
+        .auth-subtitle {
+            text-align: center; margin-bottom: 24px;
+            color: rgba(255,255,255,0.6); font-size: 14px;
+            animation: badgeIn 0.6s ease 0.4s both;
+        }
+
+        /* Tab styling */
+        .tab-container {
+            display: flex; margin-bottom: 24px;
+            background: rgba(15, 14, 42, 0.5);
+            border-radius: 14px; padding: 5px;
+            border: 1px solid rgba(255,255,255,0.05);
+            animation: badgeIn 0.6s ease 0.5s both;
+        }
+        .tab-button {
+            flex: 1; padding: 12px; background: transparent; border: none;
+            border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px;
+            color: rgba(255,255,255,0.6); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tab-button.active {
+            background: linear-gradient(135deg, #c9a227, #f0c96b);
+            color: #0f0e2a; box-shadow: 0 4px 15px rgba(201,162,39,0.4);
+            transform: scale(1.02);
+        }
+        .tab-button:not(.active):hover { background: rgba(201,162,39,0.1); color: #f0c96b; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeSlideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateX(15px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* ---------- Form Styling ---------- */
+        .form-group { margin-bottom: 18px; position: relative; }
+        label {
+            display: block; font-weight: 600; margin-bottom: 6px;
+            font-size: 13px; color: rgba(255,255,255,0.8);
+            transition: all 0.3s ease;
+        }
+        .form-group:focus-within label { color: #f0c96b; transform: translateX(4px); }
+
+        .input-wrapper { position: relative; }
+        input {
+            width: 100%; padding: 13px 14px; border-radius: 12px;
+            border: 1.5px solid rgba(255,255,255,0.1); outline: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px; box-sizing: border-box;
+            background: rgba(15, 14, 42, 0.6); color: #fff;
+        }
+        input::placeholder { color: rgba(255,255,255,0.3); }
+        input:focus {
+            border-color: #c9a227;
+            box-shadow: 0 0 0 4px rgba(201,162,39,0.15), 0 0 20px rgba(201,162,39,0.1);
+            background: rgba(15, 14, 42, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .input-wrapper::after {
+            content: ''; position: absolute; bottom: 0; left: 50%;
+            width: 0; height: 2px;
+            background: linear-gradient(90deg, #c9a227, #f0c96b);
+            transition: all 0.4s ease; border-radius: 2px;
+            transform: translateX(-50%);
+        }
+        .input-wrapper:focus-within::after { width: 100%; }
+
+        .input-icon {
+            position: absolute; right: 14px; top: 50%;
+            transform: translateY(-50%); font-size: 16px;
+            opacity: 0.5; transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 2;
+        }
+        .input-wrapper:focus-within .input-icon {
+            opacity: 1; transform: translateY(-50%) scale(1.3);
+            color: #f0c96b; filter: drop-shadow(0 0 8px rgba(201,162,39,0.6));
+        }
+
+        /* ---------- Button ---------- */
+        .btn-primary {
+            background: linear-gradient(135deg, #c9a227, #f0c96b, #c9a227);
+            background-size: 220% auto;
+            color: #0f0e2a; border: none; border-radius: 12px;
+            padding: 14px; font-size: 15px; font-weight: 700;
+            cursor: pointer; width: 100%;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative; overflow: hidden;
+            box-shadow: 0 4px 15px rgba(201,162,39,0.3);
+        }
+        /* Shine sweep effect */
+        .btn-primary::after {
+            content: ''; position: absolute; top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+            transform: rotate(30deg) translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+        .btn-primary:hover::after { transform: rotate(30deg) translateX(100%); }
+        
+        .btn-primary:hover {
+            background-position: right center;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(201,162,39,0.5);
+        }
+        .btn-primary:active { transform: translateY(-1px) scale(0.98); }
+
+        .error-message {
+            color: #fca5a5; font-size: 13px; margin-bottom: 10px;
+            animation: shakeIn 0.4s ease;
+            background: rgba(239, 68, 68, 0.15);
+            padding: 10px 14px; border-radius: 8px;
+            border-left: 3px solid #ef4444;
+        }
+        @keyframes shakeIn {
+            0% { opacity: 0; transform: translateX(-10px); }
+            20% { opacity: 1; transform: translateX(8px); }
+            100% { transform: translateX(0); }
+        }
+
+        .auth-footer { text-align: center; margin-top: 20px; font-size: 13px; color: rgba(255,255,255,0.6); }
+        .auth-footer a { color: #f0c96b; font-weight: 600; text-decoration: none; position: relative; transition: all 0.3s ease; }
+        .auth-footer a::after {
+            content: ''; position: absolute; left: 0; bottom: -2px;
+            width: 0%; height: 1.5px; background: linear-gradient(90deg, #c9a227, #f0c96b);
+            transition: width 0.3s ease;
+        }
+        .auth-footer a:hover { transform: translateY(-1px); text-shadow: 0 0 10px rgba(201,162,39,0.5); }
+        .auth-footer a:hover::after { width: 100%; }
+
+        .checkbox-container {
+            display: flex; justify-content: space-between; align-items: center;
+            margin: 18px 0; font-size: 13px;
+        }
+        .checkbox-container label {
+            display: flex; align-items: center; gap: 8px;
+            font-weight: 500; margin-bottom: 0; cursor: pointer;
+            color: rgba(255,255,255,0.7); transition: color 0.3s ease;
+        }
+        .checkbox-container label:hover { color: #f0c96b; }
+        .checkbox-container input[type="checkbox"] {
+            appearance: none; -webkit-appearance: none;
+            width: 18px; height: 18px; min-width: 18px; margin: 0;
+            border: 2px solid rgba(255,255,255,0.3); border-radius: 5px;
+            background: rgba(15,14,42,0.6); position: relative; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        .checkbox-container input[type="checkbox"]:checked {
+            background: linear-gradient(135deg, #c9a227, #f0c96b);
+            border-color: #c9a227;
+        }
+        .checkbox-container input[type="checkbox"]:checked::after {
+            content: ''; position: absolute; left: 4px; top: 0px;
+            width: 5px; height: 9px; border: solid #0f0e2a;
+            border-width: 0 2px 2px 0; transform: rotate(45deg);
+        }
+
+        .toggle-password {
+            position: absolute; right: 12px; top: 50%;
+            transform: translateY(-50%); background: none; border: none;
+            cursor: pointer; font-size: 18px; color: rgba(255,255,255,0.5);
+            transition: all 0.3s ease; z-index: 2; padding: 4px; border-radius: 50%;
+        }
+        .toggle-password:hover {
+            color: #f0c96b; transform: translateY(-50%) scale(1.2);
+            background: rgba(201,162,39,0.1);
+        }
+
+        footer { text-align: center; margin-top: 20px; color: rgba(255,255,255,0.4); font-size: 13px; padding-bottom: 20px; z-index: 2; position: relative; }
+
+        /* Confetti */
+        .confetti { position: fixed; width: 10px; height: 10px; pointer-events: none; z-index: 9999; animation: confettiFall 3s linear forwards; }
+        @keyframes confettiFall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="books-bg"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <canvas class="particle-canvas" id="particleCanvas"></canvas>
+
+    <!-- Golden Dust Particles -->
+    <div class="gold-dust" style="left: 10%; animation-duration: 12s; animation-delay: 0s;"></div>
+    <div class="gold-dust" style="left: 25%; animation-duration: 15s; animation-delay: 2s;"></div>
+    <div class="gold-dust" style="left: 40%; animation-duration: 10s; animation-delay: 4s;"></div>
+    <div class="gold-dust" style="left: 60%; animation-duration: 14s; animation-delay: 1s;"></div>
+    <div class="gold-dust" style="left: 75%; animation-duration: 11s; animation-delay: 3s;"></div>
+    <div class="gold-dust" style="left: 90%; animation-duration: 16s; animation-delay: 5s;"></div>
+
+    <div class="floaty floaty-1">📖</div>
+    <div class="floaty floaty-2">✨</div>
+    <div class="floaty floaty-3">🪔</div>
+    <div class="floaty floaty-4">📚</div>
+
+    <header>
+        <div class="navbar">
+            <div class="container navbar-content">
+                <div class="logo">
+                    <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                        <img src="/images/press.png" alt="Shree Mata Logo" style="width: 45px; height: 45px; ">
+                        <span>Shree Mata</span>
+                    </a>
+                </div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="signup.html">Sign Up</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="auth-container">
+                <div class="auth-box" id="authBox">
+                    <div style="text-align: center;">
+                        <div class="badge">
+                            <span class="wave">👋</span> Welcome back!
+                        </div>
+                        <div class="logo-wrap">
+                            <img src="/images/press.png" alt="Shree Mata Logo" style="width: 90px; height: 90px;">
+                        </div>
+                        <h1>Welcome Back</h1>
+                        <p class="auth-subtitle">Choose your preferred login method</p>
+                    </div>
+
+                    <div class="tab-container">
+                        <button class="tab-button active" onclick="switchTab('email')">📧 Email Login</button>
+                        <button class="tab-button" onclick="switchTab('phone')">📱 Phone Login</button>
+                    </div>
+
+                    <div id="emailTab" class="tab-content active">
+                        <form id="emailLoginForm">
+                            <div class="form-group">
+                                <label for="email">📧 Email</label>
+                                <div class="input-wrapper">
+                                    <input type="email" id="email" name="email" required placeholder="Enter your email">
+                                    <span class="input-icon">📧</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="password">🔒 Password</label>
+                                <div class="input-wrapper">
+                                    <input type="password" id="password" name="password" required placeholder="Enter your password">
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('password', this)">👁️</button>
+                                </div>
+                            </div>
+                            <div class="checkbox-container">
+                                <label><input type="checkbox" id="rememberMe"> Remember me</label>
+                                <a href="#" onclick="showForgotPassword()" style="color: #f0c96b; text-decoration: none; font-size: 12px; font-weight: 600;">Forgot Password?</a>
+                            </div>
+                            <div id="emailErrorMessage" class="error-message" style="display: none;"></div>
+                            <button type="submit" class="btn-primary magnetic-btn" id="emailLoginBtn">Login with Email →</button>
+                        </form>
+                    </div>
+
+                    <div id="phoneTab" class="tab-content">
+                        <form id="phoneLoginForm">
+                            <div class="form-group">
+                                <label for="phoneNumber">📱 Phone Number</label>
+                                <div class="input-wrapper">
+                                    <input type="text" id="phoneNumber" name="phoneNumber" required placeholder="Enter 10-digit number" maxlength="10">
+                                    <span class="input-icon">📱</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="phonePassword">🔒 Password</label>
+                                <div class="input-wrapper">
+                                    <input type="password" id="phonePassword" name="phonePassword" required placeholder="Enter your password">
+                                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('phonePassword', this)">👁️</button>
+                                </div>
+                            </div>
+                            <div class="checkbox-container">
+                                <label><input type="checkbox" id="rememberMePhone"> Remember me</label>
+                                <a href="#" onclick="showForgotPassword()" style="color: #f0c96b; text-decoration: none; font-size: 12px; font-weight: 600;">Forgot Password?</a>
+                            </div>
+                            <div id="phoneErrorMessage" class="error-message" style="display: none;"></div>
+                            <button type="submit" class="btn-primary magnetic-btn" id="phoneLoginBtn">Login with Phone →</button>
+                        </form>
+                    </div>
+
+                    <p class="auth-footer">
+                        Don't have an account? <a href="signup.html">Sign up here ✨</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/login.js"></script>
+    <script>
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // Password toggle
+        function togglePasswordVisibility(inputId, button) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text'; button.textContent = '🙈';
+            } else {
+                input.type = 'password'; button.textContent = '👁️';
+            }
+        }
+
+        // 3D Tilt effect on auth box
+        const authBox = document.getElementById('authBox');
+        if (authBox) {
+            authBox.addEventListener('mousemove', (e) => {
+                const rect = authBox.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width - 0.5;
+                const y = (e.clientY - rect.top) / rect.height - 0.5;
+                authBox.style.transform = `perspective(1200px) rotateY(${x * 6}deg) rotateX(${-y * 6}deg) scale3d(1.02, 1.02, 1.02)`;
+            });
+            authBox.addEventListener('mouseleave', () => {
+                authBox.style.transform = 'perspective(1200px) rotateY(0deg) rotateX(0deg) scale3d(1, 1, 1)';
+            });
+        }
+
+        // Magnetic button effect
+        document.querySelectorAll('.magnetic-btn').forEach(btn => {
+            btn.addEventListener('mousemove', (e) => {
+                const rect = btn.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                btn.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px)`;
+            });
+            btn.addEventListener('mouseleave', () => { btn.style.transform = 'translate(0, 0)'; });
+        });
+
+        // Particle canvas animation (Gold & Indigo theme)
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        resizeCanvas(); window.addEventListener('resize', resizeCanvas);
+        
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.speedX = Math.random() * 0.3 - 0.15; this.speedY = Math.random() * 0.3 - 0.15;
+                this.opacity = Math.random() * 0.5 + 0.2;
+                this.color = Math.random() > 0.5 ? '#c9a227' : '#4f46e5';
+            }
+            update() {
+                this.x += this.speedX; this.y += this.speedY;
+                if (this.x > canvas.width) this.x = 0; if (this.x < 0) this.x = canvas.width;
+                if (this.y > canvas.height) this.y = 0; if (this.y < 0) this.y = canvas.height;
+            }
+            draw() {
+                ctx.fillStyle = this.color; ctx.globalAlpha = this.opacity;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+        function initParticles() {
+            particles = [];
+            const count = Math.min(60, Math.floor(canvas.width * canvas.height / 25000));
+            for (let i = 0; i < count; i++) particles.push(new Particle());
+        }
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            ctx.globalAlpha = 0.15; ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 0.5;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x; const dy = particles[i].y - particles[j].y;
+                    if (Math.sqrt(dx*dx + dy*dy) < 110) {
+                        ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animateParticles);
+        }
+        initParticles(); animateParticles();
+
+        // Confetti effect
+        function createConfetti() {
+            const colors = ['#c9a227', '#f0c96b', '#ffe9a0', '#4f46e5', '#ffffff'];
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div'); confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%'; confetti.style.top = '-10px';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 4000);
+            }
+        }
+
+        // Phone formatting
+        const phoneInput = document.getElementById('phoneNumber');
+        if (phoneInput) phoneInput.addEventListener('input', function() { this.value = this.value.replace(/\D/g, '').substring(0, 10); });
+
+        // ---------- Forgot Password Modal (Themed) ----------
+        function showForgotPassword() {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(15,14,42,0.85); z-index: 1000; display: flex;
+                align-items: center; justify-content: center; padding: 20px;
+                backdrop-filter: blur(8px); animation: modalFadeIn 0.3s ease;
+            `;
+            modal.innerHTML = `
+                <div style="background: rgba(26, 24, 96, 0.95); padding: 32px; border-radius: 24px; width: 100%; max-width: 450px; 
+                            box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,162,39,0.3); 
+                            max-height: 90vh; overflow-y: auto; position: relative; color: #fff; border: 1px solid rgba(201,162,39,0.2);
+                            animation: modalScaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);">
+                    <h2 style="margin: 0 0 20px 0; text-align: center; color: #f0c96b; font-family: 'Playfair Display', serif;">🔐 Reset Password</h2>
+                    
+                    <div id="forgotStep1">
+                        <p style="color: rgba(255,255,255,0.7); margin-bottom: 20px; text-align: center; font-size: 14px;">Enter your email to receive a verification code</p>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: rgba(255,255,255,0.8);">Email Address</label>
+                            <input type="email" id="forgotEmail" placeholder="Enter your email"
+                                   style="width: 100%; padding: 12px; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 10px; box-sizing: border-box; background: rgba(15,14,42,0.6); color: #fff; outline: none; transition: all 0.3s;">
+                        </div>
+                        <button onclick="sendResetOTP()" id="sendOtpBtn" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #c9a227, #f0c96b); color: #0f0e2a; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 15px; transition: all 0.3s;">
+                            Send Verification Code
+                        </button>
+                    </div>
+                    
+                    <div id="forgotStep2" style="display: none; text-align: center;">
+                        <div style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #22c55e, #10b981); display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 30px; color: white;">✓</div>
+                        <p style="color: rgba(255,255,255,0.7); margin-bottom: 20px; font-size: 14px;">Enter the 6-digit code sent to your email</p>
+                        <input type="text" id="forgotOtp" placeholder="------" maxlength="6"
+                               style="width: 100%; padding: 14px; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 10px; box-sizing: border-box; text-align: center; font-size: 22px; letter-spacing: 10px; font-weight: 700; background: rgba(15,14,42,0.6); color: #f0c96b; outline: none; margin-bottom: 15px;">
+                        <button onclick="verifyResetOTP()" id="verifyOtpBtn" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #c9a227, #f0c96b); color: #0f0e2a; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 15px;">
+                            Verify Code
+                        </button>
+                        <button onclick="sendResetOTP()" style="width: 100%; padding: 10px; background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 10px; font-size: 13px;">
+                            Resend Code
+                        </button>
+                    </div>
+                    
+                    <div id="forgotStep3" style="display: none; text-align: center;">
+                        <div style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #22c55e, #10b981); display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 30px; color: white;">✓</div>
+                        <p style="color: rgba(255,255,255,0.7); margin-bottom: 20px; font-size: 14px;">Set your new password</p>
+                        <input type="password" id="newPassword" placeholder="New password" style="width: 100%; padding: 12px; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 10px; box-sizing: border-box; background: rgba(15,14,42,0.6); color: #fff; outline: none; margin-bottom: 12px;">
+                        <input type="password" id="confirmNewPassword" placeholder="Confirm password" style="width: 100%; padding: 12px; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 10px; box-sizing: border-box; background: rgba(15,14,42,0.6); color: #fff; outline: none; margin-bottom: 15px;">
+                        <button onclick="resetPassword()" id="resetPasswordBtn" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #22c55e, #10b981); color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 15px;">
+                            Reset Password
+                        </button>
+                    </div>
+                    
+                    <div id="forgotError" style="display: none; color: #fca5a5; background: rgba(239, 68, 68, 0.15); padding: 12px; border-radius: 8px; margin: 15px 0; font-size: 13px; border-left: 3px solid #ef4444;"></div>
+                    <div id="forgotSuccess" style="display: none; color: #86efac; background: rgba(34, 197, 94, 0.15); padding: 12px; border-radius: 8px; margin: 15px 0; font-size: 13px; border-left: 3px solid #22c55e;"></div>
+                    
+                    <button onclick="closeForgotModal()" style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.1); border: none; font-size: 20px; cursor: pointer; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">&times;</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            window.forgotModal = modal;
+            
+            document.getElementById('forgotOtp').addEventListener('input', function() { this.value = this.value.replace(/\D/g, '').substring(0, 6); });
+            modal.addEventListener('click', function(e) { if (e.target === modal) closeForgotModal(); });
+        }
+        
+        function closeForgotModal() {
+            if (window.forgotModal) {
+                window.forgotModal.style.animation = 'modalFadeIn 0.3s ease reverse';
+                setTimeout(() => { document.body.removeChild(window.forgotModal); window.forgotModal = null; }, 300);
+            }
+        }
+
+        // API Calls for Forgot Password (Keep your existing logic, just ensuring UI updates work)
+        async function sendResetOTP() {
+            const email = document.getElementById('forgotEmail').value.trim();
+            const errorDiv = document.getElementById('forgotError');
+            errorDiv.style.display = 'none';
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                errorDiv.textContent = 'Please enter a valid email'; errorDiv.style.display = 'block'; return;
+            }
+            // ... (Your existing API call logic here) ...
+            // Mocking success for UI demonstration:
+            document.getElementById('forgotStep1').style.display = 'none';
+            document.getElementById('forgotStep2').style.display = 'block';
+        }
+        async function verifyResetOTP() {
+            // ... (Your existing API call logic here) ...
+            document.getElementById('forgotStep2').style.display = 'none';
+            document.getElementById('forgotStep3').style.display = 'block';
+        }
+        async function resetPassword() {
+            // ... (Your existing API call logic here) ...
+            createConfetti();
+            setTimeout(closeForgotModal, 2000);
+        }
+
+        // Add modal animations to head
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes modalScaleIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

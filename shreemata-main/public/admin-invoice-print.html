@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tax Invoice - Shree Mata</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #eef1f5;
+            font-family: 'Times New Roman', Times, serif;
+            padding: 70px 20px 30px;
+            color: #000;
+        }
+
+        .invoice-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            border: 2px solid #000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        /* 1. Top Header Box */
+        .header-band {
+            display: flex;
+            border-bottom: 2px solid #000;
+            align-items: stretch;
+        }
+
+        .header-logo-box {
+            width: 110px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid #000;
+        }
+
+        .header-logo-box img {
+            max-width: 90px;
+            max-height: 90px;
+            object-fit: contain;
+        }
+
+        .header-center-box {
+            flex: 1;
+            padding: 8px 12px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .proforma-tag {
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .company-title {
+            font-size: 26px;
+            font-weight: bold;
+            color: #000;
+            letter-spacing: 1px;
+            line-height: 1.1;
+            margin-bottom: 3px;
+        }
+
+        .company-address-text {
+            font-size: 11px;
+            line-height: 1.35;
+        }
+
+        .company-contact-text {
+            font-size: 10.5px;
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+
+        .header-tax-box {
+            width: 190px;
+            padding: 10px 8px;
+            border-left: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            font-size: 10.5px;
+            line-height: 1.5;
+            background: #fafafa;
+        }
+
+        .header-tax-box div {
+            margin-bottom: 2px;
+        }
+
+        .header-tax-box strong {
+            font-size: 11px;
+        }
+
+        /* 2. Invoice Meta Row */
+        .meta-row {
+            display: flex;
+            border-bottom: 1px solid #000;
+            font-size: 11px;
+        }
+
+        .meta-col-left {
+            flex: 1;
+            padding: 6px 12px;
+            border-right: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .meta-col-right {
+            flex: 1;
+            padding: 6px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .meta-item {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .meta-item-label {
+            font-weight: bold;
+        }
+
+        /* 3. Buyer & Consignee Row */
+        .party-row {
+            display: flex;
+            border-bottom: 1px solid #000;
+        }
+
+        .party-box {
+            flex: 1;
+            font-size: 11px;
+        }
+
+        .party-box:first-child {
+            border-right: 1px solid #000;
+        }
+
+        .party-header {
+            background: #f0f0f0;
+            padding: 4px 10px;
+            font-weight: bold;
+            font-size: 11.5px;
+            border-bottom: 1px solid #000;
+            text-transform: uppercase;
+        }
+
+        .party-content {
+            padding: 8px 10px;
+            line-height: 1.4;
+            min-height: 90px;
+        }
+
+        .party-name {
+            font-weight: bold;
+            font-size: 12.5px;
+            margin-bottom: 3px;
+        }
+
+        /* 4. IRN & E-Way Row */
+        .irn-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-bottom: 1px solid #000;
+            font-size: 10px;
+            background: #fafafa;
+        }
+
+        .irn-col {
+            padding: 4px 8px;
+            border-right: 1px solid #000;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .irn-col:last-child {
+            border-right: none;
+        }
+
+        /* 5. Products Table */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        .items-table th {
+            background: #f0f0f0;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 6px 4px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 10.5px;
+        }
+
+        .items-table th:last-child {
+            border-right: none;
+        }
+
+        .items-table td {
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 6px 5px;
+            vertical-align: middle;
+        }
+
+        .items-table td:last-child {
+            border-right: none;
+        }
+
+        .col-si { width: 35px; text-align: center; }
+        .col-desc { text-align: left; }
+        .col-hsn { width: 75px; text-align: center; }
+        .col-gst { width: 50px; text-align: center; }
+        .col-qty { width: 55px; text-align: center; }
+        .col-rate { width: 75px; text-align: right; }
+        .col-uom { width: 45px; text-align: center; }
+        .col-amount { width: 90px; text-align: right; }
+
+        .subtotal-row {
+            background: #fafafa;
+            font-weight: bold;
+        }
+
+        .subtotal-row td {
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 5px 6px;
+        }
+
+        /* 6. Totals Section */
+        .totals-block {
+            display: flex;
+            border-bottom: 1px solid #000;
+        }
+
+        .totals-left-box {
+            flex: 1;
+            padding: 10px 12px;
+            border-right: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .words-section {
+            margin-bottom: 8px;
+        }
+
+        .words-title {
+            font-weight: bold;
+            font-size: 11px;
+            margin-bottom: 2px;
+            text-decoration: underline;
+        }
+
+        .words-text {
+            font-weight: bold;
+            font-style: italic;
+            color: #111;
+        }
+
+        .totals-right-box {
+            width: 320px;
+            font-size: 11px;
+        }
+
+        .tax-summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .tax-summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .grand-total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 7px 10px;
+            background: #f0f0f0;
+            border-top: 2px solid #000;
+            border-bottom: 1px solid #000;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        /* 7. Terms & Bank Details */
+        .terms-bank-block {
+            display: flex;
+            border-bottom: 1px solid #000;
+            font-size: 10.5px;
+        }
+
+        .terms-box {
+            flex: 1;
+            padding: 8px 10px;
+            border-right: 1px solid #000;
+            line-height: 1.35;
+        }
+
+        .terms-box strong {
+            font-size: 11px;
+            display: block;
+            margin-bottom: 4px;
+            text-decoration: underline;
+        }
+
+        .terms-box ol, .terms-box ul {
+            padding-left: 15px;
+        }
+
+        .terms-box li {
+            margin-bottom: 2px;
+        }
+
+        .bank-box {
+            width: 320px;
+            padding: 8px 10px;
+            line-height: 1.5;
+            background: #fafafa;
+        }
+
+        .bank-box strong.bank-title {
+            font-size: 11px;
+            display: block;
+            margin-bottom: 4px;
+            text-decoration: underline;
+        }
+
+        .bank-detail-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+
+        /* 8. Signature Block */
+        .signature-block {
+            display: flex;
+            min-height: 100px;
+        }
+
+        .signature-left {
+            flex: 1;
+            padding: 8px 10px;
+            border-right: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 10.5px;
+        }
+
+        .signature-qr {
+            width: 130px;
+            padding: 4px 6px;
+            border-right: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: #fff;
+        }
+
+        .signature-qr img {
+            width: 80px !important;
+            height: 80px !important;
+            display: block;
+            margin: 0 auto 3px auto;
+            image-rendering: crisp-edges;
+        }
+
+        .qr-caption {
+            font-size: 8.5px;
+            font-weight: 600;
+            color: #333;
+            line-height: 1.2;
+            text-align: center;
+        }
+
+        .signature-right {
+            width: 250px;
+            padding: 8px 10px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            font-size: 11px;
+        }
+
+        .sign-company-for {
+            font-weight: bold;
+            font-size: 12px;
+            text-align: right;
+            padding-right: 10px;
+        }
+
+        .digital-sign-container {
+            margin: 5px auto;
+            position: relative;
+        }
+
+        .digital-sign-watermark {
+            color: #28a745;
+            font-size: 40px;
+            line-height: 1;
+            font-weight: bold;
+            opacity: 0.75;
+        }
+
+        .digital-sign-caption {
+            font-size: 9.5px;
+            font-weight: bold;
+            color: #155724;
+        }
+
+        .sign-authorised-label {
+            font-weight: bold;
+            font-size: 11px;
+            border-top: 1px solid #000;
+            padding-top: 4px;
+            margin-top: 4px;
+        }
+
+        /* Page Number / Footer */
+        .page-footer-note {
+            text-align: center;
+            padding: 6px;
+            font-size: 9.5px;
+            color: #555;
+            border-top: 1px solid #000;
+            background: #fafafa;
+        }
+
+        /* Top Action Bar Buttons */
+        .print-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 18px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            transition: all 0.2s ease;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            white-space: nowrap;
+        }
+
+        .print-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 18px;
+            background: #475569;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            white-space: nowrap;
+        }
+
+        .back-button:hover {
+            background: #334155;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+
+        /* Delivery Challan pricing toggle rules */
+        .hide-pricing .pricing-col {
+            display: none !important;
+        }
+        .hide-pricing .totals-block {
+            display: none !important;
+        }
+
+        @media print {
+            body {
+                padding: 0 !important;
+                background: white;
+            }
+            .invoice-wrapper {
+                border: 1.5px solid #000;
+                box-shadow: none;
+                max-width: 100%;
+                width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 8mm 10mm;
+            }
+        }
+    </style>
+    
+    <!-- Top Action Bar (Fixed, Non-overlapping) -->
+    <div class="no-print" style="position: fixed; top: 12px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; z-index: 1000;">
+        <div style="pointer-events: auto;">
+            <a href="/admin-invoices.html" class="back-button">← Back</a>
+        </div>
+
+        <div style="pointer-events: auto; display: flex; gap: 10px; align-items: center; flex-wrap: nowrap;">
+            <div style="background: white; padding: 6px 14px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.12); display: flex; align-items: center; gap: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; border: 1px solid #e2e8f0;">
+                <label for="documentTypeSelect" style="font-size: 13px; font-weight: 700; color: #1e293b; white-space: nowrap;">Document Type:</label>
+                <select id="documentTypeSelect" style="min-width: 155px; padding: 6px 12px; border-radius: 6px; border: 1.5px solid #cbd5e1; font-size: 13px; font-weight: 700; color: #0f172a; cursor: pointer; background: #f8fafc; outline: none; display: inline-block;" onchange="handleDocTypeChange(this.value)">
+                    <option value="tax_invoice" selected>Tax Invoice</option>
+                    <option value="delivery_challan">Delivery Challan</option>
+                    <option value="quotation">Quotation</option>
+                    <option value="proforma_invoice">Proforma Invoice</option>
+                    <option value="cash_challan">Cash Invoice</option>
+                </select>
+            </div>
+            <button id="btnEditCashChallan" onclick="openCashChallanModal()" style="display: none; padding: 8px 16px; background: #0f172a; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; white-space: nowrap; transition: all 0.2s;">✏️ Edit Cash Invoice Data</button>
+            <button type="button" onclick="window.print()" class="print-button">🖨️ Print Document</button>
+        </div>
+    </div>
+
+    <!-- Cash Challan Manual Data Entry Modal -->
+    <div id="cashChallanModal" class="no-print" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 20px; overflow-y: auto;">
+        <div style="background: white; border-radius: 12px; width: 100%; max-width: 780px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <!-- Modal Header -->
+            <div style="padding: 16px 20px; background: #0f172a; color: white; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <span>📝</span> Cash Invoice Manual Data Entry Form
+                    </h3>
+                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #94a3b8;">Input or customize customer details, items, quantities, and rates before generation.</p>
+                </div>
+                <button type="button" onclick="closeCashChallanModal()" style="background: none; border: none; color: #94a3b8; font-size: 22px; cursor: pointer; padding: 2px 8px; line-height: 1;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#94a3b8'">✕</button>
+            </div>
+
+            <!-- Modal Body -->
+            <div style="padding: 20px; overflow-y: auto; flex: 1;">
+                <!-- 1. Customer Details -->
+                <div style="margin-bottom: 20px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <h4 style="margin: 0 0 12px 0; font-size: 13.5px; font-weight: 700; color: #1e293b;">👤 Customer Details</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Customer Name *</label>
+                            <input type="text" id="manualCustomerName" placeholder="Enter customer name" style="width: 100%; padding: 8px 12px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Phone Number</label>
+                            <input type="tel" id="manualPhoneNumber" placeholder="Enter phone number" style="width: 100%; padding: 8px 12px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box;">
+                        </div>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Billing Address</label>
+                        <textarea id="manualBillingAddress" rows="2" placeholder="Enter billing address" style="width: 100%; padding: 8px 12px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; resize: vertical; box-sizing: border-box;"></textarea>
+                    </div>
+                </div>
+
+                <!-- 2. Dynamic Items List -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h4 style="margin: 0; font-size: 13.5px; font-weight: 700; color: #1e293b;">📦 Items List</h4>
+                        <button type="button" onclick="addManualItemRow()" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                            <span>➕</span> Add Item
+                        </button>
+                    </div>
+
+                    <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr style="background: #f1f5f9; text-align: left; color: #475569; font-size: 12px;">
+                                    <th style="padding: 10px 12px; width: 45%;">Item Name / Description</th>
+                                    <th style="padding: 10px 8px; width: 15%; text-align: center;">Quantity</th>
+                                    <th style="padding: 10px 8px; width: 18%; text-align: right;">Rate (₹)</th>
+                                    <th style="padding: 10px 8px; width: 18%; text-align: right;">Total (₹)</th>
+                                    <th style="padding: 10px 8px; width: 4%; text-align: center;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="manualItemsBody">
+                                <!-- Dynamic item rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. Totals Summary -->
+                <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 14px 18px; display: flex; justify-content: flex-end; align-items: center; gap: 24px;">
+                    <div>
+                        <span style="font-size: 12px; color: #64748b; font-weight: 600;">Subtotal:</span>
+                        <strong id="manualSubtotalDisplay" style="font-size: 14px; color: #0f172a; margin-left: 6px;">₹0.00</strong>
+                    </div>
+                    <div style="border-left: 1px solid #cbd5e1; padding-left: 20px;">
+                        <span style="font-size: 13px; color: #0f172a; font-weight: 700;">Grand Total:</span>
+                        <strong id="manualGrandTotalDisplay" style="font-size: 17px; color: #059669; margin-left: 6px;">₹0.00</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div style="padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" onclick="closeCashChallanModal()" style="padding: 9px 16px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">Cancel</button>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" onclick="saveAndApplyCashChallan(false)" style="padding: 9px 18px; background: #0f172a; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">💾 Generate Bill / Apply</button>
+                    <button type="button" onclick="saveAndApplyCashChallan(true)" style="padding: 9px 18px; background: #059669; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">🖨️ Apply & Print</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="invoice-wrapper">
+        <!-- 1. Header Band -->
+        <div class="header-band">
+            <div class="header-logo-box">
+                <img src="/images/shiva.png" alt="Shree Mata Logo" onerror="this.src='/images/logo.png'">
+            </div>
+            <div class="header-center-box">
+                <div class="proforma-tag" id="documentHeaderTag">TAX INVOICE</div>
+                <div class="company-title">SHREE MATA</div>
+                <div class="company-address-text">
+                    Nekar Bhavan, Opp. K.H. Patil College, Vidyanagar, Hubballi, Karnataka - 580031
+                </div>
+                <div class="company-contact-text">
+                    Phone: 9886086278 | Email: shree.mata.hbl@gmail.com | Website: www.shreemata.com
+                </div>
+            </div>
+            <div class="header-tax-box">
+                <div><strong>GSTIN/UIN:</strong> 29GZTPP0335K1ZL</div>
+                <div><strong>PAN No:</strong> GZTPP0335K</div>
+                <div><strong>State:</strong> 29-Karnataka</div>
+                <div><strong>CIN:</strong> -</div>
+            </div>
+        </div>
+
+        <!-- 2. Invoice Meta Row -->
+        <div class="meta-row">
+            <div class="meta-col-left">
+                <div class="meta-item">
+                    <span class="meta-item-label" id="docNumberLabel">Invoice No:</span>
+                    <strong id="invoiceNumber">SM-HBL-0000000001</strong>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-item-label" id="docDateLabel">Invoice Date:</span>
+                    <span id="billDate">26-08-2026</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-item-label">Representative:</span>
+                    <span id="representative">-</span>
+                </div>
+            </div>
+            <div class="meta-col-right">
+                <div class="meta-item">
+                    <span class="meta-item-label">Place of Supply:</span>
+                    <strong id="placeOfSupply">29-Karnataka</strong>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-item-label">Reverse Charge:</span>
+                    <span>No</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-item-label">Payment Terms:</span>
+                    <span id="creditPeriod">Immediate / 15 Days</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Buyer & Consignee Row -->
+        <div class="party-row">
+            <!-- Buyer (Bill to) -->
+            <div class="party-box">
+                <div class="party-header">Buyer (Bill to)</div>
+                <div class="party-content" id="billedTo">
+                    <div class="party-name" id="customerName">Customer Name</div>
+                    <div id="billingAddressFull">Address Line 1, Line 2</div>
+                    <div id="billingLocation">District, State - Pincode</div>
+                    <div style="margin-top: 4px;">
+                        <strong>GSTIN/UIN:</strong> <span id="customerGSTN">-</span>
+                    </div>
+                    <div>
+                        <strong>Phone:</strong> <span id="customerPhone">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Consignee (Ship to) -->
+            <div class="party-box">
+                <div class="party-header">Consignee (Ship to)</div>
+                <div class="party-content" id="shippedTo">
+                    <div class="party-name" id="shipToName">Customer Name</div>
+                    <div id="shippingAddressFull">Address Line 1, Line 2</div>
+                    <div id="shippingLocation">District, State - Pincode</div>
+                    <div style="margin-top: 4px;">
+                        <strong>GSTIN/UIN:</strong> <span id="shippingGSTN">-</span>
+                    </div>
+                    <div>
+                        <strong>Phone:</strong> <span id="shippingPhone">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. IRN & E-Way Row -->
+        <div class="irn-row">
+            <div class="irn-col"><strong>IRN:</strong> -</div>
+            <div class="irn-col"><strong>Ack No:</strong> -</div>
+            <div class="irn-col"><strong>Ack Date:</strong> -</div>
+            <div class="irn-col"><strong>E-Way/Vehicle:</strong> <span id="ewayBill">-</span></div>
+        </div>
+
+        <!-- 5. Items Table -->
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th class="col-si">SI No.</th>
+                    <th class="col-desc">Description of Goods</th>
+                    <th class="col-hsn">HSN/SAC</th>
+                    <th class="col-gst pricing-col">GST %</th>
+                    <th class="col-qty">Quantity</th>
+                    <th class="col-rate pricing-col">Rate (₹)</th>
+                    <th class="col-uom">UOM</th>
+                    <th class="col-amount pricing-col">Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody id="productsTableBody">
+                <!-- Product rows dynamically inserted here -->
+            </tbody>
+            <tfoot>
+                <tr class="subtotal-row">
+                    <td colspan="3" style="text-align: right; padding-right: 10px;">Sub-Total:</td>
+                    <td class="col-gst pricing-col"></td>
+                    <td class="col-qty" id="totalQuantityDisplay" style="text-align: center;">0</td>
+                    <td class="col-rate pricing-col"></td>
+                    <td class="col-uom"></td>
+                    <td class="col-amount pricing-col" id="subtotalDisplay">0.00</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <!-- 6. Totals Section -->
+        <div class="totals-block">
+            <div class="totals-left-box">
+                <div class="words-section">
+                    <div class="words-title">Total Amount (in Words):</div>
+                    <div class="words-text" id="amountInWords">Zero Rupees Only</div>
+                </div>
+                <div class="words-section" style="margin-bottom: 0;">
+                    <div class="words-title">Total Tax Amount (in Words):</div>
+                    <div class="words-text" id="taxAmountInWords">Zero Rupees Only</div>
+                </div>
+            </div>
+            <div class="totals-right-box">
+                <div class="tax-summary-row">
+                    <span>Taxable Amount</span>
+                    <span id="taxableBase">0.00</span>
+                </div>
+                <div class="tax-summary-row" id="cgstRow">
+                    <span id="cgstLabel">OUT CGST @9%</span>
+                    <span id="totalCGST">0.00</span>
+                </div>
+                <div class="tax-summary-row" id="sgstRow">
+                    <span id="sgstLabel">OUT SGST @9%</span>
+                    <span id="totalSGST">0.00</span>
+                </div>
+                <div class="tax-summary-row" id="discountRow" style="display: none;">
+                    <span>Discount</span>
+                    <span id="discount">0.00</span>
+                </div>
+                <div class="tax-summary-row">
+                    <span>Rounded Off</span>
+                    <span id="roundOff">0.00</span>
+                </div>
+                <div class="grand-total-row">
+                    <span>Grand Total</span>
+                    <span>₹<span id="grandTotal">0.00</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Terms & Bank Details -->
+        <div class="terms-bank-block">
+            <div class="terms-box">
+                <strong>Terms & Conditions:</strong>
+                <ol>
+                    <li>Goods once sold will not be taken back, until and unless approved by the manufacturer.</li>
+                    <li><strong>Shree Mata</strong> is not responsible for the performance and warranty of products. Warranty if any, is provided only by the manufacturer.</li>
+                    <li>Physically damaged, tampered or water-logged items do not qualify for any warranty.</li>
+                    <li>Jurisdiction for any dispute will be exclusively in Hubballi, Karnataka.</li>
+                </ol>
+            </div>
+            <div class="bank-box">
+                <strong class="bank-title">Company's Bank Details:</strong>
+                <div class="bank-detail-line">
+                    <span>A/c Holder's Name:</span>
+                    <strong id="bankHolderName">Shree Mata</strong>
+                </div>
+                <div class="bank-detail-line">
+                    <span>Bank Name:</span>
+                    <span id="bankName">IDFC FIRST</span>
+                </div>
+                <div class="bank-detail-line">
+                    <span>A/c No:</span>
+                    <strong id="accountNumber">10198316912</strong>
+                </div>
+                <div class="bank-detail-line">
+                    <span>Branch & IFSC:</span>
+                    <span id="branchAndIfsc">HUBBALLI & IDFB0080281</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. Signatures Block -->
+        <div class="signature-block">
+            <div class="signature-left">
+                <div>Received the goods in Good condition</div>
+                <div style="margin-top: 35px; border-top: 1px dashed #666; padding-top: 3px;">
+                    Receiver's Seal, Signature, Date & Time
+                </div>
+            </div>
+            <div class="signature-qr">
+                <img id="trackingQrImg" src="/api/invoices/qr" alt="Scan to check dispatch status" width="80" height="80">
+                <div class="qr-caption">Scan to check dispatch status</div>
+            </div>
+            <div class="signature-right">
+                <div class="sign-company-for">For SHREE MATA</div>
+                <div class="digital-sign-container">
+                    <div class="digital-sign-watermark">✔</div>
+                    <div class="digital-sign-caption">
+                        Digitally signed by SHREE MATA<br>
+                        <span id="digitalDateTime" style="font-weight: normal; font-size: 8.5px; color: #333;"></span>
+                    </div>
+                </div>
+                <div class="sign-authorised-label">Authorised Signatory</div>
+            </div>
+        </div>
+
+        <!-- Footer Note -->
+        <div class="page-footer-note" id="pageFooterNote">
+            This is a Computer Generated Tax Invoice | Page 1 of 1
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+        function setText(id, value) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = value || '-';
+            }
+        }
+
+        const DOC_CONFIGS = {
+            tax_invoice: {
+                title: 'TAX INVOICE',
+                label: 'Tax Invoice',
+                numberLabel: 'Invoice No:',
+                dateLabel: 'Invoice Date:',
+                prefix: 'SM-HBL-'
+            },
+            delivery_challan: {
+                title: 'DELIVERY CHALLAN',
+                label: 'Delivery Challan',
+                numberLabel: 'Challan No:',
+                dateLabel: 'Challan Date:',
+                prefix: 'SM-DCT-'
+            },
+            quotation: {
+                title: 'QUOTATION',
+                label: 'Quotation',
+                numberLabel: 'Quotation No:',
+                dateLabel: 'Quotation Date:',
+                prefix: 'SM-QUO-'
+            },
+            proforma_invoice: {
+                title: 'PROFORMA INVOICE',
+                label: 'Proforma Invoice',
+                numberLabel: 'Proforma Inv No:',
+                dateLabel: 'Proforma Date:',
+                prefix: 'SM-PRI-'
+            },
+            cash_challan: {
+                title: 'TAX INVOICE',
+                label: 'Tax Invoice',
+                numberLabel: 'Invoice No:',
+                dateLabel: 'Invoice Date:',
+                prefix: 'SM-CCH-'
+            }
+        };
+
+        function normalizeClientDocType(val) {
+            if (!val) return 'tax_invoice';
+            const s = String(val).toLowerCase().trim().replace(/[-\s]/g, '_');
+            if (s === 'cash_challan' || s.includes('cash') || s.includes('cch')) return 'cash_challan';
+            if (s.includes('tax') || s.includes('hbl')) return 'tax_invoice';
+            if (s.includes('delivery') || s.includes('dct') || (s.includes('challan') && !s.includes('cash'))) return 'delivery_challan';
+            if (s.includes('quot') || s.includes('quo')) return 'quotation';
+            if (s.includes('proforma') || s.includes('pri')) return 'proforma_invoice';
+            if (DOC_CONFIGS[s]) return s;
+            return 'tax_invoice';
+        }
+
+        function detectDocType(idParam, docTypeParam, invoiceData) {
+            // 1. Explicit docType query parameter takes highest priority
+            if (docTypeParam) {
+                const norm = normalizeClientDocType(docTypeParam);
+                if (norm && DOC_CONFIGS[norm]) return norm;
+            }
+
+            // 2. Check if invoiceId matches an exact document number in documentNumbers map
+            if (invoiceData && invoiceData.documentNumbers && idParam) {
+                const idTrim = String(idParam).trim();
+                for (const [key, val] of Object.entries(invoiceData.documentNumbers)) {
+                    if (val && String(val).trim().toLowerCase() === idTrim.toLowerCase()) {
+                        return key;
+                    }
+                }
+            }
+
+            // 3. Check prefix of idParam (e.g. SM-QUO-, SM-DCT-, SM-CCH-, SM-PRI-, SM-HBL-)
+            if (idParam) {
+                const upper = String(idParam).trim().toUpperCase();
+                if (upper.startsWith('SM-QUO-')) return 'quotation';
+                if (upper.startsWith('SM-DCT-')) return 'delivery_challan';
+                if (upper.startsWith('SM-CCH-')) return 'cash_challan';
+                if (upper.startsWith('SM-PRI-')) return 'proforma_invoice';
+                if (upper.startsWith('SM-HBL-')) return 'tax_invoice';
+            }
+
+            // 4. Check invoice.documentType if provided
+            if (invoiceData && invoiceData.documentType) {
+                const norm = normalizeClientDocType(invoiceData.documentType);
+                if (norm && DOC_CONFIGS[norm]) return norm;
+            }
+
+            return 'tax_invoice';
+        }
+
+        let currentInvoice = null;
+        // Get invoice data from URL parameters or localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const invoiceId = urlParams.get('id');
+        const initialDocType = urlParams.get('docType') || urlParams.get('documentType');
+        let currentDocType = detectDocType(invoiceId, initialDocType, null);
+
+        async function handleDocTypeChange(newDocType) {
+            currentDocType = normalizeClientDocType(newDocType);
+            const config = DOC_CONFIGS[currentDocType] || DOC_CONFIGS.tax_invoice;
+
+            // Update UI Select dropdown if not matching
+            const selectEl = document.getElementById('documentTypeSelect');
+            if (selectEl && selectEl.value !== currentDocType) {
+                selectEl.value = currentDocType;
+            }
+
+            // Dynamic UI Toggle for Cash Challan Manual Entry Form
+            const btnEditCash = document.getElementById('btnEditCashChallan');
+            if (newDocType === 'cash_challan') {
+                if (btnEditCash) btnEditCash.style.display = 'inline-block';
+                openCashChallanModal();
+            } else {
+                if (btnEditCash) btnEditCash.style.display = 'none';
+                closeCashChallanModal();
+            }
+
+            // Update Document Header Tag, Labels, Page Title & Footer Note
+            setText('documentHeaderTag', config.title);
+            setText('docNumberLabel', config.numberLabel);
+            setText('docDateLabel', config.dateLabel);
+            setText('pageFooterNote', `This is a Computer Generated ${config.label} | Page 1 of 1`);
+            document.title = `${config.title} - Shree Mata`;
+
+            if (currentInvoice && currentInvoice._id) {
+                const invIdentifier = currentInvoice._id;
+                
+                // If invoice already has this document type's number stored, display it
+                if (currentInvoice.documentNumbers && currentInvoice.documentNumbers[newDocType]) {
+                    const docNum = currentInvoice.documentNumbers[newDocType];
+                    setText('invoiceNumber', docNum);
+                    renderTrackingQRCode(docNum);
+                    populateInvoice(currentInvoice);
+                    return;
+                }
+
+                // If tax invoice, and no documentNumbers.tax_invoice, use invoiceNumber
+                if (newDocType === 'tax_invoice' && currentInvoice.invoiceNumber) {
+                    const docNum = currentInvoice.invoiceNumber;
+                    setText('invoiceNumber', docNum);
+                    renderTrackingQRCode(docNum);
+                    populateInvoice(currentInvoice);
+                    return;
+                }
+
+                // Otherwise request backend to retrieve or atomically generate sequence number
+                try {
+                    const token = localStorage.getItem('token') || urlParams.get('token');
+                    const response = await fetch(`${API_URL}/invoices/${encodeURIComponent(invIdentifier)}/document-number`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ documentType: newDocType })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (!currentInvoice.documentNumbers) currentInvoice.documentNumbers = {};
+                        currentInvoice.documentNumbers[newDocType] = data.documentNumber;
+                        if (data.cashChallanData) {
+                            currentInvoice.cashChallanData = data.cashChallanData;
+                        }
+                        setText('invoiceNumber', data.documentNumber);
+                        renderTrackingQRCode(data.documentNumber);
+                        populateInvoice(currentInvoice);
+                    }
+                } catch (error) {
+                    console.error('Error fetching/generating document number:', error);
+                }
+            } else {
+                // Sample or draft preview mode
+                const sampleNum = `${config.prefix}0000000001`;
+                if (currentInvoice) {
+                    if (!currentInvoice.documentNumbers) currentInvoice.documentNumbers = {};
+                    currentInvoice.documentNumbers[newDocType] = sampleNum;
+                }
+                setText('invoiceNumber', sampleNum);
+                renderTrackingQRCode(sampleNum);
+                if (currentInvoice) populateInvoice(currentInvoice);
+            }
+        }
+
+        // ==========================================
+        // CASH CHALLAN MANUAL ENTRY MODAL FUNCTIONS
+        // ==========================================
+        function openCashChallanModal() {
+            const modal = document.getElementById('cashChallanModal');
+            if (!modal) return;
+
+            // Pre-fill fields from cashChallanData (if exists) or currentInvoice
+            const cData = currentInvoice && currentInvoice.cashChallanData;
+            
+            const custName = (cData && cData.customerName) || (currentInvoice && currentInvoice.customerName) || '';
+            const phone = (cData && cData.phoneNumber) || (currentInvoice && currentInvoice.phoneNumber) || '';
+            const addr = (cData && cData.billingAddress) || (currentInvoice && currentInvoice.billingAddress) || '';
+
+            document.getElementById('manualCustomerName').value = custName;
+            document.getElementById('manualPhoneNumber').value = phone;
+            document.getElementById('manualBillingAddress').value = addr;
+
+            // Pre-fill items list
+            const tbody = document.getElementById('manualItemsBody');
+            tbody.innerHTML = '';
+
+            const items = (cData && Array.isArray(cData.products) && cData.products.length > 0)
+                ? cData.products
+                : (currentInvoice && Array.isArray(currentInvoice.products) && currentInvoice.products.length > 0)
+                    ? currentInvoice.products
+                    : [];
+
+            if (items.length > 0) {
+                items.forEach(item => {
+                    const name = item.productName || item.title || item.name || '';
+                    const qty = parseFloat(item.bundles || item.quantity || item.qty) || 1;
+                    const rate = parseFloat(item.unitPrice || item.price || item.rate) || 0;
+                    addManualItemRow(name, qty, rate);
+                });
+            } else {
+                addManualItemRow('', 1, 0);
+            }
+
+            calculateManualTotals();
+            modal.style.display = 'flex';
+        }
+
+        function closeCashChallanModal() {
+            const modal = document.getElementById('cashChallanModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function addManualItemRow(name = '', qty = 1, rate = 0) {
+            const tbody = document.getElementById('manualItemsBody');
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid #e2e8f0';
+
+            const total = (qty * rate).toFixed(2);
+
+            tr.innerHTML = `
+                <td style="padding: 8px 10px;">
+                    <input type="text" class="manual-item-name" placeholder="Item description" value="${name.replace(/"/g, '&quot;')}" style="width: 100%; padding: 6px 10px; border: 1.5px solid #cbd5e1; border-radius: 5px; font-size: 13px; outline: none; box-sizing: border-box;">
+                </td>
+                <td style="padding: 8px 6px;">
+                    <input type="number" class="manual-item-qty" min="1" step="1" value="${qty}" oninput="updateManualRowTotal(this)" style="width: 100%; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 5px; font-size: 13px; text-align: center; outline: none; box-sizing: border-box;">
+                </td>
+                <td style="padding: 8px 6px;">
+                    <input type="number" class="manual-item-rate" min="0" step="0.01" value="${rate}" oninput="updateManualRowTotal(this)" style="width: 100%; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 5px; font-size: 13px; text-align: right; outline: none; box-sizing: border-box;">
+                </td>
+                <td style="padding: 8px 8px; text-align: right; font-weight: 700; color: #0f172a;" class="manual-item-total">
+                    ₹${total}
+                </td>
+                <td style="padding: 8px 4px; text-align: center;">
+                    <button type="button" onclick="removeManualItemRow(this)" style="background: none; border: none; color: #ef4444; font-size: 15px; cursor: pointer; padding: 4px;" title="Remove row">🗑️</button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+            calculateManualTotals();
+        }
+
+        function removeManualItemRow(btn) {
+            const tbody = document.getElementById('manualItemsBody');
+            if (tbody.children.length <= 1) {
+                alert('At least one item is required.');
+                return;
+            }
+            btn.closest('tr').remove();
+            calculateManualTotals();
+        }
+
+        function updateManualRowTotal(input) {
+            const tr = input.closest('tr');
+            const qty = parseFloat(tr.querySelector('.manual-item-qty').value) || 0;
+            const rate = parseFloat(tr.querySelector('.manual-item-rate').value) || 0;
+            const total = (qty * rate).toFixed(2);
+            tr.querySelector('.manual-item-total').textContent = `₹${total}`;
+            calculateManualTotals();
+        }
+
+        function calculateManualTotals() {
+            const rows = document.querySelectorAll('#manualItemsBody tr');
+            let subtotal = 0;
+
+            rows.forEach(tr => {
+                const qty = parseFloat(tr.querySelector('.manual-item-qty')?.value) || 0;
+                const rate = parseFloat(tr.querySelector('.manual-item-rate')?.value) || 0;
+                subtotal += (qty * rate);
+            });
+
+            const grandTotal = subtotal;
+            setText('manualSubtotalDisplay', `₹${subtotal.toFixed(2)}`);
+            setText('manualGrandTotalDisplay', `₹${grandTotal.toFixed(2)}`);
+
+            return { subtotal, grandTotal };
+        }
+
+        async function saveAndApplyCashChallan(shouldPrint = false) {
+            const customerName = document.getElementById('manualCustomerName').value.trim();
+            if (!customerName) {
+                alert('Please enter a Customer Name.');
+                document.getElementById('manualCustomerName').focus();
+                return;
+            }
+
+            const phoneNumber = document.getElementById('manualPhoneNumber').value.trim();
+            const billingAddress = document.getElementById('manualBillingAddress').value.trim();
+
+            const rows = document.querySelectorAll('#manualItemsBody tr');
+            const products = [];
+            let subtotal = 0;
+
+            rows.forEach((tr, idx) => {
+                const name = tr.querySelector('.manual-item-name')?.value.trim() || `Item ${idx + 1}`;
+                const qty = parseFloat(tr.querySelector('.manual-item-qty')?.value) || 1;
+                const rate = parseFloat(tr.querySelector('.manual-item-rate')?.value) || 0;
+                const total = qty * rate;
+                subtotal += total;
+
+                products.push({
+                    productName: name,
+                    hsnCode: '4901',
+                    unitPrice: rate,
+                    bundles: qty,
+                    total: total
+                });
+            });
+
+            const grandTotal = subtotal;
+
+            const manualData = {
+                customerName,
+                phoneNumber,
+                billingAddress,
+                products,
+                subtotal,
+                grandTotal
+            };
+
+            if (!currentInvoice) {
+                currentInvoice = {};
+            }
+            currentInvoice.cashChallanData = manualData;
+
+            // If we have an active invoice from backend, persist custom cashChallanData and retrieve sequence number
+            if (currentInvoice._id || currentInvoice.invoiceNumber) {
+                const invIdentifier = currentInvoice._id || currentInvoice.invoiceNumber;
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`${API_URL}/invoices/${encodeURIComponent(invIdentifier)}/document-number`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            documentType: 'cash_challan',
+                            manualData: manualData
+                        })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (!currentInvoice.documentNumbers) currentInvoice.documentNumbers = {};
+                        currentInvoice.documentNumbers.cash_challan = data.documentNumber;
+                        currentInvoice.cashChallanData = data.cashChallanData || manualData;
+                    }
+                } catch (err) {
+                    console.error('Error saving Cash Challan data:', err);
+                }
+            }
+
+            // Close modal and populate invoice with manual data
+            closeCashChallanModal();
+            populateInvoice(currentInvoice);
+
+            if (shouldPrint) {
+                setTimeout(() => window.print(), 300);
+            }
+        }
+
+        // Load invoice data
+        async function loadInvoiceData() {
+            // Initial optimistic detection based on URL parameters
+            currentDocType = detectDocType(invoiceId, initialDocType, null);
+            const selectEl = document.getElementById('documentTypeSelect');
+            if (selectEl) selectEl.value = currentDocType;
+
+            // First check if there's preview data in localStorage
+            const previewData = localStorage.getItem('invoicePreview');
+            if (previewData) {
+                const invoice = JSON.parse(previewData);
+                currentInvoice = invoice;
+                currentDocType = detectDocType(invoiceId, initialDocType, invoice);
+                populateInvoice(invoice);
+                localStorage.removeItem('invoicePreview'); // Clear after use
+                return;
+            }
+
+            if (invoiceId) {
+                try {
+                    const token = localStorage.getItem('token') || urlParams.get('token');
+                    if (urlParams.get('token')) {
+                        localStorage.setItem('token', urlParams.get('token'));
+                    }
+                    const response = await fetch(`${API_URL}/invoices/${encodeURIComponent(invoiceId)}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const invoice = await response.json();
+                        currentInvoice = invoice;
+                        currentDocType = detectDocType(invoiceId, initialDocType, invoice);
+                        populateInvoice(invoice);
+                    } else {
+                        alert('Invoice not found');
+                        window.location.href = '/admin-invoices.html';
+                    }
+                } catch (error) {
+                    console.error('Error loading invoice:', error);
+                    alert('Failed to load invoice');
+                }
+            } else {
+                currentDocType = detectDocType(invoiceId, initialDocType, null);
+                populateSampleData();
+            }
+        }
+
+        function populateInvoice(invoice) {
+            currentInvoice = invoice;
+            const targetDocType = currentDocType || detectDocType(invoiceId, initialDocType, invoice);
+            currentDocType = targetDocType;
+            const config = DOC_CONFIGS[targetDocType] || DOC_CONFIGS.tax_invoice;
+
+            // Toggle pricing display based on Delivery Challan
+            const wrapper = document.querySelector('.invoice-wrapper');
+            if (wrapper) {
+                if (targetDocType === 'delivery_challan') {
+                    wrapper.classList.add('hide-pricing');
+                } else {
+                    wrapper.classList.remove('hide-pricing');
+                }
+            }
+
+            // Set Select Element
+            const selectEl = document.getElementById('documentTypeSelect');
+            if (selectEl) selectEl.value = targetDocType;
+
+            const btnEditCash = document.getElementById('btnEditCashChallan');
+            if (btnEditCash) {
+                btnEditCash.style.display = targetDocType === 'cash_challan' ? 'inline-block' : 'none';
+            }
+
+            // Header Tag & Labels
+            setText('documentHeaderTag', config.title);
+            setText('docNumberLabel', config.numberLabel);
+            setText('docDateLabel', config.dateLabel);
+            setText('pageFooterNote', `This is a Computer Generated ${config.label} | Page 1 of 1`);
+            document.title = `${config.title} - Shree Mata`;
+
+            // Document Number
+            let docNum = (invoice.documentNumbers && invoice.documentNumbers[targetDocType]) || (targetDocType === 'tax_invoice' ? invoice.invoiceNumber : null);
+            if (!docNum) {
+                handleDocTypeChange(targetDocType);
+            } else {
+                setText('invoiceNumber', docNum);
+                renderTrackingQRCode(docNum);
+            }
+            
+            const invDate = invoice.invoiceDate ? new Date(invoice.invoiceDate) : new Date();
+            const formattedDate = String(invDate.getDate()).padStart(2, '0') + '-' + 
+                                  String(invDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                                  invDate.getFullYear();
+            setText('billDate', formattedDate);
+            
+            const rep = invoice.sentBy || invoice.receivedBy || '-';
+            setText('representative', rep);
+
+            const stateName = invoice.state || 'Karnataka';
+            const placeOfSupply = stateName.toLowerCase().includes('karnataka') ? '29-Karnataka' : stateName;
+            setText('placeOfSupply', placeOfSupply);
+
+            // Use custom Cash Challan data if available
+            const isCashChallan = targetDocType === 'cash_challan';
+            const cData = isCashChallan && invoice.cashChallanData ? invoice.cashChallanData : null;
+
+            const effectiveCustomerName = (cData && cData.customerName) || invoice.customerName || 'Customer Name';
+            const effectivePhone = (cData && cData.phoneNumber) || invoice.phoneNumber || '-';
+            const effectiveAddress = (cData && cData.billingAddress) || invoice.billingAddress || '';
+
+            // Buyer Details (Left)
+            setText('customerName', effectiveCustomerName);
+            setText('customerPhone', effectivePhone);
+            setText('customerGSTN', isCashChallan ? '-' : (invoice.gstNumber || '-'));
+            
+            document.getElementById('billingAddressFull').innerHTML = effectiveAddress ? effectiveAddress.replace(/\n/g, '<br>') : '-';
+            
+            const billLocParts = [invoice.district, invoice.state, invoice.pinCode ? `PIN: ${invoice.pinCode}` : ''].filter(Boolean);
+            setText('billingLocation', billLocParts.join(', ') || '-');
+
+            // Consignee Details (Right) - Fallback to Buyer Details if Empty
+            const shipName = isCashChallan ? effectiveCustomerName : (invoice.shipToName || invoice.customerName || 'Customer Name');
+            const shipPhone = isCashChallan ? effectivePhone : (invoice.shippingPhone || invoice.phoneNumber || '-');
+            const shipGSTN = isCashChallan ? '-' : (invoice.gstNumber || '-');
+            const shipAddr = isCashChallan ? effectiveAddress : (invoice.shippingAddress || invoice.billingAddress || '');
+            const shipDistrict = invoice.shippingDistrict || invoice.district || '';
+            const shipPin = invoice.shippingPinCode || invoice.pinCode || '';
+            
+            setText('shipToName', shipName);
+            setText('shippingPhone', shipPhone);
+            setText('shippingGSTN', shipGSTN);
+            document.getElementById('shippingAddressFull').innerHTML = shipAddr ? shipAddr.replace(/\n/g, '<br>') : '-';
+            
+            const shipLocParts = [shipDistrict, invoice.state, shipPin ? `PIN: ${shipPin}` : ''].filter(Boolean);
+            setText('shippingLocation', shipLocParts.join(', ') || '-');
+
+            // Transport / E-Way / Vehicle
+            const transportParts = [invoice.transportationName, invoice.vehicleNo].filter(Boolean);
+            setText('ewayBill', transportParts.join(' / ') || '-');
+
+            // Products Table
+            const tbody = document.getElementById('productsTableBody');
+            tbody.innerHTML = '';
+            
+            let taxableSubtotal = 0;
+            let totalQty = 0;
+            let totalSGST = 0;
+            let totalCGST = 0;
+            let activeGstRate = 0;
+
+            const productsList = (cData && Array.isArray(cData.products) && cData.products.length > 0)
+                ? cData.products
+                : ((invoice.products && Array.isArray(invoice.products) && invoice.products.length > 0) ? invoice.products : []);
+
+            if (productsList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 15px;">No products found in this invoice</td></tr>';
+            } else {
+                productsList.forEach((product, index) => {
+                    const qty = parseFloat(product.bundles || product.qty || product.quantity || 1);
+                    const unitPrice = parseFloat(product.unitPrice || product.price || product.rate) || 0;
+                    const taxableAmt = (product.taxableAmount !== undefined && product.taxableAmount !== null)
+                        ? parseFloat(product.taxableAmount)
+                        : (product.total !== undefined ? parseFloat(product.total) : (qty * unitPrice));
+
+                    const gstPercent = isCashChallan ? 0 : ((product.gstPercent !== undefined && product.gstPercent !== null && !isNaN(parseFloat(product.gstPercent)))
+                        ? parseFloat(product.gstPercent)
+                        : 0);
+
+                    if (gstPercent > 0 && !activeGstRate) {
+                        activeGstRate = gstPercent;
+                    }
+                    
+                    const sgst = (product.sgstAmount !== undefined && product.sgstAmount !== null)
+                        ? parseFloat(product.sgstAmount)
+                        : (taxableAmt * (gstPercent / 200));
+                    
+                    const cgst = (product.cgstAmount !== undefined && product.cgstAmount !== null)
+                        ? parseFloat(product.cgstAmount)
+                        : (taxableAmt * (gstPercent / 200));
+
+                    taxableSubtotal += taxableAmt;
+                    totalQty += qty;
+                    totalSGST += sgst;
+                    totalCGST += cgst;
+
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="col-si">${index + 1}</td>
+                        <td class="col-desc"><strong>${product.productName || product.name || 'N/A'}</strong></td>
+                        <td class="col-hsn">${product.hsnCode || '4901'}</td>
+                        <td class="col-gst pricing-col">${gstPercent}%</td>
+                        <td class="col-qty">${qty}</td>
+                        <td class="col-rate pricing-col">${unitPrice.toFixed(2)}</td>
+                        <td class="col-uom">NOS</td>
+                        <td class="col-amount pricing-col">${taxableAmt.toFixed(2)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Include Forwarding / Loading Charges line item if present and NOT cash challan with custom items
+            const forwarding = (!isCashChallan || !cData) ? (parseFloat(invoice.forwardingCharges) || 0) : 0;
+            if (forwarding > 0) {
+                const nextIndex = productsList.length + 1;
+                const fwdGstPercent = (invoice.forwardingGstPercent !== undefined && invoice.forwardingGstPercent !== null && !isNaN(parseFloat(invoice.forwardingGstPercent)))
+                    ? parseFloat(invoice.forwardingGstPercent)
+                    : 5;
+                const fwdSgst = forwarding * (fwdGstPercent / 200);
+                const fwdCgst = forwarding * (fwdGstPercent / 200);
+
+                taxableSubtotal += forwarding;
+                totalQty += 1;
+                totalSGST += fwdSgst;
+                totalCGST += fwdCgst;
+
+                if (!activeGstRate && fwdGstPercent > 0) {
+                    activeGstRate = fwdGstPercent;
+                }
+
+                const fwdRow = document.createElement('tr');
+                fwdRow.innerHTML = `
+                    <td class="col-si">${nextIndex}</td>
+                    <td class="col-desc"><strong>Forwarding / Courier Charges</strong></td>
+                    <td class="col-hsn">996511</td>
+                    <td class="col-gst pricing-col">${fwdGstPercent}%</td>
+                    <td class="col-qty">1</td>
+                    <td class="col-rate pricing-col">${forwarding.toFixed(2)}</td>
+                    <td class="col-uom">LS</td>
+                    <td class="col-amount pricing-col">${forwarding.toFixed(2)}</td>
+                `;
+                tbody.appendChild(fwdRow);
+            }
+
+            // Subtotal and Total Qty in Table Footer
+            setText('totalQuantityDisplay', totalQty);
+            setText('subtotalDisplay', taxableSubtotal.toFixed(2));
+            setText('taxableBase', taxableSubtotal.toFixed(2));
+
+            // Tax Breakdown Rates
+            const halfGstRate = activeGstRate > 0 ? (activeGstRate / 2).toFixed(1).replace('.0', '') : '0';
+            setText('cgstLabel', `OUT CGST @${halfGstRate}%`);
+            setText('sgstLabel', `OUT SGST @${halfGstRate}%`);
+            setText('totalCGST', totalCGST.toFixed(2));
+            setText('totalSGST', totalSGST.toFixed(2));
+
+            // Discounts
+            const discount = (!isCashChallan || !cData) ? (parseFloat(invoice.discount) || 0) : 0;
+            const discountRow = document.getElementById('discountRow');
+            if (discount > 0) {
+                discountRow.style.display = 'flex';
+                setText('discount', `-₹${discount.toFixed(2)}`);
+            } else {
+                discountRow.style.display = 'none';
+            }
+
+            // Calculations & Grand Total
+            const rawGrandTotal = taxableSubtotal + totalSGST + totalCGST - discount;
+            const roundedGrandTotal = Math.round(rawGrandTotal);
+            const roundOffDiff = roundedGrandTotal - rawGrandTotal;
+
+            setText('roundOff', (roundOffDiff >= 0 ? '+' : '') + roundOffDiff.toFixed(2));
+            setText('grandTotal', roundedGrandTotal.toFixed(2));
+
+            // Total Amount in Words & Total Tax in Words
+            const grandTotalInWords = numberToWords(roundedGrandTotal);
+            setText('amountInWords', grandTotalInWords + ' Rupees Only');
+
+            const totalTaxAmount = Math.round(totalSGST + totalCGST);
+            const taxInWords = numberToWords(totalTaxAmount);
+            setText('taxAmountInWords', taxInWords + ' Rupees Only');
+
+            const branch = invoice.branch || 'HUBBALLI';
+            const ifsc = invoice.ifscCode || 'IDFB0080281';
+            setText('branchAndIfsc', `${branch} & ${ifsc}`);
+        }
+
+        // Number to words conversion (Indian format)
+        function numberToWords(num) {
+            if (num === 0) return 'Zero';
+            
+            const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+            const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+            const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+            function convertLessThanThousand(n) {
+                if (n === 0) return '';
+                if (n < 10) return ones[n];
+                if (n < 20) return teens[n - 10];
+                if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+                return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convertLessThanThousand(n % 100) : '');
+            }
+
+            if (num < 1000) return convertLessThanThousand(num);
+            if (num < 100000) {
+                const thousands = Math.floor(num / 1000);
+                const remainder = num % 1000;
+                return convertLessThanThousand(thousands) + ' Thousand' + (remainder ? ' ' + convertLessThanThousand(remainder) : '');
+            }
+            if (num < 10000000) {
+                const lakhs = Math.floor(num / 100000);
+                const remainder = num % 100000;
+                return convertLessThanThousand(lakhs) + ' Lakh' + (remainder ? ' ' + numberToWords(remainder) : '');
+            }
+            const crores = Math.floor(num / 10000000);
+            const remainder = num % 10000000;
+            return convertLessThanThousand(crores) + ' Crore' + (remainder ? ' ' + numberToWords(remainder) : '');
+        }
+
+        function populateSampleData() {
+            // Sample data for preview matching proforma layout
+            const sampleInvoice = {
+                invoiceNumber: 'SM' + new Date().getFullYear() + '0003',
+                invoiceDate: new Date().toISOString(),
+                customerName: 'Shree Siddharoodha Book Stall',
+                phoneNumber: '9845123456',
+                gstNumber: '29ABCDE1234F1Z5',
+                district: 'Dharwad',
+                state: 'Karnataka',
+                pinCode: '580031',
+                billingAddress: 'Shop No. 12, Station Road\nOpp. Railway Station, Hubballi',
+                shipToName: 'Shree Siddharoodha Book Stall (Main Branch)',
+                shippingPhone: '9845123456',
+                shippingAddress: 'Shop No. 12, Station Road\nOpp. Railway Station, Hubballi',
+                shippingDistrict: 'Dharwad',
+                shippingPinCode: '580031',
+                transportationName: 'VRL Logistics',
+                vehicleNo: 'KA-25-EA-8899',
+                products: [
+                    {
+                        productName: 'Spiritual Book Set (Kannada Edition)',
+                        hsnCode: '49011010',
+                        unitPrice: 200,
+                        bundles: 50,
+                        gstPercent: 18,
+                        taxableAmount: 10000,
+                        sgstAmount: 900,
+                        cgstAmount: 900,
+                        total: 11800
+                    },
+                    {
+                        productName: 'Vedanta & Upanishads Study Guide',
+                        hsnCode: '49011010',
+                        unitPrice: 150,
+                        bundles: 20,
+                        gstPercent: 18,
+                        taxableAmount: 3000,
+                        sgstAmount: 270,
+                        cgstAmount: 270,
+                        total: 3540
+                    }
+                ],
+                forwardingCharges: 150,
+                forwardingGstPercent: 5,
+                discount: 0,
+                otherCharges: 0,
+                accountNumber: '10198316912',
+                ifscCode: 'IDFB0080281',
+                branch: 'HUBBALLI',
+                bankName: 'IDFC FIRST',
+                sentBy: 'Admin'
+            };
+            
+            populateInvoice(sampleInvoice);
+        }
+
+        function setDigitalSignature() {
+            const now = new Date();
+            const formatted = now.getFullYear() + "." +
+                String(now.getMonth() + 1).padStart(2, '0') + "." +
+                String(now.getDate()).padStart(2, '0') + " " +
+                String(now.getHours()).padStart(2, '0') + ":" +
+                String(now.getMinutes()).padStart(2, '0') + ":" +
+                String(now.getSeconds()).padStart(2, '0');
+
+            const el = document.getElementById("digitalDateTime");
+            if (el) {
+                el.textContent = formatted;
+            }
+        }
+
+        function renderTrackingQRCode(invoiceNumber) {
+            const qrImg = document.getElementById('trackingQrImg');
+            if (qrImg) {
+                const invNo = invoiceNumber ? encodeURIComponent(invoiceNumber) : '';
+                qrImg.src = invNo ? `/api/invoices/qr/${invNo}` : '/api/invoices/qr';
+            }
+        }
+
+        // Load data on page load
+        loadInvoiceData();
+        setDigitalSignature();
+    </script>
+</body>
+</html>

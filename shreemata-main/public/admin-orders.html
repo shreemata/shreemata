@@ -1,0 +1,3820 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Manage Orders - Shree Mata Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-hover: #1e293b;
+            --accent: #F68048;
+            --accent-hover: #e06d36;
+            --bg-page: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --border-focus: #4f46e5;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+            --shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Fallback navigation styling (dynamic nav injected by admin-navigation.js) */
+        nav {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 16px 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        nav .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav h1 {
+            color: #ffffff;
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .main-container {
+            margin-top: 110px;
+            margin-bottom: 60px;
+        }
+
+        /* Page Banner Header */
+        .page-header-band {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            background: #ffffff;
+            padding: 22px 28px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-subtle);
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .page-header-band h1 {
+            margin: 0 0 4px 0;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-header-band p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
+            background: #0f172a;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 13.5px;
+            font-weight: 600;
+            font-family: inherit;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: #1e293b;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: #0f172a;
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: #1e293b;
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            color: #ffffff;
+        }
+
+        .btn-accent:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+            border-color: #94a3b8;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: #ffffff;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            box-shadow: none;
+        }
+
+        .btn-danger:hover {
+            background: #fee2e2;
+            color: #b91c1c;
+            border-color: #fca5a5;
+        }
+
+        .btn-invoice {
+            background: #eff6ff;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+            box-shadow: none;
+        }
+
+        .btn-invoice:hover {
+            background: #dbeafe;
+            color: #1d4ed8;
+            border-color: #93c5fd;
+        }
+
+        .btn-disabled {
+            background: #f8fafc !important;
+            color: #94a3b8 !important;
+            border: 1px solid #e2e8f0 !important;
+            cursor: not-allowed !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        /* Statistics Cards Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: var(--shadow-subtle);
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-card);
+            border-color: #cbd5e1;
+        }
+
+        .stat-icon {
+            font-size: 24px;
+            width: 44px;
+            height: 44px;
+            background: #f8fafc;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+
+        .stat-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .stat-number {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-main);
+            line-height: 1.2;
+            margin-bottom: 2px;
+        }
+
+        .stat-label {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .payment-stats-grid {
+            margin-bottom: 24px;
+        }
+
+        .payment-stat-card {
+            background: #ffffff;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        /* Filter Row Container */
+        .filters-container {
+            background: #ffffff;
+            padding: 20px 24px;
+            border-radius: var(--radius-lg);
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: 2fr 1.6fr 1.2fr 1fr 1fr 1fr;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 9px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--radius-sm);
+            font-size: 13.5px;
+            font-family: inherit;
+            color: #0f172a;
+            background: #ffffff;
+            transition: all 0.2s ease;
+        }
+
+        .search-box input:focus,
+        .date-filter input:focus,
+        .status-filter select:focus,
+        .sort-filter select:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+        }
+
+        .date-filter {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .date-filter input {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-family: inherit;
+            color: #0f172a;
+            background: #ffffff;
+        }
+
+        .date-filter span {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .status-filter select,
+        .sort-filter select {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--radius-sm);
+            font-size: 13.5px;
+            font-family: inherit;
+            color: #0f172a;
+            background: #ffffff;
+            cursor: pointer;
+        }
+
+        .search-btn {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid transparent;
+            background: #0f172a;
+            color: white;
+            border-radius: var(--radius-sm);
+            font-size: 13.5px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .search-btn:hover {
+            background: #1e293b;
+        }
+
+        .clear-btn {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #cbd5e1;
+            background: #f1f5f9;
+            color: #475569;
+            border-radius: var(--radius-sm);
+            font-size: 13.5px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .clear-btn:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        /* Orders Table */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-subtle);
+            background: #ffffff;
+            margin-bottom: 24px;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13.5px;
+        }
+
+        .admin-table thead {
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .admin-table th {
+            padding: 14px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #475569;
+            white-space: nowrap;
+        }
+
+        .admin-table td {
+            padding: 13px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+            vertical-align: middle;
+        }
+
+        .admin-table tbody tr {
+            transition: background 0.15s ease;
+        }
+
+        .admin-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .admin-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            text-transform: capitalize;
+            white-space: nowrap;
+        }
+
+        .status-completed,
+        .status-delivered {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status-pending {
+            background: #fffbeb;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+
+        .status-processing,
+        .status-shipped {
+            background: #eff6ff;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        .status-failed,
+        .status-cancelled {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        /* Dispatch Status & Courier Controls */
+        .dispatch-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 145px;
+        }
+
+        .dispatch-status-select {
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            outline: none;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .dispatch-status-select.status-pending {
+            background: #fffbeb;
+            color: #92400e;
+            border-color: #fde68a;
+        }
+
+        .dispatch-status-select.status-dispatched {
+            background: #ecfdf5;
+            color: #065f46;
+            border-color: #a7f3d0;
+        }
+
+        .courier-input-wrap {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .courier-tracking-input {
+            width: 100px;
+            padding: 4px 6px;
+            font-size: 11.5px;
+            font-weight: 600;
+            border: 1px solid #10b981;
+            border-radius: 5px;
+            outline: none;
+            background: #ffffff;
+            text-transform: uppercase;
+        }
+
+        .courier-tracking-input:focus {
+            border-color: #059669;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-save-courier {
+            padding: 4px 8px;
+            background: #10b981;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-save-courier:hover {
+            background: #059669;
+        }
+
+        .no-invoice-badge {
+            display: inline-block;
+            font-size: 11.5px;
+            color: #94a3b8;
+            background: #f1f5f9;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px dashed #cbd5e1;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        /* Action Buttons Cell */
+        .table-actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            min-width: 160px;
+        }
+
+        .table-actions .btn {
+            padding: 5px 9px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
+        /* Pagination */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: #ffffff;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-subtle);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .pagination-info {
+            color: var(--text-muted);
+            font-size: 13.5px;
+            font-weight: 500;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .pagination-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            background: #ffffff;
+            color: #334155;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .pagination-btn:hover {
+            border-color: #0f172a;
+            background: #0f172a;
+            color: #ffffff;
+        }
+
+        .pagination-btn.active {
+            background: #0f172a;
+            border-color: #0f172a;
+            color: #ffffff;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #f8fafc;
+            border-color: var(--border-color);
+            color: var(--text-muted);
+        }
+
+        /* Loading and Empty State */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-muted);
+            font-size: 15px;
+            background: #ffffff;
+            border-radius: var(--radius-lg);
+            border: 1px dashed #cbd5e1;
+            margin: 20px 0;
+        }
+
+        /* Mobile Order Cards */
+        .mobile-orders {
+            display: none;
+        }
+
+        .order-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-card);
+        }
+
+        .order-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .order-card-section {
+            margin-bottom: 12px;
+        }
+
+        .order-card-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            margin-bottom: 3px;
+        }
+
+        .order-card-value {
+            font-size: 13.5px;
+            color: #1e293b;
+            line-height: 1.4;
+        }
+
+        .order-card-actions {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .export-modal {
+            max-width: 540px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: #ffffff;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-header {
+            background: #0f172a;
+            color: white;
+            padding: 18px 24px;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .close {
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+            color: white;
+            opacity: 0.8;
+            transition: opacity 0.2s ease;
+        }
+
+        .close:hover {
+            opacity: 1;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .export-options {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .export-section {
+            background: #f8fafc;
+            padding: 16px 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid #e2e8f0;
+        }
+
+        .export-section h3 {
+            margin: 0 0 12px 0;
+            color: #1e293b;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .date-range-export {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .date-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .date-input-group label {
+            font-weight: 600;
+            color: #475569;
+            font-size: 13px;
+        }
+
+        .date-input-group input {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--radius-sm);
+            font-size: 13.5px;
+        }
+
+        .status-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .export-type-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .export-type-btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 13.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #10b981;
+            color: white;
+            font-family: inherit;
+        }
+
+        .export-type-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        .export-type-btn.export-all {
+            background: #0f172a;
+        }
+
+        .export-type-btn.export-all:hover {
+            background: #1e293b;
+        }
+
+        /* Toast Notifications */
+        .toast-msg {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            background: #0f172a;
+            color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+            font-size: 13.5px;
+            font-weight: 600;
+            z-index: 9999;
+            animation: toastIn 0.3s ease;
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* =========================================================================
+           A4 GST-COMPLIANT COMMERCIAL INVOICE / RECEIPT MODAL
+           ========================================================================= */
+        .receipt-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(4px);
+            z-index: 10000;
+            overflow-y: auto;
+            padding: 25px 15px;
+            box-sizing: border-box;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .receipt-modal-inner {
+            max-width: 210mm;
+            width: 100%;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .receipt-actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e293b;
+            padding: 12px 18px;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 0;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .receipt-actions-bar .actions-title {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .receipt-actions-bar .actions-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        .receipt-actions-bar .receipt-btn {
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .receipt-btn-print {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+        }
+
+        .receipt-btn-print:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-1px);
+        }
+
+        .receipt-btn-close {
+            background: #475569;
+            color: white;
+        }
+
+        .receipt-btn-close:hover {
+            background: #334155;
+        }
+
+        /* The A4 Invoice Sheet */
+        .receipt {
+            background: white;
+            width: 210mm;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            line-height: 1.35;
+            color: #000;
+            border: 1px solid #000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-sizing: border-box;
+        }
+
+        /* Strict GST Invoice Section Borders */
+        .gst-invoice-box {
+            width: 100%;
+            background: #fff;
+            color: #000;
+            box-sizing: border-box;
+        }
+
+        /* Header 3-Column Band */
+        .gst-header-band {
+            display: flex;
+            border-bottom: 1px solid #000;
+            align-items: stretch;
+        }
+
+        .gst-header-logo-col {
+            width: 115px;
+            padding: 8px 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid #000;
+        }
+
+        .gst-header-logo-col img {
+            max-width: 85px;
+            max-height: 80px;
+            object-fit: contain;
+        }
+
+        .gst-header-center-col {
+            flex: 1;
+            padding: 6px 10px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .gst-header-title-tag {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #222;
+            margin-bottom: 1px;
+        }
+
+        .gst-header-company-name {
+            font-size: 24px;
+            font-weight: 900;
+            color: #000;
+            letter-spacing: 1px;
+            line-height: 1.1;
+            margin-bottom: 2px;
+        }
+
+        .gst-header-address {
+            font-size: 10px;
+            line-height: 1.3;
+            color: #111;
+        }
+
+        .gst-header-contacts {
+            font-size: 9.5px;
+            line-height: 1.3;
+            margin-top: 2px;
+            color: #111;
+        }
+
+        .gst-header-tax-col {
+            width: 190px;
+            padding: 6px 8px;
+            border-left: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            font-size: 10px;
+            line-height: 1.45;
+            background: #fafafa;
+        }
+
+        .gst-header-tax-col div {
+            margin-bottom: 1px;
+        }
+
+        .gst-header-tax-col strong {
+            font-size: 10.5px;
+        }
+
+        /* Meta Details Row (2-Column) */
+        .gst-meta-row {
+            display: flex;
+            border-bottom: 1px solid #000;
+            font-size: 10.5px;
+        }
+
+        .gst-meta-col-left {
+            flex: 1;
+            padding: 5px 10px;
+            border-right: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .gst-meta-col-right {
+            flex: 1;
+            padding: 5px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .gst-meta-item {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .gst-meta-item-label {
+            font-weight: 700;
+        }
+
+        /* Address Block (Buyer & Consignee Row - 2-Column) */
+        .gst-address-row {
+            display: flex;
+            border-bottom: 1px solid #000;
+        }
+
+        .gst-address-col {
+            flex: 1;
+            font-size: 10.5px;
+        }
+
+        .gst-address-col:first-child {
+            border-right: 1px solid #000;
+        }
+
+        .gst-address-header {
+            background: #f0f0f0;
+            padding: 3px 8px;
+            font-weight: 700;
+            font-size: 10.5px;
+            border-bottom: 1px solid #000;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .gst-address-content {
+            padding: 6px 8px;
+            line-height: 1.35;
+            min-height: 75px;
+        }
+
+        .gst-address-name {
+            font-weight: 700;
+            font-size: 11.5px;
+            margin-bottom: 2px;
+        }
+
+        /* Transport Row (4-Column) */
+        .gst-transport-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-bottom: 1px solid #000;
+            font-size: 9.5px;
+            background: #fafafa;
+        }
+
+        .gst-transport-col {
+            padding: 3px 6px;
+            border-right: 1px solid #000;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .gst-transport-col:last-child {
+            border-right: none;
+        }
+
+        /* Itemized Products Table */
+        .gst-items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+
+        .gst-items-table th {
+            background: #f0f0f0;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 5px 4px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 10px;
+        }
+
+        .gst-items-table th:last-child {
+            border-right: none;
+        }
+
+        .gst-items-table td {
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 5px 5px;
+            vertical-align: middle;
+        }
+
+        .gst-items-table td:last-child {
+            border-right: none;
+        }
+
+        .gst-col-si { width: 32px; text-align: center; }
+        .gst-col-desc { text-align: left; }
+        .gst-col-hsn { width: 70px; text-align: center; }
+        .gst-col-gst { width: 48px; text-align: center; }
+        .gst-col-qty { width: 50px; text-align: center; }
+        .gst-col-rate { width: 70px; text-align: right; }
+        .gst-col-uom { width: 42px; text-align: center; }
+        .gst-col-amount { width: 85px; text-align: right; }
+
+        .gst-subtotal-row {
+            background: #fafafa;
+            font-weight: 700;
+        }
+
+        .gst-subtotal-row td {
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 4px 6px;
+        }
+
+        /* Totals Section (Split Row) */
+        .gst-totals-row {
+            display: flex;
+            border-bottom: 1px solid #000;
+        }
+
+        .gst-totals-left {
+            flex: 1;
+            padding: 8px 10px;
+            border-right: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 10.5px;
+            line-height: 1.35;
+        }
+
+        .gst-words-block {
+            margin-bottom: 6px;
+        }
+
+        .gst-words-title {
+            font-weight: 700;
+            font-size: 10.5px;
+            margin-bottom: 2px;
+            text-decoration: underline;
+        }
+
+        .gst-words-text {
+            font-weight: 700;
+            font-style: italic;
+            color: #111;
+            font-size: 10.5px;
+        }
+
+        .gst-totals-right {
+            width: 290px;
+            font-size: 10.5px;
+        }
+
+        .gst-tax-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 8px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .gst-tax-row:last-child {
+            border-bottom: none;
+        }
+
+        .gst-grand-total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 8px;
+            background: #f0f0f0;
+            border-top: 2px solid #000;
+            border-bottom: 1px solid #000;
+            font-weight: 700;
+            font-size: 12.5px;
+        }
+
+        /* Terms & Bank Details (Split Row) */
+        .gst-terms-bank-row {
+            display: flex;
+            border-bottom: 1px solid #000;
+            font-size: 9.5px;
+        }
+
+        .gst-terms-col {
+            flex: 1;
+            padding: 6px 8px;
+            border-right: 1px solid #000;
+            line-height: 1.3;
+        }
+
+        .gst-terms-col strong {
+            font-size: 10px;
+            display: block;
+            margin-bottom: 3px;
+            text-decoration: underline;
+        }
+
+        .gst-terms-col ol {
+            padding-left: 14px;
+            margin: 0;
+        }
+
+        .gst-terms-col li {
+            margin-bottom: 1px;
+        }
+
+        .gst-bank-col {
+            width: 290px;
+            padding: 6px 8px;
+            line-height: 1.45;
+            background: #fafafa;
+        }
+
+        .gst-bank-col strong.gst-bank-title {
+            font-size: 10px;
+            display: block;
+            margin-bottom: 3px;
+            text-decoration: underline;
+        }
+
+        .gst-bank-detail-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1px;
+        }
+
+        /* Signatures Section (Split Row - 3 Columns) */
+        .gst-sign-row {
+            display: flex;
+            min-height: 85px;
+            font-size: 10px;
+        }
+
+        .gst-sign-left {
+            flex: 1;
+            padding: 6px 8px;
+            border-right: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .gst-sign-center {
+            width: 120px;
+            padding: 4px;
+            border-right: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: #fff;
+        }
+
+        .gst-sign-center img {
+            width: 55px !important;
+            height: 55px !important;
+            display: block;
+            margin: 0 auto 2px auto;
+        }
+
+        .gst-sign-center-caption {
+            font-size: 7.5px;
+            font-weight: 600;
+            color: #333;
+            line-height: 1.1;
+            text-align: center;
+        }
+
+        .gst-sign-right {
+            width: 220px;
+            padding: 6px 8px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            font-size: 10px;
+        }
+
+        .gst-sign-for {
+            font-weight: 700;
+            font-size: 10.5px;
+            text-align: right;
+            padding-right: 5px;
+        }
+
+        .gst-digital-sign-wrap {
+            margin: 2px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .gst-digital-tick {
+            color: #16a34a;
+            font-size: 18px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .gst-digital-caption {
+            font-size: 8px;
+            font-weight: 700;
+            color: #15803d;
+            text-align: left;
+            line-height: 1.15;
+        }
+
+        .gst-sign-auth-label {
+            font-weight: 700;
+            font-size: 10px;
+            border-top: 1px solid #000;
+            padding-top: 2px;
+            margin-top: 2px;
+        }
+
+        /* Very Bottom Page Footer Note */
+        .gst-page-bottom-note {
+            text-align: center;
+            padding: 4px 6px;
+            font-size: 8.5px;
+            color: #555;
+            border-top: 1px solid #000;
+            background: #fafafa;
+        }
+
+        /* =========================================================================
+           PRINT OPTIMIZATION (@media print)
+           ========================================================================= */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 8mm 8mm 8mm 8mm;
+            }
+            
+            html, body {
+                background: #fff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            body * {
+                visibility: hidden !important;
+            }
+
+            #receiptContainer,
+            #receiptContainer * {
+                visibility: visible !important;
+            }
+
+            #receiptContainer {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                display: block !important;
+                overflow: visible !important;
+                z-index: 99999 !important;
+            }
+
+            .receipt-modal-inner {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .receipt-actions-bar,
+            .no-print,
+            .receipt-buttons {
+                display: none !important;
+            }
+
+            .receipt {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 auto !important;
+                padding: 0 !important;
+                border: 1px solid #000 !important;
+                box-shadow: none !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+
+            .gst-items-table th,
+            .gst-subtotal-row,
+            .gst-grand-total-row,
+            .gst-header-tax-col,
+            .gst-transport-row,
+            .gst-bank-col,
+            .gst-address-header,
+            .gst-page-bottom-note {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+        }
+
+        /* Footer */
+        footer {
+            background: #ffffff;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-muted);
+            text-align: center;
+            padding: 24px 0;
+            margin-top: 40px;
+            font-size: 13.5px;
+        }
+
+        footer p {
+            margin: 0;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 1200px) {
+            .filter-row {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                margin-top: 90px;
+            }
+
+            .container {
+                padding: 0 14px;
+            }
+
+            .page-header-band {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .export-buttons {
+                flex-direction: column;
+            }
+
+            .export-buttons .btn {
+                width: 100%;
+            }
+
+            .filter-row {
+                grid-template-columns: 1fr;
+            }
+
+            .table-responsive,
+            .admin-table {
+                display: none !important;
+            }
+
+            .mobile-orders {
+                display: block !important;
+            }
+
+            .date-range-export,
+            .export-type-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Top Navigation Container (hydrated by admin-navigation.js) -->
+    <nav id="adminNavFallback">
+        <div class="container">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 32px; height: 32px; border-radius: 50%;">
+                <h1>🛒 Shree Mata Admin - Orders</h1>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span id="userName" style="color: white; font-size: 14px; font-weight: 500;">Hello, Admin</span>
+                <a href="/" id="logoutBtn" style="color: #ffffff; text-decoration: none; font-size: 13.5px; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.15);">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            <div class="main-container">
+                <!-- Page Banner Header -->
+                <div class="page-header-band">
+                    <div>
+                        <h1>🛒 Customer Orders</h1>
+                        <p>View, manage, dispatch, and track customer orders across all payment types.</p>
+                    </div>
+                    <div class="export-buttons" id="exportButtons">
+                        <a href="/admin-razorpay-reports.html" class="btn btn-secondary">
+                            💳 Razorpay Reports
+                        </a>
+                        <button id="exportFilteredBtn" class="btn btn-success">
+                            📊 Export Filtered
+                        </button>
+                        <button id="exportCustomBtn" class="btn btn-primary">
+                            📋 Custom Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalOrders">0</div>
+                            <div class="stat-label">Total Orders</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalAmount">₹0</div>
+                            <div class="stat-label">Total Paid Amount</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="pendingOrders">0</div>
+                            <div class="stat-label">Pending</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⚙️</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="processingOrders">0</div>
+                            <div class="stat-label">Processing</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🚚</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="shippedOrders">0</div>
+                            <div class="stat-label">Shipped</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="deliveredOrders">0</div>
+                            <div class="stat-label">Delivered</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Method Summary Cards -->
+                <div class="stats-grid payment-stats-grid">
+                    <div class="payment-stat-card">
+                        <div class="stat-icon" style="background: #ecfdf5; color: #065f46;">💳</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="onlinePaymentTotal">₹0</div>
+                            <div class="stat-label">Online Payments</div>
+                        </div>
+                    </div>
+                    <div class="payment-stat-card">
+                        <div class="stat-icon" style="background: #fff7ed; color: #c2410c;">🏦</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="bankPaymentTotal">₹0</div>
+                            <div class="stat-label">Bank Transfers</div>
+                        </div>
+                    </div>
+                    <div class="payment-stat-card">
+                        <div class="stat-icon" style="background: #f5f3ff; color: #6d28d9;">📝</div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="chequePaymentTotal">₹0</div>
+                            <div class="stat-label">Cheque Payments</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters and Search -->
+                <div class="filters-container">
+                    <div class="filter-row">
+                        <div class="search-box">
+                            <input type="text" id="searchInput" placeholder="🔍 Search by customer, order ID, or book..." onkeypress="handleSearchKeyPress(event)" />
+                        </div>
+                        <div class="date-filter">
+                            <input type="date" id="fromDate" title="From Date" onchange="applyFilters()" />
+                            <span>to</span>
+                            <input type="date" id="toDate" title="To Date" onchange="applyFilters()" />
+                        </div>
+                        <div class="status-filter">
+                            <select id="statusFilter" onchange="applyFilters()">
+                                <option value="">All Delivery Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="processing">Processing</option>
+                                <option value="shipped">Shipped</option>
+                                <option value="delivered">Delivered</option>
+                            </select>
+                        </div>
+                        <div class="sort-filter">
+                            <select id="sortFilter" onchange="applyFilters()">
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                            </select>
+                        </div>
+                        <div class="search-filter">
+                            <button id="searchFilterBtn" onclick="applyFilters()" class="search-btn">
+                                🔍 Search
+                            </button>
+                        </div>
+                        <div class="clear-filter">
+                            <button id="clearFiltersBtn" onclick="clearAllFilters()" class="clear-btn">
+                                🔄 Clear
+                            </button>
+                        </div>
+                    </div>
+                    <div id="searchResults" style="margin-top: 10px; font-size: 13px; display: none;"></div>
+                </div>
+
+                <div id="ordersLoading" class="loading">⏳ Loading orders and invoice dispatch statuses...</div>
+
+                <!-- Desktop Orders Table -->
+                <div class="table-responsive" id="ordersTableWrapper" style="display: none;">
+                    <table class="admin-table" id="ordersTable">
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Items</th>
+                                <th>Amount</th>
+                                <th>Payment</th>
+                                <th>Delivery Mode</th>
+                                <th>Delivery Address</th>
+                                <th>Payment Status</th>
+                                <th>Delivery Status</th>
+                                <th>Dispatch Status</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile Orders Cards -->
+                <div class="mobile-orders" id="mobileOrders"></div>
+
+                <!-- Pagination -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        <span id="paginationInfo">Showing 0-0 of 0 orders</span>
+                    </div>
+                    <div class="pagination-controls" id="paginationControls"></div>
+                </div>
+
+                <div id="ordersEmpty" class="empty-state" style="display: none;">
+                    <p>📦 No orders found matching your selected criteria.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal" style="display: none;">
+        <div class="modal-content export-modal">
+            <div class="modal-header">
+                <h2>📊 Custom Export Options</h2>
+                <span class="close" onclick="closeExportModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <div class="export-section">
+                        <h3>📅 Date Range</h3>
+                        <div class="date-range-export">
+                            <div class="date-input-group">
+                                <label for="exportFromDate">From Date:</label>
+                                <input type="date" id="exportFromDate" />
+                            </div>
+                            <div class="date-input-group">
+                                <label for="exportToDate">To Date:</label>
+                                <input type="date" id="exportToDate" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="export-section">
+                        <h3>💳 Payment Status</h3>
+                        <div class="status-checkboxes">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportPending" checked>
+                                <span>Pending Orders</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportCompleted" checked>
+                                <span>Completed Orders</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportFailed" checked>
+                                <span>Failed Orders</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="export-section">
+                        <h3>🚚 Delivery Status</h3>
+                        <div class="status-checkboxes">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportDeliveryPending" checked>
+                                <span>Pending Delivery</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportProcessing" checked>
+                                <span>Processing</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportShipped" checked>
+                                <span>Shipped</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportDelivered" checked>
+                                <span>Delivered</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="export-section">
+                        <h3>📋 Export Format</h3>
+                        <div class="export-type-buttons">
+                            <button class="export-type-btn" onclick="exportCustomData()">
+                                📊 Export Selected Data
+                            </button>
+                            <button class="export-type-btn export-all" onclick="exportAllData()">
+                                📦 Export All Orders
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receipt Modal (A4 Commercial GST Invoice) -->
+    <div id="receiptContainer" class="receipt-container">
+        <div class="receipt-modal-inner">
+            <div class="receipt-actions-bar no-print">
+                <div class="actions-title">
+                    <span>🧾 Commercial Tax Invoice (A4 GST Format)</span>
+                </div>
+                <div class="actions-btns">
+                    <button type="button" class="receipt-btn receipt-btn-print" onclick="printReceiptContent()">🖨️ Print Invoice</button>
+                    <button type="button" class="receipt-btn receipt-btn-close" onclick="closeReceipt()">❌ Close</button>
+                </div>
+            </div>
+            <div class="receipt" id="receiptContent">
+                <!-- Receipt / Invoice content will be generated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/config.js"></script>
+    <script>
+        const API = window.API_URL;
+        let allOrders = [];
+        let allInvoices = [];
+        let invoicesByOrderId = new Map();
+        let filteredOrders = [];
+        let currentPage = 1;
+        const ordersPerPage = 12;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAdminAuth();
+            loadOrders();
+
+            document.getElementById('exportFilteredBtn').addEventListener('click', exportFilteredData);
+            document.getElementById('exportCustomBtn').addEventListener('click', openExportModal);
+        });
+
+        function checkAdminAuth() {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+            if (!token || !user || user.role !== 'admin') {
+                alert('Admin access required');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            const userNameEl = document.getElementById('userName');
+            if (userNameEl) {
+                userNameEl.textContent = `Hello, ${user.name || 'Admin'}`;
+            }
+        }
+
+        async function loadOrders() {
+            const token = localStorage.getItem("token");
+
+            document.getElementById("ordersLoading").style.display = "block";
+            const tableWrapper = document.getElementById("ordersTableWrapper");
+            if (tableWrapper) tableWrapper.style.display = "none";
+            document.getElementById("ordersEmpty").style.display = "none";
+
+            try {
+                // Concurrently fetch orders and invoices
+                const [ordersRes, invoicesRes] = await Promise.allSettled([
+                    fetch(`${API}/orders/admin/all`, { headers: { "Authorization": "Bearer " + token } }),
+                    fetch(`${API}/invoices`, { headers: { "Authorization": "Bearer " + token } })
+                ]);
+
+                if (ordersRes.status === 'fulfilled' && ordersRes.value.ok) {
+                    const data = await ordersRes.value.json();
+                    allOrders = data.orders || [];
+                } else {
+                    allOrders = [];
+                }
+
+                invoicesByOrderId.clear();
+                if (invoicesRes.status === 'fulfilled' && invoicesRes.value.ok) {
+                    allInvoices = await invoicesRes.value.json();
+                    allInvoices.forEach(inv => {
+                        if (inv.orderId) {
+                            const orderIdStr = (inv.orderId._id || inv.orderId).toString();
+                            invoicesByOrderId.set(orderIdStr, inv);
+                        }
+                    });
+                } else {
+                    allInvoices = [];
+                }
+
+                filteredOrders = [...allOrders];
+                updateStatistics();
+                applyFilters();
+
+            } catch (err) {
+                console.error("Error loading orders/invoices:", err);
+                document.getElementById("ordersLoading").style.display = "none";
+                document.getElementById("ordersEmpty").style.display = "block";
+            }
+        }
+
+        function updateStatistics() {
+            const totalOrders = allOrders.length;
+            const totalAmount = allOrders
+                .filter(order => order.status === 'completed')
+                .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+            const pending = allOrders.filter(order => (order.deliveryStatus || 'pending') === 'pending').length;
+            const processing = allOrders.filter(order => (order.deliveryStatus || 'pending') === 'processing').length;
+            const shipped = allOrders.filter(order => (order.deliveryStatus || 'pending') === 'shipped').length;
+            const delivered = allOrders.filter(order => (order.deliveryStatus || 'pending') === 'delivered').length;
+
+            const completedOrders = allOrders.filter(order => order.status === 'completed');
+
+            const onlinePaymentTotal = completedOrders
+                .filter(order => !order.paymentType || order.paymentType.toLowerCase() === 'online')
+                .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+            const bankPaymentTotal = completedOrders
+                .filter(order => order.paymentType && order.paymentType.toLowerCase() === 'transfer')
+                .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+            const chequePaymentTotal = completedOrders
+                .filter(order => order.paymentType && (order.paymentType.toLowerCase() === 'check' || order.paymentType.toLowerCase() === 'cheque'))
+                .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+            document.getElementById('totalOrders').textContent = totalOrders;
+            document.getElementById('totalAmount').textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
+            document.getElementById('pendingOrders').textContent = pending;
+            document.getElementById('processingOrders').textContent = processing;
+            document.getElementById('shippedOrders').textContent = shipped;
+            document.getElementById('deliveredOrders').textContent = delivered;
+
+            document.getElementById('onlinePaymentTotal').textContent = `₹${onlinePaymentTotal.toLocaleString('en-IN')}`;
+            document.getElementById('bankPaymentTotal').textContent = `₹${bankPaymentTotal.toLocaleString('en-IN')}`;
+            document.getElementById('chequePaymentTotal').textContent = `₹${chequePaymentTotal.toLocaleString('en-IN')}`;
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
+
+            filteredOrders = allOrders.filter(order => {
+                const searchMatch = !searchTerm ||
+                    (order.user_id?.name || '').toLowerCase().includes(searchTerm) ||
+                    (order.user_id?.email || '').toLowerCase().includes(searchTerm) ||
+                    (order._id || '').toLowerCase().includes(searchTerm) ||
+                    (order.items || []).some(item => (item.title || '').toLowerCase().includes(searchTerm));
+
+                const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+                const dateMatch = (!fromDate || orderDate >= fromDate) && (!toDate || orderDate <= toDate);
+
+                const orderDeliveryStatus = order.deliveryStatus || 'pending';
+                const statusMatch = !statusFilter || orderDeliveryStatus === statusFilter;
+
+                return searchMatch && dateMatch && statusMatch;
+            });
+
+            filteredOrders.sort((a, b) => {
+                const dateA = new Date(a.createdAt);
+                const dateB = new Date(b.createdAt);
+                return sortFilter === 'oldest' ? dateA - dateB : dateB - dateA;
+            });
+
+            currentPage = 1;
+            displayOrders();
+            updatePagination();
+
+            // Search results display indicator
+            const searchResults = document.getElementById('searchResults');
+            if (searchTerm || fromDate || toDate || statusFilter) {
+                searchResults.style.display = 'block';
+                if (filteredOrders.length === 0) {
+                    searchResults.innerHTML = '<span style="color: #ef4444; font-weight: 600;">❌ No matching orders found</span>';
+                } else {
+                    searchResults.innerHTML = `<span style="color: #4f46e5; font-weight: 600;">🔍 Showing ${filteredOrders.length} matching order${filteredOrders.length !== 1 ? 's' : ''}</span>`;
+                }
+            } else {
+                searchResults.style.display = 'none';
+            }
+        }
+
+        function displayOrders() {
+            const startIndex = (currentPage - 1) * ordersPerPage;
+            const endIndex = startIndex + ordersPerPage;
+            const ordersToShow = filteredOrders.slice(startIndex, endIndex);
+
+            const tbody = document.getElementById("ordersTableBody");
+            tbody.innerHTML = "";
+            const mobileContainer = document.getElementById("mobileOrders");
+            mobileContainer.innerHTML = "";
+
+            document.getElementById("ordersLoading").style.display = "none";
+            const tableWrapper = document.getElementById("ordersTableWrapper");
+
+            if (ordersToShow.length === 0) {
+                document.getElementById("ordersEmpty").style.display = "block";
+                if (tableWrapper) tableWrapper.style.display = "none";
+                return;
+            }
+
+            if (tableWrapper) tableWrapper.style.display = "block";
+            document.getElementById("ordersEmpty").style.display = "none";
+
+            ordersToShow.forEach((order, index) => {
+                const linkedInvoice = invoicesByOrderId.get(order._id.toString());
+
+                // Render mobile card
+                createMobileOrderCard(order, linkedInvoice, mobileContainer);
+
+                // Render table row
+                const tr = document.createElement("tr");
+
+                const itemsList = (order.items || []).map(item => {
+                    const qty = item.quantity || 1;
+                    const qtyText = qty > 1 ? ` <strong style="color: #4f46e5;">(x${qty})</strong>` : '';
+                    if (item.type === 'bundle') {
+                        return `${item.title} <span style="color: #10b981; font-size: 11px; font-weight: 600;">(Bundle)</span>${qtyText}`;
+                    }
+                    return `${item.title}${qtyText}`;
+                }).join('<br>');
+
+                // Format delivery address
+                let addressText = '<span style="color: #94a3b8;">Not provided</span>';
+                if (order.deliveryAddress && order.deliveryAddress.street) {
+                    const addr = order.deliveryAddress;
+                    addressText = `
+                        <div style="font-size: 12px; line-height: 1.4;">
+                            <div>${addr.street}</div>
+                            <div style="color: #64748b;">${addr.taluk || addr.city || ''}, ${addr.district || ''}</div>
+                            <div style="color: #64748b;">${addr.state} - ${addr.pincode}</div>
+                            <div style="color: #4f46e5; font-weight: 600;">📞 ${addr.phone || ''}</div>
+                        </div>
+                    `;
+                }
+
+                const paymentStatus = order.status || 'pending';
+                const paymentStatusClass = paymentStatus === 'completed' ? 'status-completed' :
+                    paymentStatus === 'pending' ? 'status-pending' : 'status-failed';
+
+                const deliveryStatus = order.deliveryStatus || 'pending';
+                const deliveryStatusClass = deliveryStatus === 'delivered' ? 'status-delivered' :
+                    deliveryStatus === 'shipped' ? 'status-shipped' :
+                    deliveryStatus === 'processing' ? 'status-processing' : 'status-pending';
+
+                let trackingDisplay = '';
+                if (order.trackingInfo && (order.trackingInfo.trackingId || order.trackingInfo.trackingWebsite)) {
+                    const tracking = order.trackingInfo;
+                    trackingDisplay = `<br><small style="color: #2563eb; font-size: 11px; font-weight: 600;">
+                        📦 ${tracking.trackingId ? `ID: ${tracking.trackingId.substring(0, 10)}${tracking.trackingId.length > 10 ? '...' : ''}` : 'Tracking Active'}
+                    </small>`;
+                }
+
+                // Payment method badge
+                let paymentMethodText = 'Online';
+                let paymentMethodIcon = '💳';
+                let paymentMethodColor = '#4f46e5';
+
+                if (order.paymentType) {
+                    switch (order.paymentType.toLowerCase()) {
+                        case 'check':
+                        case 'cheque':
+                            paymentMethodText = 'Cheque';
+                            paymentMethodIcon = '📝';
+                            paymentMethodColor = '#d97706';
+                            break;
+                        case 'transfer':
+                            paymentMethodText = 'Bank Transfer';
+                            paymentMethodIcon = '🏦';
+                            paymentMethodColor = '#059669';
+                            break;
+                        case 'online':
+                        default:
+                            paymentMethodText = 'Online';
+                            paymentMethodIcon = '💳';
+                            paymentMethodColor = '#4f46e5';
+                            break;
+                    }
+                }
+
+                // Delivery mode badge
+                let deliveryModeText = 'Home';
+                let deliveryModeIcon = '🏠';
+                let deliveryModeColor = '#475569';
+
+                if (order.deliveryMethod) {
+                    switch (order.deliveryMethod.toLowerCase()) {
+                        case 'pickup':
+                            deliveryModeText = 'Store Pickup';
+                            deliveryModeIcon = '🏪';
+                            deliveryModeColor = '#d97706';
+                            break;
+                        case 'courier':
+                            deliveryModeText = 'Courier';
+                            deliveryModeIcon = '📦';
+                            deliveryModeColor = '#059669';
+                            break;
+                        case 'home':
+                        default:
+                            deliveryModeText = 'Home Delivery';
+                            deliveryModeIcon = '🏠';
+                            deliveryModeColor = '#475569';
+                            break;
+                    }
+                }
+
+                // Dispatch Status cell
+                let dispatchCellHtml = '';
+                if (linkedInvoice) {
+                    const invStatus = linkedInvoice.dispatchStatus || 'pending';
+                    dispatchCellHtml = `
+                        <div class="dispatch-cell">
+                            <select 
+                                class="dispatch-status-select ${invStatus === 'dispatched' ? 'status-dispatched' : 'status-pending'}" 
+                                onchange="handleOrderDispatchStatusChange('${linkedInvoice.invoiceNumber}', this.value, this)"
+                            >
+                                <option value="pending" ${invStatus === 'pending' ? 'selected' : ''}>⏳ Pending</option>
+                                <option value="dispatched" ${invStatus === 'dispatched' ? 'selected' : ''}>✅ Dispatched</option>
+                            </select>
+                            <div class="courier-input-wrap" id="courier-wrap-${linkedInvoice.invoiceNumber}" style="display: ${invStatus === 'dispatched' ? 'flex' : 'none'};">
+                                <input 
+                                    type="text" 
+                                    class="courier-tracking-input" 
+                                    id="courier-input-${linkedInvoice.invoiceNumber}" 
+                                    value="${linkedInvoice.courierNumber || ''}" 
+                                    placeholder="Courier No"
+                                    title="Courier Tracking Number"
+                                >
+                                <button 
+                                    type="button" 
+                                    class="btn-save-courier" 
+                                    onclick="saveOrderCourierNumber('${linkedInvoice.invoiceNumber}')"
+                                    title="Save Courier Number"
+                                >Save</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    dispatchCellHtml = `<span class="no-invoice-badge">No invoice yet</span>`;
+                }
+
+                // Invoice action button
+                let invoiceActionBtn = '';
+                if (linkedInvoice) {
+                    invoiceActionBtn = `
+                        <a href="/admin-invoice-print.html?id=${encodeURIComponent(linkedInvoice.invoiceNumber)}" target="_blank" class="btn btn-invoice" title="View Invoice ${linkedInvoice.invoiceNumber}">
+                            🧾 View Invoice
+                        </a>
+                    `;
+                } else {
+                    invoiceActionBtn = `
+                        <button class="btn btn-disabled" disabled title="No invoice generated yet">
+                            🧾 Invoice pending
+                        </button>
+                    `;
+                }
+
+                const serialNumber = (currentPage - 1) * ordersPerPage + index + 1;
+                tr.innerHTML = `
+                    <td><strong>${serialNumber}</strong></td>
+                    <td><small style="font-family: monospace; font-size: 11px; color: #475569;">${order._id}</small></td>
+                    <td>
+                        <strong style="color: #0f172a;">${order.user_id?.name || "Unknown"}</strong><br>
+                        <small style="color: #64748b;">${order.user_id?.email || ""}</small>
+                    </td>
+                    <td>${itemsList}</td>
+                    <td><strong style="color: #0f172a; font-size: 14px;">₹${(order.totalAmount || 0).toLocaleString('en-IN')}</strong></td>
+                    <td>
+                        <span style="color: ${paymentMethodColor}; font-weight: 600; font-size: 12.5px;">
+                            ${paymentMethodIcon} ${paymentMethodText}
+                        </span>
+                    </td>
+                    <td>
+                        <span style="color: ${deliveryModeColor}; font-weight: 600; font-size: 12.5px;">
+                            ${deliveryModeIcon} ${deliveryModeText}
+                        </span>
+                    </td>
+                    <td>${addressText}</td>
+                    <td><span class="status-badge ${paymentStatusClass}">${paymentStatus}</span></td>
+                    <td>
+                        <span class="status-badge ${deliveryStatusClass}">${deliveryStatus}</span>
+                        ${trackingDisplay}
+                    </td>
+                    <td>${dispatchCellHtml}</td>
+                    <td>
+                        <span style="font-size: 12px;">${new Date(order.createdAt).toLocaleDateString()}</span><br>
+                        <small style="color: #64748b; font-size: 11px;">${new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                    </td>
+                    <td>
+                        <div class="table-actions">
+                            <button class="btn btn-secondary" onclick="updateDelivery('${order._id}')" title="Update Delivery Status">
+                                🚚 Status
+                            </button>
+                            <button class="btn btn-secondary" style="border-color: #4f46e5; color: #4f46e5; background: #eef2ff;" onclick="openCommissionModal('${order._id}')" title="Commission & Profit Distribution">
+                                💰 ${order.commissionStatus === 'distributed' ? 'Commissions ✅' : 'Commissions ⏳'}
+                            </button>
+                            ${invoiceActionBtn}
+                            <button class="btn btn-success" onclick="printReceipt('${order._id}')" title="Print Sales Receipt">
+                                📄 Receipt
+                            </button>
+                            <button class="btn btn-danger" onclick="deleteOrder('${order._id}', '${order.user_id?.name || 'Unknown'}')" title="Delete Order">
+                                🗑️
+                            </button>
+                        </div>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function createMobileOrderCard(order, linkedInvoice, container) {
+            const itemsList = (order.items || []).map(item => {
+                const qty = item.quantity || 1;
+                const qtyText = qty > 1 ? ` (x${qty})` : '';
+                if (item.type === 'bundle') {
+                    return `${item.title} <span style="color: #10b981; font-size: 11px; font-weight: 600;">(Bundle)</span>${qtyText}`;
+                }
+                return `${item.title}${qtyText}`;
+            }).join('<br>');
+
+            const paymentStatus = order.status || 'pending';
+            const paymentStatusClass = paymentStatus === 'completed' ? 'status-completed' :
+                paymentStatus === 'pending' ? 'status-pending' : 'status-failed';
+
+            const deliveryStatus = order.deliveryStatus || 'pending';
+            const deliveryStatusClass = deliveryStatus === 'delivered' ? 'status-delivered' :
+                deliveryStatus === 'shipped' ? 'status-shipped' :
+                deliveryStatus === 'processing' ? 'status-processing' : 'status-pending';
+
+            let addressText = 'Not provided';
+            if (order.deliveryAddress && order.deliveryAddress.street) {
+                const addr = order.deliveryAddress;
+                addressText = `${addr.street}, ${addr.taluk || addr.city || ''}, ${addr.district || ''}, ${addr.state} - ${addr.pincode}<br>📞 ${addr.phone || ''}`;
+            }
+
+            // Dispatch status block for mobile
+            let dispatchMobileHtml = '';
+            if (linkedInvoice) {
+                const invStatus = linkedInvoice.dispatchStatus || 'pending';
+                dispatchMobileHtml = `
+                    <div class="order-card-section">
+                        <div class="order-card-label">📦 Dispatch Status</div>
+                        <div class="dispatch-cell" style="margin-top: 4px;">
+                            <select 
+                                class="dispatch-status-select ${invStatus === 'dispatched' ? 'status-dispatched' : 'status-pending'}" 
+                                onchange="handleOrderDispatchStatusChange('${linkedInvoice.invoiceNumber}', this.value, this)"
+                            >
+                                <option value="pending" ${invStatus === 'pending' ? 'selected' : ''}>⏳ Pending</option>
+                                <option value="dispatched" ${invStatus === 'dispatched' ? 'selected' : ''}>✅ Dispatched</option>
+                            </select>
+                            <div class="courier-input-wrap" id="courier-wrap-m-${linkedInvoice.invoiceNumber}" style="display: ${invStatus === 'dispatched' ? 'flex' : 'none'}; margin-top: 4px;">
+                                <input 
+                                    type="text" 
+                                    class="courier-tracking-input" 
+                                    id="courier-input-m-${linkedInvoice.invoiceNumber}" 
+                                    value="${linkedInvoice.courierNumber || ''}" 
+                                    placeholder="Courier No"
+                                >
+                                <button 
+                                    type="button" 
+                                    class="btn-save-courier" 
+                                    onclick="saveOrderCourierNumber('${linkedInvoice.invoiceNumber}', true)"
+                                >Save</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Invoice action button
+            let invoiceMobileBtn = '';
+            if (linkedInvoice) {
+                invoiceMobileBtn = `
+                    <a href="/admin-invoice-print.html?id=${encodeURIComponent(linkedInvoice.invoiceNumber)}" target="_blank" class="btn btn-invoice" style="width: 100%;">
+                        🧾 View Invoice (${linkedInvoice.invoiceNumber})
+                    </a>
+                `;
+            } else {
+                invoiceMobileBtn = `
+                    <button class="btn btn-disabled" disabled style="width: 100%;">
+                        🧾 Invoice pending
+                    </button>
+                `;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'order-card';
+            card.innerHTML = `
+                <div class="order-card-header">
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">ORDER ID</div>
+                        <div style="font-size: 12px; font-family: monospace; color: #4f46e5; font-weight: 600;">${order._id}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 18px; font-weight: 800; color: #0f172a;">₹${(order.totalAmount || 0).toLocaleString('en-IN')}</div>
+                        <div style="font-size: 11.5px; color: var(--text-muted);">${new Date(order.createdAt).toLocaleDateString()}</div>
+                    </div>
+                </div>
+
+                <div class="order-card-section">
+                    <div class="order-card-label">👤 Customer</div>
+                    <div class="order-card-value">
+                        <strong>${order.user_id?.name || "Unknown"}</strong><br>
+                        <span style="color: #64748b; font-size: 13px;">${order.user_id?.email || ""}</span>
+                    </div>
+                </div>
+
+                <div class="order-card-section">
+                    <div class="order-card-label">📚 Items</div>
+                    <div class="order-card-value">${itemsList}</div>
+                </div>
+
+                <div class="order-card-section">
+                    <div class="order-card-label">📍 Delivery Address</div>
+                    <div class="order-card-value" style="font-size: 12.5px;">${addressText}</div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                    <div style="flex: 1;">
+                        <div class="order-card-label">💳 Payment</div>
+                        <span class="status-badge ${paymentStatusClass}">${paymentStatus}</span>
+                    </div>
+                    <div style="flex: 1;">
+                        <div class="order-card-label">🚚 Delivery</div>
+                        <span class="status-badge ${deliveryStatusClass}">${deliveryStatus}</span>
+                    </div>
+                </div>
+
+                ${dispatchMobileHtml}
+
+                <div class="order-card-actions">
+                    <button class="btn btn-secondary" onclick="updateDelivery('${order._id}')">
+                        🚚 Update Delivery Status
+                    </button>
+                    <button class="btn btn-secondary" style="border-color: #4f46e5; color: #4f46e5; background: #eef2ff; width: 100%;" onclick="openCommissionModal('${order._id}')">
+                        💰 ${order.commissionStatus === 'distributed' ? 'Commissions (Distributed ✅)' : 'Commissions (Pending ⏳)'}
+                    </button>
+                    ${invoiceMobileBtn}
+                    <button class="btn btn-success" onclick="printReceipt('${order._id}')">
+                        📄 Print Sales Receipt
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteOrder('${order._id}', '${order.user_id?.name || 'Unknown'}')">
+                        🗑️ Delete Order
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(card);
+        }
+
+        // Handle dispatch status change for linked invoice
+        async function handleOrderDispatchStatusChange(invoiceNumber, newStatus, selectElement) {
+            const courierWrapDesktop = document.getElementById(`courier-wrap-${invoiceNumber}`);
+            const courierInputDesktop = document.getElementById(`courier-input-${invoiceNumber}`);
+            const courierWrapMobile = document.getElementById(`courier-wrap-m-${invoiceNumber}`);
+            const courierInputMobile = document.getElementById(`courier-input-m-${invoiceNumber}`);
+
+            if (newStatus === 'dispatched') {
+                if (courierWrapDesktop) courierWrapDesktop.style.display = 'flex';
+                if (courierWrapMobile) courierWrapMobile.style.display = 'flex';
+                const courierNumber = (courierInputDesktop?.value || courierInputMobile?.value || '').trim();
+                await updateOrderDispatchStatus(invoiceNumber, newStatus, selectElement, courierNumber);
+            } else {
+                if (courierWrapDesktop) courierWrapDesktop.style.display = 'none';
+                if (courierWrapMobile) courierWrapMobile.style.display = 'none';
+                await updateOrderDispatchStatus(invoiceNumber, newStatus, selectElement, '');
+            }
+        }
+
+        // Save courier number specifically
+        async function saveOrderCourierNumber(invoiceNumber, isMobile = false) {
+            const inputId = isMobile ? `courier-input-m-${invoiceNumber}` : `courier-input-${invoiceNumber}`;
+            const courierInput = document.getElementById(inputId);
+            const courierNumber = courierInput ? courierInput.value.trim() : '';
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API}/invoices/${encodeURIComponent(invoiceNumber)}/dispatch-status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ dispatchStatus: 'dispatched', courierNumber })
+                });
+
+                if (response.ok) {
+                    const inv = allInvoices.find(i => i.invoiceNumber === invoiceNumber);
+                    if (inv) {
+                        inv.dispatchStatus = 'dispatched';
+                        inv.courierNumber = courierNumber;
+                    }
+                    showToast(courierNumber ? `✅ Courier No saved: ${courierNumber}` : `✅ Dispatched status saved`);
+                } else {
+                    const err = await response.json();
+                    alert('Failed to save courier number: ' + (err.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error saving courier number:', error);
+                alert('Network error: ' + error.message);
+            }
+        }
+
+        // Update dispatch status endpoint call
+        async function updateOrderDispatchStatus(invoiceNumber, newStatus, selectElement, courierNumber) {
+            try {
+                const token = localStorage.getItem('token');
+                if (selectElement) selectElement.disabled = true;
+
+                const payload = { dispatchStatus: newStatus };
+                if (courierNumber !== undefined) {
+                    payload.courierNumber = courierNumber;
+                }
+
+                const response = await fetch(`${API}/invoices/${encodeURIComponent(invoiceNumber)}/dispatch-status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    if (selectElement) {
+                        selectElement.className = `dispatch-status-select ${newStatus === 'dispatched' ? 'status-dispatched' : 'status-pending'}`;
+                    }
+                    const inv = allInvoices.find(i => i.invoiceNumber === invoiceNumber);
+                    if (inv) {
+                        inv.dispatchStatus = newStatus;
+                        if (courierNumber !== undefined) inv.courierNumber = courierNumber;
+                    }
+                    showToast(`✅ ${invoiceNumber} marked as ${newStatus}`);
+                } else {
+                    const err = await response.json();
+                    alert('Failed to update status: ' + (err.message || 'Unknown error'));
+                    const inv = allInvoices.find(i => i.invoiceNumber === invoiceNumber);
+                    if (selectElement) {
+                        selectElement.value = inv ? inv.dispatchStatus || 'pending' : 'pending';
+                        selectElement.className = `dispatch-status-select ${(inv?.dispatchStatus || 'pending') === 'dispatched' ? 'status-dispatched' : 'status-pending'}`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating dispatch status:', error);
+                alert('Network error: ' + error.message);
+            } finally {
+                if (selectElement) selectElement.disabled = false;
+            }
+        }
+
+        // Toast notification
+        function showToast(message) {
+            let toast = document.getElementById('toastNotification');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toastNotification';
+                toast.className = 'toast-msg';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.style.display = 'block';
+            clearTimeout(toast.timeoutId);
+            toast.timeoutId = setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        function updatePagination() {
+            const totalOrders = filteredOrders.length;
+            const totalPages = Math.ceil(totalOrders / ordersPerPage);
+            const startIndex = totalOrders === 0 ? 0 : (currentPage - 1) * ordersPerPage + 1;
+            const endIndex = Math.min(currentPage * ordersPerPage, totalOrders);
+
+            document.getElementById('paginationInfo').textContent =
+                `Showing ${startIndex}-${endIndex} of ${totalOrders} orders`;
+
+            const paginationControls = document.getElementById('paginationControls');
+            paginationControls.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'pagination-btn';
+            prevBtn.textContent = '← Previous';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    displayOrders();
+                    updatePagination();
+                }
+            };
+            paginationControls.appendChild(prevBtn);
+
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = `pagination-btn ${i === currentPage ? 'active' : ''}`;
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => {
+                    currentPage = i;
+                    displayOrders();
+                    updatePagination();
+                };
+                paginationControls.appendChild(pageBtn);
+            }
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'pagination-btn';
+            nextBtn.textContent = 'Next →';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    displayOrders();
+                    updatePagination();
+                }
+            };
+            paginationControls.appendChild(nextBtn);
+        }
+
+        function handleSearchKeyPress(event) {
+            if (event.key === 'Enter') {
+                applyFilters();
+            }
+        }
+
+        function clearAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('fromDate').value = '';
+            document.getElementById('toDate').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('sortFilter').value = 'newest';
+            document.getElementById('searchResults').style.display = 'none';
+
+            currentPage = 1;
+            applyFilters();
+        }
+
+        function exportFilteredData() {
+            if (!filteredOrders || filteredOrders.length === 0) {
+                alert('No filtered orders to export');
+                return;
+            }
+
+            exportOrdersToExcel(filteredOrders, 'filtered_orders');
+        }
+
+        function openExportModal() {
+            const modal = document.getElementById('exportModal');
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            const today = new Date();
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+
+            document.getElementById('exportToDate').value = today.toISOString().split('T')[0];
+            document.getElementById('exportFromDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+        }
+
+        function closeExportModal() {
+            const modal = document.getElementById('exportModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function exportCustomData() {
+            const fromDate = document.getElementById('exportFromDate').value;
+            const toDate = document.getElementById('exportToDate').value;
+
+            const paymentStatuses = [];
+            if (document.getElementById('exportPending').checked) paymentStatuses.push('pending');
+            if (document.getElementById('exportCompleted').checked) paymentStatuses.push('completed');
+            if (document.getElementById('exportFailed').checked) paymentStatuses.push('failed');
+
+            const deliveryStatuses = [];
+            if (document.getElementById('exportDeliveryPending').checked) deliveryStatuses.push('pending');
+            if (document.getElementById('exportProcessing').checked) deliveryStatuses.push('processing');
+            if (document.getElementById('exportShipped').checked) deliveryStatuses.push('shipped');
+            if (document.getElementById('exportDelivered').checked) deliveryStatuses.push('delivered');
+
+            const customFilteredOrders = allOrders.filter(order => {
+                const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+                const dateMatch = (!fromDate || orderDate >= fromDate) && (!toDate || orderDate <= toDate);
+
+                const paymentStatus = order.status || 'pending';
+                const paymentMatch = paymentStatuses.length === 0 || paymentStatuses.includes(paymentStatus);
+
+                const deliveryStatus = order.deliveryStatus || 'pending';
+                const deliveryMatch = deliveryStatuses.length === 0 || deliveryStatuses.includes(deliveryStatus);
+
+                return dateMatch && paymentMatch && deliveryMatch;
+            });
+
+            if (customFilteredOrders.length === 0) {
+                alert('No orders match the selected criteria');
+                return;
+            }
+
+            const dateRange = fromDate && toDate ? `_${fromDate}_to_${toDate}` : '';
+            exportOrdersToExcel(customFilteredOrders, `custom_orders${dateRange}`);
+            closeExportModal();
+        }
+
+        function exportAllData() {
+            if (!allOrders || allOrders.length === 0) {
+                alert('No orders to export');
+                return;
+            }
+
+            exportOrdersToExcel(allOrders, 'all_orders');
+            closeExportModal();
+        }
+
+        function exportOrdersToExcel(orders, filename) {
+            const excelData = orders.map((order, index) => {
+                const itemsList = (order.items || []).map(item => {
+                    const qty = item.quantity || 1;
+                    const qtyText = qty > 1 ? ` (x${qty})` : '';
+                    if (item.type === 'bundle') {
+                        return `${item.title} (Bundle)${qtyText}`;
+                    }
+                    return `${item.title}${qtyText}`;
+                }).join(', ');
+
+                let deliveryAddress = 'Not provided';
+                if (order.deliveryAddress && order.deliveryAddress.street) {
+                    const addr = order.deliveryAddress;
+                    deliveryAddress = `${addr.street}, ${addr.taluk || addr.city || ''}, ${addr.district || ''}, ${addr.state} - ${addr.pincode}`;
+                }
+
+                let paymentMethod = 'Online Payment';
+                if (order.paymentType) {
+                    switch (order.paymentType.toLowerCase()) {
+                        case 'check':
+                        case 'cheque':
+                            paymentMethod = 'Cheque';
+                            break;
+                        case 'transfer':
+                            paymentMethod = 'Bank Transfer';
+                            break;
+                        case 'online':
+                        default:
+                            paymentMethod = 'Online Payment';
+                            break;
+                    }
+                }
+
+                let deliveryMode = 'Home Delivery';
+                if (order.deliveryMethod) {
+                    switch (order.deliveryMethod.toLowerCase()) {
+                        case 'pickup':
+                            deliveryMode = 'Store Pickup';
+                            break;
+                        case 'courier':
+                            deliveryMode = 'Courier Delivery';
+                            break;
+                        case 'home':
+                        default:
+                            deliveryMode = 'Home Delivery';
+                            break;
+                    }
+                }
+
+                const linkedInv = invoicesByOrderId.get(order._id.toString());
+
+                return {
+                    'S.No': index + 1,
+                    'Order ID': order._id,
+                    'Invoice No': linkedInv?.invoiceNumber || 'N/A',
+                    'Dispatch Status': linkedInv?.dispatchStatus || 'N/A',
+                    'Courier Tracking No': linkedInv?.courierNumber || '',
+                    'Customer Name': order.user_id?.name || 'Unknown',
+                    'Customer Email': order.user_id?.email || '',
+                    'Items': itemsList,
+                    'Amount (₹)': order.totalAmount,
+                    'Payment Method': paymentMethod,
+                    'Delivery Mode': deliveryMode,
+                    'Payment Status': order.status || 'pending',
+                    'Delivery Status': order.deliveryStatus || 'pending',
+                    'Delivery Address': deliveryAddress,
+                    'Phone': order.deliveryAddress?.phone || '',
+                    'Order Date': new Date(order.createdAt).toLocaleDateString(),
+                    'Order Time': new Date(order.createdAt).toLocaleTimeString(),
+                    'Payment ID': order.razorpay_payment_id || '',
+                    'Razorpay Order ID': order.razorpay_order_id || ''
+                };
+            });
+
+            const ws = XLSX.utils.json_to_sheet(excelData);
+
+            ws['!cols'] = [
+                { wch: 6 },
+                { wch: 25 },
+                { wch: 18 },
+                { wch: 15 },
+                { wch: 20 },
+                { wch: 20 },
+                { wch: 30 },
+                { wch: 40 },
+                { wch: 12 },
+                { wch: 15 },
+                { wch: 15 },
+                { wch: 15 },
+                { wch: 15 },
+                { wch: 50 },
+                { wch: 15 },
+                { wch: 15 },
+                { wch: 15 },
+                { wch: 25 },
+                { wch: 25 }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const finalFilename = `${filename}_${dateStr}.xlsx`;
+
+            XLSX.writeFile(wb, finalFilename);
+            alert(`✅ Successfully exported ${orders.length} orders to ${finalFilename}`);
+        }
+
+        function updateDelivery(orderId) {
+            const statusInput = prompt("Enter delivery status:\n1. pending\n2. processing\n3. shipped\n4. delivered\n\nEnter number (1-4):");
+            if (!statusInput) return;
+
+            const statusMap = {
+                '1': 'pending',
+                '2': 'processing',
+                '3': 'shipped',
+                '4': 'delivered'
+            };
+
+            const status = statusMap[statusInput];
+            if (!status) {
+                alert("Invalid status. Please enter 1, 2, 3, or 4");
+                return;
+            }
+
+            if (status === "shipped" || status === "delivered") {
+                showTrackingModal(orderId, status);
+            } else {
+                updateDeliveryStatus(orderId, status, null);
+            }
+        }
+
+        function showTrackingModal(orderId, deliveryStatus) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(15,23,42,0.6); z-index: 1000; display: flex;
+                align-items: center; justify-content: center; padding: 20px;
+                backdrop-filter: blur(4px);
+            `;
+
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 14px; width: 100%; max-width: 480px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+                    <h2 style="margin: 0 0 16px 0; text-align: center; color: #0f172a; font-size: 18px; font-weight: 700;">📦 Add Tracking Information</h2>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 13px;">Tracking Website URL:</label>
+                        <input type="url" id="trackingWebsite" placeholder="https://www.bluedart.com or https://www.dtdc.in" 
+                               style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 13.5px;">
+                        <small style="color: #64748b; font-size: 11.5px;">Enter the courier tracking URL</small>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 13px;">Tracking Number / AWB:</label>
+                        <input type="text" id="trackingId" placeholder="e.g., 12345678901" 
+                               style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 13.5px;">
+                        <small style="color: #64748b; font-size: 11.5px;">Enter courier consignment/docket number</small>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="submitTracking('${orderId}', '${deliveryStatus}')" 
+                                style="flex: 1; padding: 10px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer;">
+                            ✅ Save Status
+                        </button>
+                        <button onclick="closeTrackingModal()" 
+                                style="flex: 1; padding: 10px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            window.trackingModal = modal;
+        }
+
+        function submitTracking(orderId, deliveryStatus) {
+            const trackingWebsite = document.getElementById('trackingWebsite').value.trim();
+            const trackingId = document.getElementById('trackingId').value.trim();
+
+            if (trackingWebsite && !isValidUrl(trackingWebsite)) {
+                alert('Please enter a valid website URL (e.g., https://www.bluedart.com)');
+                return;
+            }
+
+            const trackingInfo = {
+                trackingWebsite: trackingWebsite || '',
+                trackingId: trackingId || '',
+                trackingUrl: trackingWebsite && trackingId ? `${trackingWebsite}?trackingId=${trackingId}` : ''
+            };
+
+            closeTrackingModal();
+            updateDeliveryStatus(orderId, deliveryStatus, trackingInfo);
+        }
+
+        function closeTrackingModal() {
+            if (window.trackingModal) {
+                document.body.removeChild(window.trackingModal);
+                window.trackingModal = null;
+            }
+        }
+
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        async function updateDeliveryStatus(orderId, deliveryStatus, trackingInfo) {
+            const token = localStorage.getItem("token");
+
+            try {
+                const res = await fetch(`${window.API_URL}/orders/admin/update-delivery/${orderId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({ deliveryStatus, trackingInfo })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    alert("✅ Delivery status updated successfully!");
+                    loadOrders();
+                } else {
+                    alert(data.error || "Error updating delivery status");
+                }
+            } catch (err) {
+                console.error("Error updating delivery status:", err);
+                alert("Error updating delivery status: " + err.message);
+            }
+        }
+
+        /* ==========================================================================
+           COMMISSION DISTRIBUTION MODAL & ACTIONS
+           ========================================================================== */
+        let currentCommissionOrder = null;
+
+        function openCommissionModal(orderId) {
+            const order = allOrders.find(o => o._id === orderId);
+            if (!order) {
+                alert('Order not found');
+                return;
+            }
+            currentCommissionOrder = order;
+
+            const existingModal = document.getElementById('commissionModalContainer');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const modal = document.createElement('div');
+            modal.id = 'commissionModalContainer';
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(15,23,42,0.65); z-index: 1050; display: flex;
+                align-items: center; justify-content: center; padding: 20px;
+                backdrop-filter: blur(4px); box-sizing: border-box;
+            `;
+
+            const isDistributed = order.commissionStatus === 'distributed';
+            const customerName = order.user_id?.name || 'Unknown Customer';
+            const customerEmail = order.user_id?.email || '';
+            const orderTotal = (order.totalAmount || 0).toLocaleString('en-IN');
+
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 14px; width: 100%; max-width: 680px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; overflow: hidden;">
+                    
+                    <!-- Header -->
+                    <div style="padding: 20px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: #0f172a;">💰 Commission Distribution</h2>
+                                <span style="font-family: monospace; font-size: 12px; background: #e2e8f0; padding: 2px 8px; border-radius: 4px; color: #334155;">#${order._id.slice(-8).toUpperCase()}</span>
+                            </div>
+                            <div style="font-size: 13px; color: #64748b; margin-top: 4px;">
+                                Customer: <strong>${customerName}</strong> (${customerEmail}) | Sale Total: <strong>₹${orderTotal}</strong>
+                            </div>
+                        </div>
+                        <button onclick="closeCommissionModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; padding: 0 4px;">✕</button>
+                    </div>
+
+                    <!-- Body -->
+                    <div style="padding: 24px; overflow-y: auto; flex: 1;">
+                        
+                        <!-- Status Banner -->
+                        <div id="modalStatusBanner" style="margin-bottom: 20px;">
+                            ${isDistributed ? `
+                                <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 14px 16px; display: flex; align-items: center; gap: 12px;">
+                                    <div style="font-size: 24px;">✅</div>
+                                    <div>
+                                        <div style="font-weight: 700; color: #065f46; font-size: 14px;">Commissions Already Distributed</div>
+                                        <div style="color: #047857; font-size: 12.5px; margin-top: 2px;">
+                                            Approved Profit: <strong>₹${(order.profitAmount || 0).toLocaleString('en-IN')}</strong>. Wallets have been credited.
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : `
+                                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 16px; display: flex; align-items: center; gap: 12px;">
+                                    <div style="font-size: 24px;">⏳</div>
+                                    <div>
+                                        <div style="font-weight: 700; color: #92400e; font-size: 14px;">Commission Distribution: Pending</div>
+                                        <div style="color: #b45309; font-size: 12.5px; margin-top: 2px;">
+                                            Enter the calculated order profit below to preview and approve distribution.
+                                        </div>
+                                    </div>
+                                </div>
+                            `}
+                        </div>
+
+                        ${!isDistributed ? `
+                            <!-- Profit Input Section -->
+                            <div id="profitInputSection" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin-bottom: 18px;">
+                                <label for="modalProfitAmount" style="display: block; font-weight: 700; font-size: 13.5px; color: #1e293b; margin-bottom: 6px;">
+                                    Order Profit (₹) *
+                                </label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input 
+                                        type="number" 
+                                        id="modalProfitAmount" 
+                                        step="0.01" 
+                                        min="0" 
+                                        value="${order.profitAmount || ''}" 
+                                        placeholder="Enter total profit e.g. 250.00"
+                                        style="flex: 1; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; font-weight: 600;"
+                                    >
+                                    <button 
+                                        type="button" 
+                                        id="btnPreviewCommissions"
+                                        class="btn btn-secondary" 
+                                        style="background: #0f172a; color: #ffffff; border: none; font-weight: 700; padding: 10px 18px;"
+                                        onclick="handlePreviewCommissions('${order._id}')"
+                                    >
+                                        🔍 Preview Commissions
+                                    </button>
+                                </div>
+                                <small style="display: block; margin-top: 6px; color: #64748b; font-size: 11.5px;">
+                                    Selling Price minus Cost Price. The 10% total commission will be calculated purely on this profit amount.
+                                </small>
+                            </div>
+                        ` : ''}
+
+                        <!-- Preview Container -->
+                        <div id="commissionPreviewContent" style="display: none;"></div>
+
+                        <!-- Action Button Wrap -->
+                        <div id="commissionActionWrap" style="display: none; margin-top: 20px;">
+                            <button 
+                                id="btnDistributeCommissions" 
+                                class="btn btn-success" 
+                                style="width: 100%; padding: 14px; font-size: 15px; font-weight: 800; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(16,185,129,0.2);"
+                                onclick="handleDistributeCommissions('${order._id}')"
+                            >
+                                ✅ Approve & Distribute Commissions
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="padding: 14px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; text-align: right;">
+                        <button class="btn btn-secondary" onclick="closeCommissionModal()" style="padding: 8px 16px; font-size: 13px;">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Auto-load preview if already distributed
+            if (isDistributed && order.profitAmount !== undefined) {
+                handlePreviewCommissions(order._id, true);
+            }
+        }
+
+        function closeCommissionModal() {
+            const modal = document.getElementById('commissionModalContainer');
+            if (modal) {
+                modal.remove();
+            }
+            currentCommissionOrder = null;
+        }
+
+        async function handlePreviewCommissions(orderId, isReadOnly = false) {
+            const profitInput = document.getElementById('modalProfitAmount');
+            const previewContainer = document.getElementById('commissionPreviewContent');
+            const actionWrap = document.getElementById('commissionActionWrap');
+            const previewBtn = document.getElementById('btnPreviewCommissions');
+
+            let profitAmount = 0;
+            if (profitInput) {
+                profitAmount = parseFloat(profitInput.value);
+                if (isNaN(profitAmount) || profitAmount < 0) {
+                    alert('Please enter a valid non-negative profit amount (e.g. 200)');
+                    if (profitInput) profitInput.focus();
+                    return;
+                }
+            } else if (currentCommissionOrder) {
+                profitAmount = currentCommissionOrder.profitAmount || 0;
+            }
+
+            if (previewBtn) {
+                previewBtn.disabled = true;
+                previewBtn.textContent = 'Calculating...';
+            }
+
+            const token = localStorage.getItem('token');
+
+            try {
+                const res = await fetch(`${API}/orders/admin/${orderId}/preview-commissions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ profitAmount })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to generate commission preview');
+                }
+
+                const preview = data.preview;
+
+                // Render Table
+                previewContainer.innerHTML = `
+                    <div style="margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #0f172a;">📊 Commission Allocation Breakdown</h4>
+                            <span style="font-size: 12px; font-weight: 700; color: #4f46e5; background: #eef2ff; padding: 3px 8px; border-radius: 4px;">
+                                Profit Basis: ₹${preview.profitAmount.toFixed(2)}
+                            </span>
+                        </div>
+
+                        <div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;">
+                                <thead>
+                                    <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569;">
+                                        <th style="padding: 10px 12px;">Recipient / Entity</th>
+                                        <th style="padding: 10px 12px;">Category</th>
+                                        <th style="padding: 10px 12px; text-align: center;">Rate</th>
+                                        <th style="padding: 10px 12px; text-align: right;">Amount (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Buyer Cashback -->
+                                    <tr style="border-bottom: 1px solid #f1f5f9; background: #ffffff;">
+                                        <td style="padding: 10px 12px;">
+                                            <strong style="color: #0f172a;">${preview.buyer.name}</strong> (Buyer)<br>
+                                            <small style="color: #64748b;">${preview.buyer.email}</small>
+                                        </td>
+                                        <td style="padding: 10px 12px;">
+                                            <span style="background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 11px;">⭐ Direct Cashback</span>
+                                        </td>
+                                        <td style="padding: 10px 12px; text-align: center;">${preview.buyer.percentage}%</td>
+                                        <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #0f172a;">₹${preview.buyer.amount.toFixed(2)}</td>
+                                    </tr>
+
+                                    <!-- Referrer -->
+                                    <tr style="border-bottom: 1px solid #f1f5f9; background: #ffffff;">
+                                        <td style="padding: 10px 12px;">
+                                            <strong style="color: #0f172a;">${preview.referrer.name}</strong><br>
+                                            <small style="color: #64748b;">${preview.referrer.destination || ''}</small>
+                                        </td>
+                                        <td style="padding: 10px 12px;">
+                                            <span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 11px;">🤝 Referral Commission</span>
+                                        </td>
+                                        <td style="padding: 10px 12px; text-align: center;">${preview.referrer.percentage}%</td>
+                                        <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #0f172a;">₹${preview.referrer.amount.toFixed(2)}</td>
+                                    </tr>
+
+                                    <!-- Admin Share -->
+                                    ${preview.adminCommission ? `
+                                    <tr style="border-bottom: 1px solid #f1f5f9; background: #ffffff;">
+                                        <td style="padding: 10px 12px;">
+                                            <strong style="color: #0f172a;">${preview.adminCommission.name}</strong><br>
+                                            <small style="color: #64748b;">${preview.adminCommission.destination || 'Master Admin Wallet'}</small>
+                                        </td>
+                                        <td style="padding: 10px 12px;">
+                                            <span style="background: #ede9fe; color: #6d28d9; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 11px;">👑 Admin Share</span>
+                                        </td>
+                                        <td style="padding: 10px 12px; text-align: center;">${preview.adminCommission.percentage}%</td>
+                                        <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #0f172a;">₹${preview.adminCommission.amount.toFixed(2)}</td>
+                                    </tr>
+                                    ` : ''}
+
+                                    <!-- Tree Commissions -->
+                                    ${(preview.treeCommissions || []).length > 0 ? preview.treeCommissions.map(tree => `
+                                        <tr style="border-bottom: 1px solid #f1f5f9; background: #ffffff;">
+                                            <td style="padding: 10px 12px;">
+                                                <strong style="color: #0f172a;">${tree.name}</strong><br>
+                                                <small style="color: #64748b;">${tree.destination || tree.email || ''}</small>
+                                            </td>
+                                            <td style="padding: 10px 12px;">
+                                                <span style="background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 11px;">🌳 Tree Level ${tree.level}</span>
+                                            </td>
+                                            <td style="padding: 10px 12px; text-align: center;">${tree.percentage}%</td>
+                                            <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #0f172a;">₹${tree.amount.toFixed(2)}</td>
+                                        </tr>
+                                    `).join('') : `
+                                        <tr style="border-bottom: 1px solid #f1f5f9; background: #fafafa;">
+                                            <td colspan="4" style="padding: 8px 12px; color: #64748b; font-style: italic; font-size: 12px;">
+                                                🌳 No tree ancestors found — 4% Tree Pool routed directly to Trust Fund
+                                            </td>
+                                        </tr>
+                                    `}
+
+                                    <!-- Trust Fund -->
+                                    <tr style="border-bottom: 1px solid #f1f5f9; background: #ffffff;">
+                                        <td style="padding: 10px 12px;">
+                                            <strong style="color: #0f172a;">Trust Fund</strong><br>
+                                            <small style="color: #64748b;">Base 1% (₹${preview.trustFund.baseAmount.toFixed(2)}) + Tree Remainder (₹${preview.trustFund.remainderAmount.toFixed(2)})</small>
+                                        </td>
+                                        <td style="padding: 10px 12px;">
+                                            <span style="background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 11px;">🛡️ Trust Fund</span>
+                                        </td>
+                                        <td style="padding: 10px 12px; text-align: center;">1% + Remainder</td>
+                                        <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #0f172a;">₹${preview.trustFund.totalTrustAmount.toFixed(2)}</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr style="background: #f8fafc; font-weight: 800; border-top: 2px solid #cbd5e1;">
+                                        <td colspan="3" style="padding: 12px; text-align: right; color: #1e293b; font-size: 13px;">
+                                            Total Commission Payout (10% of Profit):
+                                        </td>
+                                        <td style="padding: 12px; text-align: right; color: #10b981; font-size: 15px;">
+                                            ₹${preview.totalCommissionAmount.toFixed(2)}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                previewContainer.style.display = 'block';
+
+                if (!isReadOnly && actionWrap) {
+                    actionWrap.style.display = 'block';
+                }
+
+            } catch (err) {
+                console.error('Error in handlePreviewCommissions:', err);
+                alert('Failed to preview commissions: ' + err.message);
+            } finally {
+                if (previewBtn) {
+                    previewBtn.disabled = false;
+                    previewBtn.textContent = '🔍 Preview Commissions';
+                }
+            }
+        }
+
+        async function handleDistributeCommissions(orderId) {
+            const profitInput = document.getElementById('modalProfitAmount');
+            if (!profitInput) return;
+
+            const profitAmount = parseFloat(profitInput.value);
+            if (isNaN(profitAmount) || profitAmount < 0) {
+                alert('Please enter a valid profit amount');
+                return;
+            }
+
+            const totalCommission = (profitAmount * 0.10).toFixed(2);
+            const confirmMsg = `⚠️ APPROVE & DISTRIBUTE COMMISSIONS\n\n` +
+                `Order ID: ${orderId}\n` +
+                `Order Profit: ₹${profitAmount.toFixed(2)}\n` +
+                `Total Commission Payout (10%): ₹${totalCommission}\n\n` +
+                `This action will credit user wallets and cannot be undone. Proceed?`;
+
+            if (!confirm(confirmMsg)) return;
+
+            const distributeBtn = document.getElementById('btnDistributeCommissions');
+            if (distributeBtn) {
+                distributeBtn.disabled = true;
+                distributeBtn.textContent = 'Distributing Commissions...';
+            }
+
+            const token = localStorage.getItem('token');
+
+            try {
+                const res = await fetch(`${API}/orders/admin/${orderId}/distribute-commissions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ profitAmount })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to distribute commissions');
+                }
+
+                alert('✅ Commissions distributed successfully!');
+
+                // Update local order data
+                if (currentCommissionOrder) {
+                    currentCommissionOrder.commissionStatus = 'distributed';
+                    currentCommissionOrder.profitAmount = profitAmount;
+                }
+
+                const tableOrder = allOrders.find(o => o._id === orderId);
+                if (tableOrder) {
+                    tableOrder.commissionStatus = 'distributed';
+                    tableOrder.profitAmount = profitAmount;
+                }
+
+                // Update modal UI
+                const statusBanner = document.getElementById('modalStatusBanner');
+                if (statusBanner) {
+                    statusBanner.innerHTML = `
+                        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 14px 16px; display: flex; align-items: center; gap: 12px;">
+                            <div style="font-size: 24px;">✅</div>
+                            <div>
+                                <div style="font-weight: 700; color: #065f46; font-size: 14px;">Commissions Successfully Distributed</div>
+                                <div style="color: #047857; font-size: 12.5px; margin-top: 2px;">
+                                    Approved Profit: <strong>₹${profitAmount.toLocaleString('en-IN')}</strong>. Recipient wallets have been credited.
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const profitSection = document.getElementById('profitInputSection');
+                if (profitSection) profitSection.style.display = 'none';
+
+                const actionWrap = document.getElementById('commissionActionWrap');
+                if (actionWrap) actionWrap.style.display = 'none';
+
+                // Re-render table in background
+                displayOrders();
+
+            } catch (err) {
+                console.error('Error distributing commissions:', err);
+                alert('❌ Error: ' + err.message);
+                if (distributeBtn) {
+                    distributeBtn.disabled = false;
+                    distributeBtn.textContent = '✅ Approve & Distribute Commissions';
+                }
+            }
+        }
+
+        function printReceipt(orderId) {
+            const order = allOrders.find(o => o._id === orderId);
+            if (!order) {
+                alert('Order not found');
+                return;
+            }
+
+            generateReceipt(order);
+        }
+
+        // Indian Currency Number-to-Words Converter
+        function numberToWords(num) {
+            num = Math.round(Number(num) || 0);
+            if (num === 0) return 'Zero';
+            if (num < 0) return 'Minus ' + numberToWords(Math.abs(num));
+            
+            const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+            const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+            const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+            function convertLessThanThousand(n) {
+                if (n === 0) return '';
+                if (n < 10) return ones[n];
+                if (n < 20) return teens[n - 10];
+                if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+                return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convertLessThanThousand(n % 100) : '');
+            }
+
+            if (num < 1000) return convertLessThanThousand(num);
+            if (num < 100000) {
+                const thousands = Math.floor(num / 1000);
+                const remainder = num % 1000;
+                return convertLessThanThousand(thousands) + ' Thousand' + (remainder ? ' ' + convertLessThanThousand(remainder) : '');
+            }
+            if (num < 10000000) {
+                const lakhs = Math.floor(num / 100000);
+                const remainder = num % 100000;
+                return convertLessThanThousand(lakhs) + ' Lakh' + (remainder ? ' ' + numberToWords(remainder) : '');
+            }
+            const crores = Math.floor(num / 10000000);
+            const remainder = num % 10000000;
+            return convertLessThanThousand(crores) + ' Crore' + (remainder ? ' ' + numberToWords(remainder) : '');
+        }
+
+        async function generateReceipt(order) {
+            const receiptContent = document.getElementById('receiptContent');
+
+            let receiptSettings = {};
+            try {
+                const response = await fetch('/api/receipt-settings');
+                const data = await response.json();
+                if (data.success) {
+                    receiptSettings = data.settings;
+                }
+            } catch (error) {
+                console.error('Error loading receipt settings:', error);
+                receiptSettings = {
+                    companyName: 'SHREE MATA',
+                    companyTagline: 'Books & Publication',
+                    phone: '9886086278',
+                    email: 'shree.mata.hbl@gmail.com',
+                    address: 'Nekar Bhavan, Opp. K.H. Patil College, Vidyanagar, Hubballi, Karnataka - 580031',
+                    gstin: '29GZTPP0335K1ZL',
+                    website: 'www.shreemata.com'
+                };
+            }
+
+            // Calculations
+            let subtotal = 0;
+            let totalQuantity = 0;
+            let totalCGST = 0;
+            let totalSGST = 0;
+
+            const itemsRowsHtml = (order.items || []).map((item, index) => {
+                const qty = Number(item.quantity) || 1;
+                const price = Number(item.price) || 0;
+                const itemTotal = qty * price;
+                const gstPercent = Number(item.gstPercent) || 0;
+                
+                subtotal += itemTotal;
+                totalQuantity += qty;
+
+                if (gstPercent > 0) {
+                    const taxPerUnit = (itemTotal * (gstPercent / 100));
+                    totalCGST += taxPerUnit / 2;
+                    totalSGST += taxPerUnit / 2;
+                }
+
+                const bundleTag = item.type === 'bundle' 
+                    ? ' <span style="font-size: 8.5px; color: #16a34a; font-weight: bold;">(Bundle)</span>' 
+                    : '';
+
+                return `
+                    <tr>
+                        <td class="gst-col-si">${index + 1}</td>
+                        <td class="gst-col-desc">${item.title || 'Educational Book'}${bundleTag}</td>
+                        <td class="gst-col-hsn">${item.hsnCode || '4901'}</td>
+                        <td class="gst-col-gst">${gstPercent > 0 ? gstPercent + '%' : '0%'}</td>
+                        <td class="gst-col-qty">${qty}</td>
+                        <td class="gst-col-rate">₹${price.toFixed(2)}</td>
+                        <td class="gst-col-uom">NOS</td>
+                        <td class="gst-col-amount">₹${itemTotal.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const courierCharge = Number(order.courierCharge) || 0;
+            const taxableSubtotal = subtotal;
+            const rawGrandTotal = taxableSubtotal + totalCGST + totalSGST + courierCharge;
+            const roundedGrandTotal = Math.round(rawGrandTotal);
+            const roundOff = roundedGrandTotal - rawGrandTotal;
+
+            const grandTotalInWords = numberToWords(roundedGrandTotal) + ' Rupees Only';
+            const totalTaxAmount = Math.round(totalCGST + totalSGST);
+            const taxInWords = numberToWords(totalTaxAmount) + ' Rupees Only';
+
+            // Dates
+            const orderDateObj = new Date(order.createdAt || Date.now());
+            const formattedInvoiceDate = orderDateObj.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+
+            const digitalTimestamp = orderDateObj.getFullYear() + '.' +
+                String(orderDateObj.getMonth() + 1).padStart(2, '0') + '.' +
+                String(orderDateObj.getDate()).padStart(2, '0') + ' ' +
+                String(orderDateObj.getHours()).padStart(2, '0') + ':' +
+                String(orderDateObj.getMinutes()).padStart(2, '0') + ':' +
+                String(orderDateObj.getSeconds()).padStart(2, '0');
+
+            // Address Details
+            const addr = order.deliveryAddress || {};
+            const buyerName = order.user_id?.name || addr.fullName || addr.name || 'Valued Customer';
+            const consigneeName = addr.fullName || addr.name || order.user_id?.name || 'Valued Customer';
+
+            const streetAddr = addr.street || addr.homeAddress1 || 'Direct Counter Order';
+            const talukCity = addr.taluk || addr.city || '';
+            const fullAddressLine = [streetAddr, talukCity].filter(Boolean).join(', ');
+            const districtStatePin = [
+                addr.district,
+                (addr.state || 'Karnataka') + (addr.pincode ? ' - ' + addr.pincode : '')
+            ].filter(Boolean).join(', ');
+
+            const customerPhone = addr.phone || order.user_id?.phone || order.phone || '-';
+            const customerEmail = order.user_id?.email || '';
+            const invoiceNo = order.invoiceNumber || ('SM-HBL-' + (order._id ? order._id.slice(-8).toUpperCase() : '000001'));
+            const placeOfSupply = addr.state ? `29-${addr.state}` : '29-Karnataka';
+
+            const invoiceHtml = `
+                <div class="gst-invoice-box">
+                    <!-- 1. Header (3 Columns) -->
+                    <div class="gst-header-band">
+                        <div class="gst-header-logo-col">
+                            <img src="/images/shiva.png" onerror="this.src='/images/logo.png'" alt="SHREE MATA Logo">
+                        </div>
+                        <div class="gst-header-center-col">
+                            <div class="gst-header-title-tag">TAX INVOICE</div>
+                            <div class="gst-header-company-name">${receiptSettings.companyName || 'SHREE MATA'}</div>
+                            <div class="gst-header-address">
+                                ${receiptSettings.address || 'Nekar Bhavan, Opp. K.H. Patil College, Vidyanagar, Hubballi, Karnataka - 580031'}
+                            </div>
+                            <div class="gst-header-contacts">
+                                Phone: <strong>${receiptSettings.phone || '9886086278'}</strong> | Email: ${receiptSettings.email || 'shree.mata.hbl@gmail.com'} | Website: ${receiptSettings.website || 'www.shreemata.com'}
+                            </div>
+                        </div>
+                        <div class="gst-header-tax-col">
+                            <div><strong>GSTIN/UIN:</strong> ${receiptSettings.gstin || '29GZTPP0335K1ZL'}</div>
+                            <div><strong>PAN No:</strong> GZTPP0335K</div>
+                            <div><strong>State:</strong> 29-Karnataka</div>
+                            <div><strong>CIN:</strong> -</div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Meta Details Block (2 Columns) -->
+                    <div class="gst-meta-row">
+                        <div class="gst-meta-col-left">
+                            <div class="gst-meta-item">
+                                <span class="gst-meta-item-label">Invoice No:</span>
+                                <strong>${invoiceNo}</strong>
+                            </div>
+                            <div class="gst-meta-item">
+                                <span class="gst-meta-item-label">Invoice Date:</span>
+                                <span>${formattedInvoiceDate}</span>
+                            </div>
+                            <div class="gst-meta-item">
+                                <span class="gst-meta-item-label">Representative:</span>
+                                <span>${order.referredBy?.name || '-'}</span>
+                            </div>
+                        </div>
+                        <div class="gst-meta-col-right">
+                            <div class="gst-meta-item">
+                                <span class="gst-meta-item-label">Place of Supply:</span>
+                                <strong>${placeOfSupply}</strong>
+                            </div>
+                            <div class="gst-meta-item">
+                                <span class="gst-meta-item-label">Reverse Charge:</span>
+                                <span>No</span>
+                            </div>
+                            <div class="gst-meta-item">
+                                <span class="gst-meta-item-label">Payment Terms:</span>
+                                <span>Immediate / ${order.paymentType || 'Online Payment'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Address Block (Buyer & Consignee Row - 2 Columns) -->
+                    <div class="gst-address-row">
+                        <!-- Buyer (Bill to) -->
+                        <div class="gst-address-col">
+                            <div class="gst-address-header">BUYER (BILL TO)</div>
+                            <div class="gst-address-content">
+                                <div class="gst-address-name">${buyerName}</div>
+                                <div>${fullAddressLine}</div>
+                                <div>${districtStatePin}</div>
+                                <div style="margin-top: 3px;"><strong>Phone:</strong> ${customerPhone} ${customerEmail ? `| <strong>Email:</strong> ${customerEmail}` : ''}</div>
+                                <div><strong>GSTIN/UIN:</strong> -</div>
+                            </div>
+                        </div>
+
+                        <!-- Consignee (Ship to) -->
+                        <div class="gst-address-col">
+                            <div class="gst-address-header">CONSIGNEE (SHIP TO)</div>
+                            <div class="gst-address-content">
+                                <div class="gst-address-name">${consigneeName}</div>
+                                <div>${fullAddressLine}</div>
+                                <div>${districtStatePin}</div>
+                                <div style="margin-top: 3px;"><strong>Phone:</strong> ${customerPhone}</div>
+                                <div><strong>GSTIN/UIN:</strong> -</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Transport Block (1 Row, 4 Columns) -->
+                    <div class="gst-transport-row">
+                        <div class="gst-transport-col"><strong>IRN:</strong> -</div>
+                        <div class="gst-transport-col"><strong>Ack No:</strong> -</div>
+                        <div class="gst-transport-col"><strong>Ack Date:</strong> -</div>
+                        <div class="gst-transport-col"><strong>E-Way/Vehicle:</strong> <span>${order.trackingNumber || order.courierNumber || '-'}</span></div>
+                    </div>
+
+                    <!-- 5. Itemized Products Table -->
+                    <table class="gst-items-table">
+                        <thead>
+                            <tr>
+                                <th class="gst-col-si">SI No.</th>
+                                <th class="gst-col-desc">Description of Goods</th>
+                                <th class="gst-col-hsn">HSN/SAC</th>
+                                <th class="gst-col-gst">GST %</th>
+                                <th class="gst-col-qty">Quantity</th>
+                                <th class="gst-col-rate">Rate (₹)</th>
+                                <th class="gst-col-uom">UOM</th>
+                                <th class="gst-col-amount">Amount (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsRowsHtml || `
+                                <tr>
+                                    <td class="gst-col-si">1</td>
+                                    <td class="gst-col-desc">Educational Books & Study Materials</td>
+                                    <td class="gst-col-hsn">4901</td>
+                                    <td class="gst-col-gst">0%</td>
+                                    <td class="gst-col-qty">1</td>
+                                    <td class="gst-col-rate">₹${subtotal.toFixed(2)}</td>
+                                    <td class="gst-col-uom">NOS</td>
+                                    <td class="gst-col-amount">₹${subtotal.toFixed(2)}</td>
+                                </tr>
+                            `}
+                        </tbody>
+                        <tfoot>
+                            <tr class="gst-subtotal-row">
+                                <td colspan="4" style="text-align: right; padding-right: 8px;">Sub-Total:</td>
+                                <td class="gst-col-qty">${totalQuantity}</td>
+                                <td></td>
+                                <td></td>
+                                <td class="gst-col-amount">₹${subtotal.toFixed(2)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <!-- 6. Totals Section (Split Row) -->
+                    <div class="gst-totals-row">
+                        <div class="gst-totals-left">
+                            <div class="gst-words-block">
+                                <div class="gst-words-title">Total Amount (in Words):</div>
+                                <div class="gst-words-text">${grandTotalInWords}</div>
+                            </div>
+                            <div class="gst-words-block" style="margin-bottom: 0;">
+                                <div class="gst-words-title">Total Tax Amount (in Words):</div>
+                                <div class="gst-words-text">${taxInWords}</div>
+                            </div>
+                            <div style="font-size: 9px; color: #475569; margin-top: 4px;">
+                                <strong>Payment Mode:</strong> ${order.paymentType || 'Online'} | <strong>Status:</strong> ${(order.status || 'completed').toUpperCase()} ${order.razorpay_payment_id ? `| <strong>Txn ID:</strong> ${order.razorpay_payment_id}` : ''}
+                            </div>
+                        </div>
+                        <div class="gst-totals-right">
+                            <div class="gst-tax-row">
+                                <span>Taxable Amount</span>
+                                <span>₹${taxableSubtotal.toFixed(2)}</span>
+                            </div>
+                            <div class="gst-tax-row">
+                                <span>OUT CGST @${totalCGST > 0 ? '9%' : '0%'}</span>
+                                <span>₹${totalCGST.toFixed(2)}</span>
+                            </div>
+                            <div class="gst-tax-row">
+                                <span>OUT SGST @${totalSGST > 0 ? '9%' : '0%'}</span>
+                                <span>₹${totalSGST.toFixed(2)}</span>
+                            </div>
+                            ${courierCharge > 0 ? `
+                            <div class="gst-tax-row">
+                                <span>Forwarding / Courier</span>
+                                <span>₹${courierCharge.toFixed(2)}</span>
+                            </div>
+                            ` : ''}
+                            <div class="gst-tax-row">
+                                <span>Rounded Off</span>
+                                <span>${(roundOff >= 0 ? '+' : '') + roundOff.toFixed(2)}</span>
+                            </div>
+                            <div class="gst-grand-total-row">
+                                <span>Grand Total</span>
+                                <span>₹${roundedGrandTotal.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7. Terms & Bank Details (Split Row) -->
+                    <div class="gst-terms-bank-row">
+                        <div class="gst-terms-col">
+                            <strong>Terms & Conditions:</strong>
+                            <ol>
+                                <li>Goods once sold will not be taken back, until and unless approved by the manufacturer.</li>
+                                <li><strong>Shree Mata</strong> is not responsible for the performance and warranty of products. Warranty if any, is provided only by the manufacturer.</li>
+                                <li>Physically damaged, tampered or water-logged items do not qualify for any warranty.</li>
+                                <li>Jurisdiction for any dispute will be exclusively in Hubballi, Karnataka.</li>
+                            </ol>
+                        </div>
+                        <div class="gst-bank-col">
+                            <strong class="gst-bank-title">Company's Bank Details:</strong>
+                            <div class="gst-bank-detail-line">
+                                <span>A/c Holder:</span>
+                                <strong>Shree Mata</strong>
+                            </div>
+                            <div class="gst-bank-detail-line">
+                                <span>Bank:</span>
+                                <span>IDFC FIRST</span>
+                            </div>
+                            <div class="gst-bank-detail-line">
+                                <span>A/c No:</span>
+                                <strong>10198316912</strong>
+                            </div>
+                            <div class="gst-bank-detail-line">
+                                <span>Branch & IFSC:</span>
+                                <span>HUBBALLI & IDFB0080281</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 8. Signatures Block (Split Row - 3 Columns) -->
+                    <div class="gst-sign-row">
+                        <div class="gst-sign-left">
+                            <div>Received the goods in Good condition</div>
+                            <div style="border-top: 1px dashed #666; padding-top: 2px; font-size: 9px; margin-top: 20px;">
+                                Receiver's Seal, Signature, Date & Time
+                            </div>
+                        </div>
+                        <div class="gst-sign-center">
+                            <img src="/api/invoices/qr/${order._id}" onerror="this.src='/api/invoices/qr'" alt="QR Code">
+                            <div class="gst-sign-center-caption">Scan to verify / track</div>
+                        </div>
+                        <div class="gst-sign-right">
+                            <div class="gst-sign-for">For SHREE MATA</div>
+                            <div class="gst-digital-sign-wrap">
+                                <span class="gst-digital-tick">✔</span>
+                                <div class="gst-digital-caption">
+                                    Digitally signed by SHREE MATA<br>
+                                    <span style="font-weight: normal; font-size: 7.5px; color: #475569;">${digitalTimestamp}</span>
+                                </div>
+                            </div>
+                            <div class="gst-sign-auth-label">Authorised Signatory</div>
+                        </div>
+                    </div>
+
+                    <!-- 9. Very Bottom Footer Note -->
+                    <div class="gst-page-bottom-note">
+                        This is a Computer Generated Document | Page 1 of 1
+                    </div>
+                </div>
+            `;
+
+            receiptContent.innerHTML = invoiceHtml;
+            document.getElementById('receiptContainer').style.display = 'flex';
+        }
+
+        function printReceiptContent() {
+            window.print();
+        }
+
+        function closeReceipt() {
+            document.getElementById('receiptContainer').style.display = 'none';
+        }
+
+        document.getElementById('receiptContainer').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeReceipt();
+            }
+        });
+
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+        });
+
+        async function deleteOrder(orderId, customerName) {
+            const confirmMessage = `⚠️ Are you sure you want to delete this order?\n\n` +
+                `Order ID: ${orderId}\n` +
+                `Customer: ${customerName}\n\n` +
+                `This action cannot be undone!`;
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            const token = localStorage.getItem("token");
+
+            try {
+                const res = await fetch(`${API}/orders/admin/delete/${orderId}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    alert("✅ Order deleted successfully!");
+                    loadOrders();
+                } else {
+                    alert("❌ Error deleting order: " + (data.error || "Unknown error"));
+                }
+            } catch (err) {
+                console.error("Delete order error:", err);
+                alert("❌ Error deleting order: " + err.message);
+            }
+        }
+
+        window.onclick = function (event) {
+            const exportModal = document.getElementById('exportModal');
+            if (event.target === exportModal) {
+                closeExportModal();
+            }
+        };
+    </script>
+    <script src="js/admin-navigation.js"></script>
+</body>
+
+</html>

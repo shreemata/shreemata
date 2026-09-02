@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Referral Tree - Dynamic View</title>
+
+<style>
+/* =========================================
+   MODERN BASE & ANIMATIONS
+   ========================================= */
+:root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --secondary: #ec4899;
+    --bg-color: #f8fafc;
+    --card-bg: #ffffff;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --line-color: #cbd5e1;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-glow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+}
+
+body {
+    background: var(--bg-color);
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.05) 0px, transparent 50%);
+    background-attachment: fixed;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    margin: 0;
+    color: var(--text-main);
+}
+
+/* Smooth fade-in for the whole page */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+    animation: fadeIn 0.6s ease-out;
+}
+
+.tree-card {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(255,255,255,0.5);
+    backdrop-filter: blur(10px);
+}
+
+/* =========================================
+   HEADER & CONTROLS
+   ========================================= */
+.tree-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #f1f5f9;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.tree-header h2 {
+    color: var(--text-main);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.tree-header h2::before {
+    content: '🌳';
+    font-size: 28px;
+}
+
+.tree-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.tree-search {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    width: 220px;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    background: #f8fafc;
+}
+
+.tree-search:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    background: white;
+    width: 260px;
+}
+
+.btn-primary, .btn-secondary, .btn-icon {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-primary {
+    background: white;
+    color: var(--text-main);
+    border: 1px solid #e2e8f0;
+}
+.btn-primary:hover {
+    background: #f1f5f9;
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+}
+
+.btn-icon {
+    padding: 10px;
+    background: #f1f5f9;
+    color: var(--text-muted);
+    border: 1px solid #e2e8f0;
+}
+.btn-icon:hover {
+    background: #e2e8f0;
+    color: var(--text-main);
+}
+
+/* =========================================
+   TREE VIEWPORT (Zoom & Pan)
+   ========================================= */
+.tree-viewport {
+    width: 100%;
+    overflow: auto;
+    padding: 40px 20px;
+    background: #fafbfc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    position: relative;
+    min-height: 400px;
+    /* Custom Scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+.tree-viewport::-webkit-scrollbar { height: 8px; width: 8px; }
+.tree-viewport::-webkit-scrollbar-track { background: transparent; }
+.tree-viewport::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+
+#treeWrap {
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: top center;
+    display: inline-block;
+    min-width: 100%;
+    text-align: center;
+}
+
+/* =========================================
+   TREE NODES & CONNECTORS
+   ========================================= */
+.tree-level {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    padding-top: 25px;
+}
+
+/* Vertical line from parent */
+.tree-level > .tree-node::before {
+    content: "";
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    width: 2px;
+    height: 25px;
+    background: linear-gradient(to bottom, var(--line-color), #94a3b8);
+    transform: translateX(-50%);
+}
+.tree-level:first-child > .tree-node::before { display: none; }
+
+.tree-children {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    position: relative;
+    padding-top: 25px;
+}
+
+/* Horizontal connector line */
+.tree-children::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    right: 50%;
+    height: 2px;
+    background: #94a3b8;
+    transition: all 0.3s ease;
+}
+
+/* Fix horizontal line for multiple children */
+.tree-children > .tree-level:first-child::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    right: 0;
+    height: 2px;
+    background: #94a3b8;
+    border-top-right-radius: 8px;
+}
+.tree-children > .tree-level:last-child::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 50%;
+    height: 2px;
+    background: #94a3b8;
+    border-top-left-radius: 8px;
+}
+.tree-children > .tree-level:only-child::before {
+    display: none;
+}
+
+/* Node Card Styling */
+.tree-node {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 16px 20px;
+    border-radius: 12px;
+    min-width: 160px;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: default;
+    z-index: 2;
+}
+
+.tree-node:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary);
+}
+
+/* Search Highlight Effect */
+.tree-node.highlighted {
+    border-color: var(--secondary);
+    box-shadow: var(--shadow-glow);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(236, 72, 153, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
+}
+
+/* Avatar */
+.node-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    margin: 0 auto 10px auto;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.tree-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-main);
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tree-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.tree-meta strong {
+    color: var(--primary-dark);
+}
+
+/* Collapse/Expand Toggle */
+.tree-toggle {
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 24px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+    z-index: 3;
+    border: 2px solid white;
+}
+.tree-toggle:hover {
+    background: var(--primary-dark);
+    transform: translateX(-50%) scale(1.1);
+}
+
+/* Collapsed State */
+.tree-children.hidden {
+    display: none;
+}
+.tree-level.collapsed > .tree-node::after {
+    /* Optional: visual indicator that it's collapsed */
+}
+
+/* Entrance Animation for Nodes */
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.8) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.tree-node {
+    animation: fadeInScale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+/* Loading & Empty States */
+.loading-container {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-muted);
+}
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e2e8f0;
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 15px auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+.empty-state-icon { font-size: 48px; margin-bottom: 15px; opacity: 0.5; }
+
+/* Print Styles */
+@media print {
+    .tree-controls, .tree-toggle { display: none !important; }
+    .tree-viewport { overflow: visible; border: none; }
+    .tree-card { box-shadow: none; border: 1px solid #ccc; }
+    body { background: white; }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .tree-header { flex-direction: column; align-items: stretch; }
+    .tree-controls { justify-content: stretch; }
+    .tree-search { width: 100%; }
+    .tree-search:focus { width: 100%; }
+    .btn-primary, .btn-secondary { flex: 1; justify-content: center; }
+    .tree-children { gap: 15px; }
+    .tree-node { min-width: 130px; padding: 12px; }
+    .node-avatar { width: 40px; height: 40px; font-size: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="tree-card">
+        <div class="tree-header">
+            <h2>Referral Network</h2>
+            <div class="tree-controls">
+                <input id="searchInput" class="tree-search" placeholder="🔍 Search by name..." autocomplete="off">
+                <button id="zoomOutBtn" class="btn-icon" title="Zoom Out">−</button>
+                <button id="zoomResetBtn" class="btn-icon" title="Reset Zoom">⟲</button>
+                <button id="zoomInBtn" class="btn-icon" title="Zoom In">+</button>
+                <button id="refreshBtn" class="btn-primary">🔄 Refresh</button>
+                <button id="exportBtn" class="btn-secondary">🖨️ Export / Print</button>
+            </div>
+        </div>
+
+        <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">
+            💡 <strong>Tip:</strong> Click the <strong>−</strong> or <strong>+</strong> button on any node to collapse or expand branches. Use zoom controls for large networks.
+        </p>
+
+        <div class="tree-viewport" id="treeViewport">
+            <div id="loading" class="loading-container">
+                <div class="spinner"></div>
+                <p>Loading your referral network…</p>
+            </div>
+            <div id="treeWrap"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const API = (typeof API_URL !== 'undefined') ? API_URL : '';
+
+// State management
+let currentScale = 1;
+let treeData = null;
+
+document.getElementById('refreshBtn').addEventListener('click', loadTree);
+document.getElementById('exportBtn').addEventListener('click', () => window.print());
+
+// Zoom Controls
+document.getElementById('zoomInBtn').addEventListener('click', () => adjustZoom(0.1));
+document.getElementById('zoomOutBtn').addEventListener('click', () => adjustZoom(-0.1));
+document.getElementById('zoomResetBtn').addEventListener('click', () => {
+    currentScale = 1;
+    applyZoom();
+});
+
+function adjustZoom(delta) {
+    currentScale = Math.max(0.3, Math.min(2.0, currentScale + delta));
+    applyZoom();
+}
+
+function applyZoom() {
+    const wrap = document.getElementById('treeWrap');
+    wrap.style.transform = `scale(${currentScale})`;
+}
+
+// Search Functionality
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => handleSearch(e.target.value.trim()), 300);
+});
+
+function handleSearch(query) {
+    // Clear previous highlights
+    document.querySelectorAll('.tree-node').forEach(node => node.classList.remove('highlighted'));
+    document.querySelectorAll('.tree-children').forEach(children => children.classList.remove('hidden'));
+    document.querySelectorAll('.tree-toggle').forEach(toggle => toggle.textContent = '−');
+
+    if (!query) return;
+
+    const nodes = document.querySelectorAll('.tree-node');
+    let found = false;
+
+    nodes.forEach(node => {
+        const name = node.querySelector('.tree-name').textContent.toLowerCase();
+        if (name.includes(query.toLowerCase())) {
+            node.classList.add('highlighted');
+            
+            // Auto-expand parents
+            let parent = node.parentElement;
+            while (parent) {
+                if (parent.classList.contains('tree-children')) {
+                    parent.classList.remove('hidden');
+                    const toggle = parent.previousElementSibling?.querySelector('.tree-toggle');
+                    if (toggle) toggle.textContent = '−';
+                }
+                parent = parent.parentElement;
+            }
+            found = true;
+            
+            // Scroll to first match
+            if (!document.querySelector('.tree-node.highlighted.scrolled')) {
+                node.classList.add('scrolled');
+                node.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+        }
+    });
+
+    if (!found) {
+        console.log('No matches found');
+    }
+}
+
+async function loadTree() {
+    const wrap = document.getElementById('treeWrap');
+    const loading = document.getElementById('loading');
+    
+    wrap.innerHTML = '';
+    loading.style.display = 'block';
+    document.getElementById('searchInput').value = '';
+
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = "/login.html";
+            return;
+        }
+
+        const res = await fetch(API + "/api/referral/tree", {
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        treeData = data;
+
+        loading.style.display = 'none';
+
+        if (!data || !data.root) {
+            wrap.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🌱</div>
+                    <h3>No referral records found</h3>
+                    <p>Start sharing your referral link to grow your network!</p>
+                </div>
+            `;
+            return;
+        }
+
+        const tree = buildTree(data.root, data.children || [], 0);
+        wrap.appendChild(tree);
+        
+        // Reset zoom on new load
+        currentScale = 1;
+        applyZoom();
+
+    } catch (err) {
+        console.error(err);
+        loading.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">⚠️</div>
+                <h3>Error loading tree</h3>
+                <p>Please check your connection and try again.</p>
+                <button onclick="loadTree()" class="btn-secondary" style="margin-top:15px;">Retry</button>
+            </div>
+        `;
+    }
+}
+
+function buildTree(root, children, depth) {
+    const container = document.createElement("div");
+    container.className = "tree-level";
+
+    // Create Node
+    const node = createUserNode(root, children && children.length > 0);
+    // Staggered animation delay based on depth
+    node.style.animationDelay = `${depth * 0.1}s`;
+    
+    container.appendChild(node);
+
+    if (!children || children.length === 0) {
+        return container;
+    }
+
+    const childWrap = document.createElement("div");
+    childWrap.className = "tree-children";
+
+    children.forEach((c, index) => {
+        const childTree = buildTree(c, c.children || [], depth + 1);
+        // Stagger children slightly
+        childTree.style.animationDelay = `${(depth + 1) * 0.1 + (index * 0.05)}s`;
+        childWrap.appendChild(childTree);
+    });
+
+    container.appendChild(childWrap);
+    return container;
+}
+
+function createUserNode(user, hasChildren) {
+    const node = document.createElement("div");
+    node.className = "tree-node";
+    
+    // Generate initials for avatar
+    const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '?';
+    
+    // Random pleasant color for avatar based on name length
+    const hue = (user.name ? user.name.length : 0) * 20 % 360;
+    
+    node.innerHTML = `
+        <div class="node-avatar" style="background: linear-gradient(135deg, hsl(${hue}, 70%, 60%), hsl(${hue}, 70%, 45%))">
+            ${initials}
+        </div>
+        <div class="tree-name" title="${escapeHtml(user.name)}">${escapeHtml(user.name)}</div>
+        <div class="tree-meta">💰 Wallet: <strong>₹${Number(user.wallet || 0).toFixed(2)}</strong></div>
+        <div class="tree-meta">👥 <strong>${user.referrals || 0}</strong> referrals</div>
+    `;
+
+    if (hasChildren) {
+        const toggle = document.createElement("div");
+        toggle.className = "tree-toggle";
+        toggle.innerHTML = "−";
+        toggle.title = "Collapse/Expand";
+        
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const childWrap = node.parentElement.querySelector('.tree-children');
+            if (childWrap) {
+                childWrap.classList.toggle('hidden');
+                toggle.innerHTML = childWrap.classList.contains('hidden') ? "+" : "−";
+                
+                // Smooth scroll adjustment if needed
+                if (!childWrap.classList.contains('hidden')) {
+                    setTimeout(() => {
+                        node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 300);
+                }
+            }
+        });
+        
+        node.appendChild(toggle);
+    }
+
+    return node;
+}
+
+function escapeHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+}
+
+// Initial Load
+loadTree();
+</script>
+
+</body>
+</html>

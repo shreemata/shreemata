@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Approvals - Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            margin-top: 80px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .pending-orders {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .section-header h2 {
+            margin: 0;
+            color: #333;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .order-card {
+            border-bottom: 1px solid #e9ecef;
+            padding: 25px 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .order-card:hover {
+            background: #f8f9fa;
+        }
+        
+        .order-card:last-child {
+            border-bottom: none;
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+        
+        .order-info {
+            flex: 1;
+        }
+        
+        .order-id {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .order-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .meta-icon {
+            font-size: 16px;
+            color: #667eea;
+        }
+        
+        .order-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: #28a745;
+            text-align: right;
+        }
+        
+        .check-details {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .check-details h4 {
+            margin: 0 0 15px 0;
+            color: #17a2b8;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .check-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .check-field {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .check-field:last-child {
+            border-bottom: none;
+        }
+        
+        .field-label {
+            font-weight: 500;
+            color: #666;
+        }
+        
+        .field-value {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .google-form-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            margin: 10px 0;
+        }
+        
+        .google-form-link:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .uploaded-images {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .uploaded-images h5 {
+            margin: 0 0 15px 0;
+            color: #17a2b8;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .image-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn-view-image {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-view-image:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-drive-link {
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-drive-link:hover {
+            background: #218838;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .image-item {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .image-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        
+        .image-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .image-item img:hover {
+            transform: scale(1.05);
+        }
+        
+        .image-item p {
+            margin: 8px 0 4px 0;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .view-drive-link {
+            display: inline-block;
+            font-size: 12px;
+            color: #667eea;
+            text-decoration: none;
+            padding: 4px 8px;
+            border: 1px solid #667eea;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        
+        .view-drive-link:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            cursor: pointer;
+        }
+        
+        .image-modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .image-modal img {
+            width: 100%;
+            height: auto;
+            max-height: 70vh;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        
+        .image-modal-title {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .image-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .image-modal-close:hover {
+            background: #c82333;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-approve {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-approve:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+        
+        .btn-reject {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-reject:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+        
+        .btn-view {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .btn-view:hover {
+            background: #138496;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 30px;
+            color: #666;
+        }
+        
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .empty-state h3 {
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .empty-state p {
+            margin: 0;
+            font-size: 16px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .modal h3 {
+            margin: 0 0 20px 0;
+            color: #333;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        .form-response-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .form-response-table th,
+        .form-response-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .form-response-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            width: 30%;
+        }
+        
+        .form-response-table td {
+            color: #666;
+            word-break: break-word;
+        }
+        
+        .form-response-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .response-header {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .response-header h4 {
+            margin: 0 0 8px 0;
+            color: #1976d2;
+            font-size: 16px;
+        }
+        
+        .response-header p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-cancel:hover {
+            background: #5a6268;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin-top: 60px;
+            }
+            
+            .order-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .order-amount {
+                text-align: left;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Payment Approvals</h1>
+            <p>Review and approve check payments and bank transfers from customers</p>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="pendingCount">0</div>
+                <div class="stat-label">Pending Approvals</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="todayCount">0</div>
+                <div class="stat-label">Today's Submissions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalAmount">₹0</div>
+                <div class="stat-label">Total Pending Amount</div>
+            </div>
+        </div>
+        
+        <div class="pending-orders">
+            <div class="section-header">
+                <h2>Pending Payment Approvals</h2>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Loading check payment requests...</p>
+            </div>
+            
+            <div id="ordersContainer">
+                <!-- Orders will be loaded here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Approval Modal -->
+    <div class="modal" id="approvalModal">
+        <div class="modal-content">
+            <h3>✅ Approve Check Payment</h3>
+            <div class="form-group">
+                <label for="approvalNotes">Approval Notes (Optional)</label>
+                <textarea id="approvalNotes" placeholder="Add any notes about this approval..."></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-approve" onclick="confirmApproval()">Approve Payment</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Rejection Modal -->
+    <div class="modal" id="rejectionModal">
+        <div class="modal-content">
+            <h3>❌ Reject Check Payment</h3>
+            <div class="form-group">
+                <label for="rejectionReason">Rejection Reason (Required)</label>
+                <textarea id="rejectionReason" placeholder="Please provide a reason for rejection..." required></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-reject" onclick="confirmRejection()">Reject Payment</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Form Response Modal -->
+    <div class="modal" id="formResponseModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <h3>📋 Form Submission Details</h3>
+            <div id="formResponseContent">
+                <!-- Form response details will be loaded here -->
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="closeFormResponseModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Modal -->
+    <div class="image-modal" id="imageModal" onclick="closeImageModal()">
+        <div class="image-modal-content" onclick="event.stopPropagation()">
+            <button class="image-modal-close" onclick="closeImageModal()">×</button>
+            <div class="image-modal-title" id="imageModalTitle">Image</div>
+            <img id="imageModalImg" src="" alt="Payment Document">
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/admin-navigation.js"></script>
+    <script>
+        // Initialize admin navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            initAdminNavigation('cheque-payments');
+            loadPendingCheckPayments();
+        });
+        
+        let currentOrderId = null;
+        
+        async function loadPendingCheckPayments() {
+            const loading = document.getElementById('loading');
+            const container = document.getElementById('ordersContainer');
+            
+            loading.style.display = 'block';
+            container.innerHTML = '';
+            
+            try {
+                const token = localStorage.getItem('token');
+                console.log('🔍 Debug: Token exists:', !!token);
+                
+                if (!token) {
+                    console.log('❌ No token found, redirecting to login');
+                    window.location.href = '/admin-login.html';
+                    return;
+                }
+                
+                console.log('🔍 Debug: Making API call to:', `${window.API_URL}/orders/cheque-payments/pending`);
+                
+                const response = await fetch(`${window.API_URL}/orders/cheque-payments/pending`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('🔍 Debug: Response status:', response.status);
+                console.log('🔍 Debug: Response ok:', response.ok);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ API Error:', response.status, errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Debug: API Response:', data);
+                
+                displayCheckPayments(data.orders);
+                updateStats(data.stats);
+                
+            } catch (error) {
+                console.error('❌ Error loading check payments:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">❌</div>
+                        <h3>Error Loading Data</h3>
+                        <p>Unable to load check payment requests.</p>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <button onclick="loadPendingCheckPayments()" class="btn btn-approve" style="margin-top: 15px;">
+                            🔄 Try Again
+                        </button>
+                    </div>
+                `;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        function displayCheckPayments(orders) {
+            const container = document.getElementById('ordersContainer');
+            
+            // Store orders globally for modal access
+            window.currentOrders = orders;
+            
+            console.log('🔍 Admin Panel Debug - Received orders:', orders);
+            
+            if (!orders || orders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📋</div>
+                        <h3>No Pending Approvals</h3>
+                        <p>All check payments have been processed.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Debug each order's payment details
+            orders.forEach((order, index) => {
+                console.log(`🔍 Order ${index + 1} (${order._id}) payment details:`, order.paymentDetails);
+                console.log(`   - checkImageUrl: ${order.paymentDetails?.checkImageUrl}`);
+                console.log(`   - checkImageDriveId: ${order.paymentDetails?.checkImageDriveId}`);
+                console.log(`   - driveFileIds: ${JSON.stringify(order.paymentDetails?.driveFileIds)}`);
+                
+                // Check for duplicate file IDs
+                const allFileIds = [];
+                if (order.paymentDetails?.checkImageDriveId) {
+                    allFileIds.push(order.paymentDetails.checkImageDriveId);
+                }
+                if (order.paymentDetails?.driveFileIds) {
+                    allFileIds.push(...order.paymentDetails.driveFileIds);
+                }
+                const uniqueFileIds = [...new Set(allFileIds)];
+                console.log(`   - All file IDs: ${JSON.stringify(allFileIds)}`);
+                console.log(`   - Unique file IDs: ${JSON.stringify(uniqueFileIds)}`);
+                console.log(`   - Has duplicates: ${allFileIds.length !== uniqueFileIds.length}`);
+                
+                const hasImages = order.paymentDetails?.checkImageUrl || order.paymentDetails?.checkImageDriveId;
+                console.log(`   - hasImages condition: ${hasImages}`);
+            });
+            
+            container.innerHTML = orders.map(order => {
+                // Get unique file IDs to avoid duplicates
+                const allFileIds = [];
+                if (order.paymentDetails?.checkImageDriveId) {
+                    allFileIds.push(order.paymentDetails.checkImageDriveId);
+                }
+                if (order.paymentDetails?.driveFileIds) {
+                    allFileIds.push(...order.paymentDetails.driveFileIds);
+                }
+                const uniqueFileIds = [...new Set(allFileIds)];
+                
+                return `
+                <div class="order-card">
+                    <div class="order-header">
+                        <div class="order-info">
+                            <div class="order-id">Order #${order._id}</div>
+                            <div class="order-meta">
+                                <div class="meta-item">
+                                    <span class="meta-icon">👤</span>
+                                    <span>${order.user?.name || 'Unknown'} (${order.user?.email || 'No email'})</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-icon">📅</span>
+                                    <span>${new Date(order.createdAt).toLocaleDateString()}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-icon">📦</span>
+                                    <span>${order.items?.length || 0} items</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-icon">⏰</span>
+                                    <span>${new Date(order.paymentDetails?.updatedAt || order.createdAt).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="order-amount">₹${order.totalAmount?.toFixed(2) || '0.00'}</div>
+                    </div>
+                    
+                    ${order.paymentDetails ? `
+                        <div class="check-details">
+                            <h4>💳 ${order.paymentType === 'transfer' ? 'Bank Transfer' : 'Check Payment'} Details</h4>
+                            <div class="check-info">
+                                ${order.paymentType === 'transfer' && order.paymentDetails.utrNumber ? `
+                                    <div class="check-field">
+                                        <span class="field-label">UTR Number:</span>
+                                        <span class="field-value">${order.paymentDetails.utrNumber}</span>
+                                    </div>
+                                ` : ''}
+                                ${order.paymentDetails.checkNumber ? `
+                                    <div class="check-field">
+                                        <span class="field-label">Check Number:</span>
+                                        <span class="field-value">${order.paymentDetails.checkNumber}</span>
+                                    </div>
+                                ` : ''}
+                                ${order.paymentDetails.bankName ? `
+                                    <div class="check-field">
+                                        <span class="field-label">Bank Name:</span>
+                                        <span class="field-value">${order.paymentDetails.bankName}</span>
+                                    </div>
+                                ` : ''}
+                                ${order.paymentDetails.checkDate ? `
+                                    <div class="check-field">
+                                        <span class="field-label">${order.paymentType === 'transfer' ? 'Transfer Date' : 'Check Date'}:</span>
+                                        <span class="field-value">${new Date(order.paymentDetails.checkDate).toLocaleDateString()}</span>
+                                    </div>
+                                ` : ''}
+                                <div class="check-field">
+                                    <span class="field-label">Payment Type:</span>
+                                    <span class="field-value" style="background: ${order.paymentType === 'transfer' ? '#e3f2fd' : '#f3e5f5'}; padding: 4px 8px; border-radius: 4px; font-weight: 600;">
+                                        ${order.paymentType === 'transfer' ? '🏦 Bank Transfer' : '📝 Check Payment'}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            ${uniqueFileIds.length > 0 ? `
+                                <div class="uploaded-images">
+                                    <h5>📷 Uploaded Images (${uniqueFileIds.length})</h5>
+                                    <div class="image-buttons">
+                                        ${uniqueFileIds.map((fileId, index) => `
+                                            <button class="btn-view-image" onclick="openImageModal('https://drive.google.com/uc?export=view&id=${fileId}', 'Payment Document ${index + 1}')">
+                                                👁️ View Image ${index + 1}
+                                            </button>
+                                            <a href="https://drive.google.com/file/d/${fileId}/view" target="_blank" class="btn-drive-link">
+                                                📁 Open in Drive
+                                            </a>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : `
+                                <div class="uploaded-images">
+                                    <p style="color: #666; font-style: italic;">📷 No images uploaded yet</p>
+                                </div>
+                            `}
+                            
+                            ${order.paymentDetails.googleFormSubmissionId ? `
+                                <div style="margin-top: 15px;">
+                                    <button class="btn btn-view" onclick="showFormResponseModal('${order._id}', '${order._id}')">
+                                        📋 View Form Submission Details
+                                    </button>
+                                    <br>
+                                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                                        Response ID: ${order.paymentDetails.googleFormSubmissionId}
+                                    </small>
+                                </div>
+                            ` : `
+                                <div style="margin-top: 15px;">
+                                    <p style="color: #666; font-style: italic;">📋 No form submission data available</p>
+                                </div>
+                            `}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-approve" onclick="showApprovalModal('${order._id}')">
+                            ✅ Approve Payment
+                        </button>
+                        <button class="btn btn-reject" onclick="showRejectionModal('${order._id}')">
+                            ❌ Reject Payment
+                        </button>
+                        <a href="/admin-orders.html?orderId=${order._id}" class="btn btn-view">
+                            👁️ View Full Order
+                        </a>
+                    </div>
+                </div>
+            `}).join('');
+        }
+        
+        function updateStats(stats) {
+            document.getElementById('pendingCount').textContent = stats?.pendingCount || 0;
+            document.getElementById('todayCount').textContent = stats?.todayCount || 0;
+            document.getElementById('totalAmount').textContent = `₹${(stats?.totalAmount || 0).toFixed(2)}`;
+        }
+        
+        function showApprovalModal(orderId) {
+            currentOrderId = orderId;
+            document.getElementById('approvalModal').style.display = 'block';
+            document.getElementById('approvalNotes').value = '';
+        }
+        
+        function showRejectionModal(orderId) {
+            currentOrderId = orderId;
+            document.getElementById('rejectionModal').style.display = 'block';
+            document.getElementById('rejectionReason').value = '';
+        }
+        
+        function closeModal() {
+            document.getElementById('approvalModal').style.display = 'none';
+            document.getElementById('rejectionModal').style.display = 'none';
+            currentOrderId = null;
+        }
+        
+        async function confirmApproval() {
+            if (!currentOrderId) return;
+            
+            const notes = document.getElementById('approvalNotes').value;
+            
+            // Find the current order to get UTR number
+            const orders = window.currentOrders || [];
+            const currentOrder = orders.find(o => o._id === currentOrderId);
+            
+            if (!currentOrder) {
+                alert('❌ Order not found. Please refresh the page.');
+                return;
+            }
+            
+            // Check if this is a bank transfer with UTR number
+            const utrNumber = currentOrder.paymentDetails?.utrNumber;
+            if (currentOrder.paymentType === 'transfer' && utrNumber) {
+                console.log('🔍 Checking UTR number:', utrNumber);
+                
+                try {
+                    // Check for duplicate UTR
+                    const token = localStorage.getItem('token');
+                    const utrCheckResponse = await fetch(`${window.API_URL}/payments/admin/check-utr-duplicate`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            utrNumber: utrNumber,
+                            currentOrderId: currentOrderId 
+                        })
+                    });
+                    
+                    if (!utrCheckResponse.ok) {
+                        throw new Error('Failed to check UTR number');
+                    }
+                    
+                    const utrCheckResult = await utrCheckResponse.json();
+                    
+                    if (utrCheckResult.isDuplicate) {
+                        const duplicateUser = utrCheckResult.existingOrder?.user?.name || 'Unknown User';
+                        const duplicateOrderId = utrCheckResult.existingOrder?._id || 'Unknown';
+                        const duplicateDate = utrCheckResult.existingOrder?.createdAt ? 
+                            new Date(utrCheckResult.existingOrder.createdAt).toLocaleDateString() : 'Unknown Date';
+                        
+                        const confirmDuplicate = confirm(
+                            `⚠️ DUPLICATE UTR NUMBER DETECTED!\n\n` +
+                            `UTR Number: ${utrNumber}\n` +
+                            `Previously used by: ${duplicateUser}\n` +
+                            `Order ID: ${duplicateOrderId}\n` +
+                            `Date: ${duplicateDate}\n\n` +
+                            `This UTR number has already been used for another order. ` +
+                            `Are you sure you want to approve this payment?\n\n` +
+                            `Click OK to approve anyway, or Cancel to review.`
+                        );
+                        
+                        if (!confirmDuplicate) {
+                            return; // User cancelled, don't proceed with approval
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error('Error checking UTR:', error);
+                    const proceedAnyway = confirm(
+                        `⚠️ Unable to verify UTR number uniqueness.\n\n` +
+                        `Error: ${error.message}\n\n` +
+                        `Do you want to proceed with approval anyway?`
+                    );
+                    
+                    if (!proceedAnyway) {
+                        return;
+                    }
+                }
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${window.API_URL}/payments/admin/approve-cheque-payment/${currentOrderId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ approvalNotes: notes })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to approve payment');
+                }
+                
+                const result = await response.json();
+                
+                alert('✅ Check payment approved successfully!');
+                closeModal();
+                loadPendingCheckPayments(); // Reload the list
+                
+            } catch (error) {
+                console.error('Error approving payment:', error);
+                alert('❌ Error approving payment. Please try again.');
+            }
+        }
+        
+        async function confirmRejection() {
+            if (!currentOrderId) return;
+            
+            const reason = document.getElementById('rejectionReason').value.trim();
+            if (!reason) {
+                alert('Please provide a reason for rejection.');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${window.API_URL}/payments/admin/reject-cheque-payment/${currentOrderId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ rejectionReason: reason })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to reject payment');
+                }
+                
+                const result = await response.json();
+                
+                alert('❌ Check payment rejected.');
+                closeModal();
+                loadPendingCheckPayments(); // Reload the list
+                
+            } catch (error) {
+                console.error('Error rejecting payment:', error);
+                alert('❌ Error rejecting payment. Please try again.');
+            }
+        }
+        
+        // Form response modal functions
+        async function showFormResponseModal(orderId) {
+            const modal = document.getElementById('formResponseModal');
+            const content = document.getElementById('formResponseContent');
+            
+            // Show loading state
+            content.innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <div class="spinner"></div>
+                    <p>Loading form submission details...</p>
+                </div>
+            `;
+            
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            try {
+                // Find the order data from the current orders list
+                const orders = window.currentOrders || [];
+                console.log('🔍 Available orders:', orders.length);
+                console.log('🔍 Looking for order ID:', orderId);
+                
+                const order = orders.find(o => o._id === orderId);
+                console.log('🔍 Found order:', order ? 'Yes' : 'No');
+                
+                if (order) {
+                    console.log('🔍 Order allResponses:', order.allResponses);
+                    console.log('🔍 Order paymentDetails:', order.paymentDetails);
+                }
+                
+                if (!order) {
+                    throw new Error('Order not found in current data');
+                }
+                
+                // Check if we have form response data
+                const hasAllResponses = order.allResponses && Object.keys(order.allResponses).length > 0;
+                const hasPaymentDetails = order.paymentDetails && Object.keys(order.paymentDetails).length > 0;
+                
+                if (!hasAllResponses && !hasPaymentDetails) {
+                    throw new Error('No form response data available for this order');
+                }
+                
+                // Create the form response display
+                let html = `
+                    <div class="response-header">
+                        <h4>📋 Payment Submission Details</h4>
+                        <p><strong>Order ID:</strong> ${orderId}</p>
+                        <p><strong>Submitted:</strong> ${new Date(order.paymentDetails?.updatedAt || order.createdAt).toLocaleString()}</p>
+                        ${order.paymentDetails?.googleFormSubmissionId ? `<p><strong>Form Response ID:</strong> ${order.paymentDetails.googleFormSubmissionId}</p>` : ''}
+                    </div>
+                `;
+                
+                // Show form responses if available
+                if (hasAllResponses) {
+                    html += `
+                        <h5 style="margin: 20px 0 10px 0; color: #333;">📝 Form Responses</h5>
+                        <table class="form-response-table">
+                            <thead>
+                                <tr>
+                                    <th>Form Field</th>
+                                    <th>User Response</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    // Display each form field and response
+                    for (const [field, response] of Object.entries(order.allResponses)) {
+                        let displayValue = '';
+                        
+                        if (Array.isArray(response)) {
+                            if (response.length > 0) {
+                                // Handle nested arrays (like file uploads)
+                                if (Array.isArray(response[0])) {
+                                    displayValue = response[0].join(', ');
+                                } else {
+                                    displayValue = response.join(', ');
+                                }
+                            } else {
+                                displayValue = '<em style="color: #999;">No response</em>';
+                            }
+                        } else {
+                            displayValue = response || '<em style="color: #999;">No response</em>';
+                        }
+                        
+                        // Special handling for file uploads
+                        if (field.toLowerCase().includes('upload') || field.toLowerCase().includes('image')) {
+                            if (displayValue && displayValue !== '<em style="color: #999;">No response</em>') {
+                                displayValue = `📎 File uploaded: ${displayValue}`;
+                            }
+                        }
+                        
+                        html += `
+                            <tr>
+                                <th>${field}</th>
+                                <td>${displayValue}</td>
+                            </tr>
+                        `;
+                    }
+                    
+                    html += `
+                            </tbody>
+                        </table>
+                    `;
+                }
+                
+                // Show payment details if available
+                if (hasPaymentDetails) {
+                    html += `
+                        <h5 style="margin: 20px 0 10px 0; color: #333;">💳 Payment Details</h5>
+                        <table class="form-response-table">
+                            <tbody>
+                    `;
+                    
+                    const paymentDetails = order.paymentDetails;
+                    const detailsToShow = [
+                        { label: 'Payment Type', value: paymentDetails.type || order.paymentType || 'check' },
+                        { label: 'Status', value: paymentDetails.status || 'pending' },
+                        { label: 'Check Number', value: paymentDetails.checkNumber },
+                        { label: 'Bank Name', value: paymentDetails.bankName },
+                        { label: 'Check Date', value: paymentDetails.checkDate ? new Date(paymentDetails.checkDate).toLocaleDateString() : null },
+                        { label: 'UTR Number', value: paymentDetails.utrNumber },
+                        { label: 'Created At', value: paymentDetails.createdAt ? new Date(paymentDetails.createdAt).toLocaleString() : null },
+                        { label: 'Updated At', value: paymentDetails.updatedAt ? new Date(paymentDetails.updatedAt).toLocaleString() : null }
+                    ];
+                    
+                    detailsToShow.forEach(detail => {
+                        if (detail.value) {
+                            html += `
+                                <tr>
+                                    <th>${detail.label}</th>
+                                    <td>${detail.value}</td>
+                                </tr>
+                            `;
+                        }
+                    });
+                    
+                    html += `
+                            </tbody>
+                        </table>
+                    `;
+                }
+                
+                content.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error loading form response:', error);
+                content.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #dc3545;">
+                        <p>❌ Error loading submission details</p>
+                        <p style="font-size: 14px;">${error.message}</p>
+                        <p style="font-size: 12px; color: #666; margin-top: 15px;">
+                            This might be an older order from before form data collection was implemented, 
+                            or the form data wasn't saved properly.
+                        </p>
+                        <button onclick="loadPendingCheckPayments()" class="btn btn-approve" style="margin-top: 15px;">
+                            🔄 Refresh Data
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        function closeFormResponseModal() {
+            const modal = document.getElementById('formResponseModal');
+            modal.style.display = 'none';
+            
+            // Restore body scroll
+            document.body.style.overflow = '';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const approvalModal = document.getElementById('approvalModal');
+            const rejectionModal = document.getElementById('rejectionModal');
+            const formResponseModal = document.getElementById('formResponseModal');
+            
+            if (event.target === approvalModal || event.target === rejectionModal || event.target === formResponseModal) {
+                closeModal();
+                closeFormResponseModal();
+            }
+        }
+        
+        // Image modal functions
+        function openImageModal(imageUrl, title) {
+            const modal = document.getElementById('imageModal');
+            const img = document.getElementById('imageModalImg');
+            const titleEl = document.getElementById('imageModalTitle');
+            
+            // Show modal immediately
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Set title
+            titleEl.textContent = title || 'Payment Document';
+            
+            // Show loading state
+            img.style.display = 'none';
+            titleEl.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <div class="spinner" style="width: 20px; height: 20px; border-width: 2px;"></div>
+                    <span>Loading image...</span>
+                </div>
+            `;
+            
+            // Create a new image to test loading
+            const testImg = new Image();
+            
+            testImg.onload = function() {
+                // Image loaded successfully
+                img.src = imageUrl;
+                img.style.display = 'block';
+                titleEl.textContent = title || 'Payment Document';
+            };
+            
+            testImg.onerror = function() {
+                // Image failed to load
+                titleEl.innerHTML = `
+                    <div style="color: #dc3545; text-align: center;">
+                        <p>❌ Unable to load image</p>
+                        <p style="font-size: 14px; margin-top: 10px;">
+                            The image might not be publicly accessible. 
+                            <a href="${imageUrl}" target="_blank" style="color: #667eea;">Try opening in new tab</a>
+                        </p>
+                    </div>
+                `;
+                img.style.display = 'none';
+            };
+            
+            // Start loading the image
+            testImg.src = imageUrl;
+        }
+        
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.style.display = 'none';
+            
+            // Restore body scroll
+            document.body.style.overflow = '';
+        }
+        
+        // Close image modal with escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeImageModal();
+                closeFormResponseModal();
+            }
+        });
+        
+        // Make functions globally available
+        window.openImageModal = openImageModal;
+        window.closeImageModal = closeImageModal;
+        window.showFormResponseModal = showFormResponseModal;
+        window.closeFormResponseModal = closeFormResponseModal;
+    </script>
+</body>
+</html>

@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Management - Shree Mata Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        nav .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        nav h1 {
+            color: white;
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            text-align: center;
+        }
+        nav .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 6px 4px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            text-align: center;
+            font-size: 11px;
+            white-space: nowrap;
+            display: block;
+        }
+        nav a:hover, nav a.active {
+            background: rgba(255,255,255,0.2);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .main-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 100px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .form-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .form-section h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        #invoiceNumber {
+            background: #e8f5e9;
+            font-weight: bold;
+            font-size: 16px;
+            color: #2e7d32;
+            border: 2px solid #4caf50;
+        }
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        table th, table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        table th {
+            background: #667eea;
+            color: white;
+        }
+        table input, table select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        .btn-danger {
+            background: #f44336;
+        }
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+        .invoice-summary {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .summary-row.total {
+            font-size: 18px;
+            font-weight: bold;
+            border-top: 2px solid #333;
+            border-bottom: 2px solid #333;
+            margin-top: 10px;
+        }
+        @media print {
+            nav, .btn, .form-actions { display: none; }
+            .main-container { margin-top: 0; box-shadow: none; }
+        }
+
+        /* === Delivery Challan: hide pricing columns === */
+        body.hide-pricing .pricing-col { display: none !important; }
+        body.hide-pricing .invoice-summary { display: none !important; }
+        body.hide-pricing .amount-words-section { display: none !important; }
+        body.hide-pricing .pricing-header { display: none !important; }
+
+        /* Same-as-billing checkbox styling */
+        .same-billing-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            background: #e8f4fd;
+            border: 1px solid #90caf9;
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-weight: 600;
+            color: #1565c0;
+            cursor: pointer;
+            width: fit-content;
+        }
+        .same-billing-wrap input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <h1>Shree Mata Admin - Invoice Management</h1>
+            <div class="nav-grid">
+                <a href="/">🏠 Home</a>
+                <a href="/admin.html">📚 Books</a>
+                <a href="/admin-bundles.html">📦 Bundles</a>
+                <a href="/admin-orders.html">🛒 Orders</a>
+                <a href="/admin-invoices.html" class="active">🧾 Invoices</a>
+                <a href="/admin-withdrawals.html">💰 Withdrawals</a>
+                <a href="/admin-users.html">👥 Users</a>
+                <a href="/" id="logoutBtn">🚪 Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            <div class="main-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h1>Invoice Management</h1>
+                    <a href="/admin-invoices-list.html" class="btn" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);">
+                        📋 View All Saved Invoices
+                    </a>
+                </div>
+                
+                <h2 style="margin-top: 10px;">Create New Invoice</h2>
+                
+                <form id="invoiceForm">
+                    <!-- SECTION 1: Invoice Header -->
+                    <div class="form-section">
+                        <h3>📋 Invoice Header Details</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="documentType">Document Type *</label>
+                                <select id="documentType" required onchange="updateInvoiceNumberPreview(); handleDocumentTypeChange(this.value);">
+                                    <option value="tax_invoice" selected>Tax Invoice (SM-HBL-)</option>
+                                    <option value="delivery_challan">Delivery Challan (SM-DCT-)</option>
+                                    <option value="quotation">Quotation (SM-QUO-)</option>
+                                    <option value="proforma_invoice">Proforma Invoice (SM-PRI-)</option>
+                                    <option value="cash_challan">Cash Invoice (SM-CCH-)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Document / Invoice Number</label>
+                                <input type="text" id="invoiceNumber" readonly value="Auto-generated">
+                            </div>
+                            <div class="form-group">
+                                <label>Document Date</label>
+                                <input type="date" id="invoiceDate" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: Customer Details -->
+                    <div class="form-section">
+                        <h3>👤 Customer Details</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Customer Name *</label>
+                                <input type="text" id="customerName" required placeholder="Full name">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone Number</label>
+                                <input type="tel" id="phoneNumber" placeholder="10-digit mobile">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>GST Number (Optional)</label>
+                                <input type="text" id="gstNumber" placeholder="e.g. 29ABCDE1234F1Z5">
+                            </div>
+                            <div class="form-group">
+                                <label>Customer Address</label>
+                                <input type="text" id="billingAddress" placeholder="Street / Colony / Area">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Taluka</label>
+                                <input type="text" id="taluka" placeholder="Taluka">
+                            </div>
+                            <div class="form-group">
+                                <label>District</label>
+                                <input type="text" id="district" placeholder="District">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>State</label>
+                                <input type="text" id="state" placeholder="State" value="Karnataka">
+                            </div>
+                            <div class="form-group">
+                                <label>PIN Code</label>
+                                <input type="text" id="pinCode" placeholder="6-digit PIN">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2.5: Shipping Details -->
+                    <div class="form-section">
+                        <h3>📦 Shipping Details</h3>
+                        <label class="same-billing-wrap" for="sameAsBilling">
+                            <input type="checkbox" id="sameAsBilling" checked>
+                            📋 Same as Billing Address
+                        </label>
+                        <!-- Shipping fields: hidden by default when checkbox is checked -->
+                        <div id="shippingFieldsContainer" style="display:none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Ship To Name</label>
+                                    <input type="text" id="shipToName" placeholder="Recipient name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Shipping Phone</label>
+                                    <input type="tel" id="shippingPhone" placeholder="Recipient phone">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Shipping Address</label>
+                                    <input type="text" id="shippingAddress" placeholder="Street / Colony / Area">
+                                </div>
+                                <div class="form-group">
+                                    <label>Shipping Taluka</label>
+                                    <input type="text" id="shippingTaluka" placeholder="Taluka">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Shipping District</label>
+                                    <input type="text" id="shippingDistrict" placeholder="District">
+                                </div>
+                                <div class="form-group">
+                                    <label>Shipping State</label>
+                                    <input type="text" id="shippingState" placeholder="State">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Shipping PIN Code</label>
+                                    <input type="text" id="shippingPinCode" placeholder="6-digit PIN">
+                                </div>
+                                <div class="form-group"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2.6: Transport & Dispatch Details -->
+                    <div class="form-section">
+                        <h3>🚚 Transport & Dispatch Details</h3>
+
+                        <!-- Dispatch Mode Radio Toggle -->
+                        <div class="same-billing-wrap" style="background:#fff8e1; border-color:#ffe082; color:#6d4c00; gap:20px; width:auto;">
+                            <span style="font-weight:700;">📦 Dispatch Mode:</span>
+                            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:600;">
+                                <input type="radio" name="dispatchMode" value="own_vehicle" id="dispatchModeOwn" checked
+                                       style="width:16px;height:16px;accent-color:#667eea;">
+                                🚗 Own Vehicle
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:600;">
+                                <input type="radio" name="dispatchMode" value="transport" id="dispatchModeTransport"
+                                       style="width:16px;height:16px;accent-color:#667eea;">
+                                🚚 Third-Party Transport
+                            </label>
+                        </div>
+
+                        <!-- Transport-specific fields: hidden when Own Vehicle is selected -->
+                        <div id="transportDetailsContainer" style="display:none; margin-top:14px;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Transportation Name</label>
+                                    <input type="text" id="transportationName" placeholder="Transport company name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Vehicle No / LR No</label>
+                                    <input type="text" id="vehicleNo" placeholder="e.g. KA-01-AB-1234">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Dispatch Status</label>
+                                    <select id="dispatchStatus" onchange="toggleCourierInput(this.value)">
+                                        <option value="pending" selected>⏳ Pending</option>
+                                        <option value="dispatched">✅ Dispatched</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="courierNumberGroup" style="display: none;">
+                                    <label>Courier Tracking Number</label>
+                                    <input type="text" id="courierNumber" placeholder="e.g. TPC1234567">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3: Product Details -->
+                    <div class="form-section">
+                        <h3>📦 Product Details</h3>
+                        <table id="productsTable">
+                            <thead>
+                                <tr>
+                                    <th>SI No</th>
+                                    <th>Product Name</th>
+                                    <th>Item Type</th>
+                                    <th>HSN Code</th>
+                                    <th class="pricing-header">GST %</th>
+                                    <th>No. of Bundles</th>
+                                    <th class="pricing-header">Unit Price</th>
+                                    <th class="pricing-header">Taxable Amount</th>
+                                    <th class="pricing-header">SGST</th>
+                                    <th class="pricing-header">CGST</th>
+                                    <th class="pricing-header">Total</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsBody">
+                                <tr>
+                                    <td>1</td>
+                                    <td>
+                                        <select class="product-name-select" required style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;font-size:13px;">
+                                            <option value="">⏳ Loading products...</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="product-type">
+                                            <option value="book" selected>Book (0% GST)</option>
+                                            <option value="bundle">Bundle (18% GST)</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </td>
+                                    <td><input type="text" class="hsn-code" value="49011010"></td>
+                                    <td class="pricing-col"><input type="number" class="gst-percent" value="0" min="0" max="100" step="0.01"></td>
+                                    <td><input type="number" class="bundles" value="1" min="1"></td>
+                                    <td class="pricing-col"><input type="number" class="unit-price" value="0" min="0" step="0.01"></td>
+                                    <td class="pricing-col"><input type="number" class="taxable-amount" readonly value="0"></td>
+                                    <td class="pricing-col"><input type="number" class="sgst-amount" readonly value="0"></td>
+                                    <td class="pricing-col"><input type="number" class="cgst-amount" readonly value="0"></td>
+                                    <td class="pricing-col"><input type="number" class="total" readonly value="0"></td>
+                                    <td><button type="button" class="btn btn-danger btn-small remove-row">Remove</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button type="button" id="addProductRow" class="btn btn-secondary btn-small">+ Add Item</button>
+                    </div>
+
+                    <!-- SECTION 4: Additional Charges -->
+                    <div class="form-section">
+                        <h3>💰 Additional Charges</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Forwarding Charges</label>
+                                <input type="number" id="forwardingCharges" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="form-group">
+                                <label>Discount</label>
+                                <input type="number" id="discount" value="0" min="0" step="0.01">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Other Charges</label>
+                                <input type="number" id="otherCharges" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="form-group"></div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 5: Total Calculation Summary -->
+                    <div class="invoice-summary">
+                        <h3>📊 Total Calculation Summary</h3>
+                        <div class="summary-row">
+                            <span>Subtotal (Before GST):</span>
+                            <span id="subtotal">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Total CGST:</span>
+                            <span id="totalCGST">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Total SGST:</span>
+                            <span id="totalSGST">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Total IGST:</span>
+                            <span id="totalIGST">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Total GST:</span>
+                            <span id="totalGST">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Forwarding Charges:</span>
+                            <span id="displayForwarding">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Discount:</span>
+                            <span id="displayDiscount">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Other Charges:</span>
+                            <span id="displayOther">₹0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Round Off:</span>
+                            <span id="roundOff">₹0.00</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Grand Total:</span>
+                            <span id="grandTotal">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 6: Amount in Words -->
+                    <div class="form-section amount-words-section">
+                        <h3>🔤 Amount in Words</h3>
+                        <p id="amountInWords" style="font-size: 16px; font-weight: bold; color: #333;">Zero Rupees Only</p>
+                    </div>
+
+                    <!-- SECTION 7: Bank Details -->
+                    <div class="form-section">
+                        <h3>🏦 Bank Details</h3>
+                        <label class="same-billing-wrap" for="useDefaultBank" style="border-color:#a5d6a7; background:#e8f5e9; color:#2e7d32;">
+                            <input type="checkbox" id="useDefaultBank" checked>
+                            🏦 Use Default / Previous Bank Details
+                        </label>
+                        <!-- Manual bank fields: hidden by default when checkbox is checked -->
+                        <div id="bankDetailsContainer" style="display:none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Bank Name</label>
+                                    <input type="text" id="bankName" placeholder="e.g. State Bank of India">
+                                </div>
+                                <div class="form-group">
+                                    <label>Account Number</label>
+                                    <input type="text" id="accountNumber" placeholder="Account number">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>IFSC Code</label>
+                                    <input type="text" id="ifscCode" placeholder="e.g. SBIN0001234">
+                                </div>
+                                <div class="form-group">
+                                    <label>Branch</label>
+                                    <input type="text" id="branch" placeholder="Branch name">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 8: Signature Section -->
+                    <div class="form-section">
+                        <h3>✍️ Signature Section</h3>
+                        <label class="same-billing-wrap" for="useDefaultSignature" style="border-color:#b39ddb; background:#ede7f6; color:#4527a0;">
+                            <input type="checkbox" id="useDefaultSignature" checked>
+                            ✅ Use Default Digital Signature
+                        </label>
+                        <!-- Manual signature fields: hidden by default when checkbox is checked -->
+                        <div id="signatureFieldsContainer" style="display:none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Received By</label>
+                                    <input type="text" id="receivedBy" placeholder="Name of receiver">
+                                </div>
+                                <div class="form-group">
+                                    <label>Sent By</label>
+                                    <input type="text" id="sentBy" placeholder="Name of sender / authorised signatory">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-top:10px;">
+                            <label>
+                                <input type="checkbox" id="digitalSignature" checked>
+                                Digital Signature Approved
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions" style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit" class="btn">Save Invoice</button>
+                        <button type="button" id="previewBtn" class="btn btn-secondary">Preview Invoice</button>
+                        <button type="button" id="resetBtn" class="btn btn-danger">Reset Form</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script>
+        // Set today's date as default
+        document.getElementById('invoiceDate').valueAsDate = new Date();
+
+        // Fetch and display invoice number preview when date or document type changes
+        async function updateInvoiceNumberPreview() {
+            const invoiceDate = document.getElementById('invoiceDate').value;
+            const documentType = document.getElementById('documentType')?.value || 'tax_invoice';
+            if (!invoiceDate) {
+                document.getElementById('invoiceNumber').value = 'Select date first';
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/invoices/preview-number`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ invoiceDate, documentType })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('invoiceNumber').value = data.invoiceNumber;
+                } else {
+                    document.getElementById('invoiceNumber').value = 'Error generating number';
+                }
+            } catch (error) {
+                console.error('Error fetching invoice number:', error);
+                document.getElementById('invoiceNumber').value = 'Error generating number';
+            }
+        }
+
+        // Update invoice number when date changes
+        document.getElementById('invoiceDate').addEventListener('change', updateInvoiceNumberPreview);
+        
+        // Load initial invoice number
+        updateInvoiceNumberPreview();
+
+        let productCounter = 1;
+
+        // ── Global product catalogue fetched from API ───────────────────────────────────
+        let availableProducts = [];
+
+        async function fetchAvailableProducts() {
+            try {
+                const token = localStorage.getItem('token');
+                const headers = { 'Authorization': `Bearer ${token}` };
+
+                // Fetch books (no auth needed) and bundles in parallel
+                const [booksRes, bundlesRes] = await Promise.all([
+                    fetch(`${API_URL}/books?limit=500`, { headers }),
+                    fetch(`${API_URL}/bundles`,          { headers })
+                ]);
+
+                const booksData   = booksRes.ok   ? await booksRes.json()   : { books: [] };
+                const bundlesData = bundlesRes.ok ? await bundlesRes.json() : { bundles: [] };
+
+                const books   = (booksData.books   || []).map(b => ({
+                    _id:   b._id,
+                    name:  b.title,
+                    price: b.price || 0,
+                    hsn:   '49011010',
+                    gst:   0,
+                    type:  'book'
+                }));
+                const bundles = (bundlesData.bundles || bundlesData || []).map(b => ({
+                    _id:   b._id,
+                    name:  b.name || b.title,
+                    price: b.price || 0,
+                    hsn:   '49011020',
+                    gst:   18,
+                    type:  'bundle'
+                }));
+
+                availableProducts = [...books, ...bundles];
+                console.log(`📚 Loaded ${availableProducts.length} products (${books.length} books + ${bundles.length} bundles)`);
+
+                // Populate all existing select dropdowns
+                document.querySelectorAll('.product-name-select').forEach(populateProductSelect);
+
+            } catch (err) {
+                console.error('Failed to fetch products:', err);
+                document.querySelectorAll('.product-name-select').forEach(sel => {
+                    sel.innerHTML = '<option value="">⚠️ Could not load products — type manually</option>';
+                    sel.disabled = false;
+                });
+            }
+        }
+
+        function populateProductSelect(selectEl) {
+            const currentVal = selectEl.value;
+            selectEl.innerHTML = '<option value="">📦 Select a Product...</option>' +
+                '<optgroup label="📚 Books">' +
+                availableProducts
+                    .filter(p => p.type === 'book')
+                    .map(p => `<option value="${p._id}" data-name="${p.name.replace(/"/g,'&quot;')}" data-price="${p.price}" data-hsn="${p.hsn}" data-gst="${p.gst}" data-type="${p.type}">${p.name} — ₹${p.price}</option>`)
+                    .join('') +
+                '</optgroup>' +
+                '<optgroup label="📦 Bundles">' +
+                availableProducts
+                    .filter(p => p.type === 'bundle')
+                    .map(p => `<option value="${p._id}" data-name="${p.name.replace(/"/g,'&quot;')}" data-price="${p.price}" data-hsn="${p.hsn}" data-gst="${p.gst}" data-type="${p.type}">${p.name} — ₹${p.price}</option>`)
+                    .join('') +
+                '</optgroup>';
+            // Restore selection if re-populated
+            if (currentVal) selectEl.value = currentVal;
+        }
+
+        // ── Document-type: Delivery Challan toggle ───────────────────────────────
+        function handleDocumentTypeChange(type) {
+            const isPricingHidden = type === 'delivery_challan';
+            document.body.classList.toggle('hide-pricing', isPricingHidden);
+
+            // Remove/restore `required` from pricing fields so form can still submit
+            document.querySelectorAll('.gst-percent, .unit-price').forEach(el => {
+                if (isPricingHidden) {
+                    el.removeAttribute('required');
+                } else {
+                    // Only restore required on unit-price for non-book types
+                    // GST % for 'other' type gets required back via attachRowListeners
+                }
+            });
+        }
+
+        // ── Same-as-Billing checkbox: show/hide shipping fields ──────────────────
+        function toggleShippingFields() {
+            const checked = document.getElementById('sameAsBilling').checked;
+            document.getElementById('shippingFieldsContainer').style.display = checked ? 'none' : 'block';
+        }
+        document.getElementById('sameAsBilling').addEventListener('change', toggleShippingFields);
+        // Run once on load to set initial state
+        toggleShippingFields();
+
+        // ── Use Default Bank Details toggle ───────────────────────────────────────
+        function toggleBankDetails() {
+            const checked = document.getElementById('useDefaultBank').checked;
+            document.getElementById('bankDetailsContainer').style.display = checked ? 'none' : 'block';
+        }
+        document.getElementById('useDefaultBank').addEventListener('change', toggleBankDetails);
+        // Run once on load
+        toggleBankDetails();
+
+        // ── Use Default Digital Signature toggle ───────────────────────────────
+        function toggleSignatureFields() {
+            const checked = document.getElementById('useDefaultSignature').checked;
+            document.getElementById('signatureFieldsContainer').style.display = checked ? 'none' : 'block';
+            // Keep the digitalSignature checkbox in sync: always true when using default
+            document.getElementById('digitalSignature').checked = checked ? true : document.getElementById('digitalSignature').checked;
+        }
+        document.getElementById('useDefaultSignature').addEventListener('change', toggleSignatureFields);
+        // Run once on load
+        toggleSignatureFields();
+
+        // ── Dispatch Mode toggle: Own Vehicle vs. Third-Party Transport ───────────
+        function toggleTransportDetails() {
+            const mode = document.querySelector('input[name="dispatchMode"]:checked').value;
+            document.getElementById('transportDetailsContainer').style.display =
+                mode === 'transport' ? 'block' : 'none';
+        }
+        document.querySelectorAll('input[name="dispatchMode"]').forEach(el =>
+            el.addEventListener('change', toggleTransportDetails)
+        );
+        // Run once on load
+        toggleTransportDetails();
+
+        // Live-sync billing → IGST re-routing when state changes
+        document.getElementById('state').addEventListener('input', calculateTotals);
+
+        // Add product row
+        document.getElementById('addProductRow').addEventListener('click', function() {
+            productCounter++;
+            const tbody = document.getElementById('productsBody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${productCounter}</td>
+                <td>
+                    <select class="product-name-select" required style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;font-size:13px;">
+                        <option value="">📦 Select a Product...</option>
+                    </select>
+                </td>
+                <td>
+                    <select class="product-type">
+                        <option value="book" selected>Book (0% GST)</option>
+                        <option value="bundle">Bundle (18% GST)</option>
+                        <option value="other">Other</option>
+                    </select>
+                </td>
+                <td><input type="text" class="hsn-code" value="49011010"></td>
+                <td class="pricing-col"><input type="number" class="gst-percent" value="0" min="0" max="100" step="0.01"></td>
+                <td><input type="number" class="bundles" value="1" min="1"></td>
+                <td class="pricing-col"><input type="number" class="unit-price" value="0" min="0" step="0.01"></td>
+                <td class="pricing-col"><input type="number" class="taxable-amount" readonly value="0"></td>
+                <td class="pricing-col"><input type="number" class="sgst-amount" readonly value="0"></td>
+                <td class="pricing-col"><input type="number" class="cgst-amount" readonly value="0"></td>
+                <td class="pricing-col"><input type="number" class="total" readonly value="0"></td>
+                <td><button type="button" class="btn btn-danger btn-small remove-row">Remove</button></td>
+            `;
+            tbody.appendChild(row);
+            // Populate new row's select with current product list
+            populateProductSelect(row.querySelector('.product-name-select'));
+            attachRowListeners(row);
+        });
+
+        // Remove product row
+        document.getElementById('productsBody').addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-row')) {
+                if (document.querySelectorAll('#productsBody tr').length > 1) {
+                    e.target.closest('tr').remove();
+                    updateSINumbers();
+                    calculateTotals();
+                } else {
+                    alert('At least one product row is required');
+                }
+            }
+        });
+
+        // Update SI numbers after removal
+        function updateSINumbers() {
+            const rows = document.querySelectorAll('#productsBody tr');
+            rows.forEach((row, index) => {
+                row.querySelector('td:first-child').textContent = index + 1;
+            });
+            productCounter = rows.length;
+        }
+
+        // Attach listeners to row inputs
+        function attachRowListeners(row) {
+            const productSelect = row.querySelector('.product-name-select');
+            const productType = row.querySelector('.product-type');
+            const bundles = row.querySelector('.bundles');
+            const unitPrice = row.querySelector('.unit-price');
+            const gstPercent = row.querySelector('.gst-percent');
+            const taxableAmount = row.querySelector('.taxable-amount');
+            const sgstAmount = row.querySelector('.sgst-amount');
+            const cgstAmount = row.querySelector('.cgst-amount');
+            const total = row.querySelector('.total');
+            const hsnCode = row.querySelector('.hsn-code');
+
+            function updateRowTotal() {
+                const bundlesVal = parseFloat(bundles.value) || 0;
+                const priceVal = parseFloat(unitPrice.value) || 0;
+                const gstVal = parseFloat(gstPercent.value) || 0;
+                
+                // Calculate taxable amount
+                const taxable = bundlesVal * priceVal;
+                taxableAmount.value = taxable.toFixed(2);
+                
+                // Calculate SGST and CGST (split GST equally)
+                const sgstPercent = gstVal / 2;
+                const cgstPercent = gstVal / 2;
+                
+                const sgst = (taxable * sgstPercent) / 100;
+                const cgst = (taxable * cgstPercent) / 100;
+                
+                sgstAmount.value = sgst.toFixed(2);
+                cgstAmount.value = cgst.toFixed(2);
+                
+                // Calculate total (taxable + SGST + CGST)
+                const totalAmount = taxable + sgst + cgst;
+                total.value = totalAmount.toFixed(2);
+                
+                calculateTotals();
+            }
+
+            // ── Product select auto-fill ─────────────────────────────────────────────
+            if (productSelect) {
+                productSelect.addEventListener('change', function() {
+                    const opt = this.options[this.selectedIndex];
+                    if (!opt || !opt.value) return;
+
+                    // Auto-fill derived fields from data attributes
+                    const price   = parseFloat(opt.dataset.price) || 0;
+                    const hsn     = opt.dataset.hsn   || '49011010';
+                    const gst     = parseFloat(opt.dataset.gst) || 0;
+                    const type    = opt.dataset.type  || 'book';
+
+                    unitPrice.value  = price.toFixed(2);
+                    hsnCode.value    = hsn;
+                    gstPercent.value = gst;
+
+                    // Sync Item Type dropdown
+                    if (productType) {
+                        const matchingOpt = [...productType.options].find(o => o.value === type);
+                        if (matchingOpt) productType.value = type;
+                    }
+
+                    updateRowTotal();
+                });
+            }
+
+            if (productType) {
+                productType.addEventListener('change', function() {
+                    if (this.value === 'book') {
+                        gstPercent.value = 0;
+                        gstPercent.placeholder = '0';
+                        if (hsnCode && (!hsnCode.value || hsnCode.value === '49011020')) hsnCode.value = '49011010';
+                    } else if (this.value === 'bundle') {
+                        gstPercent.value = 18;
+                        gstPercent.placeholder = '18';
+                        if (hsnCode && (!hsnCode.value || hsnCode.value === '49011010')) hsnCode.value = '49011020';
+                    } else if (this.value === 'other') {
+                        gstPercent.value = '';
+                        gstPercent.placeholder = 'Enter GST %';
+                        gstPercent.required = true;
+                    }
+                    updateRowTotal();
+                });
+            }
+
+            bundles.addEventListener('input', updateRowTotal);
+            unitPrice.addEventListener('input', updateRowTotal);
+            gstPercent.addEventListener('input', updateRowTotal);
+        }
+
+        function toggleCourierInput(status) {
+            const group = document.getElementById('courierNumberGroup');
+            if (group) {
+                group.style.display = status === 'dispatched' ? 'block' : 'none';
+                if (status !== 'dispatched') {
+                    document.getElementById('courierNumber').value = '';
+                }
+            }
+        }
+
+        // Attach listeners to initial row
+        document.querySelectorAll('#productsBody tr').forEach(attachRowListeners);
+
+        // Fetch products from API and populate all dropdowns
+        fetchAvailableProducts();
+
+        // ── Smart IGST / CGST+SGST Routing ───────────────────────────────────────
+        // Base state: Karnataka. If customer state ≠ Karnataka → IGST; else → CGST+SGST.
+        const BASE_STATE = 'karnataka';
+
+        function isInterState() {
+            const stateField = (document.getElementById('state').value || '').toLowerCase();
+            return !stateField.includes(BASE_STATE);
+        }
+
+        // Calculate totals
+        function calculateTotals() {
+            const rows = document.querySelectorAll('#productsBody tr');
+            let subtotal = 0;
+            let rawSGST = 0;
+            let rawCGST = 0;
+
+            rows.forEach(row => {
+                const taxable = parseFloat(row.querySelector('.taxable-amount').value) || 0;
+                const sgst = parseFloat(row.querySelector('.sgst-amount').value) || 0;
+                const cgst = parseFloat(row.querySelector('.cgst-amount').value) || 0;
+                
+                subtotal += taxable;
+                rawSGST += sgst;
+                rawCGST += cgst;
+            });
+
+            const forwarding = parseFloat(document.getElementById('forwardingCharges').value) || 0;
+            const discount = parseFloat(document.getElementById('discount').value) || 0;
+            const other = parseFloat(document.getElementById('otherCharges').value) || 0;
+
+            // 5% GST on Forwarding / Courier Charges (2.5% SGST + 2.5% CGST)
+            const fwdGstPercent = 5;
+            rawSGST += forwarding * (fwdGstPercent / 200); // 2.5%
+            rawCGST += forwarding * (fwdGstPercent / 200); // 2.5%
+
+            const totalTax = rawSGST + rawCGST;
+            const taxableBase = subtotal + forwarding - discount + other;
+            const grandTotal = taxableBase + totalTax;
+
+            // Smart IGST vs CGST/SGST routing
+            let displayCGST = 0, displaySGST = 0, displayIGST = 0;
+            if (isInterState()) {
+                // Inter-state → full tax as IGST
+                displayIGST = totalTax;
+            } else {
+                // Intra-state (Karnataka) → split as CGST + SGST
+                displayCGST = rawCGST;
+                displaySGST = rawSGST;
+            }
+
+            // Update display
+            document.getElementById('subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+            document.getElementById('totalCGST').textContent = `₹${displayCGST.toFixed(2)}`;
+            document.getElementById('totalSGST').textContent = `₹${displaySGST.toFixed(2)}`;
+            document.getElementById('totalIGST').textContent = `₹${displayIGST.toFixed(2)}`;
+            document.getElementById('totalGST').textContent = `₹${totalTax.toFixed(2)}`;
+            document.getElementById('displayForwarding').textContent = `₹${forwarding.toFixed(2)}`;
+            document.getElementById('displayDiscount').textContent = `₹${discount.toFixed(2)}`;
+            document.getElementById('displayOther').textContent = `₹${other.toFixed(2)}`;
+            document.getElementById('roundOff').textContent = `₹0.00`;
+            document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+
+            // Convert to words
+            document.getElementById('amountInWords').textContent = numberToWords(Math.round(grandTotal)) + ' Rupees Only';
+        }
+
+        // Recalculate on state change (triggers IGST/CGST-SGST re-routing)
+        // (listener already added above in toggleShippingFields block)
+
+        // Add listeners for additional charges
+        ['forwardingCharges', 'discount', 'otherCharges'].forEach(id => {
+            document.getElementById(id).addEventListener('input', calculateTotals);
+        });
+
+        // Number to words conversion
+        function numberToWords(num) {
+            if (num === 0) return 'Zero';
+            
+            const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+            const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+            const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+            function convertLessThanThousand(n) {
+                if (n === 0) return '';
+                if (n < 10) return ones[n];
+                if (n < 20) return teens[n - 10];
+                if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+                return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convertLessThanThousand(n % 100) : '');
+            }
+
+            if (num < 1000) return convertLessThanThousand(num);
+            if (num < 100000) {
+                const thousands = Math.floor(num / 1000);
+                const remainder = num % 1000;
+                return convertLessThanThousand(thousands) + ' Thousand' + (remainder ? ' ' + convertLessThanThousand(remainder) : '');
+            }
+            if (num < 10000000) {
+                const lakhs = Math.floor(num / 100000);
+                const remainder = num % 100000;
+                return convertLessThanThousand(lakhs) + ' Lakh' + (remainder ? ' ' + numberToWords(remainder) : '');
+            }
+            const crores = Math.floor(num / 10000000);
+            const remainder = num % 10000000;
+            return convertLessThanThousand(crores) + ' Crore' + (remainder ? ' ' + numberToWords(remainder) : '');
+        }
+
+        // Print invoice
+        document.getElementById('previewBtn').addEventListener('click', function() {
+            // Validate "Other" rows before preview
+            const rows = document.querySelectorAll('#productsBody tr');
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const type = row.querySelector('.product-type')?.value;
+                const gstInput = row.querySelector('.gst-percent');
+                if (type === 'other' && (gstInput.value.trim() === '' || isNaN(parseFloat(gstInput.value)))) {
+                    alert(`Please enter a valid GST % for Item #${i + 1} (Type: Other).`);
+                    gstInput.focus();
+                    return;
+                }
+            }
+
+            // Helper: resolve shipping values (from billing if sameAsBilling checked)
+            function resolveShipping() {
+                const same = document.getElementById('sameAsBilling').checked;
+                return {
+                    shipToName:      same ? document.getElementById('customerName').value    : document.getElementById('shipToName').value,
+                    shippingPhone:   same ? document.getElementById('phoneNumber').value     : document.getElementById('shippingPhone').value,
+                    shippingAddress: same ? document.getElementById('billingAddress').value  : document.getElementById('shippingAddress').value,
+                    shippingTaluka:  same ? document.getElementById('taluka').value          : document.getElementById('shippingTaluka').value,
+                    shippingDistrict:same ? document.getElementById('district').value        : document.getElementById('shippingDistrict').value,
+                    shippingState:   same ? document.getElementById('state').value           : document.getElementById('shippingState').value,
+                    shippingPinCode: same ? document.getElementById('pinCode').value         : document.getElementById('shippingPinCode').value,
+                };
+            }
+
+            // Save current form data to localStorage for preview
+            const shipping = resolveShipping();
+            const formData = {
+                documentType: document.getElementById('documentType')?.value || 'tax_invoice',
+                invoiceNumber: document.getElementById('invoiceNumber').value,
+                invoiceDate: document.getElementById('invoiceDate').value,
+                customerName: document.getElementById('customerName').value,
+                phoneNumber: document.getElementById('phoneNumber').value,
+                gstNumber: document.getElementById('gstNumber').value,
+                billingAddress: document.getElementById('billingAddress').value,
+                taluka: document.getElementById('taluka').value,
+                district: document.getElementById('district').value,
+                state: document.getElementById('state').value,
+                pinCode: document.getElementById('pinCode').value,
+                shipToName:       shipping.shipToName,
+                shippingPhone:    shipping.shippingPhone,
+                shippingAddress:  shipping.shippingAddress,
+                shippingTaluka:   shipping.shippingTaluka,
+                shippingDistrict: shipping.shippingDistrict,
+                shippingState:    shipping.shippingState,
+                shippingPinCode:  shipping.shippingPinCode,
+                // Transport: use 'Own Vehicle' label when own vehicle mode is active
+                dispatchMode: document.querySelector('input[name="dispatchMode"]:checked').value,
+                transportationName: document.querySelector('input[name="dispatchMode"]:checked').value === 'own_vehicle'
+                    ? 'Own Vehicle'
+                    : document.getElementById('transportationName').value,
+                vehicleNo: document.querySelector('input[name="dispatchMode"]:checked').value === 'own_vehicle'
+                    ? ''
+                    : document.getElementById('vehicleNo').value,
+                dispatchStatus: document.querySelector('input[name="dispatchMode"]:checked').value === 'own_vehicle'
+                    ? 'pending'
+                    : document.getElementById('dispatchStatus').value,
+                courierNumber: document.querySelector('input[name="dispatchMode"]:checked').value === 'own_vehicle'
+                    ? ''
+                    : (document.getElementById('courierNumber')?.value || ''),
+                products: [],
+                forwardingCharges: document.getElementById('forwardingCharges').value,
+                forwardingGstPercent: 5,
+                discount: document.getElementById('discount').value,
+                otherCharges: document.getElementById('otherCharges').value,
+                // Bank: send empty strings if using default (print template falls back to company defaults)
+                useDefaultBank: document.getElementById('useDefaultBank').checked,
+                bankName:      document.getElementById('useDefaultBank').checked ? '' : document.getElementById('bankName').value,
+                accountNumber: document.getElementById('useDefaultBank').checked ? '' : document.getElementById('accountNumber').value,
+                ifscCode:      document.getElementById('useDefaultBank').checked ? '' : document.getElementById('ifscCode').value,
+                branch:        document.getElementById('useDefaultBank').checked ? '' : document.getElementById('branch').value,
+                // Signature: if using default, send digitalSignature:true and empty name fields
+                useDefaultSignature: document.getElementById('useDefaultSignature').checked,
+                receivedBy: document.getElementById('useDefaultSignature').checked ? '' : document.getElementById('receivedBy').value,
+                sentBy:     document.getElementById('useDefaultSignature').checked ? '' : document.getElementById('sentBy').value,
+                digitalSignature: document.getElementById('useDefaultSignature').checked ? true : document.getElementById('digitalSignature').checked
+            };
+
+            // Collect products (read display name from select option text)
+            document.querySelectorAll('#productsBody tr').forEach(row => {
+                const sel = row.querySelector('.product-name-select');
+                const productName = sel
+                    ? (sel.options[sel.selectedIndex]?.dataset?.name || sel.options[sel.selectedIndex]?.text || '')
+                    : '';
+                formData.products.push({
+                    productName,
+                    hsnCode: row.querySelector('.hsn-code').value,
+                    gstPercent: parseFloat(row.querySelector('.gst-percent').value) || 0,
+                    bundles: parseFloat(row.querySelector('.bundles').value) || 0,
+                    unitPrice: parseFloat(row.querySelector('.unit-price').value) || 0,
+                    taxableAmount: parseFloat(row.querySelector('.taxable-amount').value) || 0,
+                    sgstAmount: parseFloat(row.querySelector('.sgst-amount').value) || 0,
+                    cgstAmount: parseFloat(row.querySelector('.cgst-amount').value) || 0,
+                    total: parseFloat(row.querySelector('.total').value) || 0
+                });
+            });
+
+            localStorage.setItem('invoicePreview', JSON.stringify(formData));
+            window.open('/admin-invoice-print.html', '_blank');
+        });
+
+        // Reset form
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to reset the form?')) {
+                document.getElementById('invoiceForm').reset();
+                document.getElementById('invoiceDate').valueAsDate = new Date();
+                calculateTotals();
+            }
+        });
+
+        // Form submission
+        document.getElementById('invoiceForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Validate "Other" rows before submission
+            const rows = document.querySelectorAll('#productsBody tr');
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const type = row.querySelector('.product-type')?.value;
+                const gstInput = row.querySelector('.gst-percent');
+                if (type === 'other' && (gstInput.value.trim() === '' || isNaN(parseFloat(gstInput.value)))) {
+                    alert(`Please enter a valid GST % for Item #${i + 1} (Type: Other).`);
+                    gstInput.focus();
+                    return;
+                }
+            }
+
+            const products = [];
+            document.querySelectorAll('#productsBody tr').forEach(row => {
+                const sel = row.querySelector('.product-name-select');
+                const productName = sel
+                    ? (sel.options[sel.selectedIndex]?.dataset?.name || sel.options[sel.selectedIndex]?.text || '')
+                    : '';
+                products.push({
+                    productName,
+                    hsnCode: row.querySelector('.hsn-code').value,
+                    gstPercent: parseFloat(row.querySelector('.gst-percent').value) || 0,
+                    bundles: parseFloat(row.querySelector('.bundles').value) || 0,
+                    unitPrice: parseFloat(row.querySelector('.unit-price').value) || 0,
+                    taxableAmount: parseFloat(row.querySelector('.taxable-amount').value) || 0,
+                    sgstAmount: parseFloat(row.querySelector('.sgst-amount').value) || 0,
+                    cgstAmount: parseFloat(row.querySelector('.cgst-amount').value) || 0,
+                    total: parseFloat(row.querySelector('.total').value) || 0
+                });
+            });
+
+            const same = document.getElementById('sameAsBilling').checked;
+            const invoiceData = {
+                documentType: document.getElementById('documentType')?.value || 'tax_invoice',
+                invoiceDate: document.getElementById('invoiceDate').value,
+                customerName: document.getElementById('customerName').value,
+                phoneNumber: document.getElementById('phoneNumber').value,
+                gstNumber: document.getElementById('gstNumber').value,
+                billingAddress: document.getElementById('billingAddress').value,
+                taluka: document.getElementById('taluka').value,
+                district: document.getElementById('district').value,
+                state: document.getElementById('state').value,
+                pinCode: document.getElementById('pinCode').value,
+                // Shipping: copy billing values if sameAsBilling is ticked
+                shipToName:       same ? document.getElementById('customerName').value    : document.getElementById('shipToName').value,
+                shippingPhone:    same ? document.getElementById('phoneNumber').value     : document.getElementById('shippingPhone').value,
+                shippingAddress:  same ? document.getElementById('billingAddress').value  : document.getElementById('shippingAddress').value,
+                shippingTaluka:   same ? document.getElementById('taluka').value          : document.getElementById('shippingTaluka').value,
+                shippingDistrict: same ? document.getElementById('district').value        : document.getElementById('shippingDistrict').value,
+                shippingState:    same ? document.getElementById('state').value           : document.getElementById('shippingState').value,
+                shippingPinCode:  same ? document.getElementById('pinCode').value         : document.getElementById('shippingPinCode').value,
+                // Transport: use 'Own Vehicle' label when own vehicle mode is active
+                dispatchMode: document.querySelector('input[name="dispatchMode"]:checked').value,
+                transportationName: document.querySelector('input[name="dispatchMode"]:checked').value === 'own_vehicle'
+                    ? 'Own Vehicle'
+                    : document.getElementById('transportationName').value,
+                vehicleNo: document.querySelector('input[name="dispatchMode"]:checked').value === 'own_vehicle'
+                    ? ''
+                    : document.getElementById('vehicleNo').value,
+                dispatchStatus: document.querySelector('input[name="dispatchMode"]:checked').value === 'own_vehicle'
+                    ? 'pending'
+                    : document.getElementById('dispatchStatus').value,
+                courierNumber: document.querySelector('input[name="dispatchMode"]:checked').value === 'own_vehicle'
+                    ? ''
+                    : (document.getElementById('courierNumber')?.value || ''),
+                products: products,
+                forwardingCharges: document.getElementById('forwardingCharges').value,
+                forwardingGstPercent: 5,
+                discount: document.getElementById('discount').value,
+                otherCharges: document.getElementById('otherCharges').value,
+                // Bank: send empty strings if using default (backend/print template uses company bank defaults)
+                useDefaultBank: document.getElementById('useDefaultBank').checked,
+                bankName:      document.getElementById('useDefaultBank').checked ? '' : document.getElementById('bankName').value,
+                accountNumber: document.getElementById('useDefaultBank').checked ? '' : document.getElementById('accountNumber').value,
+                ifscCode:      document.getElementById('useDefaultBank').checked ? '' : document.getElementById('ifscCode').value,
+                branch:        document.getElementById('useDefaultBank').checked ? '' : document.getElementById('branch').value,
+                // Signature: if using default, send digitalSignature:true and empty name fields
+                useDefaultSignature: document.getElementById('useDefaultSignature').checked,
+                receivedBy: document.getElementById('useDefaultSignature').checked ? '' : document.getElementById('receivedBy').value,
+                sentBy:     document.getElementById('useDefaultSignature').checked ? '' : document.getElementById('sentBy').value,
+                digitalSignature: document.getElementById('useDefaultSignature').checked ? true : document.getElementById('digitalSignature').checked
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/invoices`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(invoiceData)
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Invoice saved successfully! Invoice Number: ' + data.invoice.invoiceNumber);
+                    document.getElementById('invoiceNumber').value = data.invoice.invoiceNumber;
+                    
+                    // Ask if user wants to view all invoices
+                    if (confirm('Invoice saved! Do you want to view all invoices?')) {
+                        window.location.href = '/admin-invoices-list.html';
+                    }
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to save invoice');
+            }
+        });
+
+        // Initial calculation
+        calculateTotals();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f0e2a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>All Combo Offers - Shree Mata</title>
+    <link rel="icon" href="images/press.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        /* ── TOKENS ── */
+        :root {
+            --navy: #0f0e2a;
+            --ink: #1a1860;
+            --ink2: #2d1f6e;
+            --gold: #c9a227;
+            --gold2: #f0c96b;
+            --gold3: #ffe9a0;
+            --cream: #faf8f2;
+            --muted: #6b6a7d;
+            --white: #ffffff;
+            --red: #dc3545;
+            --green: #28a745;
+            --shadow: 0 8px 40px rgba(15,14,42,.14);
+            --shadow-lg: 0 20px 60px rgba(15,14,42,.2);
+        }
+
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+        html{scroll-behavior:smooth;}
+        
+        body {
+            font-family:'Inter','Segoe UI',sans-serif;
+            background: var(--cream);
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: var(--navy);
+        }
+
+        @media(prefers-reduced-motion:reduce){
+            *{animation-duration:.01ms!important;transition-duration:.01ms!important;}
+        }
+
+        /* ── CURSOR TRAIL ── */
+        .cursor-dot{
+            position:fixed;
+            width:8px;height:8px;
+            border-radius:50%;
+            background:var(--gold);
+            pointer-events:none;
+            z-index:9999;
+            transform:translate(-50%,-50%);
+            transition:opacity .3s;
+            mix-blend-mode:multiply;
+        }
+        .cursor-ring{
+            position:fixed;
+            width:36px;height:36px;
+            border-radius:50%;
+            border:1.5px solid rgba(201,162,39,.6);
+            pointer-events:none;
+            z-index:9998;
+            transform:translate(-50%,-50%);
+            transition:width .2s,height .2s,border-color .2s;
+        }
+
+        /* ── CANVAS ── */
+        #bgCanvas{
+            position:fixed;inset:0;
+            width:100%;height:100%;
+            pointer-events:none;z-index:0;
+        }
+
+        /* ── PAGE TRANSITION ── */
+        .page-transition{
+            position:fixed;inset:0;
+            background:var(--ink);z-index:9000;
+            transform:scaleY(1);transform-origin:top;
+            animation:pageSlideOut .7s .1s cubic-bezier(.76,0,.24,1) forwards;
+            pointer-events:none;
+        }
+        @keyframes pageSlideOut{to{transform:scaleY(0);transform-origin:top;}}
+
+        /* ── NAVBAR ── */
+        .navbar{
+            background:rgba(10,9,38,.94);
+            backdrop-filter:blur(20px);
+            -webkit-backdrop-filter:blur(20px);
+            border-bottom:1px solid rgba(201,162,39,.2);
+            position:sticky;top:0;z-index:300;
+            transition:all .3s ease;
+        }
+        .navbar.scrolled{
+            box-shadow:0 4px 20px rgba(0,0,0,.3);
+        }
+        .navbar-content{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            max-width:1400px;
+            margin:0 auto;
+            padding:6px 20px;
+            gap:12px;
+        }
+        .logo a{
+            display:flex;align-items:center;gap:10px;text-decoration:none;
+            font-family:'Playfair Display',serif;font-size:23px;font-weight:900;
+            background:linear-gradient(135deg,var(--gold),var(--gold2));
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+            transition:all .3s ease;letter-spacing:.4px;
+        }
+        .logo a:hover{transform:scale(1.05);}
+        .logo a img{
+            width:40px;height:40px;
+            transition:transform .4s ease;
+        }
+        .logo a:hover img{
+            transform:rotate(10deg) scale(1.1);
+        }
+        .nav-links{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
+        .nav-links a{
+            text-decoration:none;color:rgba(255,255,255,.78);font-size:13.5px;font-weight:500;
+            padding:7px 13px;border-radius:30px;border:1px solid transparent;transition:all .3s ease;
+            position:relative;overflow:hidden;
+        }
+        .nav-links a::before{
+            content:'';
+            position:absolute;
+            top:50%;left:50%;
+            width:0;height:0;
+            border-radius:50%;
+            background:rgba(201,162,39,.1);
+            transform:translate(-50%,-50%);
+            transition:width .4s ease,height .4s ease;
+        }
+        .nav-links a:hover::before{
+            width:200px;height:200px;
+        }
+        .nav-links a:hover,.nav-links a.active{
+            border-color:var(--gold);color:var(--gold);background:rgba(201,162,39,.08);
+            transform:translateY(-2px);
+        }
+        .cart-icon{background:linear-gradient(135deg,var(--gold),#e8b84b)!important;color:var(--navy)!important;font-weight:700!important;border:none!important;}
+        .cart-icon:hover{opacity:.86;color:var(--navy)!important;transform:translateY(-2px) scale(1.05)!important;}
+
+        /* ── HERO SECTION ── */
+        .page-hero {
+            position: relative;
+            z-index: 1;
+            padding: 80px 24px 60px;
+            text-align: center;
+            background: linear-gradient(150deg, #0c0b26 0%, #161370 50%, #241880 100%);
+            border-bottom: 1px solid rgba(201,162,39,.2);
+            overflow: hidden;
+        }
+
+        .page-hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 50%, rgba(201,162,39,.15) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(201,162,39,.1) 0%, transparent 50%);
+            animation: heroGlow 8s ease-in-out infinite;
+        }
+
+        @keyframes heroGlow {
+            0%, 100% { opacity: .6; }
+            50% { opacity: 1; }
+        }
+
+        .page-hero-inner {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            background: rgba(255,255,255,.1);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 24px;
+            transition: all .4s cubic-bezier(.68,-.55,.265,1.55);
+            border: 1px solid rgba(255,255,255,.2);
+            backdrop-filter: blur(10px);
+            animation: fadeUp .8s ease both;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,.2);
+            transform: translateX(-5px);
+            box-shadow: 0 8px 24px rgba(0,0,0,.3);
+        }
+
+        .page-hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(36px, 7vw, 64px);
+            font-weight: 900;
+            color: var(--white);
+            margin-bottom: 16px;
+            animation: fadeUp .9s .1s ease both;
+            letter-spacing: -1px;
+            line-height: 1.1;
+        }
+
+        .page-hero h1 .gold-word {
+            background: linear-gradient(135deg, var(--gold), var(--gold2), var(--gold3));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+            display: inline-block;
+            animation: goldShimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes goldShimmer {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+        }
+
+        .page-hero h1 .gold-word::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,.45) 50%, transparent 80%);
+            background-size: 200% 100%;
+            animation: shimmer 3s ease-in-out infinite;
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .page-hero p {
+            font-size: clamp(15px, 2.5vw, 18px);
+            color: rgba(255,255,255,.7);
+            line-height: 1.7;
+            animation: fadeUp 1s .2s ease both;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Floating gift icons */
+        .floating-gift {
+            position: absolute;
+            font-size: 40px;
+            opacity: .15;
+            animation: floatGift 10s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .floating-gift:nth-child(1) { top: 20%; left: 10%; animation-delay: 0s; }
+        .floating-gift:nth-child(2) { top: 60%; right: 15%; animation-delay: 2s; }
+        .floating-gift:nth-child(3) { bottom: 30%; left: 20%; animation-delay: 4s; }
+        .floating-gift:nth-child(4) { top: 40%; right: 25%; animation-delay: 1s; font-size: 30px; }
+
+        @keyframes floatGift {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(10deg); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── CONTAINER ── */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── BUNDLES CONTAINER ── */
+        .bundles-container {
+            background: var(--white);
+            padding: 50px 42px;
+            border-radius: 24px;
+            margin: 40px auto;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(15,14,42,.05);
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(40px);
+            animation: containerReveal .8s .3s ease forwards;
+        }
+
+        @keyframes containerReveal {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .bundles-container::before {
+            content: '🎁';
+            position: absolute;
+            top: -30px;
+            right: 40px;
+            font-size: 150px;
+            opacity: .04;
+            pointer-events: none;
+            transform: rotate(-15deg);
+            line-height: 1;
+        }
+
+        .bundles-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .bundles-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--navy);
+            position: relative;
+            display: inline-block;
+        }
+
+        .bundles-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--gold), var(--gold2));
+            border-radius: 2px;
+        }
+
+        .bundles-count {
+            background: linear-gradient(135deg, var(--ink), var(--ink2));
+            color: var(--white);
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(26,24,96,.2);
+        }
+
+        /* ── BUNDLES GRID ── */
+        .bundles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 28px;
+            margin-top: 30px;
+        }
+
+        /* ── BUNDLE CARD ── */
+        .book-card {
+            background: var(--white);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(15,14,42,.08);
+            border: 1px solid rgba(15,14,42,.06);
+            transition: all .4s cubic-bezier(.68,-.55,.265,1.55);
+            position: relative;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: cardReveal .5s ease forwards;
+        }
+
+        .book-card:nth-child(1) { animation-delay: .1s; }
+        .book-card:nth-child(2) { animation-delay: .15s; }
+        .book-card:nth-child(3) { animation-delay: .2s; }
+        .book-card:nth-child(4) { animation-delay: .25s; }
+        .book-card:nth-child(5) { animation-delay: .3s; }
+        .book-card:nth-child(6) { animation-delay: .35s; }
+        .book-card:nth-child(7) { animation-delay: .4s; }
+        .book-card:nth-child(8) { animation-delay: .45s; }
+
+        @keyframes cardReveal {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .book-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 16px 48px rgba(15,14,42,.18);
+        }
+
+        .book-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--gold), var(--gold2));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform .4s ease;
+        }
+
+        .book-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .book-cover {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            transition: transform .4s ease;
+        }
+
+        .book-card:hover .book-cover {
+            transform: scale(1.05);
+        }
+
+        .book-card h3 {
+            padding: 18px 20px 8px;
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--navy);
+            line-height: 1.3;
+        }
+
+        .book-card p {
+            padding: 0 20px;
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .book-price {
+            padding: 0 20px;
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--ink);
+            margin: 10px 0;
+        }
+
+        .book-actions {
+            display: flex;
+            gap: 10px;
+            padding: 16px 20px 20px;
+        }
+
+        .btn-primary, .btn-secondary {
+            flex: 1;
+            padding: 11px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--ink), var(--ink2));
+            color: var(--white);
+            box-shadow: 0 4px 12px rgba(26,24,96,.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(26,24,96,.3);
+        }
+
+        .btn-secondary {
+            background: var(--cream);
+            color: var(--ink);
+            border: 1.5px solid var(--ink);
+        }
+
+        .btn-secondary:hover {
+            background: var(--ink);
+            color: var(--white);
+            transform: translateY(-2px);
+        }
+
+        /* ── DISCOUNT BADGE ── */
+        .discount-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: linear-gradient(135deg, #ff4444, #ff6b6b);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 13px;
+            box-shadow: 0 4px 16px rgba(255,68,68,.4);
+            z-index: 2;
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        /* ── CASHBACK STICKER ── */
+        .cashback-sticker {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: linear-gradient(135deg, var(--green), #20c997);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 12px;
+            box-shadow: 0 4px 16px rgba(40,167,69,.4);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 2;
+            animation: slideInLeft .5s .2s ease both;
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .cashback-icon {
+            font-size: 16px;
+        }
+
+        /* ── POINTS BADGE ── */
+        .points-badge {
+            background: linear-gradient(135deg, var(--green), #20c997);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 10px;
+            margin: 10px 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(40,167,69,.3);
+            font-weight: 700;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            animation: fadeUp .5s .3s ease both;
+        }
+
+        .points-badge span:first-child {
+            font-size: 20px;
+        }
+
+        /* ── LOADING ── */
+        .loading {
+            text-align: center;
+            padding: 80px 20px;
+            font-size: 18px;
+            color: var(--ink);
+            font-weight: 600;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(201,162,39,.2);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--muted);
+            animation: fadeUp .6s ease both;
+        }
+
+        .empty-state-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+            animation: floatGift 3s ease-in-out infinite;
+        }
+
+        .empty-state p {
+            font-size: 18px;
+            margin-bottom: 24px;
+        }
+
+        .empty-state .btn-primary {
+            display: inline-block;
+            padding: 14px 32px;
+            text-decoration: none;
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            background: var(--navy);
+            color: rgba(255,255,255,.65);
+            padding: 30px 0;
+            margin-top: 60px;
+            border-top: 1px solid rgba(201,162,39,.18);
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        footer p {
+            font-size: 14px;
+        }
+
+        /* ── RIPPLE EFFECT ── */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,.4);
+            transform: scale(0);
+            animation: rippleEffect .6s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes rippleEffect {
+            to {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+
+        /* ── MOBILE RESPONSIVE ── */
+        @media (max-width: 768px) {
+            .navbar-content {
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px 16px;
+            }
+            
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 5px;
+            }
+            
+            .nav-links a {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            
+            .page-hero {
+                padding: 60px 18px 50px;
+            }
+            
+            .page-hero h1 {
+                font-size: 32px !important;
+            }
+            
+            .page-hero p {
+                font-size: 15px !important;
+            }
+            
+            .container {
+                padding: 0 14px;
+            }
+            
+            .bundles-container {
+                padding: 30px 20px;
+                margin: 20px auto;
+                border-radius: 16px;
+            }
+            
+            .bundles-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 16px !important;
+            }
+            
+            .bundles-title {
+                font-size: 24px;
+            }
+            
+            .book-cover {
+                height: 200px;
+            }
+            
+            .book-card h3 {
+                font-size: 15px;
+                padding: 14px 16px 6px;
+            }
+            
+            .book-card p {
+                padding: 0 16px;
+                font-size: 12px;
+            }
+            
+            .book-price {
+                padding: 0 16px;
+                font-size: 20px;
+            }
+            
+            .book-actions {
+                padding: 12px 16px 16px;
+                flex-direction: column;
+            }
+            
+            .btn-primary, .btn-secondary {
+                width: 100%;
+            }
+            
+            .cursor-dot, .cursor-ring {
+                display: none;
+            }
+            
+            .floating-gift {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .bundles-grid {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .book-cover {
+                height: 240px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Page slide-in transition -->
+<div class="page-transition"></div>
+
+<!-- Custom cursor -->
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- Particle canvas -->
+<canvas id="bgCanvas"></canvas>
+
+<header>
+    <div class="navbar">
+        <div class="navbar-content">
+            <div class="logo">
+                <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+                    <img src="/images/press.png" alt="Shree Mata Logo">
+                    <span>Shree Mata</span>
+                </a>
+            </div>
+            <div class="nav-links">
+                <a href="/">🏠 Home</a>
+                <span id="authLinks">
+                    <a href="/login.html">🔐 Login</a>
+                    <a href="signup.html">📝 Sign Up</a>
+                </span>
+                <span id="userLinks" style="display: none;">
+                    <span id="userName"></span>
+                    <a href="#" id="logoutBtn">🚪 Logout</a>
+                </span>
+                <a href="account.html" id="accountLink">👤 Account</a>
+                <a href="referral.html" id="referralLink" style="display: none;">💰 Referral</a>
+                <a href="cart.html" class="cart-icon" id="cartLink">🛒 Cart (<span id="cartCount">0</span>)</a>
+                <a href="admin.html" id="adminLink" style="display: none;">⚙️ Admin</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main>
+    <!-- HERO SECTION -->
+    <section class="page-hero">
+        <!-- Floating gift icons -->
+        <div class="floating-gift">🎁</div>
+        <div class="floating-gift">✨</div>
+        <div class="floating-gift">🎉</div>
+        <div class="floating-gift">💝</div>
+
+        <div class="page-hero-inner">
+            <a href="/" class="back-btn">
+                <span>←</span>
+                <span>Back to Home</span>
+            </a>
+            <h1>🎁 All <span class="gold-word">Combo Offers</span></h1>
+            <p>Amazing discounts on book bundles - Save more when you buy together! Exclusive deals just for you.</p>
+        </div>
+    </section>
+
+    <div class="container">
+        <div class="bundles-container">
+            <div class="bundles-header">
+                <h2 class="bundles-title">🎁 Special Combo Offers</h2>
+                <div class="bundles-count" id="bundlesCount">Loading...</div>
+            </div>
+
+            <div id="loadingSpinner" class="loading">
+                <div class="loading-spinner"></div>
+                <div>Loading amazing offers...</div>
+            </div>
+            
+            <div id="bundlesGrid" class="bundles-grid"></div>
+            
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-state-icon">🎁</div>
+                <p>No combo offers available at the moment.</p>
+                <a href="/" class="btn-primary">← Browse Books</a>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer>
+    <div class="container">
+        <p>&copy; 2024 Shree Mata. All rights reserved. | Made with ❤️ & Trust</p>
+    </div>
+</footer>
+
+<script>
+/* ─── PARTICLE / CONSTELLATION CANVAS ─── */
+(function(){
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, particles = [];
+
+    function resize(){
+        W = canvas.width  = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function Particle(){
+        this.reset();
+    }
+    Particle.prototype.reset = function(){
+        this.x = Math.random() * W;
+        this.y = Math.random() * H;
+        this.r = Math.random() * 1.6 + .4;
+        this.vx = (Math.random()-.5)*.3;
+        this.vy = (Math.random()-.5)*.3;
+        this.alpha = Math.random() * .5 + .1;
+        this.gold = Math.random() > .6;
+    };
+
+    for(let i=0;i<70;i++) particles.push(new Particle());
+
+    let mouse = {x:-999, y:-999};
+    window.addEventListener('mousemove', e=>{ mouse.x=e.clientX; mouse.y=e.clientY; });
+
+    function draw(){
+        ctx.clearRect(0,0,W,H);
+
+        /* Draw connections */
+        for(let i=0;i<particles.length;i++){
+            for(let j=i+1;j<particles.length;j++){
+                const dx = particles[i].x - particles[j].x;
+                const dy = particles[i].y - particles[j].y;
+                const dist = Math.sqrt(dx*dx+dy*dy);
+                if(dist < 120){
+                    ctx.beginPath();
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(particles[j].x, particles[j].y);
+                    ctx.strokeStyle = `rgba(201,162,39,${(1-dist/120)*.12})`;
+                    ctx.lineWidth = .5;
+                    ctx.stroke();
+                }
+            }
+        }
+
+        /* Draw + move particles */
+        particles.forEach(p => {
+            const dx = p.x - mouse.x;
+            const dy = p.y - mouse.y;
+            const d  = Math.sqrt(dx*dx+dy*dy);
+            if(d < 100){
+                p.vx += dx/d * .04;
+                p.vy += dy/d * .04;
+            }
+
+            p.x += p.vx; p.y += p.vy;
+            p.vx *= .99; p.vy *= .99;
+
+            if(p.x<0||p.x>W||p.y<0||p.y>H) p.reset();
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+            ctx.fillStyle = p.gold
+                ? `rgba(201,162,39,${p.alpha})`
+                : `rgba(180,170,255,${p.alpha*.6})`;
+            ctx.fill();
+        });
+
+        requestAnimationFrame(draw);
+    }
+    draw();
+})();
+
+/* ─── CUSTOM CURSOR ─── */
+(function(){
+    const dot  = document.getElementById('cursorDot');
+    const ring = document.getElementById('cursorRing');
+    if(!dot||!ring) return;
+    let rx=0,ry=0;
+    window.addEventListener('mousemove',e=>{
+        dot.style.left  = e.clientX+'px';
+        dot.style.top   = e.clientY+'px';
+        rx += (e.clientX-rx)*.12;
+        ry += (e.clientY-ry)*.12;
+        ring.style.left = rx+'px';
+        ring.style.top  = ry+'px';
+    });
+
+    function lagRing(){
+        rx += (parseFloat(dot.style.left||0)-rx)*.12;
+        ry += (parseFloat(dot.style.top||0)-ry)*.12;
+        ring.style.left = rx+'px';
+        ring.style.top  = ry+'px';
+        requestAnimationFrame(lagRing);
+    }
+    lagRing();
+
+    document.querySelectorAll('a,button,.book-card').forEach(el=>{
+        el.addEventListener('mouseenter',()=>{
+            ring.style.width='60px'; ring.style.height='60px';
+            ring.style.borderColor='rgba(201,162,39,.9)';
+        });
+        el.addEventListener('mouseleave',()=>{
+            ring.style.width='36px'; ring.style.height='36px';
+            ring.style.borderColor='rgba(201,162,39,.6)';
+        });
+    });
+})();
+
+/* ─── NAVBAR SCROLL EFFECT ─── */
+window.addEventListener('scroll',()=>{
+    const navbar = document.querySelector('.navbar');
+    if(navbar) navbar.classList.toggle('scrolled', window.scrollY > 50);
+});
+
+/* ─── RIPPLE EFFECT ON BUTTONS ─── */
+document.querySelectorAll('.btn-primary, .btn-secondary, .back-btn').forEach(button => {
+    button.addEventListener('click', function(e) {
+        const ripple = document.createElement('span');
+        const rect = this.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        ripple.className = 'ripple';
+        ripple.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            left: ${x}px;
+            top: ${y}px;
+        `;
+        
+        this.style.position = 'relative';
+        this.style.overflow = 'hidden';
+        this.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+    });
+});
+</script>
+
+<script src="js/config.js"></script>
+<script src="js/cartUtils.js"></script>
+<script>
+    // API_URL is already defined in config.js
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        checkAuth();
+        loadAllBundles();
+    });
+
+    function checkAuth() {
+        const token = localStorage.getItem("token");
+        const user = JSON.parse(localStorage.getItem("user") || "null");
+
+        if (token && user) {
+            document.getElementById("authLinks").style.display = "none";
+            document.getElementById("userLinks").style.display = "flex";
+            document.getElementById("userName").textContent = `Hello, ${user.name}`;
+            document.getElementById("accountLink").style.display = "block";
+            document.getElementById("referralLink").style.display = "block";
+
+            if (user.role === "admin") {
+                document.getElementById("adminLink").style.display = "block";
+            }
+        }
+
+        const logoutBtn = document.getElementById("logoutBtn");
+        if (logoutBtn) {
+            logoutBtn.addEventListener("click", () => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                window.location.href = "/";
+            });
+        }
+
+        updateCartCount();
+    }
+
+    function updateCartCount() {
+        const cart = typeof getCart === 'function' ? getCart() : JSON.parse(localStorage.getItem("cart_guest") || "[]");
+        const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+        document.getElementById("cartCount").textContent = count;
+    }
+
+    async function loadAllBundles() {
+        try {
+            const res = await fetch(`${API_URL}/bundles`);
+            const data = await res.json();
+
+            document.getElementById("loadingSpinner").style.display = "none";
+
+            if (data.bundles && data.bundles.length > 0) {
+                document.getElementById("bundlesCount").textContent = `${data.bundles.length} Offers Available`;
+                displayBundles(data.bundles);
+            } else {
+                document.getElementById("emptyState").style.display = "block";
+                document.getElementById("bundlesCount").textContent = "0 Offers";
+            }
+        } catch (err) {
+            console.error("Error loading bundles:", err);
+            document.getElementById("loadingSpinner").style.display = "none";
+            document.getElementById("emptyState").style.display = "block";
+            document.getElementById("bundlesCount").textContent = "Error Loading";
+        }
+    }
+
+    function displayBundles(bundles) {
+        const grid = document.getElementById("bundlesGrid");
+        grid.innerHTML = "";
+
+        bundles.forEach((bundle, index) => {
+            const card = document.createElement("div");
+            card.className = "book-card bundle-card";
+            card.style.animationDelay = `${index * 0.05}s`;
+
+            const discount = bundle.discount || Math.round(((bundle.originalPrice - bundle.bundlePrice) / bundle.originalPrice) * 100);
+
+            // Create prominent points badge if bundle has reward points
+            const pointsBadge = bundle.rewardPoints && bundle.rewardPoints > 0 
+                ? `<div class="points-badge">
+                       <span>🎁</span>
+                       <span>Earn ${bundle.rewardPoints} Points</span>
+                   </div>`
+                : '';
+
+            // Create cashback sticker for bundle
+            const getCashbackSticker = (bundle) => {
+                let cashbackAmount = 0;
+                
+                if (bundle.cashbackAmount > 0) {
+                    cashbackAmount = bundle.cashbackAmount;
+                } else if (bundle.cashbackPercentage > 0) {
+                    cashbackAmount = (bundle.bundlePrice * bundle.cashbackPercentage) / 100;
+                }
+                
+                if (cashbackAmount > 0) {
+                    return `<div class="cashback-sticker">
+                               <span class="cashback-icon">💰</span>
+                               <span>₹${cashbackAmount.toFixed(0)} Cashback</span>
+                           </div>`;
+                }
+                return '';
+            };
+
+            const cashbackSticker = getCashbackSticker(bundle);
+
+            card.innerHTML = `
+                <div style="position: relative; overflow: hidden;">
+                    <div class="discount-badge">${discount}% OFF</div>
+                    <img src="${bundle.image || 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"250\" height=\"300\"%3E%3Crect fill=\"%23ddd\" width=\"250\" height=\"300\"/%3E%3Ctext fill=\"%23999\" font-family=\"Arial\" font-size=\"20\" x=\"50%25\" y=\"50%25\" text-anchor=\"middle\" dy=\".3em\"%3EBundle%3C/text%3E%3C/svg%3E'}" class="book-cover" />
+                    ${cashbackSticker}
+                </div>
+                <h3>🎁 ${bundle.name}</h3>
+                <p>${bundle.books.length} Books in Bundle</p>
+                ${pointsBadge}
+                <p style="text-decoration: line-through; color: #999; font-size: 14px; padding: 0 20px;">₹${bundle.originalPrice}</p>
+                <p class="book-price">₹${bundle.bundlePrice}</p>
+                <div class="book-actions">
+                    <button class="btn-primary" onclick="viewBundle('${bundle._id}')">View Bundle</button>
+                    <button class="btn-secondary" onclick="addBundleToCart('${bundle._id}')">Add to Cart</button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function viewBundle(bundleId) {
+        window.location.href = `/bundle.html?id=${bundleId}`;
+    }
+
+    async function addBundleToCart(bundleId) {
+        try {
+            const res = await fetch(`${API_URL}/bundles/${bundleId}`);
+            const data = await res.json();
+            const bundle = data.bundle;
+
+            let cart = getCart();
+
+            if (cart.find(item => item.bundleId === bundleId)) {
+                showToast("This bundle is already in your cart!", "warning");
+                return;
+            }
+
+            cart.push({
+                bundleId: bundleId,
+                isBundle: true,
+                title: bundle.name,
+                price: bundle.bundlePrice,
+                originalPrice: bundle.originalPrice,
+                books: bundle.books,
+                quantity: 1,
+                coverImage: bundle.image || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="250" height="300"%3E%3Crect fill="%23ddd" width="250" height="300"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="20" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EBundle%3C/text%3E%3C/svg%3E'
+            });
+
+            saveCart(cart);
+            showToast(`Bundle "${bundle.name}" added to cart!`, "success");
+            updateCartCount();
+        } catch (err) {
+            console.error("Error adding bundle to cart:", err);
+            showToast("Error adding bundle to cart", "error");
+        }
+    }
+
+    // Toast notification function
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: ${type === 'success' ? 'linear-gradient(135deg, #28a745, #20c997)' : type === 'warning' ? 'linear-gradient(135deg, #ffc107, #ff9800)' : 'linear-gradient(135deg, #dc3545, #c82333)'};
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,.2);
+            z-index: 99999;
+            font-weight: 600;
+            font-size: 14px;
+            animation: slideInRight .4s cubic-bezier(.68,-.55,.265,1.55);
+        `;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideInRight .4s ease reverse';
+            setTimeout(() => toast.remove(), 400);
+        }, 3000);
+    }
+
+    // Add toast animation
+    const toastStyle = document.createElement('style');
+    toastStyle.textContent = `
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    `;
+    document.head.appendChild(toastStyle);
+</script>
+</body>
+</html>

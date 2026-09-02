@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Manage Bundles - Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #f5f5f5;
+            padding-top: 90px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .bundle-card {
+            border: 2px solid #e0e0e0;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+        .bundle-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+        }
+        .bundle-books {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        .bundle-book-item {
+            padding: 8px 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .discount-badge {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 2px 8px rgba(245, 87, 108, 0.3);
+        }
+        .book-selector {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            padding: 20px;
+            margin: 15px 0;
+            background: #f9f9f9;
+            border-radius: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+        }
+        .book-selector::-webkit-scrollbar {
+            width: 10px;
+        }
+        .book-selector::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .book-selector::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+        .book-selector::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+        .book-checkbox {
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+        }
+        .book-checkbox:hover {
+            background: #e8f5e9;
+            border-color: #4CAF50 !important;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(76, 175, 80, 0.3);
+        }
+        .book-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .book-checkbox input[type="checkbox"]:checked {
+            accent-color: #4CAF50;
+        }
+        .book-checkbox:has(input:checked) {
+            background: #e8f5e9;
+            border-color: #4CAF50 !important;
+        }
+        .book-checkbox:has(input:checked) img {
+            border: 3px solid #4CAF50;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: white;
+            margin: 30px auto;
+            padding: 35px;
+            width: 90%;
+            max-width: 700px;
+            border-radius: 16px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            animation: slideDown 0.3s ease;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .form-group {
+            margin: 20px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+        .form-group input[readonly] {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        #debugInfo {
+            background: linear-gradient(135deg, #e0f7fa 0%, #e1bee7 100%);
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        #debugInfo strong {
+            color: #667eea;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px !important;
+                margin-top: 80px !important;
+            }
+            
+            .container h2 {
+                font-size: 20px;
+            }
+            
+            .container > div:first-child {
+                flex-direction: column !important;
+                gap: 15px;
+                align-items: stretch !important;
+            }
+            
+            #createBundleBtn {
+                width: 100%;
+            }
+            
+            .bundle-card {
+                padding: 15px;
+            }
+            
+            .bundle-card > div {
+                flex-direction: column !important;
+            }
+            
+            .bundle-card > div > div:last-child {
+                flex-direction: row !important;
+                width: 100%;
+                margin-top: 15px;
+            }
+            
+            .bundle-card > div > div:last-child button {
+                flex: 1;
+            }
+            
+            .bundle-books {
+                gap: 8px;
+            }
+            
+            .bundle-book-item {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+            
+            .discount-badge {
+                font-size: 14px;
+                padding: 6px 12px;
+            }
+            
+            /* Modal adjustments */
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+                margin: 20px auto;
+            }
+            
+            .modal-content h2 {
+                font-size: 18px;
+            }
+            
+            .book-selector {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 8px;
+                padding: 15px;
+                max-height: 400px;
+            }
+            
+            .book-checkbox img {
+                height: 100px !important;
+            }
+            
+            .form-group input,
+            .form-group textarea {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+            
+            .form-group > div {
+                flex-direction: column !important;
+            }
+            
+            .form-group > div > div {
+                width: 100% !important;
+            }
+            
+            .form-group > div > div button {
+                width: 100%;
+            }
+            
+            form > div:last-child {
+                flex-direction: column !important;
+            }
+            
+            form > div:last-child button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation will be injected by admin-navigation.js -->
+
+    <div class="container" style="margin-top: 100px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>Manage Combo Offers</h2>
+            <button class="btn" id="createBundleBtn">+ Create Bundle</button>
+        </div>
+        
+        <div id="debugInfo" style="background: #f0f0f0; padding: 10px; margin-bottom: 20px; border-radius: 4px;">
+            <strong>Debug Info:</strong>
+            <p>Books loaded: <span id="booksCount">0</span></p>
+            <p>Bundles loaded: <span id="bundlesCount">0</span></p>
+        </div>
+
+        <div id="bundlesContainer"></div>
+    </div>
+
+    <!-- Create/Edit Bundle Modal -->
+    <div id="bundleModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="modalTitle" style="margin: 0;">Create Bundle</h2>
+                <button type="button" onclick="closeModal()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #999; line-height: 1; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;" onmouseover="this.style.background='#f5f5f5'; this.style.color='#333';" onmouseout="this.style.background='none'; this.style.color='#999';">&times;</button>
+            </div>
+            <form id="bundleForm">
+                <div class="form-group">
+                    <label>Bundle Name *</label>
+                    <input type="text" id="bundleName" required placeholder="e.g., Mystery Pack">
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="bundleDescription" rows="3" placeholder="Describe this bundle..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Bundle Image (Optional)</label>
+                    <input type="file" id="bundleImageFile" accept="image/*" style="margin-bottom: 10px;">
+                    <input type="text" id="bundleImage" placeholder="Or paste image URL here">
+                    <small style="color: #666;">Upload image or paste URL</small>
+                    <div id="imagePreview" style="margin-top: 10px;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Select Books for Bundle *</label>
+                    <input type="text" id="bookSearch" placeholder="🔍 Search books by title or author..." 
+                           style="margin-bottom: 10px;" onkeyup="filterBooks()">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span id="selectedCount" style="color: #667eea; font-weight: bold;">0 books selected</span>
+                        <div style="display: flex; gap: 10px;">
+                            <button type="button" onclick="selectAll()" class="btn" style="padding: 6px 12px; font-size: 13px; background: #4CAF50;">Select All</button>
+                            <button type="button" onclick="clearSelection()" class="btn" style="padding: 6px 12px; font-size: 13px; background: #ff5252;">Clear All</button>
+                        </div>
+                    </div>
+                    <div id="bookSelector" class="book-selector"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Original Price</label>
+                    <input type="number" id="originalPrice" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label>Total Weight</label>
+                    <input type="text" id="totalWeight" readonly placeholder="0.00 kg">
+                    <small style="color: #ff9800;">Calculated from selected books</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Auto Courier Charge</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="autoCourierCharge" readonly placeholder="₹0.00" style="flex: 1;">
+                        <button type="button" onclick="copyAutoCourierCharge()" class="btn" style="padding: 8px 12px; font-size: 12px; background: #4CAF50;">Use This</button>
+                    </div>
+                    <small style="color: #ff9800;">₹25 per kg (rounded up), max ₹100</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Bundle Courier Charge *</label>
+                    <input type="number" id="courierCharge" step="0.01" min="0" required placeholder="Enter courier charge for this bundle">
+                    <small style="color: #2196F3;">
+                        Set custom courier charge for this bundle (overrides auto calculation)<br>
+                        <strong>Tip:</strong> Use auto charge as reference, then adjust based on bundle value/size
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>Bundle Price *</label>
+                    <input type="number" id="bundlePrice" required step="0.01" placeholder="Discounted price">
+                </div>
+
+                <div class="form-group">
+                    <label>Discount %</label>
+                    <input type="text" id="discountPercent" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label>Valid Until (Optional)</label>
+                    <input type="date" id="validUntil">
+                </div>
+
+                <div class="form-group">
+                    <label>Reward Points</label>
+                    <input type="number" id="rewardPoints" min="0" value="0" placeholder="0">
+                    <small>Points awarded to buyer on purchase</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Fixed Cashback Amount (₹)</label>
+                    <input type="number" id="cashbackAmount" step="0.01" min="0" value="0" placeholder="0.00">
+                    <small>Fixed cashback amount (takes priority over percentage)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Cashback Percentage (%)</label>
+                    <input type="number" id="cashbackPercentage" step="0.1" min="0" max="100" value="0" placeholder="0.0">
+                    <small>Percentage of bundle price as cashback (used if fixed amount is 0)</small>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn">Save Bundle</button>
+                    <button type="button" onclick="closeModal()" class="btn" style="background: #666;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+        // API_URL is already defined in config.js
+        let allBooks = [];
+        let editingBundleId = null;
+
+        // Calculate courier charge
+        function calculateCourierCharge(totalWeight) {
+            if (totalWeight <= 0) return 0;
+            const charge = Math.ceil(totalWeight) * 25;
+            return Math.min(charge, 100);
+        }
+
+        // Copy auto courier charge to manual field
+        function copyAutoCourierCharge() {
+            const autoCharge = document.getElementById("autoCourierCharge").value;
+            const chargeValue = autoCharge.replace('₹', '');
+            document.getElementById("courierCharge").value = chargeValue;
+            console.log('Copied auto courier charge:', chargeValue);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("Admin Bundles - Using API:", API_URL);
+            checkAdminAuth();
+            loadBooks();
+            loadBundles();
+            
+            // Add event listener for create bundle button
+            document.getElementById("createBundleBtn").addEventListener("click", openCreateModal);
+            
+            // Add form submit listener
+            document.getElementById("bundleForm").addEventListener("submit", handleBundleFormSubmit);
+            
+            // Add image file change listener
+            document.getElementById("bundleImageFile").addEventListener("change", handleImagePreview);
+        });
+
+        function checkAdminAuth() {
+            const token = localStorage.getItem("token");
+            const user = JSON.parse(localStorage.getItem("user") || "null");
+
+            if (!token || !user || user.role !== "admin") {
+                alert("Admin access required");
+                window.location.href = "/login.html";
+                return;
+            }
+        }
+
+        async function loadBooks() {
+            try {
+                console.log("Loading books from:", `${API_URL}/books`);
+                const res = await fetch(`${API_URL}/books`);
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                
+                const data = await res.json();
+                allBooks = data.books || [];
+                console.log("Loaded books:", allBooks.length);
+                
+                // Update debug info
+                document.getElementById("booksCount").textContent = allBooks.length;
+                
+                if (allBooks.length === 0) {
+                    alert("No books found! Please add books first from /admin.html");
+                }
+            } catch (err) {
+                console.error("Error loading books:", err);
+                alert("Error loading books: " + err.message);
+            }
+        }
+
+        async function loadBundles() {
+            try {
+                const token = localStorage.getItem("token");
+                console.log("Loading bundles from:", `${API_URL}/bundles/admin/all`);
+                
+                const res = await fetch(`${API_URL}/bundles/admin/all`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                
+                const data = await res.json();
+                console.log("Loaded bundles:", data.bundles?.length || 0);
+                
+                // Debug: Log bundle details
+                if (data.bundles && data.bundles.length > 0) {
+                    console.log("=== Bundle Weight Debug ===");
+                    data.bundles.forEach((bundle, index) => {
+                        console.log(`Bundle ${index + 1}: ${bundle.name}`);
+                        console.log("  Stored weight:", bundle.weight);
+                        console.log("  Number of books:", bundle.books?.length || 0);
+                        if (bundle.books) {
+                            bundle.books.forEach((book, bookIndex) => {
+                                console.log(`    Book ${bookIndex + 1}: ${book.title} - Weight: ${book.weight || 'NOT SET'}`);
+                            });
+                        }
+                    });
+                    console.log("========================");
+                }
+                
+                // Update debug info
+                document.getElementById("bundlesCount").textContent = data.bundles?.length || 0;
+                
+                displayBundles(data.bundles || []);
+            } catch (err) {
+                console.error("Error loading bundles:", err);
+                alert("Error loading bundles: " + err.message);
+            }
+        }
+
+        function displayBundles(bundles) {
+            const container = document.getElementById("bundlesContainer");
+            
+            if (bundles.length === 0) {
+                container.innerHTML = "<p>No bundles created yet.</p>";
+                return;
+            }
+
+            container.innerHTML = bundles.map(bundle => `
+                <div class="bundle-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            ${bundle.image ? `<img src="${bundle.image}" alt="${bundle.name}" style="width: 100%; max-width: 200px; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 15px;">` : ''}
+                            <h3>${bundle.name}</h3>
+                            <p>${bundle.description || ''}</p>
+                            
+                            <div class="bundle-books">
+                                ${bundle.books.map(book => `
+                                    <span class="bundle-book-item">${book.title}</span>
+                                `).join('')}
+                            </div>
+
+                            <div style="margin: 15px 0;">
+                                <span style="text-decoration: line-through; color: #999;">₹${bundle.originalPrice}</span>
+                                <span style="font-size: 24px; font-weight: bold; margin: 0 10px;">₹${bundle.bundlePrice}</span>
+                                <span class="discount-badge">${bundle.discount}% OFF</span>
+                            </div>
+
+                            <div style="background: #fff3e0; padding: 10px 12px; border-radius: 6px; margin: 10px 0; border-left: 3px solid #ff9800; display: inline-block;">
+                                <span style="color: #e65100; font-size: 13px;">📦 Weight: <strong>${(() => {
+                                    let weight = bundle.weight;
+                                    if (!weight && bundle.books && bundle.books.length) {
+                                        console.log(`Calculating weight for bundle: ${bundle.name}`);
+                                        console.log("Books:", bundle.books.map(b => `${b.title}: ${b.weight || 0.5}kg`));
+                                        weight = bundle.books.reduce((sum, book) => {
+                                            const bookWeight = book.weight || 0.5;
+                                            console.log(`  Adding ${bookWeight}kg, sum now: ${sum + bookWeight}kg`);
+                                            return sum + bookWeight;
+                                        }, 0);
+                                        console.log(`Total calculated weight: ${weight}kg`);
+                                    }
+                                    return (weight || 0).toFixed(2);
+                                })()} kg</strong></span>
+                                <span style="color: #e65100; font-size: 13px; margin-left: 15px;">Courier: <strong>₹${(bundle.courierCharge || 0).toFixed(2)}</strong></span>
+                            </div>
+
+                            <p style="color: #666; font-size: 14px;">
+                                Status: <strong>${bundle.isActive ? '✅ Active' : '❌ Inactive'}</strong>
+                                ${bundle.validUntil ? ` | Valid until: ${new Date(bundle.validUntil).toLocaleDateString()}` : ''}
+                                ${bundle.rewardPoints > 0 ? ` | 🎁 ${bundle.rewardPoints} points` : ''}
+                                ${bundle.cashbackAmount > 0 ? ` | 💰 ₹${bundle.cashbackAmount} cashback` : bundle.cashbackPercentage > 0 ? ` | 💰 ${bundle.cashbackPercentage}% cashback` : ''}
+                            </p>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; flex-direction: column;">
+                            <button class="btn edit-bundle-btn" data-id="${bundle._id}" style="background: #2196F3;">Edit</button>
+                            <button class="btn toggle-bundle-btn" data-id="${bundle._id}" style="background: ${bundle.isActive ? '#ff9800' : '#4CAF50'};">
+                                ${bundle.isActive ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button class="btn delete-bundle-btn" data-id="${bundle._id}" style="background: #f44336;">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Add event listeners for edit, toggle and delete buttons
+            container.querySelectorAll('.edit-bundle-btn').forEach(btn => {
+                btn.addEventListener('click', () => openEditModal(btn.dataset.id));
+            });
+            
+            container.querySelectorAll('.toggle-bundle-btn').forEach(btn => {
+                btn.addEventListener('click', () => toggleBundle(btn.dataset.id));
+            });
+            
+            container.querySelectorAll('.delete-bundle-btn').forEach(btn => {
+                btn.addEventListener('click', () => deleteBundle(btn.dataset.id));
+            });
+        }
+
+        function openCreateModal() {
+            console.log("Opening create modal, books available:", allBooks.length);
+            
+            if (allBooks.length === 0) {
+                alert("No books available! Please add books first from the Books admin page.");
+                return;
+            }
+            
+            editingBundleId = null;
+            document.getElementById("modalTitle").textContent = "Create Bundle";
+            document.getElementById("bundleForm").reset();
+            document.getElementById("imagePreview").innerHTML = '';
+            
+            // Initialize courier charge field to 0
+            document.getElementById("courierCharge").value = "0.00";
+            
+            renderBookSelector();
+            document.getElementById("bundleModal").style.display = "block";
+            console.log("Modal opened");
+        }
+
+        function closeModal() {
+            document.getElementById("bundleModal").style.display = "none";
+        }
+
+        async function openEditModal(bundleId) {
+            console.log("Opening edit modal for bundle:", bundleId);
+            
+            if (allBooks.length === 0) {
+                alert("No books available! Please add books first from the Books admin page.");
+                return;
+            }
+            
+            try {
+                // Fetch bundle details
+                const token = localStorage.getItem("token");
+                const res = await fetch(`${API_URL}/bundles/${bundleId}`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                
+                if (!res.ok) {
+                    throw new Error("Failed to fetch bundle details");
+                }
+                
+                const data = await res.json();
+                const bundle = data.bundle;
+                
+                console.log("Loaded bundle for editing:", bundle);
+                
+                // Set editing mode
+                editingBundleId = bundleId;
+                document.getElementById("modalTitle").textContent = "Edit Bundle";
+                
+                // Populate form fields
+                document.getElementById("bundleName").value = bundle.name || '';
+                document.getElementById("bundleDescription").value = bundle.description || '';
+                document.getElementById("bundleImage").value = bundle.image || '';
+                document.getElementById("bundlePrice").value = bundle.bundlePrice || '';
+                document.getElementById("courierCharge").value = bundle.courierCharge || 0;
+                document.getElementById("rewardPoints").value = bundle.rewardPoints || 0;
+                document.getElementById("cashbackAmount").value = bundle.cashbackAmount || 0;
+                document.getElementById("cashbackPercentage").value = bundle.cashbackPercentage || 0;
+                
+                // Set valid until date
+                if (bundle.validUntil) {
+                    const date = new Date(bundle.validUntil);
+                    document.getElementById("validUntil").value = date.toISOString().split('T')[0];
+                } else {
+                    document.getElementById("validUntil").value = '';
+                }
+                
+                // Show image preview if exists
+                const imagePreview = document.getElementById("imagePreview");
+                if (bundle.image) {
+                    imagePreview.innerHTML = `
+                        <img src="${bundle.image}" style="max-width: 200px; max-height: 200px; border-radius: 4px;">
+                        <p style="color: #666; font-size: 12px;">Current image</p>
+                    `;
+                } else {
+                    imagePreview.innerHTML = '';
+                }
+                
+                // Render book selector and select current books
+                renderBookSelector();
+                
+                // Select the books that are in this bundle
+                const bundleBookIds = bundle.books.map(book => book._id);
+                bundleBookIds.forEach(bookId => {
+                    const checkbox = document.querySelector(`#bookSelector input[value="${bookId}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+                
+                // Update prices to reflect current selection
+                updatePrices();
+                
+                // Show modal
+                document.getElementById("bundleModal").style.display = "block";
+                console.log("Edit modal opened");
+                
+            } catch (err) {
+                console.error("Error loading bundle for editing:", err);
+                alert("Error loading bundle details: " + err.message);
+            }
+        }
+
+        function renderBookSelector() {
+            const selector = document.getElementById("bookSelector");
+            
+            if (allBooks.length === 0) {
+                selector.innerHTML = '<p style="color: red; grid-column: 1/-1; text-align: center;">No books available. Please add books first.</p>';
+                return;
+            }
+            
+            console.log("Rendering book selector with", allBooks.length, "books");
+            selector.innerHTML = allBooks.map(book => `
+                <label class="book-checkbox" style="padding: 8px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; background: white;">
+                    <div style="position: relative;">
+                        <input type="checkbox" value="${book._id}" onchange="updatePrices()" 
+                               style="position: absolute; top: 5px; right: 5px; width: 18px; height: 18px; cursor: pointer; z-index: 10;">
+                        <img src="${book.cover_image || 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"280\"%3E%3Crect fill=\"%23ddd\" width=\"200\" height=\"280\"/%3E%3Ctext fill=\"%23999\" font-family=\"Arial\" font-size=\"16\" x=\"50%25\" y=\"50%25\" text-anchor=\"middle\" dy=\".3em\"%3ENo Cover%3C/text%3E%3C/svg%3E'}" 
+                             alt="${book.title}" 
+                             style="width: 100%; height: 120px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;">
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-weight: bold; font-size: 12px; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${book.title}">${book.title}</div>
+                        <div style="font-size: 10px; color: #666; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${book.author || 'Unknown Author'}</div>
+                        <div style="font-weight: bold; color: #667eea; font-size: 14px;">₹${book.price}</div>
+                        <div style="font-size: 10px; color: #ff9800; margin-top: 2px;">📦 ${book.weight || 0.5} kg</div>
+                    </div>
+                </label>
+            `).join('');
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('#bookSelector input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            updatePrices();
+        }
+
+        function selectAll() {
+            document.querySelectorAll('#bookSelector input[type="checkbox"]:not(:checked)').forEach(cb => {
+                if (cb.closest('label').style.display !== 'none') {
+                    cb.checked = true;
+                }
+            });
+            updatePrices();
+        }
+
+        function filterBooks() {
+            const searchTerm = document.getElementById("bookSearch").value.toLowerCase();
+            const labels = document.querySelectorAll('#bookSelector .book-checkbox');
+            
+            labels.forEach(label => {
+                const title = label.querySelector('div[title]')?.getAttribute('title')?.toLowerCase() || '';
+                const text = label.textContent.toLowerCase();
+                
+                if (title.includes(searchTerm) || text.includes(searchTerm)) {
+                    label.style.display = 'flex';
+                } else {
+                    label.style.display = 'none';
+                }
+            });
+        }
+
+        function updatePrices() {
+            const checkboxes = document.querySelectorAll('#bookSelector input[type="checkbox"]:checked');
+            let total = 0;
+            let totalWeight = 0;
+            
+            checkboxes.forEach(cb => {
+                const book = allBooks.find(b => b._id === cb.value);
+                if (book) {
+                    total += book.price;
+                    totalWeight += (book.weight || 0.5);
+                }
+            });
+
+            // Update selected count
+            document.getElementById("selectedCount").textContent = `${checkboxes.length} book${checkboxes.length !== 1 ? 's' : ''} selected`;
+
+            document.getElementById("originalPrice").value = total.toFixed(2);
+            
+            // Update weight and auto courier charge
+            document.getElementById("totalWeight").value = totalWeight.toFixed(2) + " kg";
+            const autoCourierCharge = calculateCourierCharge(totalWeight);
+            document.getElementById("autoCourierCharge").value = "₹" + autoCourierCharge.toFixed(2);
+            
+            // Set default courier charge if not already set
+            const courierChargeInput = document.getElementById("courierCharge");
+            if (!courierChargeInput.value) {
+                courierChargeInput.value = autoCourierCharge.toFixed(2);
+            }
+
+            const bundlePrice = parseFloat(document.getElementById("bundlePrice").value) || 0;
+            if (bundlePrice > 0 && total > 0) {
+                const discount = Math.round(((total - bundlePrice) / total) * 100);
+                document.getElementById("discountPercent").value = discount + "%";
+            } else {
+                document.getElementById("discountPercent").value = "";
+            }
+        }
+
+        document.getElementById("bundlePrice").addEventListener("input", updatePrices);
+
+        // Handle image file upload
+        function handleImagePreview(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById("imagePreview").innerHTML = `
+                    <img src="${e.target.result}" style="max-width: 200px; max-height: 200px; border-radius: 4px;">
+                    <p style="color: #666; font-size: 12px;">Preview (will upload when you save)</p>
+                `;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function handleBundleFormSubmit(e) {
+            console.log("Form submit triggered!");
+            e.preventDefault();
+
+            const checkboxes = document.querySelectorAll('#bookSelector input[type="checkbox"]:checked');
+            const bookIds = Array.from(checkboxes).map(cb => cb.value);
+
+            console.log("Selected books:", bookIds.length);
+
+            if (bookIds.length === 0) {
+                alert("Please select at least 1 book");
+                return;
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            const isEditing = editingBundleId !== null;
+            submitBtn.textContent = isEditing ? "Updating..." : "Saving...";
+
+            try {
+                let imageUrl = document.getElementById("bundleImage").value || null;
+
+                // Upload image if file is selected
+                const imageFile = document.getElementById("bundleImageFile").files[0];
+                if (imageFile) {
+                    submitBtn.textContent = "Uploading image...";
+                    const formData = new FormData();
+                    formData.append("image", imageFile);
+
+                    const token = localStorage.getItem("token");
+                    const uploadRes = await fetch(`${API_URL}/bundles/admin/upload-image`, {
+                        method: "POST",
+                        headers: {
+                            "Authorization": "Bearer " + token
+                        },
+                        body: formData
+                    });
+
+                    if (uploadRes.ok) {
+                        const uploadData = await uploadRes.json();
+                        imageUrl = uploadData.url;
+                        console.log("✅ Image uploaded successfully:", imageUrl);
+                    } else {
+                        const errorData = await uploadRes.json();
+                        throw new Error(errorData.error || "Image upload failed");
+                    }
+                }
+
+                submitBtn.textContent = isEditing ? "Updating bundle..." : "Creating bundle...";
+
+                // Validate courier charge
+                const courierChargeValue = parseFloat(document.getElementById("courierCharge").value);
+                if (isNaN(courierChargeValue) || courierChargeValue < 0) {
+                    alert("Please enter a valid courier charge (0 or greater)");
+                    return;
+                }
+
+                const bundleData = {
+                    name: document.getElementById("bundleName").value,
+                    description: document.getElementById("bundleDescription").value,
+                    image: imageUrl,
+                    bookIds,
+                    bundlePrice: parseFloat(document.getElementById("bundlePrice").value),
+                    courierCharge: courierChargeValue,
+                    validUntil: document.getElementById("validUntil").value || null,
+                    rewardPoints: parseInt(document.getElementById("rewardPoints").value) || 0,
+                    cashbackAmount: parseFloat(document.getElementById("cashbackAmount").value) || 0,
+                    cashbackPercentage: parseFloat(document.getElementById("cashbackPercentage").value) || 0
+                };
+
+                console.log("Sending bundle data:", bundleData);
+
+                const token = localStorage.getItem("token");
+                const url = isEditing 
+                    ? `${API_URL}/bundles/admin/update/${editingBundleId}`
+                    : `${API_URL}/bundles/admin/create`;
+                const method = isEditing ? "PUT" : "POST";
+
+                const res = await fetch(url, {
+                    method: method,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify(bundleData)
+                });
+
+                console.log("Response status:", res.status);
+                const data = await res.json();
+                console.log("Response data:", data);
+
+                if (res.ok) {
+                    alert(isEditing ? "Bundle updated successfully!" : "Bundle created successfully!");
+                    closeModal();
+                    loadBundles();
+                } else {
+                    console.error("Error response:", data);
+                    alert(data.error || (isEditing ? "Error updating bundle" : "Error creating bundle"));
+                }
+            } catch (err) {
+                console.error("Error:", err);
+                alert("Error: " + err.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Save Bundle";
+            }
+        }
+
+        async function toggleBundle(id) {
+            try {
+                const token = localStorage.getItem("token");
+                const res = await fetch(`${API_URL}/bundles/admin/toggle/${id}`, {
+                    method: "PATCH",
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                if (res.ok) {
+                    loadBundles();
+                } else {
+                    alert("Error toggling bundle");
+                }
+            } catch (err) {
+                console.error("Error:", err);
+            }
+        }
+
+        async function deleteBundle(id) {
+            if (!confirm("Are you sure you want to delete this bundle?")) return;
+
+            try {
+                const token = localStorage.getItem("token");
+                const res = await fetch(`${API_URL}/bundles/admin/delete/${id}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                if (res.ok) {
+                    alert("Bundle deleted");
+                    loadBundles();
+                } else {
+                    alert("Error deleting bundle");
+                }
+            } catch (err) {
+                console.error("Error:", err);
+            }
+        }
+
+        // Logout will be handled by admin-navigation.js
+    </script>
+    <script src="js/admin-navigation.js"></script>
+</body>
+</html>

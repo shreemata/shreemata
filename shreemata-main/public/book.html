@@ -1,0 +1,1930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Book Details - Shree Mata</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Page Load Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -1000px 0;
+            }
+            100% {
+                background-position: 1000px 0;
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+            70% {
+                transform: scale(0.9);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* Loading Skeleton Animation */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 1000px 100%;
+            animation: shimmer 2s infinite linear;
+        }
+
+        /* Main Container Animation */
+        #bookDetails {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .book-detail-container {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        /* Book Cover Animation */
+        .book-detail-cover {
+            animation: scaleIn 0.6s ease-out 0.2s both;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .book-detail-cover:hover {
+            transform: scale(1.05) rotateY(5deg);
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Pricing Options Styles with Animations */
+        .pricing-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+        
+        .pickup-pricing {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 3s ease infinite;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pickup-pricing::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .pickup-pricing:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .pickup-pricing:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(76, 175, 80, 0.5);
+        }
+        
+        .courier-pricing {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 3s ease infinite;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .courier-pricing::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .courier-pricing:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .courier-pricing:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(33, 150, 243, 0.5);
+        }
+        
+        .pricing-title {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            font-weight: 600;
+            animation: slideDown 0.6s ease-out 0.6s both;
+        }
+        
+        .book-price {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+            animation: bounceIn 0.8s ease-out 0.8s both;
+        }
+        
+        .pricing-note {
+            margin: 0;
+            font-size: 12px;
+            opacity: 0.9;
+            animation: fadeInUp 0.6s ease-out 1s both;
+        }
+        
+        /* Button Groups with Ripple Effect */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            animation: fadeInUp 0.6s ease-out 1.2s both;
+        }
+        
+        .button-group button {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .button-group button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .button-group button:active::after {
+            width: 300px;
+            height: 300px;
+            opacity: 0;
+            transition: 0s;
+        }
+
+        .button-group button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .button-group button:active {
+            transform: translateY(-1px);
+        }
+        
+        /* Quantity Selector Animations */
+        .quantity-selector {
+            animation: fadeInUp 0.6s ease-out 0.6s both;
+        }
+
+        .quantity-selector button {
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .quantity-selector button:hover {
+            transform: scale(1.15) rotate(90deg);
+        }
+
+        .quantity-selector button:active {
+            transform: scale(0.95);
+        }
+
+        #bookQuantity {
+            transition: all 0.3s ease;
+        }
+
+        #bookQuantity:focus {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Book Details Right Side Animation */
+        .book-detail-right {
+            animation: fadeInRight 0.8s ease-out 0.3s both;
+        }
+
+        .book-detail-right h1 {
+            animation: fadeInLeft 0.6s ease-out 0.5s both;
+        }
+
+        .book-author {
+            animation: fadeInLeft 0.6s ease-out 0.6s both;
+        }
+
+        .book-description {
+            animation: fadeInUp 0.6s ease-out 1.4s both;
+        }
+
+        /* Preview Section Animation */
+        .preview-section {
+            animation: fadeInUp 0.8s ease-out 1.6s both;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .preview-image {
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-radius: 8px;
+            animation: scaleIn 0.6s ease-out both;
+        }
+
+        .preview-image:nth-child(1) { animation-delay: 1.8s; }
+        .preview-image:nth-child(2) { animation-delay: 1.9s; }
+        .preview-image:nth-child(3) { animation-delay: 2.0s; }
+        .preview-image:nth-child(4) { animation-delay: 2.1s; }
+
+        .preview-image:hover {
+            transform: scale(1.1) rotateZ(2deg);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+            z-index: 10;
+        }
+
+        /* Image Lightbox Styles with Animations */
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .lightbox-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .lightbox-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .lightbox-content img {
+            max-width: 100%;
+            max-height: 85vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+            animation: zoomIn 0.3s ease;
+        }
+
+        @keyframes zoomIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: -50px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            line-height: 1;
+            padding: 0;
+        }
+
+        .lightbox-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        .lightbox-prev,
+        .lightbox-next {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10001;
+        }
+
+        .lightbox-prev:hover,
+        .lightbox-next:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%) scale(1.2);
+        }
+
+        .lightbox-prev {
+            left: 20px;
+        }
+
+        .lightbox-next {
+            right: 20px;
+        }
+
+        .lightbox-caption {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            white-space: nowrap;
+            animation: slideDown 0.4s ease-out;
+        }
+
+        /* Payment Method Modal Styles with Animations */
+        .payment-modal {
+            max-width: 500px;
+            width: 90%;
+            animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .payment-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .payment-option {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: white;
+            animation: fadeInLeft 0.5s ease-out both;
+        }
+
+        .payment-option:nth-child(1) { animation-delay: 0.1s; }
+        .payment-option:nth-child(2) { animation-delay: 0.2s; }
+        .payment-option:nth-child(3) { animation-delay: 0.3s; }
+
+        .payment-option:hover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+            transform: translateX(10px) scale(1.02);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .payment-icon {
+            font-size: 32px;
+            margin-right: 15px;
+            min-width: 50px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .payment-option:hover .payment-icon {
+            transform: scale(1.2) rotate(10deg);
+        }
+
+        .payment-details {
+            flex: 1;
+        }
+
+        .payment-details h4 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+            color: #333;
+            transition: all 0.3s ease;
+        }
+
+        .payment-option:hover .payment-details h4 {
+            color: #667eea;
+        }
+
+        .payment-details p {
+            margin: 0 0 8px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .payment-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .payment-badge.instant {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .payment-badge.manual {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .payment-arrow {
+            font-size: 20px;
+            color: #667eea;
+            margin-left: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .payment-option:hover .payment-arrow {
+            transform: translateX(5px);
+        }
+
+        /* Modal Styles with Animations */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 2% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 95%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        @keyframes slideIn {
+            from { 
+                transform: translateY(-50px) scale(0.9); 
+                opacity: 0; 
+            }
+            to { 
+                transform: translateY(0) scale(1); 
+                opacity: 1; 
+            }
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 3s ease infinite;
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            animation: fadeInLeft 0.5s ease-out;
+        }
+        
+        .modal-header .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .modal-header .close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg) scale(1.1);
+        }
+        
+        .modal-body {
+            padding: 25px;
+            padding-top: 10px;
+            animation: fadeInUp 0.5s ease-out 0.2s both;
+        }
+
+        /* Form Input Animations */
+        .modal-body input,
+        .modal-body select {
+            transition: all 0.3s ease;
+        }
+
+        .modal-body input:focus,
+        .modal-body select:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+
+        /* Button Hover Animations */
+        .btn-primary,
+        .btn-secondary {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .btn-primary::before,
+        .btn-secondary::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-primary:hover::before,
+        .btn-secondary:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary:hover,
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active,
+        .btn-secondary:active {
+            transform: translateY(-1px);
+        }
+
+        /* Loading Spinner Animation */
+        .loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        /* Weight and Courier Charge Animation */
+        #totalWeight,
+        #totalCourierCharge,
+        #bookWeight,
+        #bookCourierCharge {
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        #totalWeight:hover,
+        #totalCourierCharge:hover,
+        #bookWeight:hover,
+        #bookCourierCharge:hover {
+            transform: scale(1.1);
+        }
+
+        /* Navbar Animation */
+        .navbar {
+            animation: slideDown 0.6s ease-out;
+            transition: all 0.3s ease;
+        }
+
+        .navbar.scrolled {
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Search Bar Animation */
+        .search-bar {
+            transition: all 0.3s ease;
+        }
+
+        .search-bar:hover {
+            transform: scale(1.02);
+        }
+
+        .search-bar input {
+            transition: all 0.3s ease;
+        }
+
+        .search-bar input:focus {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Cart Icon Animation */
+        #cartIcon {
+            transition: all 0.3s ease;
+        }
+
+        #cartIcon:hover {
+            transform: scale(1.1);
+        }
+
+        #cartCount {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Footer Animation */
+        footer {
+            animation: fadeInUp 0.8s ease-out 2s both;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .pricing-section {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+
+            .lightbox-content {
+                max-width: 95%;
+            }
+
+            .lightbox-content img {
+                max-height: 80vh;
+            }
+
+            .lightbox-close {
+                top: -40px;
+                font-size: 30px;
+                width: 40px;
+                height: 40px;
+            }
+
+            .lightbox-prev,
+            .lightbox-next {
+                width: 40px;
+                height: 40px;
+                font-size: 24px;
+            }
+
+            .lightbox-prev {
+                left: 10px;
+            }
+
+            .lightbox-next {
+                right: 10px;
+            }
+
+            .lightbox-caption {
+                bottom: -35px;
+                font-size: 12px;
+                padding: 8px 15px;
+            }
+
+            .modal-content {
+                width: 98%;
+                margin: 1% auto;
+                max-height: 95vh;
+                border-radius: 10px;
+            }
+            
+            .modal-header {
+                padding: 15px;
+                border-radius: 10px 10px 0 0;
+            }
+            
+            .modal-header h3 {
+                font-size: 18px;
+            }
+            
+            .modal-body {
+                padding: 15px;
+                padding-top: 5px;
+            }
+            
+            .modal-body div[style*="grid-template-columns: 1fr 1fr"] {
+                display: block !important;
+            }
+            
+            .modal-body div[style*="grid-template-columns: 1fr 1fr"] > div {
+                margin-bottom: 15px !important;
+            }
+            
+            .modal-body div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+                display: block !important;
+            }
+            
+            .modal-body div[style*="grid-template-columns: 1fr 1fr 1fr"] > div {
+                margin-bottom: 15px !important;
+            }
+            
+            .modal-body div[style*="position: sticky"] {
+                margin-left: -15px !important;
+                margin-right: -15px !important;
+                padding-left: 15px !important;
+                padding-right: 15px !important;
+            }
+
+            .payment-option {
+                padding: 15px;
+            }
+            
+            .payment-icon {
+                font-size: 28px;
+                margin-right: 12px;
+                min-width: 40px;
+            }
+            
+            .payment-details h4 {
+                font-size: 16px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .modal-content {
+                width: 100%;
+                margin: 0;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+            
+            .modal-header {
+                border-radius: 0;
+            }
+            
+            .modal-body {
+                padding: 10px;
+            }
+            
+            .modal-body div[style*="position: sticky"] {
+                margin-left: -10px !important;
+                margin-right: -10px !important;
+                padding-left: 10px !important;
+                padding-right: 10px !important;
+            }
+        }
+        
+        /* Previous Address Button Styles */
+        #useOldAddressBtn,
+        #usePreviousBillingAddressBtn {
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #useOldAddressBtn:hover,
+        #usePreviousBillingAddressBtn:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+        }
+        
+        #useOldAddressBtn:active,
+        #usePreviousBillingAddressBtn:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        #useOldAddressBtn:disabled,
+        #usePreviousBillingAddressBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Smooth Scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Parallax Effect for Book Cover */
+        .book-detail-left {
+            perspective: 1000px;
+        }
+
+        /* Floating Animation for Icons */
+        @keyframes floatIcon {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .pricing-title {
+            animation: floatIcon 3s ease-in-out infinite;
+        }
+
+        /* Staggered Animation for Form Fields */
+        .modal-body input,
+        .modal-body select {
+            animation: fadeInUp 0.5s ease-out both;
+        }
+
+        .modal-body div:nth-child(1) input { animation-delay: 0.1s; }
+        .modal-body div:nth-child(2) input { animation-delay: 0.15s; }
+        .modal-body div:nth-child(3) input { animation-delay: 0.2s; }
+        .modal-body div:nth-child(4) input { animation-delay: 0.25s; }
+        .modal-body div:nth-child(5) input { animation-delay: 0.3s; }
+        .modal-body div:nth-child(6) input { animation-delay: 0.35s; }
+
+        /* Success Animation */
+        @keyframes successCheck {
+            0% {
+                transform: scale(0) rotate(-45deg);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2) rotate(-45deg);
+            }
+            100% {
+                transform: scale(1) rotate(-45deg);
+                opacity: 1;
+            }
+        }
+
+        /* Error Shake Animation */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .error {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        /* Tooltip Animation */
+        [data-tooltip] {
+            position: relative;
+        }
+
+        [data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            animation: fadeIn 0.3s ease-out;
+            z-index: 1000;
+        }
+
+        /* Gradient Text Animation */
+        @keyframes gradientText {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientText 3s ease infinite;
+        }
+
+        /* Glow Effect */
+        @keyframes glow {
+            0%, 100% {
+                box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(102, 126, 234, 0.8), 0 0 40px rgba(102, 126, 234, 0.4);
+            }
+        }
+
+        .glow {
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        /* Typing Animation */
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blink {
+            50% { border-color: transparent; }
+        }
+
+        .typing-effect {
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 3px solid #667eea;
+            animation: typing 2s steps(40, end), blink 0.75s step-end infinite;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <div class="container navbar-content">
+                <div class="logo">
+                    <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                        <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 36px; height: 36px; border-radius: 50%; transition: transform 0.3s ease;">
+                        <span class="gradient-text" style="font-weight: 700;">Shree Mata</span>
+                    </a>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Search for books, authors...">
+                    <button id="searchBtn">🔍</button>
+                </div>
+
+                <div class="nav-links">
+                    <a href="/" class="active">Home</a>
+
+                    <span id="authLinks">
+                        <a href="/login.html">Login</a>
+                        <a href="/signup.html">Sign Up</a>
+                    </span>
+
+                    <span id="userLinks" style="display:none;">
+                        <span id="userName"></span>
+                        <a href="#" id="logoutBtn">Logout</a>
+                    </span>
+
+                    <a href="/admin.html" id="adminLink" style="display:none;">Admin</a>
+
+                    <!-- CART ICON -->
+                    <a href="/cart.html" id="cartIcon" style="display:none; font-size:18px;">
+                        🛒 Cart (<span id="cartCount">0</span>)
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div id="loadingSpinner" class="loading">
+                <div style="text-align: center;">
+                    <div style="font-size: 48px; animation: rotate 2s linear infinite;">📚</div>
+                    <p style="margin-top: 15px; color: #667eea; font-weight: 600;">Loading book details...</p>
+                </div>
+            </div>
+
+            <div id="bookDetails" style="display: none;">
+                <div class="book-detail-container">
+
+                    <!-- LEFT SIDE -->
+                    <div class="book-detail-left">
+                        <img id="bookCover" src="" alt="Book Cover" class="book-detail-cover">
+
+                        <!-- Quantity Selector -->
+                        <div class="quantity-selector" style="margin: 20px 0; text-align: center;">
+                            <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">Quantity:</label>
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 2px solid #e9ecef;">
+                                <button id="decreaseQty" style="background: #dc3545; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center;">−</button>
+                                <input type="number" id="bookQuantity" value="1" min="1" max="10" style="width: 80px; text-align: center; font-size: 18px; font-weight: bold; border: 2px solid #667eea; border-radius: 8px; padding: 10px; background: white;">
+                                <button id="increaseQty" style="background: #28a745; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center;">+</button>
+                            </div>
+                            <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                                <span>Total Weight: </span><span id="totalWeight" style="font-weight: bold; color: #e65100;">0.5 kg</span>
+                                <span style="margin-left: 15px;">Courier Charge: </span><span id="totalCourierCharge" style="font-weight: bold; color: #e65100;">₹25</span>
+                            </div>
+                        </div>
+
+                        <!-- Purchase Buttons -->
+                        <div class="purchase-buttons">
+                            <!-- Buy Buttons -->
+                            <div class="button-group buy-buttons">
+                                <button id="buyPickupBtn" class="btn-primary btn-large">🏪 Buy through Store</button>
+                                <button id="buyCourierBtn" class="btn-primary btn-large">🚚 Buy by Courier</button>
+                            </div>
+                            
+                            <!-- Single Add to Cart Button -->
+                            <div class="button-group cart-buttons" style="margin-top: 15px;">
+                                <button id="addToCartBtn" class="btn-secondary btn-large" style="width: 100%;">🛒 Add to Cart</button>
+                            </div>
+                        </div>
+                    </div>
+
+    <!-- Billing Address Collection Modal -->
+    <div id="billingAddressModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 700px; width: 95%; max-height: 90vh; overflow-y: auto; margin: 2% auto;">
+            <div class="modal-header" style="position: sticky; top: 0; z-index: 10; background: white; border-radius: 16px 16px 0 0;">
+                <h3 id="billingModalTitle">📋 Billing & Delivery Details</h3>
+                <span class="close" onclick="closeBillingAddressModal()">&times;</span>
+            </div>
+            <div class="modal-body" style="padding: 25px; padding-top: 10px;">
+                <form id="billingAddressForm">
+                    <!-- Permanent Address (Billing) Section -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-size: 200% 200%; animation: gradientShift 3s ease infinite; color: white; padding: 15px; border-radius: 12px; margin-bottom: 25px;">
+                        <h4 style="margin: 0 0 10px 0; font-size: 18px;">🏠 Permanent Address (For Billing)</h4>
+                        <p style="margin: 0; font-size: 14px; opacity: 0.9;">This address will be used for billing and invoice generation</p>
+                    </div>
+                    
+                    <!-- Use Previous Address Button for Billing -->
+                    <div style="margin-bottom: 20px;">
+                        <button id="usePreviousBillingAddressBtn" type="button" onclick="loadPreviousBillingAddresses()" style="
+                            width: 100%; 
+                            padding: 15px; 
+                            background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+                            color: white; 
+                            border: none; 
+                            border-radius: 12px; 
+                            font-size: 16px; 
+                            font-weight: 600; 
+                            cursor: pointer; 
+                            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+                        ">
+                            📋 Use My Previous Address
+                        </button>
+                    </div>
+                    
+                    <!-- Previous Addresses Dropdown for Billing (Initially Hidden) -->
+                    <div id="previousBillingAddressesSection" style="display: none; margin-bottom: 20px;">
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; border: 2px solid #e9ecef; animation: slideDown 0.4s ease-out;">
+                            <h5 style="margin: 0 0 15px 0; color: #495057; font-size: 16px;">📍 Select from Previous Addresses:</h5>
+                            <select id="previousBillingAddressSelect" onchange="fillBillingAddressFromPrevious()" style="
+                                width: 100%; 
+                                padding: 12px; 
+                                border: 2px solid #ced4da; 
+                                border-radius: 8px; 
+                                font-size: 14px; 
+                                background: white;
+                                cursor: pointer;
+                            ">
+                                <option value="">-- Select a previous address --</option>
+                            </select>
+                            <div style="margin-top: 10px; text-align: center;">
+                                <button type="button" onclick="hidePreviousBillingAddresses()" style="
+                                    padding: 8px 16px; 
+                                    background: #6c757d; 
+                                    color: white; 
+                                    border: none; 
+                                    border-radius: 6px; 
+                                    font-size: 12px; 
+                                    cursor: pointer;
+                                    transition: all 0.3s ease;
+                                ">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Full Name *</label>
+                            <input type="text" id="billingName" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Full name for billing">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Phone Number *</label>
+                            <input type="tel" id="billingPhone" required pattern="[0-9]{10}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="10-digit phone number">
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">House/Building Address *</label>
+                        <input type="text" id="billingAddress1" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="House number, building name, street">
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Area/Locality (Optional)</label>
+                        <input type="text" id="billingAddress2" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Area, locality, landmark">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Taluk *</label>
+                            <input type="text" id="billingTaluk" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Taluk">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">District *</label>
+                            <input type="text" id="billingDistrict" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="District">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">State *</label>
+                            <input type="text" id="billingState" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="State">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Pincode *</label>
+                            <input type="text" id="billingPincode" required pattern="[0-9]{6}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="6-digit pincode">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Email *</label>
+                            <input type="email" id="billingEmail" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Email for invoice">
+                        </div>
+                    </div>
+                    
+                    <!-- Delivery Address Section (Only for Courier) -->
+                    <div id="deliveryAddressSection" style="display: none;">
+                        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); background-size: 200% 200%; animation: gradientShift 3s ease infinite; color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                            <h4 style="margin: 0 0 10px 0; font-size: 18px;">🚚 Delivery Address</h4>
+                            <p style="margin: 0; font-size: 14px; opacity: 0.9;">Where should we deliver your order?</p>
+                        </div>
+                        
+                        <!-- Use Old Address Button -->
+                        <div style="margin-bottom: 20px;">
+                            <button id="useOldAddressBtn" onclick="loadPreviousAddresses()" style="
+                                width: 100%; 
+                                padding: 15px; 
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                color: white; 
+                                border: none; 
+                                border-radius: 12px; 
+                                font-size: 16px; 
+                                font-weight: 600; 
+                                cursor: pointer; 
+                                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+                            ">
+                                📋 Use My Previous Address
+                            </button>
+                        </div>
+                        
+                        <!-- Previous Addresses Dropdown (Initially Hidden) -->
+                        <div id="previousAddressesSection" style="display: none; margin-bottom: 20px;">
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; border: 2px solid #e9ecef; animation: slideDown 0.4s ease-out;">
+                                <h5 style="margin: 0 0 15px 0; color: #495057; font-size: 16px;">📍 Select from Previous Addresses:</h5>
+                                <select id="previousAddressSelect" onchange="fillAddressFromPrevious()" style="
+                                    width: 100%; 
+                                    padding: 12px; 
+                                    border: 2px solid #ced4da; 
+                                    border-radius: 8px; 
+                                    font-size: 14px; 
+                                    background: white;
+                                    cursor: pointer;
+                                ">
+                                    <option value="">-- Select a previous address --</option>
+                                </select>
+                                <div style="margin-top: 10px; text-align: center;">
+                                    <button onclick="hidePreviousAddresses()" style="
+                                        padding: 8px 16px; 
+                                        background: #6c757d; 
+                                        color: white; 
+                                        border: none; 
+                                        border-radius: 6px; 
+                                        font-size: 12px; 
+                                        cursor: pointer;
+                                        transition: all 0.3s ease;
+                                    ">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                                <input type="checkbox" id="usePermanentAddress" onchange="toggleDeliveryAddress()" style="transform: scale(1.2);">
+                                <span style="font-weight: 600; color: #333;">📍 Use permanent address for delivery</span>
+                            </label>
+                        </div>
+                        
+                        <div id="deliveryAddressFields">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery Name *</label>
+                                    <input type="text" id="deliveryName" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Name for delivery">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery Phone *</label>
+                                    <input type="tel" id="deliveryPhone" pattern="[0-9]{10}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="10-digit phone number">
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery Address *</label>
+                                <input type="text" id="deliveryAddress1" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="House number, building name, street">
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Area/Locality (Optional)</label>
+                                <input type="text" id="deliveryAddress2" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Area, locality, landmark">
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Taluk *</label>
+                                    <input type="text" id="deliveryTaluk" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Taluk">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">District *</label>
+                                    <input type="text" id="deliveryDistrict" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="District">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">State *</label>
+                                    <input type="text" id="deliveryState" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="State">
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Pincode *</label>
+                                    <input type="text" id="deliveryPincode" pattern="[0-9]{6}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="6-digit pincode">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sticky Submit Button -->
+                    <div style="position: sticky; bottom: 0; background: white; padding: 20px 0; margin-top: 30px; border-top: 1px solid #e0e0e0;">
+                        <div style="display: flex; gap: 15px;">
+                            <button type="submit" style="flex: 1; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                                💳 Continue to Payment Options
+                            </button>
+                            <button type="button" onclick="closeBillingAddressModal()" style="padding: 15px 25px; background: #6c757d; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: all 0.3s ease;">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Method Selection Modal -->
+    <div id="paymentMethodModal" class="modal" style="display: none;">
+        <div class="modal-content payment-modal">
+            <div class="modal-header">
+                <h3>Choose Payment Method</h3>
+                <span class="close" onclick="closePaymentMethodModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="payment-options">
+                    <div class="payment-option" onclick="proceedWithOnlinePayment()">
+                        <div class="payment-icon">💳</div>
+                        <div class="payment-details">
+                            <h4>Online Payment</h4>
+                            <p>UPI, Net Banking, Credit/Debit Card</p>
+                            <span class="payment-badge instant">Instant</span>
+                        </div>
+                        <div class="payment-arrow">→</div>
+                    </div>
+                    
+                    <div class="payment-option" onclick="proceedWithChequePayment()">
+                        <div class="payment-icon">📝</div>
+                        <div class="payment-details">
+                            <h4>Cheque Payment</h4>
+                            <p>Upload cheque image & details</p>
+                            <span class="payment-badge manual">Manual Verification</span>
+                        </div>
+                        <div class="payment-arrow">→</div>
+                    </div>
+                    
+                    <div class="payment-option" onclick="proceedWithAccountTransfer()">
+                        <div class="payment-icon">🏦</div>
+                        <div class="payment-details">
+                            <h4>Bank Transfer</h4>
+                            <p>Direct account transfer</p>
+                            <span class="payment-badge manual">Manual Verification</span>
+                        </div>
+                        <div class="payment-arrow">→</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+                    <!-- RIGHT SIDE -->
+                    <div class="book-detail-right">
+                        <h1 id="bookTitle"></h1>
+                        <p class="book-author">by <span id="bookAuthor"></span></p>
+                        
+                        <!-- Pricing Display -->
+                        <div class="pricing-section">
+                            <!-- Book-stall Purchase Option -->
+                            <div class="pricing-option pickup-pricing">
+                                <h3 class="pricing-title">🏪 Purchase at Book-stall</h3>
+                                <p class="book-price" id="pickupPrice"></p>
+                                <p class="pricing-note">Visit our store for pickup</p>
+                            </div>
+                            
+                            <!-- Courier Delivery Option -->
+                            <div class="pricing-option courier-pricing">
+                                <h3 class="pricing-title">🚚 Through Courier</h3>
+                                <p class="book-price" id="courierPrice"></p>
+                                <p class="pricing-note">Home delivery included</p>
+                            </div>
+                        </div>
+                        
+                        <div style="background: #fff3e0; padding: 12px 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ff9800; animation: fadeInUp 0.6s ease-out 1.2s both;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #e65100; font-weight: 600;">📦 Weight:</span>
+                                <span id="bookWeight" style="color: #e65100; font-weight: 600;">0.5 kg</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                                <span style="color: #e65100; font-size: 13px;">Courier Charge:</span>
+                                <span id="bookCourierCharge" style="color: #e65100; font-size: 13px;">₹25</span>
+                            </div>
+                        </div>
+
+                        <div class="book-description">
+                            <h3>Description</h3>
+                            <p id="bookDescription"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PREVIEW SECTION -->
+                <div class="preview-section">
+                    <h2>Book Preview</h2>
+                    <p class="preview-note">Preview the first 4 pages of this book</p>
+                    <div id="previewImages" class="preview-grid"></div>
+                    <div id="noPreview" class="empty-state" style="display: none;">
+                        <p>No preview images available for this book.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="errorState" class="error-state" style="display: none;">
+                <p>Book not found or error loading details.</p>
+                <a href="/" class="btn-secondary">Back to Home</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Image Lightbox Modal -->
+    <div id="imageLightbox" class="lightbox" style="display: none;">
+        <div class="lightbox-overlay" onclick="closeLightbox()"></div>
+        <div class="lightbox-content">
+            <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+            <button class="lightbox-prev" onclick="previousImage()">&#10094;</button>
+            <img id="lightboxImage" src="" alt="Preview">
+            <button class="lightbox-next" onclick="nextImage()">&#10095;</button>
+            <div class="lightbox-caption">
+                <span id="lightboxCaption">Page 1 of 4</span>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- SCRIPTS -->
+    <script src="js/config.js"></script>
+    <script src="js/successPopup.js"></script>
+    <script src="js/dynamic-shipping.js"></script>
+    <script src="js/shipping-calculator.js"></script>
+    <script src="js/cartUtils.js"></script>
+    <script src="js/global.js"></script>
+    
+    <!-- Address Confirmation Modal -->
+    <div id="addressModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; backdrop-filter: blur(4px); animation: fadeIn 0.3s ease-out;">
+        <div style="background: white; margin: 50px auto; padding: 35px; width: 90%; max-width: 600px; border-radius: 16px; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">Confirm Delivery Address</h2>
+                <button onclick="closeAddressModal()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #999; line-height: 1; padding: 0; width: 32px; height: 32px; transition: all 0.3s ease;">&times;</button>
+            </div>
+
+            <div id="addressDisplay" style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px; animation: fadeInUp 0.5s ease-out 0.2s both;">
+                <p style="margin: 10px 0;"><strong>🏠 Home Address 1:</strong> <span id="modalHomeAddress1">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>🏠 Home Address 2:</strong> <span id="modalHomeAddress2">-</span></p>
+                <p style="margin: 10px 0;"><strong>🛣️ Street Name:</strong> <span id="modalStreetName">-</span></p>
+                <p style="margin: 10px 0;"><strong>📍 Landmark:</strong> <span id="modalLandmark">-</span></p>
+                <p style="margin: 10px 0;"><strong>🏘️ Village/Area:</strong> <span id="modalVillage">-</span></p>
+                <p style="margin: 10px 0;"><strong>🏘️ Taluk:</strong> <span id="modalTaluk">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>🏙️ District:</strong> <span id="modalDistrict">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>🗺️ State:</strong> <span id="modalState">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>📮 Pincode:</strong> <span id="modalPincode">Not set</span></p>
+                <p style="margin: 10px 0;"><strong>📱 Phone:</strong> <span id="modalPhone">Not set</span></p>
+            </div>
+
+            <button onclick="toggleAddressForm()" class="btn-secondary" style="margin-bottom: 15px;">✏️ Edit Address</button>
+
+            <form id="addressEditForm" style="display: none; margin-bottom: 20px; animation: slideDown 0.4s ease-out;">
+                <div style="margin: 15px 0;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Home Address 1 *</label>
+                    <input type="text" id="editHomeAddress1" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="House/Building number and name">
+                </div>
+                <div style="margin: 15px 0;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Home Address 2 (Optional)</label>
+                    <input type="text" id="editHomeAddress2" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Apartment, suite, floor, etc.">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Street Name</label>
+                        <input type="text" id="editStreetName" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Street name">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Landmark</label>
+                        <input type="text" id="editLandmark" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Near landmark">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Village/Area</label>
+                        <input type="text" id="editVillage" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Village or area name">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Taluk *</label>
+                        <input type="text" id="editTaluk" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="Taluk name">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">District *</label>
+                        <input type="text" id="editDistrict" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="District name">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">State *</label>
+                        <input type="text" id="editState" required style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="State name">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Pincode *</label>
+                        <input type="text" id="editPincode" required pattern="[0-9]{6}" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="6-digit pincode">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Phone Number *</label>
+                        <input type="tel" id="editPhone" required pattern="[0-9]{10}" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; box-sizing: border-box;" placeholder="10-digit phone number">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">💾 Save Address</button>
+            </form>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="proceedToPayment()" class="btn-primary" style="flex: 1;">🔒 Proceed to Payment</button>
+                <button onclick="closeAddressModal()" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+    <script src="js/book.js"></script>
+
+    <!-- Additional Animation Scripts -->
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Smooth scroll to sections
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add ripple effect to buttons
+        document.querySelectorAll('button, .btn-primary, .btn-secondary').forEach(button => {
+            button.addEventListener('click', function(e) {
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+                ripple.classList.add('ripple');
+                
+                this.appendChild(ripple);
+                
+                setTimeout(() => ripple.remove(), 600);
+            });
+        });
+
+        // Parallax effect for book cover
+        const bookCover = document.getElementById('bookCover');
+        if (bookCover) {
+            document.addEventListener('mousemove', function(e) {
+                const mouseX = e.clientX / window.innerWidth - 0.5;
+                const mouseY = e.clientY / window.innerHeight - 0.5;
+                
+                bookCover.style.transform = `perspective(1000px) rotateY(${mouseX * 10}deg) rotateX(${-mouseY * 10}deg)`;
+            });
+
+            document.addEventListener('mouseleave', function() {
+                bookCover.style.transform = 'perspective(1000px) rotateY(0deg) rotateX(0deg)';
+            });
+        }
+
+        // Intersection Observer for scroll animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe elements for scroll animations
+        document.querySelectorAll('.preview-image, .pricing-option').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Animated counter for prices
+        function animateValue(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const value = Math.floor(progress * (end - start) + start);
+                element.textContent = '₹' + value;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // Add this to your book loading function
+        // animateValue(document.getElementById('pickupPrice'), 0, pickupPriceValue, 1000);
+        // animateValue(document.getElementById('courierPrice'), 0, courierPriceValue, 1000);
+
+        // Logo hover animation
+        const logo = document.querySelector('.logo img');
+        if (logo) {
+            logo.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.1) rotate(360deg)';
+            });
+            logo.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1) rotate(0deg)';
+            });
+        }
+
+        // Cart count animation
+        function updateCartCount(count) {
+            const cartCount = document.getElementById('cartCount');
+            if (cartCount) {
+                cartCount.style.animation = 'bounceIn 0.5s ease-out';
+                cartCount.textContent = count;
+                setTimeout(() => {
+                    cartCount.style.animation = '';
+                }, 500);
+            }
+        }
+
+        // Add loading animation
+        function showLoadingAnimation() {
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            if (loadingSpinner) {
+                loadingSpinner.style.display = 'block';
+                loadingSpinner.style.animation = 'pulse 1.5s ease-in-out infinite';
+            }
+        }
+
+        function hideLoadingAnimation() {
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const bookDetails = document.getElementById('bookDetails');
+            if (loadingSpinner) {
+                loadingSpinner.style.display = 'none';
+            }
+            if (bookDetails) {
+                bookDetails.style.display = 'block';
+                bookDetails.style.animation = 'fadeInUp 0.6s ease-out';
+            }
+        }
+
+        // Add error shake animation
+        function showErrorAnimation(element) {
+            element.classList.add('error');
+            setTimeout(() => {
+                element.classList.remove('error');
+            }, 500);
+        }
+
+        // Quantity selector animation
+        const quantityInput = document.getElementById('bookQuantity');
+        if (quantityInput) {
+            quantityInput.addEventListener('change', function() {
+                this.style.animation = 'pulse 0.3s ease-out';
+                setTimeout(() => {
+                    this.style.animation = '';
+                }, 300);
+            });
+        }
+
+        // Add floating animation to pricing cards
+        const pricingCards = document.querySelectorAll('.pricing-option');
+        pricingCards.forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.2}s`;
+        });
+
+        // Smooth modal open/close
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'flex';
+                modal.style.animation = 'fadeIn 0.3s ease-out';
+                const content = modal.querySelector('.modal-content');
+                if (content) {
+                    content.style.animation = 'slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                }
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
+            }
+        }
+
+        // Add fadeOut animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize animations on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add staggered animation to preview images
+            const previewImages = document.querySelectorAll('.preview-image');
+            previewImages.forEach((img, index) => {
+                img.style.animationDelay = `${1.8 + index * 0.1}s`;
+            });
+
+            // Add hover effect to nav links
+            document.querySelectorAll('.nav-links a').forEach(link => {
+                link.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                });
+                link.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+
+        // Add particle effect on button click (optional)
+        function createParticles(element) {
+            const particles = 10;
+            for (let i = 0; i < particles; i++) {
+                const particle = document.createElement('div');
+                particle.style.position = 'absolute';
+                particle.style.width = '4px';
+                particle.style.height = '4px';
+                particle.style.borderRadius = '50%';
+                particle.style.background = '#667eea';
+                particle.style.pointerEvents = 'none';
+                
+                const rect = element.getBoundingClientRect();
+                particle.style.left = rect.left + rect.width / 2 + 'px';
+                particle.style.top = rect.top + rect.height / 2 + 'px';
+                
+                document.body.appendChild(particle);
+                
+                const angle = (Math.PI * 2 * i) / particles;
+                const velocity = 2;
+                const vx = Math.cos(angle) * velocity;
+                const vy = Math.sin(angle) * velocity;
+                
+                let x = 0, y = 0, opacity = 1;
+                const animate = () => {
+                    x += vx * 5;
+                    y += vy * 5;
+                    opacity -= 0.02;
+                    
+                    particle.style.transform = `translate(${x}px, ${y}px)`;
+                    particle.style.opacity = opacity;
+                    
+                    if (opacity > 0) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        particle.remove();
+                    }
+                };
+                
+                animate();
+            }
+        }
+
+        // Add particles to buy buttons
+        document.getElementById('buyPickupBtn')?.addEventListener('click', function() {
+            createParticles(this);
+        });
+
+        document.getElementById('buyCourierBtn')?.addEventListener('click', function() {
+            createParticles(this);
+        });
+
+        document.getElementById('addToCartBtn')?.addEventListener('click', function() {
+            createParticles(this);
+        });
+    </script>
+</body>
+</html>

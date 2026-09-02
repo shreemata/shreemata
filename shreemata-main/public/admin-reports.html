@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1e293b">
+    <title>Reports & Exports - Shree Mata Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-hover: #1e293b;
+            --accent: #F68048;
+            --accent-hover: #e06d36;
+            --bg-page: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #0284c7;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+            --shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Top Navigation styling */
+        nav {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 16px 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        nav .container {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav h1 {
+            color: #ffffff;
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .container {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .main-content {
+            margin: 105px auto 60px;
+        }
+
+        /* Hero Header */
+        .page-header {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 26px 30px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-card);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .page-header h1 {
+            margin: 0 0 6px 0;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: -0.4px;
+        }
+
+        .page-header p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .header-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .header-meta strong {
+            color: var(--text-main);
+        }
+
+        /* Global Date Range Quick Select Filter */
+        .filter-panel {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 22px 28px;
+            margin-bottom: 28px;
+            box-shadow: var(--shadow-card);
+        }
+
+        .filter-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .quick-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .preset-btn {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 7px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+
+        .preset-btn:hover {
+            background: #f1f5f9;
+            color: var(--text-main);
+            border-color: #cbd5e1;
+        }
+
+        .preset-btn.active {
+            background: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+        }
+
+        .date-inputs-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding-top: 14px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .date-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .date-input-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .date-input-group input[type="date"] {
+            border: 1px solid var(--border-color);
+            background: #ffffff;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-family: inherit;
+            color: var(--text-main);
+            font-weight: 600;
+            outline: none;
+        }
+
+        .date-input-group input[type="date"]:focus {
+            border-color: var(--accent);
+        }
+
+        .active-range-indicator {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--accent);
+            background: #fff7ed;
+            border: 1px solid #ffedd5;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            margin-left: auto;
+        }
+
+        /* Utility Classes */
+        .d-flex { display: flex !important; }
+        .flex-column { flex-direction: column !important; }
+        .h-100 { height: 100% !important; }
+        .mt-auto { margin-top: auto !important; }
+        .mb-3 { margin-bottom: 14px !important; }
+        .w-100 { width: 100% !important; }
+
+        /* Reports Grid Layout */
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 22px;
+            margin-bottom: 35px;
+            align-items: stretch;
+        }
+
+        .report-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-card);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            transition: all 0.2s ease;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .report-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: var(--shadow-elevated);
+            transform: translateY(-2px);
+        }
+
+        .report-card-body {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            width: 100%;
+        }
+
+        .report-card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .report-icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+        }
+
+        .report-card-title h3 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1.3;
+        }
+
+        .report-card-title p {
+            margin: 0;
+            font-size: 12.5px;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+
+        .card-dates-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 14px 0 12px 0;
+            padding: 12px;
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+            border-radius: var(--radius-md);
+            box-sizing: border-box;
+        }
+
+        .card-date-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .card-date-field label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .card-date-field input[type="date"] {
+            border: 1px solid var(--border-color);
+            background: #ffffff;
+            padding: 6px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-family: inherit;
+            color: var(--text-main);
+            font-weight: 600;
+            outline: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .card-filters-box {
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-height: 32px;
+        }
+
+        .card-filters-box label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        .card-filters-box select {
+            border: 1px solid var(--border-color);
+            background: #ffffff;
+            padding: 5px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-family: inherit;
+            color: var(--text-main);
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .report-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: auto !important;
+            padding-top: 14px;
+            border-top: 1px solid #f1f5f9;
+            width: 100%;
+        }
+
+        .btn-report {
+            flex: 1;
+            padding: 9px 12px;
+            border-radius: var(--radius-md);
+            font-size: 12.5px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+            border: 1px solid transparent;
+            text-decoration: none;
+        }
+
+        .btn-preview-report {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #ffffff;
+            border-color: #0f172a;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+        }
+
+        .btn-preview-report:hover {
+            background: #1e293b;
+            transform: translateY(-1px);
+        }
+
+        .btn-export-csv {
+            background: #fff7ed;
+            color: #c2410c;
+            border-color: #fed7aa;
+        }
+
+        .btn-export-csv:hover {
+            background: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
+        }
+
+        .btn-report:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Preview Container & Table Area */
+        .report-preview-container {
+            margin-top: 20px;
+        }
+
+        .preview-wrapper {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            animation: fadeIn 0.25s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .preview-header-bar {
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .preview-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .preview-title-wrap h3 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .preview-badge-count {
+            background: #e2e8f0;
+            color: #0f172a;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .preview-badge-empty {
+            background: #fee2e2;
+            color: #b91c1c;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .preview-metric-badge {
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+            font-size: 12.5px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .preview-actions-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .preview-search-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 6px 10px;
+        }
+
+        .preview-search-box input {
+            border: none;
+            outline: none;
+            font-size: 12.5px;
+            font-family: inherit;
+            width: 160px;
+        }
+
+        .btn-preview-action {
+            padding: 7px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border: 1px solid transparent;
+            font-family: inherit;
+            transition: all 0.15s ease;
+        }
+
+        .btn-preview-export {
+            background: #0f172a;
+            color: #ffffff;
+        }
+
+        .btn-preview-export:hover {
+            background: #1e293b;
+        }
+
+        .btn-preview-print {
+            background: #f1f5f9;
+            color: #0f172a;
+            border-color: var(--border-color);
+        }
+
+        .btn-preview-print:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-preview-close {
+            background: #fee2e2;
+            color: #b91c1c;
+            border-color: #fecaca;
+        }
+
+        .btn-preview-close:hover {
+            background: #fca5a5;
+        }
+
+        .preview-table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            max-height: 520px;
+            position: relative;
+        }
+
+        .preview-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .preview-data-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #0f172a;
+            color: #ffffff;
+        }
+
+        .preview-data-table th {
+            padding: 11px 14px;
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 0.3px;
+            border-bottom: 2px solid #334155;
+        }
+
+        .preview-data-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-color);
+            color: #334155;
+            vertical-align: middle;
+        }
+
+        .preview-data-table tbody tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .preview-data-table tbody tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        .table-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-success { background: #ecfdf5; color: #065f46; }
+        .badge-warning { background: #fffbeb; color: #92400e; }
+        .badge-danger { background: #fef2f2; color: #991b1b; }
+        .badge-info { background: #f0f9ff; color: #075985; }
+
+        .preview-footer-bar {
+            padding: 10px 20px;
+            background: #f8fafc;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12.5px;
+            color: var(--text-muted);
+        }
+
+        .preview-loading-box,
+        .preview-empty-box {
+            padding: 50px 20px;
+            text-align: center;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Toast notifications */
+        #toastContainer {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: #0f172a;
+            color: #ffffff;
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-elevated);
+            font-size: 13.5px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.25s ease;
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--info); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        footer {
+            background: #ffffff;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-muted);
+            text-align: center;
+            padding: 24px 0;
+            margin-top: 50px;
+            font-size: 13.5px;
+        }
+
+        footer p { margin: 0; }
+
+        @media (max-width: 768px) {
+            .main-content { margin: 85px auto 40px; }
+            .reports-grid { grid-template-columns: 1fr; }
+            .page-header { padding: 18px; }
+            .filter-panel { padding: 16px; }
+            .active-range-indicator { margin-left: 0; width: 100%; text-align: center; }
+            .card-dates-box { grid-template-columns: 1fr; }
+            .preview-header-bar { flex-direction: column; align-items: stretch; }
+            .preview-actions-wrap { justify-content: space-between; }
+            .preview-search-box input { width: 100%; }
+        }
+
+        @media print {
+            nav, .page-header, .filter-panel, .reports-grid, .preview-actions-wrap, footer {
+                display: none !important;
+            }
+            .main-content { margin: 0 !important; }
+            .preview-wrapper { border: none !important; box-shadow: none !important; }
+            .preview-table-responsive { max-height: none !important; overflow: visible !important; }
+            .preview-data-table { font-size: 10px !important; }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Top Navigation Container (hydrated by admin-navigation.js) -->
+    <nav id="adminNavFallback">
+        <div class="container">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <img src="/images/logo.png" alt="Shree Mata Logo" style="width: 32px; height: 32px; border-radius: 50%;">
+                <h1>📊 Shree Mata Admin - Reports & Exports</h1>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span id="userName" style="color: white; font-size: 14px; font-weight: 500;">Hello, Admin</span>
+                <a href="/" id="logoutBtn" style="color: #ffffff; text-decoration: none; font-size: 13.5px; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.15);">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div>
+                <h1>📊 Centralized Reports & Exports</h1>
+                <p>Preview live data tables and export comprehensive CSV spreadsheets across all system modules</p>
+            </div>
+            <div class="header-meta">
+                <span>Modules Available: <strong>4 Main Reports</strong></span>
+            </div>
+        </div>
+
+        <!-- Global Date Range Quick Select Filter -->
+        <div class="filter-panel">
+            <div class="filter-title">
+                <span>🗓️ Quick Date Range Presets (Sync to all cards)</span>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="quick-presets">
+                <button class="preset-btn" data-period="today" onclick="applyGlobalPreset('today')">Today</button>
+                <button class="preset-btn" data-period="yesterday" onclick="applyGlobalPreset('yesterday')">Yesterday</button>
+                <button class="preset-btn" data-period="last7days" onclick="applyGlobalPreset('last7days')">Last 7 Days</button>
+                <button class="preset-btn active" data-period="thismonth" onclick="applyGlobalPreset('thismonth')">This Month</button>
+                <button class="preset-btn" data-period="lastmonth" onclick="applyGlobalPreset('lastmonth')">Last Month</button>
+                <button class="preset-btn" data-period="last30days" onclick="applyGlobalPreset('last30days')">Last 30 Days</button>
+                <button class="preset-btn" data-period="thisyear" onclick="applyGlobalPreset('thisyear')">This Year</button>
+                <button class="preset-btn" data-period="all" onclick="applyGlobalPreset('all')">All Time</button>
+            </div>
+
+            <!-- Custom From / To Dates -->
+            <div class="date-inputs-row">
+                <div class="date-input-group">
+                    <label for="globalFromDate">From:</label>
+                    <input type="date" id="globalFromDate" onchange="syncGlobalDatesToCards()">
+                </div>
+                <div class="date-input-group">
+                    <label for="globalToDate">To:</label>
+                    <input type="date" id="globalToDate" onchange="syncGlobalDatesToCards()">
+                </div>
+                <div class="active-range-indicator" id="rangeIndicator">
+                    Selected: This Month
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Grid: 4 Core Modules -->
+        <div class="reports-grid">
+
+            <!-- 1. Sales & Orders Report -->
+            <div class="report-card h-100 d-flex flex-column" data-report="orders" data-title="Sales & Orders Report">
+                <div class="report-card-body card-body d-flex flex-column">
+                    <div class="report-card-header">
+                        <div class="report-icon-box" style="color: #10b981; background: #ecfdf5;">🛒</div>
+                        <div class="report-card-title">
+                            <h3>Sales & Orders Report</h3>
+                            <p>Customer orders, items purchased, totals, payment modes, and delivery tracking status.</p>
+                        </div>
+                    </div>
+
+                    <div class="card-dates-box mb-3">
+                        <div class="card-date-field">
+                            <label>Start Date</label>
+                            <input type="date" class="report-start-date">
+                        </div>
+                        <div class="card-date-field">
+                            <label>End Date</label>
+                            <input type="date" class="report-end-date">
+                        </div>
+                    </div>
+
+                    <div class="card-filters-box mb-3">
+                        <label>Status:</label>
+                        <select class="report-extra-filter" name="status">
+                            <option value="all">All Orders</option>
+                            <option value="completed">Completed</option>
+                            <option value="pending">Pending</option>
+                            <option value="pending_payment_verification">Payment Verification</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="report-actions mt-auto">
+                    <button type="button" class="btn-report btn-preview-report">
+                        <span>👁️</span> Preview
+                    </button>
+                    <button type="button" class="btn-report btn-export-csv">
+                        <span>⬇️</span> Export CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. Commission Payouts Report -->
+            <div class="report-card h-100 d-flex flex-column" data-report="commissions" data-title="Commission Payouts Report">
+                <div class="report-card-body card-body d-flex flex-column">
+                    <div class="report-card-header">
+                        <div class="report-icon-box" style="color: #d97706; background: #fffbeb;">💰</div>
+                        <div class="report-card-title">
+                            <h3>Commission Payouts Report</h3>
+                            <p>Direct cashback (3%), referral commissions (2%), and multi-level tree distribution distributions.</p>
+                        </div>
+                    </div>
+
+                    <div class="card-dates-box mb-3">
+                        <div class="card-date-field">
+                            <label>Start Date</label>
+                            <input type="date" class="report-start-date">
+                        </div>
+                        <div class="card-date-field">
+                            <label>End Date</label>
+                            <input type="date" class="report-end-date">
+                        </div>
+                    </div>
+
+                    <div class="card-filters-box mb-3">
+                        <label>Scope:</label>
+                        <span style="font-size: 12px; font-weight: 700; color: #d97706;">Direct, Referral & Tree</span>
+                    </div>
+                </div>
+
+                <div class="report-actions mt-auto">
+                    <button type="button" class="btn-report btn-preview-report">
+                        <span>👁️</span> Preview
+                    </button>
+                    <button type="button" class="btn-report btn-export-csv">
+                        <span>⬇️</span> Export CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. Wallet Ledger Report -->
+            <div class="report-card h-100 d-flex flex-column" data-report="wallets" data-title="Wallet Ledger Report">
+                <div class="report-card-body card-body d-flex flex-column">
+                    <div class="report-card-header">
+                        <div class="report-icon-box" style="color: #0284c7; background: #f0f9ff;">💳</div>
+                        <div class="report-card-title">
+                            <h3>Wallet Ledger Report</h3>
+                            <p>Complete ledger of credits, debits, withdrawals, earnings, and user balance adjustments.</p>
+                        </div>
+                    </div>
+
+                    <div class="card-dates-box mb-3">
+                        <div class="card-date-field">
+                            <label>Start Date</label>
+                            <input type="date" class="report-start-date">
+                        </div>
+                        <div class="card-date-field">
+                            <label>End Date</label>
+                            <input type="date" class="report-end-date">
+                        </div>
+                    </div>
+
+                    <div class="card-filters-box mb-3">
+                        <label>Type:</label>
+                        <select class="report-extra-filter" name="type">
+                            <option value="all">All Types (Credit & Debit)</option>
+                            <option value="credit">Credits Only</option>
+                            <option value="debit">Debits Only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="report-actions mt-auto">
+                    <button type="button" class="btn-report btn-preview-report">
+                        <span>👁️</span> Preview
+                    </button>
+                    <button type="button" class="btn-report btn-export-csv">
+                        <span>⬇️</span> Export CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4. VIP Members & Users Report -->
+            <div class="report-card h-100 d-flex flex-column" data-report="users" data-title="VIP Members & Users Report">
+                <div class="report-card-body card-body d-flex flex-column">
+                    <div class="report-card-header">
+                        <div class="report-icon-box" style="color: #6366f1; background: #eef2ff;">👑</div>
+                        <div class="report-card-title">
+                            <h3>VIP Members & Users Report</h3>
+                            <p>Directory of registered users, VIP membership tiers, referral uplines, points, and wallets.</p>
+                        </div>
+                    </div>
+
+                    <div class="card-dates-box mb-3">
+                        <div class="card-date-field">
+                            <label>Start Date</label>
+                            <input type="date" class="report-start-date">
+                        </div>
+                        <div class="card-date-field">
+                            <label>End Date</label>
+                            <input type="date" class="report-end-date">
+                        </div>
+                    </div>
+
+                    <div class="card-filters-box mb-3">
+                        <label>Audience:</label>
+                        <span style="font-size: 12px; font-weight: 700; color: #4f46e5;">Registered Users & VIPs</span>
+                    </div>
+                </div>
+
+                <div class="report-actions mt-auto">
+                    <button type="button" class="btn-report btn-preview-report">
+                        <span>👁️</span> Preview
+                    </button>
+                    <button type="button" class="btn-report btn-export-csv">
+                        <span>⬇️</span> Export CSV
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Live Report Data Table Preview Container -->
+        <div id="reportPreviewContainer" class="report-preview-container">
+            <!-- Dynamically populated on Preview button click -->
+        </div>
+
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer"></div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Shree Mata. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/admin-reports.js"></script>
+    <script src="js/admin-navigation.js"></script>
+</body>
+
+</html>

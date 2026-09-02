@@ -1,0 +1,42 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#b8b8b8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a0a0a0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4a90e2;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8e44ad;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9b59b6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bookGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8f8f8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e8e8e8;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="98" fill="url(#bgGradient)" stroke="#888" stroke-width="2"/>
+  
+  <!-- Book -->
+  <g transform="translate(120, 30)">
+    <!-- Book pages -->
+    <path d="M0 20 L40 15 L40 45 L0 50 Z" fill="url(#bookGradient)" stroke="#ccc" stroke-width="1"/>
+    <path d="M40 15 L45 12 L45 42 L40 45 Z" fill="#ddd"/>
+    <path d="M0 50 L40 45 L45 42 L5 47 Z" fill="#ccc"/>
+    
+    <!-- Book cover with "sm" -->
+    <rect x="8" y="25" width="25" height="15" fill="white" stroke="#ddd" stroke-width="1" rx="2"/>
+    <text x="20.5" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="url(#textGradient)">sm</text>
+    
+    <!-- Book spine -->
+    <rect x="2" y="22" width="3" height="25" fill="#4a90e2"/>
+    <rect x="37" y="17" width="3" height="25" fill="#9b59b6"/>
+  </g>
+  
+  <!-- Main "sm" text -->
+  <text x="100" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="url(#textGradient)">sm</text>
+  
+  <!-- "SHREE MATA" text -->
+  <text x="100" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#4a90e2" letter-spacing="2px">SHREE MATA</text>
+</svg>

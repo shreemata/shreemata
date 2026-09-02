@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Dispatch Status - Shree Mata</title>
+    <meta name="description" content="Check the live dispatch and delivery status of your Shree Mata order invoice.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5066d6;
+            --secondary: #764ba2;
+            --success: #10b981;
+            --success-bg: #ecfdf5;
+            --success-border: #a7f3d0;
+            --warning: #f59e0b;
+            --warning-bg: #fffbeb;
+            --warning-border: #fde68a;
+            --danger: #ef4444;
+            --danger-bg: #fef2f2;
+            --danger-border: #fecaca;
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --card-bg: rgba(255, 255, 255, 0.96);
+            --border-color: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #4a2d7a 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 16px;
+            color: var(--text-dark);
+        }
+
+        .track-container {
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .brand-header {
+            text-align: center;
+            margin-bottom: 24px;
+            color: #ffffff;
+        }
+
+        .brand-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 18px;
+            font-size: 32px;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .brand-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .brand-subtitle {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 400;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 28px 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 14px 14px 44px;
+            font-size: 15px;
+            font-family: inherit;
+            font-weight: 600;
+            color: var(--text-dark);
+            background: #f9fafb;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            outline: none;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-control::placeholder {
+            text-transform: none;
+            font-weight: 400;
+            color: #9ca3af;
+            letter-spacing: normal;
+        }
+
+        .form-control:focus {
+            background: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.55);
+        }
+
+        .btn-submit:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* Status Result Section */
+        .result-section {
+            margin-top: 24px;
+            display: none;
+            animation: fadeIn 0.35s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Dispatched Box */
+        .status-box-dispatched {
+            background: var(--success-bg);
+            border: 2px solid var(--success-border);
+            border-radius: 16px;
+            padding: 24px 20px;
+            text-align: center;
+            color: #065f46;
+        }
+
+        .status-badge-dispatched {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #10b981;
+            color: #ffffff;
+            padding: 10px 22px;
+            border-radius: 9999px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+            margin-bottom: 14px;
+        }
+
+        .status-box-dispatched .status-desc {
+            font-size: 14px;
+            color: #047857;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .status-box-dispatched .invoice-tag {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 4px 12px;
+            background: rgba(16, 185, 129, 0.15);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #065f46;
+            letter-spacing: 0.5px;
+        }
+
+        /* Courier Box in Dispatched State */
+        .courier-box {
+            background: #ffffff;
+            border: 1px solid var(--success-border);
+            border-radius: 14px;
+            padding: 18px 16px;
+            margin-top: 16px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+            text-align: center;
+        }
+
+        .courier-info-line {
+            font-size: 14.5px;
+            color: #065f46;
+            margin-bottom: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .courier-number {
+            color: #047857;
+            font-family: 'Outfit', sans-serif;
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-copy-tracking {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: #f0fdf4;
+            border: 1px solid var(--success-border);
+            border-radius: 8px;
+            padding: 5px 8px;
+            cursor: pointer;
+            vertical-align: middle;
+            transition: all 0.2s ease;
+            color: #047857;
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .btn-copy-tracking:hover {
+            background: #dcfce7;
+            border-color: #86efac;
+            transform: scale(1.05);
+        }
+
+        .btn-copy-tracking:active {
+            transform: scale(0.95);
+        }
+
+        .copy-feedback {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f2937;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            padding: 3px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            pointer-events: none;
+            animation: fadeIn 0.15s ease-out;
+        }
+
+        .copy-feedback::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 4px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+        }
+
+        .btn-track-courier {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+            transition: all 0.25s ease;
+        }
+
+        .btn-track-courier:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+        }
+
+        /* Pending Box */
+        .status-box-pending {
+            background: var(--warning-bg);
+            border: 2px solid var(--warning-border);
+            border-radius: 16px;
+            padding: 24px 20px;
+            text-align: center;
+            color: #92400e;
+        }
+
+        .status-badge-pending {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f59e0b;
+            color: #ffffff;
+            padding: 10px 22px;
+            border-radius: 9999px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+            margin-bottom: 14px;
+        }
+
+        .status-box-pending .status-desc {
+            font-size: 14px;
+            color: #78350f;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .contact-box {
+            background: #ffffff;
+            border: 1px dashed #d97706;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-top: 12px;
+            font-size: 14px;
+            color: #92400e;
+        }
+
+        .contact-phone {
+            display: inline-block;
+            font-weight: 800;
+            font-size: 17px;
+            color: #b45309;
+            text-decoration: none;
+            margin-top: 4px;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .contact-phone:hover {
+            text-decoration: underline;
+        }
+
+        /* Error / Not Found Box */
+        .status-box-error {
+            background: var(--danger-bg);
+            border: 2px solid var(--danger-border);
+            border-radius: 16px;
+            padding: 22px 18px;
+            text-align: center;
+            color: #991b1b;
+        }
+
+        .status-box-error .error-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .status-box-error .error-msg {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.5;
+            color: #b91c1c;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.35);
+            border-radius: 50%;
+            border-top-color: #ffffff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .footer-links {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .footer-links a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 0 8px;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="track-container">
+        <!-- Header -->
+        <header class="brand-header">
+            <div class="brand-logo">📚</div>
+            <h1 class="brand-title">Shree Mata</h1>
+            <p class="brand-subtitle">Order & Invoice Dispatch Tracking</p>
+        </header>
+
+        <!-- Main Card -->
+        <main class="card">
+            <form id="trackForm" onsubmit="handleTrackSubmit(event)">
+                <div class="form-group">
+                    <label for="invoiceInput" class="form-label">Enter Bill / Invoice Number</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🧾</span>
+                        <input 
+                            type="text" 
+                            id="invoiceInput" 
+                            class="form-control" 
+                            placeholder="e.g. SM202608260005" 
+                            autocomplete="off"
+                            autocorrect="off"
+                            autocapitalize="characters"
+                            spellcheck="false"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn-submit">
+                    <span id="btnIcon">🔍</span>
+                    <span id="btnText">Check Status</span>
+                </button>
+            </form>
+
+            <!-- Dynamic Result Section -->
+            <section id="resultSection" class="result-section" aria-live="polite">
+                <!-- Dispatched State -->
+                <div id="dispatchedBox" class="status-box-dispatched" style="display: none;">
+                    <div class="status-badge-dispatched">
+                        <span>✅</span>
+                        <span>Dispatched</span>
+                    </div>
+                    <p class="status-desc">Your order has been packed and handed over for shipment/delivery.</p>
+                    <div>
+                        <span class="invoice-tag" id="dispatchedInvoiceTag"></span>
+                    </div>
+
+                    <!-- Courier Tracking Info (shown when courierNumber is set) -->
+                    <div id="courierDetailsBox" class="courier-box" style="display: none;">
+                        <div class="courier-info-line">
+                            <span>Courier Tracking No:</span>
+                            <strong id="courierNumberDisplay" class="courier-number"></strong>
+                            <button 
+                                type="button" 
+                                id="copyCourierBtn" 
+                                class="btn-copy-tracking" 
+                                onclick="copyTrackingNumber()" 
+                                title="Copy tracking number"
+                                aria-label="Copy tracking number"
+                            >
+                                <span id="copyIcon">📋</span>
+                                <span id="copyFeedback" class="copy-feedback">Copied!</span>
+                            </button>
+                        </div>
+                        <a href="https://www.tpcindia.com/" target="_blank" rel="noopener noreferrer" class="btn-track-courier">
+                            <span>🚀</span>
+                            <span>Track on Courier Website</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Pending State -->
+                <div id="pendingBox" class="status-box-pending" style="display: none;">
+                    <div class="status-badge-pending">
+                        <span>⏳</span>
+                        <span>Pending</span>
+                    </div>
+                    <p class="status-desc">Your order is currently being processed and prepared for dispatch.</p>
+                    <div>
+                        <span class="invoice-tag" id="pendingInvoiceTag" style="background: rgba(245, 158, 11, 0.15); color: #78350f;"></span>
+                    </div>
+                    <div class="contact-box">
+                        <div>For more information, contact:</div>
+                        <a href="tel:9886086278" class="contact-phone">📞 9886086278</a>
+                    </div>
+                </div>
+
+                <!-- Not Found State -->
+                <div id="errorBox" class="status-box-error" style="display: none;">
+                    <div class="error-icon">🔍</div>
+                    <div class="error-msg" id="errorMsgText">Invoice number not found. Please check and try again.</div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer-links">
+            <p>© Shree Mata. All rights reserved.</p>
+            <p style="margin-top: 6px;">
+                <a href="/">Home</a> • 
+                <a href="/cart.html">Cart</a> • 
+                <a href="/account.html">My Account</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Check URL search parameters on page load (e.g. ?invoice=SM... or ?id=SM...)
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const invoiceParam = urlParams.get('invoice') || urlParams.get('id') || urlParams.get('bill');
+            if (invoiceParam) {
+                const input = document.getElementById('invoiceInput');
+                input.value = invoiceParam.trim();
+                checkInvoiceStatus(invoiceParam.trim());
+            }
+        });
+
+        async function handleTrackSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('invoiceInput');
+            const invoiceNumber = input.value.trim();
+            if (!invoiceNumber) return;
+            await checkInvoiceStatus(invoiceNumber);
+        }
+
+        async function checkInvoiceStatus(invoiceNumber) {
+            const submitBtn = document.getElementById('submitBtn');
+            const btnIcon = document.getElementById('btnIcon');
+            const btnText = document.getElementById('btnText');
+            const resultSection = document.getElementById('resultSection');
+            const dispatchedBox = document.getElementById('dispatchedBox');
+            const pendingBox = document.getElementById('pendingBox');
+            const errorBox = document.getElementById('errorBox');
+            const errorMsgText = document.getElementById('errorMsgText');
+
+            // Reset previous displays
+            resultSection.style.display = 'none';
+            dispatchedBox.style.display = 'none';
+            pendingBox.style.display = 'none';
+            errorBox.style.display = 'none';
+
+            // Loading state
+            submitBtn.disabled = true;
+            btnIcon.innerHTML = '<span class="spinner"></span>';
+            btnText.textContent = 'Checking...';
+
+            try {
+                const response = await fetch(`/api/invoices/track/${encodeURIComponent(invoiceNumber)}`);
+                const data = await response.json();
+
+                resultSection.style.display = 'block';
+
+                if (response.ok && data && data.invoiceNumber) {
+                    const status = (data.dispatchStatus || 'pending').toLowerCase();
+                    
+                    if (status === 'dispatched') {
+                        document.getElementById('dispatchedInvoiceTag').textContent = `Bill No: ${data.invoiceNumber}`;
+                        const courierBox = document.getElementById('courierDetailsBox');
+                        const courierDisplay = document.getElementById('courierNumberDisplay');
+                        if (data.courierNumber && data.courierNumber.trim()) {
+                            courierDisplay.textContent = data.courierNumber.trim();
+                            courierBox.style.display = 'block';
+                        } else {
+                            courierBox.style.display = 'none';
+                        }
+                        dispatchedBox.style.display = 'block';
+                    } else {
+                        document.getElementById('pendingInvoiceTag').textContent = `Bill No: ${data.invoiceNumber}`;
+                        pendingBox.style.display = 'block';
+                    }
+                } else {
+                    errorMsgText.textContent = 'Invoice number not found. Please check and try again.';
+                    errorBox.style.display = 'block';
+                }
+            } catch (error) {
+                resultSection.style.display = 'block';
+                errorMsgText.textContent = 'Unable to check status at the moment. Please try again.';
+                errorBox.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                btnIcon.textContent = '🔍';
+                btnText.textContent = 'Check Status';
+            }
+        }
+
+        let copyTimeout = null;
+        async function copyTrackingNumber() {
+            const courierDisplay = document.getElementById('courierNumberDisplay');
+            const trackingNum = courierDisplay ? courierDisplay.textContent.trim() : '';
+            if (!trackingNum) return;
+
+            let copied = false;
+            try {
+                if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(trackingNum);
+                    copied = true;
+                }
+            } catch (err) {
+                // Clipboard API error, attempt fallback below
+            }
+
+            if (!copied) {
+                try {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = trackingNum;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    textArea.style.top = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    copied = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                } catch (fallbackErr) {
+                    copied = false;
+                }
+            }
+
+            if (copied) {
+                const icon = document.getElementById('copyIcon');
+                const feedback = document.getElementById('copyFeedback');
+                if (icon) icon.textContent = '✅';
+                if (feedback) feedback.style.display = 'block';
+
+                clearTimeout(copyTimeout);
+                copyTimeout = setTimeout(() => {
+                    if (icon) icon.textContent = '📋';
+                    if (feedback) feedback.style.display = 'none';
+                }, 1500);
+            }
+        }
+    </script>
+</body>
+</html>

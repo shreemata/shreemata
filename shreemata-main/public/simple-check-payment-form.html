@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cheque Payment Form - Shree Mata</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .readonly {
+            background: #f8f9fa;
+            color: #666;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+        .file-upload {
+            border: 2px dashed #e0e0e0;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .file-upload:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        .file-upload.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .file-preview {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            display: none;
+        }
+        .file-preview img {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Cheque Payment Verification</h1>
+        
+        <div id="message"></div>
+        
+        <form id="chequePaymentForm">
+            <div class="form-group">
+                <label for="orderId">Order ID *</label>
+                <input type="text" id="orderId" name="orderId" readonly class="readonly">
+            </div>
+            
+            <div class="form-group">
+                <label for="userName">Your Name *</label>
+                <input type="text" id="userName" name="userName" readonly class="readonly">
+            </div>
+            
+            <div class="form-group">
+                <label for="userEmail">Email Address *</label>
+                <input type="email" id="userEmail" name="userEmail" readonly class="readonly">
+            </div>
+            
+            <div class="form-group">
+                <label for="amount">Order Amount *</label>
+                <input type="text" id="amount" name="amount" readonly class="readonly">
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Phone Number *</label>
+                <input type="tel" id="phone" name="phone" readonly class="readonly">
+            </div>
+            
+            <div class="form-group">
+                <label for="chequeNumber">Cheque Number *</label>
+                <input type="text" id="chequeNumber" name="chequeNumber" required placeholder="Enter cheque number">
+            </div>
+            
+            <div class="form-group">
+                <label for="bankName">Bank Name *</label>
+                <input type="text" id="bankName" name="bankName" required placeholder="Enter bank name">
+            </div>
+            
+            <div class="form-group">
+                <label for="chequeDate">Cheque Date *</label>
+                <input type="date" id="chequeDate" name="chequeDate" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="utrNumber">UTR Number (Optional)</label>
+                <input type="text" id="utrNumber" name="utrNumber" placeholder="Enter UTR number if available">
+            </div>
+            
+            <div class="form-group">
+                <label>Upload Cheque Image *</label>
+                <div class="file-upload" onclick="document.getElementById('chequeImage').click()">
+                    <input type="file" id="chequeImage" name="chequeImage" accept="image/*" required style="display: none;">
+                    <p>📷 Click to upload cheque image or drag & drop</p>
+                    <small>Supported formats: JPG, PNG, GIF (Max 5MB)</small>
+                </div>
+                <div class="file-preview" id="filePreview">
+                    <img id="previewImage" src="" alt="Cheque Preview">
+                    <p id="fileName"></p>
+                </div>
+            </div>
+            
+            <button type="submit" id="submitBtn">Submit Cheque Payment Details</button>
+        </form>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('orderId') || 'TEST_ORDER_123';
+        const amount = urlParams.get('amount') || '599';
+        const userName = urlParams.get('userName') || 'Test User';
+        const userEmail = urlParams.get('userEmail') || 'test@example.com';
+        const phone = urlParams.get('phone') || '9876543210';
+        
+        // Pre-fill form
+        document.getElementById('orderId').value = orderId;
+        document.getElementById('userName').value = userName;
+        document.getElementById('userEmail').value = userEmail;
+        document.getElementById('amount').value = '₹' + amount;
+        document.getElementById('phone').value = phone;
+        
+        // File upload handling
+        const fileInput = document.getElementById('chequeImage');
+        const fileUpload = document.querySelector('.file-upload');
+        const filePreview = document.getElementById('filePreview');
+        const previewImage = document.getElementById('previewImage');
+        const fileName = document.getElementById('fileName');
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        // Drag and drop
+        fileUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUpload.classList.add('dragover');
+        });
+        
+        fileUpload.addEventListener('dragleave', () => {
+            fileUpload.classList.remove('dragover');
+        });
+        
+        fileUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        });
+        
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                // Validate file
+                if (!file.type.startsWith('image/')) {
+                    showMessage('Please select an image file.', 'error');
+                    return;
+                }
+                
+                if (file.size > 5 * 1024 * 1024) {
+                    showMessage('File size must be less than 5MB.', 'error');
+                    return;
+                }
+                
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    fileName.textContent = file.name;
+                    filePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // Form submission
+        document.getElementById('chequePaymentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    showMessage('❌ Please login to submit cheque payment details.', 'error');
+                    return;
+                }
+                
+                // Step 1: Upload image if provided
+                let imageUploaded = false;
+                if (fileInput.files[0]) {
+                    submitBtn.textContent = 'Uploading image...';
+                    
+                    const imageFormData = new FormData();
+                    imageFormData.append('orderId', orderId);
+                    imageFormData.append('chequeImage', fileInput.files[0]);
+                    
+                    const imageResponse = await fetch(`${window.API_URL}/payments/upload-cheque-image`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: imageFormData
+                    });
+                    
+                    const imageResult = await imageResponse.json();
+                    
+                    if (imageResponse.ok && imageResult.success) {
+                        console.log('Image uploaded successfully:', imageResult.imageUrl);
+                        imageUploaded = true;
+                    } else {
+                        throw new Error(imageResult.error || 'Image upload failed');
+                    }
+                }
+                
+                // Step 2: Submit form data
+                submitBtn.textContent = 'Submitting details...';
+                
+                const formData = {
+                    orderId: orderId,
+                    chequeNumber: document.getElementById('chequeNumber').value,
+                    bankName: document.getElementById('bankName').value,
+                    chequeDate: document.getElementById('chequeDate').value,
+                    utrNumber: document.getElementById('utrNumber').value
+                };
+                
+                console.log('Submitting cheque payment data:', formData);
+                
+                const response = await fetch(`${window.API_URL}/payments/simple-cheque-payment-submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                console.log('Submission result:', result);
+                
+                if (response.ok && result.success) {
+                    let successMessage = '✅ Cheque payment details submitted successfully!';
+                    if (imageUploaded) {
+                        successMessage += ' Your cheque image has been uploaded.';
+                    }
+                    successMessage += ' Our team will review and approve your payment within 24 hours.';
+                    
+                    showMessage(successMessage, 'success');
+                    
+                    // Redirect to orders page
+                    setTimeout(() => {
+                        window.location.href = '/account.html?section=orders';
+                    }, 3000);
+                } else {
+                    throw new Error(result.error || 'Submission failed');
+                }
+                
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                showMessage(`❌ Error submitting form: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Cheque Payment Details';
+            }
+        });
+        
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+    </script>
+</body>
+</html>

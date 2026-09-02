@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Success Popup</title>
+</head>
+<body>
+    <h1>Test Success Popup</h1>
+    <button onclick="testSuccessPopup()">Test Success Popup</button>
+
+    <script src="js/successPopup.js"></script>
+    <script>
+        function testSuccessPopup() {
+            const orderData = {
+                orderId: 'pay_test123456789',
+                items: 2,
+                amount: 599,
+                deliveryMethod: 'Courier Delivery',
+                paymentMethod: 'Online Payment'
+            };
+            
+            showSuccessPopup(orderData);
+        }
+    </script>
+</body>
+</html>
