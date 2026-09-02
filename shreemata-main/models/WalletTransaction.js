@@ -26,6 +26,7 @@ const walletTransactionSchema = new mongoose.Schema({
       'admin_commission',      // Admin share
       'referral_fallback',     // Referral fallback to admin
       'withdrawal',            // Wallet withdrawal
+      'vip_master_card_withdrawal', // VIP Master Card withdrawal
       'refund',                // Order refund
       'adjustment',            // Manual admin adjustment
       'test_simulation'        // Test simulated payouts

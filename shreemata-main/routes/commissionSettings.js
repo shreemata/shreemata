@@ -372,6 +372,32 @@ router.get("/commission/transactions", authenticateToken, async (req, res) => {
         }
       });
     }
+
+    // Add debit and refund ledger records from WalletTransaction
+    const WalletTransaction = require("../models/WalletTransaction");
+    const walletRecords = await WalletTransaction.find({ 
+      userId, 
+      $or: [{ type: 'debit' }, { category: 'refund' }]
+    }).sort({ createdAt: -1 });
+
+    for (const wtx of walletRecords) {
+      let txType = 'withdrawal';
+      if (wtx.category === 'vip_master_card_withdrawal') {
+        txType = 'vip_master_card_withdrawal';
+      } else if (wtx.category === 'refund') {
+        txType = 'refund';
+      }
+
+      allTransactions.push({
+        _id: wtx._id.toString(),
+        type: txType,
+        amount: wtx.amount,
+        description: wtx.description || (txType === 'refund' ? 'Withdrawal Refund' : 'Withdrawal'),
+        status: 'completed',
+        createdAt: wtx.createdAt,
+        balanceAfter: wtx.balanceAfter
+      });
+    }
     
     // Sort all transactions by date (newest first)
     allTransactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -394,7 +420,9 @@ router.get("/commission/settings", authenticateToken, async (req, res) => {
     const settings = await CommissionSettings.getSettings();
     res.json({ 
       settings: {
-        minimumWithdrawalAmount: settings.minimumWithdrawalAmount || 100
+        minimumWithdrawalAmount: settings.minimumWithdrawalAmount || 100,
+        vipMinimumWithdrawalAmount: 500,
+        vipMandatoryReserveBalance: 50
       }
     });
   } catch (err) {
@@ -405,15 +433,17 @@ router.get("/commission/settings", authenticateToken, async (req, res) => {
 
 /* -------------------------------------------
    POST /api/commission/withdraw
-   Request withdrawal
+   Request standard wallet withdrawal
 --------------------------------------------*/
 router.post("/commission/withdraw", authenticateToken, async (req, res) => {
   try {
     const { amount } = req.body;
     const userId = req.user.id || req.user.userId;
     const User = require("../models/User");
+    const WalletTransaction = require("../models/WalletTransaction");
     
-    if (!amount || amount <= 0) {
+    const numericAmount = Number(amount);
+    if (isNaN(numericAmount) || numericAmount <= 0) {
       return res.status(400).json({ error: "Invalid withdrawal amount" });
     }
     
@@ -424,7 +454,7 @@ router.post("/commission/withdraw", authenticateToken, async (req, res) => {
     }
     
     const walletBalance = user.wallet || 0;
-    if (amount > walletBalance) {
+    if (numericAmount > walletBalance) {
       return res.status(400).json({ error: "Insufficient balance" });
     }
     
@@ -432,29 +462,307 @@ router.post("/commission/withdraw", authenticateToken, async (req, res) => {
     const settings = await CommissionSettings.getSettings();
     const minWithdrawal = settings.minimumWithdrawalAmount || 100;
     
-    if (amount < minWithdrawal) {
+    if (numericAmount < minWithdrawal) {
       return res.status(400).json({ error: `Minimum withdrawal amount is ₹${minWithdrawal}` });
     }
     
-    // Check if user has bank details (this would be implemented based on your bank details system)
-    // For now, we'll assume bank details are set
+    // Payment Details Validation (Bank or UPI)
+    const { accountHolderName, accountNumber, bankName, ifscCode, upiId } = req.body;
+    const isBankSetup = user.bankDetails && user.bankDetails.isSetup;
+
+    if (!isBankSetup) {
+      const hasUpi = Boolean(upiId && upiId.trim());
+      const hasBank = Boolean(accountNumber && accountNumber.trim() && bankName && bankName.trim() && ifscCode && ifscCode.trim());
+
+      if (!hasUpi && !hasBank) {
+        return res.status(400).json({
+          error: "Payment destination required. Please provide either complete Bank details (Account Number, Bank Name, IFSC Code) or a UPI ID.",
+          requiresPaymentDetails: true
+        });
+      }
+
+      // Save to user bank details
+      user.bankDetails = {
+        ...(user.bankDetails || {}),
+        accountHolderName: (accountHolderName || user.name || 'User').trim(),
+        accountNumber: accountNumber ? accountNumber.trim() : null,
+        bankName: bankName ? bankName.trim() : null,
+        ifscCode: ifscCode ? ifscCode.trim().toUpperCase() : null,
+        upiId: upiId ? upiId.trim().toLowerCase() : null,
+        isSetup: true,
+        setupDate: new Date(),
+        lastModifiedBy: 'user'
+      };
+    }
+
+    const balanceBefore = walletBalance;
+    user.wallet = walletBalance - numericAmount;
+    const balanceAfter = user.wallet;
+
+    // Update withdrawal statistics
+    if (!user.withdrawalStats) {
+      user.withdrawalStats = { totalWithdrawn: 0, dailyWithdrawn: 0, monthlyWithdrawn: 0, lastResetDate: new Date() };
+    }
+    user.withdrawalStats.totalWithdrawn = (user.withdrawalStats.totalWithdrawn || 0) + numericAmount;
+    user.withdrawalStats.lastWithdrawalDate = new Date();
+
+    user.withdrawals.push({
+      amount: numericAmount,
+      source: 'wallet',
+      balanceBefore,
+      balanceAfter,
+      upi: user.bankDetails?.upiId || null,
+      bankName: user.bankDetails?.bankName || null,
+      bank: user.bankDetails?.accountNumber || null,
+      ifsc: user.bankDetails?.ifscCode || null,
+      status: "pending",
+      requestedAt: new Date()
+    });
     
-    // Deduct amount from wallet
-    user.wallet = walletBalance - amount;
     await user.save();
+
+    // Create ledger transaction
+    const ledgerTx = new WalletTransaction({
+      userId: user._id,
+      amount: numericAmount,
+      type: 'debit',
+      category: 'withdrawal',
+      description: `Commission Wallet Withdrawal`,
+      balanceAfter
+    });
+    await ledgerTx.save();
     
-    // Create withdrawal transaction record
-    const CommissionTransaction = require("../models/CommissionTransaction");
-    // Note: This is a simplified approach. In a real system, you'd have a separate Withdrawal model
-    
+    const newWithdrawal = user.withdrawals[user.withdrawals.length - 1];
+
     res.json({ 
+      success: true,
       message: "Withdrawal request submitted successfully",
       remainingBalance: user.wallet,
-      withdrawalAmount: amount
+      withdrawalAmount: numericAmount,
+      withdrawalId: newWithdrawal?._id,
+      transactionId: ledgerTx._id
     });
   } catch (err) {
     console.error("Error processing withdrawal:", err);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+/* -------------------------------------------
+   POST /api/commission/vip-withdraw
+   Request VIP Master Card commission withdrawal
+   Validation Rules:
+   - Minimum withdrawal amount allowed: ₹500
+   - Mandatory minimum balance remaining: ₹50
+   - Reject if (Available Balance - Requested Amount) < 50 OR Requested Amount < 500
+--------------------------------------------*/
+router.post("/commission/vip-withdraw", authenticateToken, async (req, res) => {
+  try {
+    const { amount, cardNumber: requestedCardNumber } = req.body;
+    const userId = req.user.id || req.user.userId;
+    const User = require("../models/User");
+    const VipMasterCard = require("../models/VipMasterCard");
+    const WalletTransaction = require("../models/WalletTransaction");
+    const sendMail = require("../utils/sendMail");
+
+    const numericAmount = Number(amount);
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ 
+        error: "Please enter a valid withdrawal amount." 
+      });
+    }
+
+    // Rule 1: Minimum withdrawal is ₹500
+    if (numericAmount < 500) {
+      return res.status(400).json({ 
+        error: "Minimum withdrawal amount allowed for VIP Master Card is ₹500.",
+        minAmount: 500
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // Check VIP card ownership
+    const userCards = await VipMasterCard.find({ userId: user._id }).sort({ tier: -1 });
+    const hasVipCards = userCards.length > 0 || (user.masterCard && user.masterCard.isAssigned);
+
+    if (!hasVipCards) {
+      return res.status(403).json({ 
+        error: "No active VIP Master Card found for your account." 
+      });
+    }
+
+    let targetCard = null;
+    let cardNumber = '';
+    let cardTier = 1;
+
+    if (requestedCardNumber) {
+      targetCard = userCards.find(c => c.cardNumber === requestedCardNumber);
+      if (targetCard) {
+        cardNumber = targetCard.cardNumber;
+        cardTier = targetCard.tier;
+      } else if (user.masterCard && user.masterCard.isAssigned && user.masterCard.cardNumber === requestedCardNumber) {
+        cardNumber = user.masterCard.cardNumber;
+        cardTier = 1;
+      } else {
+        // Strict security check: card does not belong to authenticated user
+        return res.status(403).json({
+          error: "Unauthorized: You can only withdraw from a VIP Master Card assigned to your account."
+        });
+      }
+    } else {
+      if (userCards.length > 0) {
+        targetCard = userCards[0];
+        cardNumber = targetCard.cardNumber;
+        cardTier = targetCard.tier;
+      } else if (user.masterCard && user.masterCard.isAssigned && user.masterCard.cardNumber) {
+        cardNumber = user.masterCard.cardNumber;
+        cardTier = 1;
+      } else {
+        cardNumber = 'VIP Master Card';
+        cardTier = 1;
+      }
+    }
+
+    const availableBalance = Number(user.wallet || 0);
+
+    // Rule 2 & 3: Check balance and mandatory reserve of ₹50
+    // Reject if (Available Balance - Requested Amount) < 50
+    if (numericAmount > availableBalance) {
+      return res.status(400).json({
+        error: `Insufficient balance. Your available VIP card balance is ₹${availableBalance.toFixed(2)}.`,
+        availableBalance
+      });
+    }
+
+    const remainingAfterWithdrawal = availableBalance - numericAmount;
+    if (remainingAfterWithdrawal < 50) {
+      const maxWithdrawable = Math.max(0, availableBalance - 50);
+      return res.status(400).json({
+        error: `A mandatory minimum balance of ₹50 must remain in your VIP Master Card balance after withdrawal. Available: ₹${availableBalance.toFixed(2)}, Maximum withdrawable: ₹${maxWithdrawable.toFixed(2)}.`,
+        availableBalance,
+        mandatoryReserve: 50,
+        maxWithdrawable
+      });
+    }
+
+    // Payment Details Validation (Bank or UPI)
+    const { accountHolderName, accountNumber, bankName, ifscCode, upiId } = req.body;
+    const isBankSetup = user.bankDetails && user.bankDetails.isSetup;
+
+    if (!isBankSetup) {
+      const hasUpi = Boolean(upiId && upiId.trim());
+      const hasBank = Boolean(accountNumber && accountNumber.trim() && bankName && bankName.trim() && ifscCode && ifscCode.trim());
+
+      if (!hasUpi && !hasBank) {
+        return res.status(400).json({
+          error: "Payment destination required. Please provide either complete Bank details (Account Number, Bank Name, IFSC Code) or a UPI ID.",
+          requiresPaymentDetails: true
+        });
+      }
+
+      // Save to user bank details for this and future withdrawals
+      user.bankDetails = {
+        ...(user.bankDetails || {}),
+        accountHolderName: (accountHolderName || user.name || 'User').trim(),
+        accountNumber: accountNumber ? accountNumber.trim() : null,
+        bankName: bankName ? bankName.trim() : null,
+        ifscCode: ifscCode ? ifscCode.trim().toUpperCase() : null,
+        upiId: upiId ? upiId.trim().toLowerCase() : null,
+        isSetup: true,
+        setupDate: new Date(),
+        lastModifiedBy: 'user'
+      };
+    }
+
+    // Real-time balance updates
+    const balanceBefore = availableBalance;
+    user.wallet = remainingAfterWithdrawal;
+    const balanceAfter = user.wallet;
+
+    if (!user.withdrawalStats) {
+      user.withdrawalStats = { totalWithdrawn: 0, dailyWithdrawn: 0, monthlyWithdrawn: 0, lastResetDate: new Date() };
+    }
+    user.withdrawalStats.totalWithdrawn = (user.withdrawalStats.totalWithdrawn || 0) + numericAmount;
+    user.withdrawalStats.lastWithdrawalDate = new Date();
+
+    const withdrawalEntry = {
+      amount: numericAmount,
+      source: 'vip_master_card',
+      cardNumber,
+      cardTier,
+      cardId: targetCard ? targetCard._id : null,
+      balanceBefore,
+      balanceAfter,
+      mandatoryReserve: 50,
+      upi: user.bankDetails?.upiId || null,
+      bankName: user.bankDetails?.bankName || null,
+      bank: user.bankDetails?.accountNumber || null,
+      ifsc: user.bankDetails?.ifscCode || null,
+      status: "pending",
+      requestedAt: new Date()
+    };
+    user.withdrawals.push(withdrawalEntry);
+    await user.save();
+
+    // Update VIP Master Card document if exists
+    if (targetCard) {
+      targetCard.totalWithdrawn = (targetCard.totalWithdrawn || 0) + numericAmount;
+      targetCard.lastWithdrawalDate = new Date();
+      await targetCard.save();
+    }
+
+    // Real-time Ledger Tracking
+    const ledgerTx = new WalletTransaction({
+      userId: user._id,
+      amount: numericAmount,
+      type: 'debit',
+      category: 'vip_master_card_withdrawal',
+      description: `VIP Master Card Withdrawal (${cardNumber} - Tier ${cardTier})`,
+      balanceAfter
+    });
+    await ledgerTx.save();
+
+    // Send confirmation email (non-blocking)
+    try {
+      if (user.email) {
+        await sendMail(
+          user.email,
+          "👑 VIP Master Card Withdrawal Request Submitted",
+          `
+          <h2>Hello ${user.name},</h2>
+          <p>Your VIP Master Card withdrawal request of <b>₹${numericAmount.toFixed(2)}</b> has been received and is pending admin approval.</p>
+          <p><strong>Card:</strong> ${cardNumber} (Tier ${cardTier})</p>
+          <p><strong>Remaining Balance:</strong> ₹${balanceAfter.toFixed(2)} (Mandatory ₹50 reserve maintained)</p>
+          <p>Status: <b>Pending Admin Approval</b></p>
+          <p>Funds will be transferred to your registered bank account or UPI ID within 24-48 hours.</p>
+          <br>
+          <p>Warm regards,<br>Shree Mata Team</p>
+          `
+        );
+      }
+    } catch (emailErr) {
+      console.warn("Could not send VIP withdrawal email:", emailErr.message);
+    }
+
+    res.json({
+      success: true,
+      message: "VIP Master Card withdrawal request submitted successfully",
+      withdrawalAmount: numericAmount,
+      remainingBalance: balanceAfter,
+      mandatoryReserve: 50,
+      cardNumber,
+      cardTier,
+      transactionId: ledgerTx._id,
+      withdrawalId: user.withdrawals[user.withdrawals.length - 1]._id
+    });
+
+  } catch (err) {
+    console.error("Error processing VIP Master Card withdrawal:", err);
+    res.status(500).json({ error: "Server error processing VIP Master Card withdrawal." });
   }
 });
 

@@ -22,6 +22,18 @@ const vipMasterCardSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  balance: {
+    type: Number,
+    default: 0
+  },
+  totalWithdrawn: {
+    type: Number,
+    default: 0
+  },
+  lastWithdrawalDate: {
+    type: Date,
+    default: null
+  },
   issuedAt: {
     type: Date,
     default: Date.now,

@@ -109,6 +109,12 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
                     name: user.name,
                     email: user.email,
                     amount: w.amount,
+                    source: w.source || 'wallet',
+                    cardNumber: w.cardNumber || null,
+                    cardTier: w.cardTier || null,
+                    balanceBefore: w.balanceBefore || null,
+                    balanceAfter: w.balanceAfter || null,
+                    mandatoryReserve: w.mandatoryReserve || (w.source === 'vip_master_card' ? 50 : 0),
                     date: w.date || w.requestedAt || null,
                     status: w.status,
                     withdrawId: w._id,
@@ -349,20 +355,31 @@ router.post("/reject", authenticateToken, isAdmin, async (req, res) => {
         withdrawal.status = "rejected";
         await user.save();
 
+        // Record refund in WalletTransaction ledger
+        const WalletTransaction = require("../models/WalletTransaction");
+        const refundTx = new WalletTransaction({
+            userId: user._id,
+            amount: withdrawal.amount,
+            type: 'credit',
+            category: 'refund',
+            description: `Refund for rejected ${withdrawal.source === 'vip_master_card' ? 'VIP Master Card' : 'wallet'} withdrawal`,
+            balanceAfter: user.wallet
+        });
+        await refundTx.save();
+
         await sendMail(
-    user.email,
-    "Withdrawal Rejected",
-    `
-    <h2>Hello ${user.name},</h2>
-    <p>Your withdrawal request of <b>₹${withdrawal.amount}</b> was rejected.</p>
-    <p>The amount has been refunded to your wallet.</p>
-    <br>
-    <p>BookStore Team</p>
-    `
-);
+            user.email,
+            "Withdrawal Rejected",
+            `
+            <h2>Hello ${user.name},</h2>
+            <p>Your withdrawal request of <b>₹${withdrawal.amount}</b> was rejected.</p>
+            <p>The amount has been refunded to your wallet.</p>
+            <br>
+            <p>Shree Mata Team</p>
+            `
+        );
 
-
-        res.json({ message: "Withdrawal rejected & refunded" });
+        res.json({ message: "Withdrawal rejected & refunded", remainingBalance: user.wallet });
 
     } catch (err) {
         console.error("Reject error:", err);

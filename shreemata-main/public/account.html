@@ -264,21 +264,26 @@
             <p><strong>Name:</strong> <span id="accName"></span></p>
             <p><strong>Email:</strong> <span id="accEmail"></span></p>
 
-            <!-- MasterCard Container -->
+            <!-- Digital VIP MasterCard Container -->
             <div id="masterCardContainer" style="display: none; margin-top: 30px;">
-                <h3 style="color: #f0c96b; font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 15px;">💳 Your Master Card</h3>
-                <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; border-radius: 16px; padding: 24px; position: relative; overflow: hidden; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.4); font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; max-width: 400px; min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; border: 1.5px solid rgba(201, 162, 39, 0.355);">
+                <h3 style="color: #f0c96b; font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                    👑 Your Digital VIP Master Card
+                </h3>
+                <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; border-radius: 16px; padding: 24px; position: relative; overflow: hidden; box-shadow: 0 8px 25px rgba(15, 23, 42, 0.5); font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; max-width: 400px; min-height: 200px; display: flex; flex-direction: column; justify-content: space-between; border: 1.5px solid rgba(212, 175, 55, 0.5);">
                     <!-- Card Header -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: bold; font-size: 1.1rem; color: #facc15; font-family: system-ui, sans-serif;">SHREE MATA</span>
-                        <span style="font-style: italic; font-weight: 700; color: rgba(255,255,255,0.7); font-size: 0.8rem;">MASTER CARD</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.2rem;">👑</span>
+                            <span style="font-weight: bold; font-size: 1.1rem; color: #facc15; font-family: system-ui, sans-serif;">SHREE MATA</span>
+                        </div>
+                        <span style="font-style: italic; font-weight: 700; color: rgba(255,255,255,0.7); font-size: 0.8rem; font-family: system-ui, sans-serif;">DIGITAL VIP CARD</span>
                     </div>
                     
                     <!-- Chip -->
-                    <div style="background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); width: 42px; height: 32px; border-radius: 6px; margin: 15px 0 5px 0; border: 1px solid rgba(0,0,0,0.1);"></div>
+                    <div style="background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); width: 42px; height: 32px; border-radius: 6px; margin: 12px 0 5px 0; border: 1px solid rgba(0,0,0,0.1);"></div>
                     
                     <!-- Card Number -->
-                    <div id="accCardNumber" style="font-size: 1.4rem; font-weight: bold; color: #fff; margin: 10px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">SMC-10001</div>
+                    <div id="accCardNumber" style="font-size: 1.4rem; font-weight: bold; color: #fff; margin: 8px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); letter-spacing: 2px;">SMC-10001</div>
                     
                     <!-- Card Footer Info -->
                     <div style="display: flex; justify-content: space-between; align-items: flex-end; font-family: system-ui, sans-serif; font-size: 0.8rem; color: #94a3b8; letter-spacing: 0;">
@@ -295,6 +300,17 @@
                             <div id="accCardIssued" style="font-weight: 600; color: #f8fafc;">08/2026</div>
                         </div>
                     </div>
+
+                    <!-- Shared Commission Wallet -->
+                    <div style="margin-top: 12px; padding-top: 10px; border-top: 1.5px dashed rgba(212, 175, 55, 0.3); display: flex; justify-content: space-between; align-items: center; font-family: system-ui, sans-serif; font-size: 0.75rem;">
+                        <span style="color: #94a3b8;">Shared Commission Wallet:</span>
+                        <span style="font-weight: bold; color: #facc15; font-size: 0.95rem;">₹<span id="accCardWallet">0.00</span></span>
+                    </div>
+                    
+                    <!-- Quick Withdraw Button -->
+                    <button type="button" onclick="openVipWithdrawModal(document.getElementById('accCardNumber').textContent, 1)" style="margin-top: 14px; width: 100%; padding: 11px; background: linear-gradient(135deg, #d4af37 0%, #aa820a 100%); color: #181410; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25); font-family: system-ui, sans-serif; transition: all 0.2s;">
+                        <span>💸 Withdraw from VIP Card</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -411,12 +427,77 @@
             <div class="withdrawal-section">
                 <h3>💸 Withdraw Money</h3>
                 <p style="color: rgba(255,255,255,0.7);">Minimum withdrawal: <span id="minWithdrawal">₹100</span></p>
-                <div class="withdrawal-form">
-                    <input type="number" id="withdrawalAmount" placeholder="Enter amount" min="100" step="1">
-                    <button class="btn-primary" onclick="requestWithdrawal()">Request Withdrawal</button>
+
+                <!-- Payment Destination (General Wallet) -->
+                <!-- Saved State -->
+                <div id="generalSavedBankSection" style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 14px; margin-bottom: 15px; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 700; color: #10b981;">💳 Payout Destination (Saved):</span>
+                        <span style="font-size: 11px; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 4px; font-weight: 600;">Verified</span>
+                    </div>
+                    <div id="generalMaskedBankInfo" style="color: #f0e6d2; font-family: monospace; font-size: 13px; line-height: 1.5;">
+                        <!-- Masked Bank/UPI Info injected here -->
+                    </div>
+                    <small style="color: #94a3b8; font-size: 11px; display: block; margin-top: 4px;">Funds will be sent directly to this destination upon admin approval.</small>
                 </div>
-                <small style="margin-top: 15px;">Withdrawals are processed within 24-48 hours to your registered bank account.</small>
+
+                <!-- First-Time Setup State -->
+                <div id="generalNewBankSection" style="display: none; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 16px; margin-bottom: 15px; font-size: 13px;">
+                    <div style="font-weight: 700; color: #fbbf24; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                        <span>🏦 Setup Payment Destination</span>
+                    </div>
+                    <p style="margin: 0 0 12px 0; font-size: 12px; color: #d6d3d1;">Please provide your bank or UPI details below. These will be saved to your profile for this and future payouts.</p>
+                    
+                    <div style="display: grid; gap: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 12px; color: #a8a29e; margin-bottom: 4px;">Account Holder Name *</label>
+                            <input type="text" id="generalAccountHolderName" placeholder="Full name as per bank records" style="width: 100%; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="display: block; font-size: 12px; color: #a8a29e; margin-bottom: 4px;">Account Number</label>
+                                <input type="text" id="generalAccountNumber" placeholder="Bank Account Number" style="width: 100%; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; color: #a8a29e; margin-bottom: 4px;">IFSC Code</label>
+                                <input type="text" id="generalIfscCode" placeholder="e.g. SBIN0001234" style="width: 100%; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px; text-transform: uppercase;">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 12px; color: #a8a29e; margin-bottom: 4px;">Bank Name</label>
+                            <input type="text" id="generalBankName" placeholder="e.g. State Bank of India, HDFC" style="width: 100%; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                        </div>
+
+                        <div style="text-align: center; color: #78716c; font-size: 11px; font-weight: 700; margin: 4px 0;">— OR USE UPI —</div>
+
+                        <div>
+                            <label style="display: block; font-size: 12px; color: #a8a29e; margin-bottom: 4px;">UPI / PhonePe / GPay ID</label>
+                            <input type="text" id="generalUpiId" placeholder="e.g. yourname@paytm / 9876543210@ybl" style="width: 100%; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="withdrawal-form">
+                    <input type="number" id="withdrawalAmount" placeholder="Enter amount to withdraw" min="100" step="1">
+                    <button class="btn-primary" id="generalWithdrawSubmitBtn" onclick="requestWithdrawal()">Request Withdrawal</button>
+                </div>
+                <small style="margin-top: 15px; display: block; color: #a8a29e;">Withdrawals are processed within 24-48 hours to your registered payment destination.</small>
             </div>
+            <!-- Withdrawal Requests & Payout Status -->
+            <div class="withdrawal-history" style="margin-top: 30px; background: #26211a; padding: 22px; border-radius: 14px; border: 1px solid rgba(212, 175, 55, 0.4);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0; color: #d4af37; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                        <span>📋 Withdrawal Requests & Payout Status</span>
+                    </h3>
+                    <button type="button" onclick="loadWalletData()" style="background: transparent; border: 1px solid rgba(212, 175, 55, 0.5); color: #d4af37; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600;">🔄 Refresh Status</button>
+                </div>
+                <div id="withdrawalRequestsList" style="display: flex; flex-direction: column; gap: 10px;">
+                    <p style="color: #a8a29e; font-size: 13px; margin: 0;">Loading withdrawal requests...</p>
+                </div>
+            </div>
+
             <div class="wallet-history"><h3>💳 Transaction History</h3><div id="walletHistoryList">Loading...</div></div>
         </div>
 
@@ -637,8 +718,143 @@
     }
 </script>
 
+<!-- VIP Master Card Withdrawal Modal -->
+<div id="vipWithdrawModal" class="modal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.75); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+    <div style="background: #1e1914; border: 1.5px solid #d4af37; border-radius: 18px; max-width: 480px; width: 92%; color: #f0e6d2; box-shadow: 0 15px 40px rgba(0,0,0,0.6); overflow: hidden; animation: modalFadeIn 0.25s ease-out;">
+        <!-- Header -->
+        <div style="padding: 18px 24px; background: linear-gradient(135deg, #2a221b 0%, #1a1511 100%); border-bottom: 1px solid rgba(212, 175, 55, 0.3); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 24px;">👑</span>
+                <div>
+                    <h3 style="margin: 0; color: #d4af37; font-size: 18px; font-weight: 700; font-family: 'Playfair Display', serif;">VIP Master Card Withdrawal</h3>
+                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #a8a29e;" id="vipModalCardInfo">Card: VIP 0000 0001 (Tier 01)</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeVipWithdrawModal()" style="background: transparent; border: none; color: #a8a29e; font-size: 22px; cursor: pointer; padding: 4px 8px; line-height: 1;">✕</button>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 22px 24px; display: flex; flex-direction: column; gap: 16px;">
+            <!-- Balance & Limit Details Box -->
+            <div style="background: rgba(212, 175, 55, 0.08); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 12px; padding: 14px 16px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: #a8a29e; font-size: 13px;">Available Balance:</span>
+                    <span style="font-weight: 700; color: #10b981; font-size: 15px;" id="vipModalAvailableBalance">₹0.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: #a8a29e; font-size: 13px;">Mandatory Reserve Balance:</span>
+                    <span style="font-weight: 600; color: #fbbf24; font-size: 13px;">₹50.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px dashed rgba(212, 175, 55, 0.2);">
+                    <span style="color: #f0e6d2; font-size: 13px; font-weight: 600;">Max Withdrawable:</span>
+                    <span style="font-weight: 700; color: #d4af37; font-size: 15px;" id="vipModalMaxWithdrawable">₹0.00</span>
+                </div>
+            </div>
+
+            <!-- Rules notice banner -->
+            <div style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; padding: 10px 14px; border-radius: 6px; font-size: 12px; color: #fde68a;">
+                <div style="font-weight: 600; margin-bottom: 2px;">📋 VIP Withdrawal Rules:</div>
+                <ul style="margin: 4px 0 0 16px; padding: 0;">
+                    <li>Minimum withdrawal amount allowed is <b>₹500</b>.</li>
+                    <li>A mandatory balance of at least <b>₹50</b> must remain in the VIP card balance after withdrawal.</li>
+                </ul>
+            </div>
+
+            <!-- Payment Destination Section -->
+            <!-- Saved Payment Destination (When Bank details exist) -->
+            <div id="vipSavedBankSection" style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 12px 14px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-weight: 700; color: #10b981;">💳 Payout Destination (Saved):</span>
+                    <span style="font-size: 11px; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 4px; font-weight: 600;">Verified</span>
+                </div>
+                <div id="vipMaskedBankInfo" style="color: #f0e6d2; font-family: monospace; font-size: 13px; line-height: 1.5;">
+                    <!-- Masked Bank/UPI Info injected here -->
+                </div>
+                <small style="color: #94a3b8; font-size: 11px; display: block; margin-top: 4px;">Funds will be sent directly to this destination upon admin approval.</small>
+            </div>
+
+            <!-- New Payment Destination Form (When Bank details are not setup) -->
+            <div id="vipNewBankSection" style="display: none; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 14px; font-size: 13px;">
+                <div style="font-weight: 700; color: #fbbf24; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                    <span>🏦 Setup Payment Destination</span>
+                </div>
+                <p style="margin: 0 0 10px 0; font-size: 11px; color: #d6d3d1;">Provide your bank or UPI details. These will be saved to your profile for this and future payouts.</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div>
+                        <label style="display: block; font-size: 11px; color: #a8a29e; margin-bottom: 3px;">Account Holder Name *</label>
+                        <input type="text" id="vipAccountHolderName" placeholder="Full name as per bank records" style="width: 100%; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <label style="display: block; font-size: 11px; color: #a8a29e; margin-bottom: 3px;">Account Number</label>
+                            <input type="text" id="vipAccountNumber" placeholder="Bank Account Number" style="width: 100%; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: #a8a29e; margin-bottom: 3px;">IFSC Code</label>
+                            <input type="text" id="vipIfscCode" placeholder="e.g. SBIN0001234" style="width: 100%; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px; text-transform: uppercase;">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 11px; color: #a8a29e; margin-bottom: 3px;">Bank Name</label>
+                        <input type="text" id="vipBankName" placeholder="e.g. State Bank of India, HDFC" style="width: 100%; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                    </div>
+
+                    <div style="text-align: center; color: #78716c; font-size: 11px; font-weight: 700;">— OR USE UPI —</div>
+
+                    <div>
+                        <label style="display: block; font-size: 11px; color: #a8a29e; margin-bottom: 3px;">UPI / PhonePe / GPay ID</label>
+                        <input type="text" id="vipUpiId" placeholder="e.g. yourname@paytm / 9876543210@ybl" style="width: 100%; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Amount -->
+            <div>
+                <label for="vipWithdrawAmountInput" style="display: block; font-size: 13px; font-weight: 600; color: #f0e6d2; margin-bottom: 6px;">Withdrawal Amount (₹) *</label>
+                <div style="position: relative;">
+                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #d4af37; font-weight: bold; font-size: 16px;">₹</span>
+                    <input type="number" id="vipWithdrawAmountInput" min="500" step="1" placeholder="Enter amount (min 500)" oninput="updateVipWithdrawPreview()" style="width: 100%; box-sizing: border-box; padding: 12px 14px 12px 30px; background: #120e0b; border: 1.5px solid rgba(212, 175, 55, 0.4); border-radius: 8px; color: #fff; font-size: 16px; font-weight: 600; outline: none; transition: border-color 0.2s;">
+                </div>
+            </div>
+
+            <!-- Quick Preset Buttons -->
+            <div style="display: flex; gap: 8px;">
+                <button type="button" onclick="setVipWithdrawPreset(500)" style="flex: 1; padding: 6px 8px; background: #26211a; border: 1px solid #d4af37; color: #f0e6d2; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">₹500</button>
+                <button type="button" onclick="setVipWithdrawPreset(1000)" style="flex: 1; padding: 6px 8px; background: #26211a; border: 1px solid #d4af37; color: #f0e6d2; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">₹1,000</button>
+                <button type="button" onclick="setVipWithdrawPreset('max')" style="flex: 1.2; padding: 6px 8px; background: #26211a; border: 1px solid #d4af37; color: #d4af37; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;">⚡ Max Allowed</button>
+            </div>
+
+            <!-- Real-time Preview Calculation Box -->
+            <div id="vipWithdrawPreviewBox" style="display: none; background: #15110d; border: 1px solid #332a22; border-radius: 8px; padding: 12px 14px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="color: #a8a29e;">Requested Amount:</span>
+                    <span style="font-weight: 600; color: #f0e6d2;" id="vipPreviewRequested">₹0.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: #a8a29e;">Remaining Balance:</span>
+                    <span style="font-weight: 700;" id="vipPreviewRemaining">₹0.00</span>
+                </div>
+                <div id="vipPreviewValidationMsg" style="font-size: 12px; margin-top: 4px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.1);"></div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 12px; margin-top: 4px;">
+                <button type="button" onclick="closeVipWithdrawModal()" style="flex: 1; padding: 12px; background: #26211a; border: 1px solid #443c33; color: #a8a29e; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
+                <button type="button" id="vipSubmitWithdrawBtn" onclick="submitVipWithdrawal()" style="flex: 2; padding: 12px; background: linear-gradient(135deg, #d4af37 0%, #aa820a 100%); border: none; color: #181410; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);">
+                    <span>💸 Submit Request</span>
+                </button>
+            </div>
+            <small style="text-align: center; color: #78716c; font-size: 11px;">Processed within 24-48 hours directly to your registered bank account or UPI.</small>
+        </div>
+    </div>
+</div>
+
 <style>
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 </style>
 
 </body>

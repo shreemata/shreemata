@@ -228,12 +228,33 @@ router.post("/withdraw", authenticateToken, async (req, res) => {
         const user = await User.findById(req.user.id);
         const amount = Number(req.body.amount);
         
-        // Check if bank details are setup
-        if (!user.bankDetails.isSetup) {
-            return res.status(400).json({ 
-                error: "Please setup your bank details first",
-                requiresBankSetup: true
-            });
+        // Check if bank details are setup or provided in request
+        const { accountHolderName, accountNumber, bankName, ifscCode, upiId } = req.body;
+        const isBankSetup = user.bankDetails && user.bankDetails.isSetup;
+
+        if (!isBankSetup) {
+            const hasUpi = Boolean(upiId && upiId.trim());
+            const hasBank = Boolean(accountNumber && accountNumber.trim() && bankName && bankName.trim() && ifscCode && ifscCode.trim());
+
+            if (!hasUpi && !hasBank) {
+                return res.status(400).json({ 
+                    error: "Payment destination required. Please provide either complete Bank details (Account Number, Bank Name, IFSC Code) or a UPI ID.",
+                    requiresPaymentDetails: true,
+                    requiresBankSetup: true
+                });
+            }
+
+            user.bankDetails = {
+                ...(user.bankDetails || {}),
+                accountHolderName: (accountHolderName || user.name || 'User').trim(),
+                accountNumber: accountNumber ? accountNumber.trim() : null,
+                bankName: bankName ? bankName.trim() : null,
+                ifscCode: ifscCode ? ifscCode.trim().toUpperCase() : null,
+                upiId: upiId ? upiId.trim().toLowerCase() : null,
+                isSetup: true,
+                setupDate: new Date(),
+                lastModifiedBy: 'user'
+            };
         }
 
         // Get minimum withdrawal amount from settings

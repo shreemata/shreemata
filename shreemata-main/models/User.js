@@ -136,6 +136,21 @@ const userSchema = new mongoose.Schema({
   withdrawals: [
     {
       amount: Number,
+      source: { 
+        type: String, 
+        enum: ['wallet', 'vip_master_card', 'direct_commission', 'referral'], 
+        default: 'wallet' 
+      },
+      cardNumber: { type: String, default: null },
+      cardTier: { type: Number, default: null },
+      cardId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'VipMasterCard',
+        default: null
+      },
+      balanceBefore: { type: Number, default: null },
+      balanceAfter: { type: Number, default: null },
+      mandatoryReserve: { type: Number, default: 50 },
       upi: String,
       bank: String,
       bankName: String,  // Added bank name field

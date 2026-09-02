@@ -52,21 +52,21 @@ async function fixExistingUsers() {
 
             try {
                 const result = await processUserPointsWithPriority(user._id);
-                
+
                 // Get updated user data
                 const updatedUser = await User.findById(user._id).select('pointsWallet virtualReferralsCreated wallet');
-                
+
                 console.log(`   After:  ${updatedUser.pointsWallet} points, ${updatedUser.virtualReferralsCreated} virtual trees, ₹${updatedUser.wallet || 0} cash`);
                 console.log(`   ✅ Created ${result.virtualTreesCreated} virtual trees, converted ₹${result.cashConverted} to cash`);
-                
+
                 totalVirtualTreesCreated += result.virtualTreesCreated;
                 totalCashConverted += result.cashConverted;
                 processedCount++;
-                
+
             } catch (error) {
                 console.log(`   ❌ Error: ${error.message}`);
             }
-            
+
             console.log('');
         }
 

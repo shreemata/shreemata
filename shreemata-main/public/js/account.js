@@ -62,6 +62,11 @@ async function loadProfile() {
                 document.getElementById("accCardHolder").textContent = user.name;
                 document.getElementById("accCardEarnings").textContent = (user.masterCard.accumulatedCommission || 0).toFixed(2);
                 
+                const accCardWalletEl = document.getElementById("accCardWallet");
+                if (accCardWalletEl) {
+                    accCardWalletEl.textContent = (user.wallet || 0).toFixed(2);
+                }
+                
                 const issuedDate = user.masterCard.issuedAt 
                     ? new Date(user.masterCard.issuedAt).toLocaleDateString(undefined, { year: 'numeric', month: '2-digit' })
                     : '';
@@ -762,9 +767,15 @@ async function loadWalletData() {
             console.log("Updated user data in localStorage");
         }
         
-        const walletBalance = profileData.user?.wallet || 0;
-        document.getElementById("walletBalance").textContent = `₹${walletBalance.toFixed(2)}`;
-        console.log("Wallet balance displayed:", walletBalance);
+        // Save Bank Details state globally for withdrawals
+        window.userBankDetails = profileData.maskedBankDetails || (profileData.user?.bankDetails?.isSetup ? profileData.user.bankDetails : null);
+        window.isBankDetailsSetup = Boolean(profileData.bankDetailsSetup !== undefined ? profileData.bankDetailsSetup : profileData.user?.bankDetails?.isSetup);
+
+        // Update payment destination UI for general wallet withdrawal
+        updateGeneralBankDetailsUI();
+
+        // Render withdrawal requests & statuses
+        renderWithdrawalHistory(profileData.withdrawals || profileData.user?.withdrawals || []);
 
         // Load commission transactions including cashback from MongoDB
         console.log("Fetching transactions from:", `${API}/commission/transactions`);
@@ -816,6 +827,15 @@ async function loadWalletData() {
             });
             if (vipRes.ok) {
                 const vipData = await vipRes.json();
+                if (vipData.bankDetailsSetup !== undefined) {
+                    window.isBankDetailsSetup = Boolean(vipData.bankDetailsSetup);
+                }
+                if (vipData.maskedBankDetails) {
+                    window.userBankDetails = vipData.maskedBankDetails;
+                }
+                if (vipData.withdrawals && vipData.withdrawals.length > 0) {
+                    renderWithdrawalHistory(vipData.withdrawals);
+                }
                 const vipSection = document.getElementById("vipMasterCardsSection");
                 const vipList = document.getElementById("vipMasterCardsList");
                 
@@ -877,6 +897,11 @@ async function loadWalletData() {
                                         <span style="color: #a8a29e;">Shared Commission Wallet:</span>
                                         <span style="font-weight: bold; color: #d4af37; font-size: 0.9rem;">₹${walletBalance.toFixed(2)}</span>
                                     </div>
+
+                                    <!-- VIP Master Card Withdrawal Button -->
+                                    <button type="button" onclick="openVipWithdrawModal('${escapeHtml(card.cardNumber)}', ${card.tier})" style="margin-top: 14px; width: 100%; padding: 11px; background: linear-gradient(135deg, #d4af37 0%, #aa820a 100%); color: #181410; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25); font-family: system-ui, sans-serif; transition: all 0.2s;">
+                                        <span>💸 Withdraw from VIP Card</span>
+                                    </button>
                                 </div>
                             `;
                             vipList.innerHTML += cardHtml;
@@ -971,6 +996,16 @@ function displayWalletHistory(transactions) {
                 typeColor = '#dc3545';
                 sign = '-';
                 break;
+            case 'vip_master_card_withdrawal':
+                typeDisplay = '👑 VIP Master Card Withdrawal';
+                typeColor = '#d4af37';
+                sign = '-';
+                break;
+            case 'refund':
+                typeDisplay = '💰 Refund: Rejected Withdrawal';
+                typeColor = '#10b981';
+                sign = '+';
+                break;
             default:
                 typeDisplay = tx.type;
                 typeColor = '#6c757d';
@@ -996,7 +1031,409 @@ function displayWalletHistory(transactions) {
 }
 
 /* -----------------------------------------
-   REQUEST WITHDRAWAL
+   RENDER WITHDRAWAL REQUESTS & PAYOUT STATUS
+----------------------------------------- */
+function renderWithdrawalHistory(withdrawals) {
+    const listEl = document.getElementById("withdrawalRequestsList");
+    if (!listEl) return;
+    
+    if (!withdrawals || withdrawals.length === 0) {
+        listEl.innerHTML = "<p style='color: #a8a29e; font-size: 13px; margin: 0; padding: 10px 0;'>No withdrawal requests submitted yet.</p>";
+        return;
+    }
+
+    const sorted = [...withdrawals].sort((a, b) => new Date(b.requestedAt || b.date || 0) - new Date(a.requestedAt || a.date || 0));
+    listEl.innerHTML = "";
+
+    sorted.forEach(w => {
+        const dateStr = new Date(w.requestedAt || w.date).toLocaleString();
+        const isVip = (w.source === 'vip_master_card');
+        const sourceLabel = isVip ? `👑 VIP Master Card (${escapeHtml(w.cardNumber || 'VIP Card')})` : `💼 Commission Wallet`;
+        
+        let destinationText = 'Destination not specified';
+        if (w.upi) {
+            destinationText = `📱 UPI: ${escapeHtml(w.upi)}`;
+        } else if (w.bank) {
+            const maskedAcc = w.bank.length > 4 ? 'XXXX' + w.bank.slice(-4) : w.bank;
+            destinationText = `🏦 ${escapeHtml(w.bankName || 'Bank')}: ${escapeHtml(maskedAcc)} (IFSC: ${escapeHtml(w.ifsc || 'N/A')})`;
+        }
+
+        let statusHtml = '';
+        if (w.status === 'approved') {
+            statusHtml = `<span style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">✅ Approved — Paid</span>`;
+        } else if (w.status === 'rejected') {
+            statusHtml = `<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">❌ Rejected — Refunded to Wallet</span>`;
+        } else {
+            statusHtml = `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">⏳ Pending Admin Approval</span>`;
+        }
+
+        const div = document.createElement("div");
+        div.style.cssText = "background: #181410; border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 10px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;";
+        div.innerHTML = `
+            <div>
+                <div style="font-weight: 700; color: #f0e6d2; font-size: 14px; margin-bottom: 3px;">${sourceLabel}</div>
+                <div style="color: #d4af37; font-size: 12px; font-family: monospace; margin-bottom: 4px;">${destinationText}</div>
+                <div style="color: #78716c; font-size: 11px;">Requested on ${dateStr}</div>
+            </div>
+            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+                <div style="font-size: 16px; font-weight: 800; color: #f0e6d2;">₹${Number(w.amount).toFixed(2)}</div>
+                <div>${statusHtml}</div>
+            </div>
+        `;
+        listEl.appendChild(div);
+    });
+}
+
+/* -----------------------------------------
+   VIP MASTER CARD WITHDRAWAL MODAL & LOGIC
+----------------------------------------- */
+let currentVipWithdrawState = {
+    cardNumber: '',
+    cardTier: 1,
+    availableBalance: 0,
+    minAmount: 500,
+    minReserve: 50
+};
+
+function openVipWithdrawModal(cardNumber, cardTier) {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const balanceText = document.getElementById("walletBalance")?.textContent || "0";
+    const parsedBalance = parseFloat(balanceText.replace(/[^\d.]/g, '')) || (user.wallet || 0);
+
+    currentVipWithdrawState.cardNumber = cardNumber || user.masterCard?.cardNumber || 'VIP Master Card';
+    currentVipWithdrawState.cardTier = cardTier || 1;
+    currentVipWithdrawState.availableBalance = parsedBalance;
+    currentVipWithdrawState.minAmount = 500;
+    currentVipWithdrawState.minReserve = 50;
+
+    const modal = document.getElementById("vipWithdrawModal");
+    if (!modal) return;
+
+    // Set UI labels
+    const tierDisplay = String(currentVipWithdrawState.cardTier).padStart(2, '0');
+    document.getElementById("vipModalCardInfo").textContent = `Card: ${currentVipWithdrawState.cardNumber} (Tier ${tierDisplay})`;
+    document.getElementById("vipModalAvailableBalance").textContent = `₹${currentVipWithdrawState.availableBalance.toFixed(2)}`;
+    
+    const maxWithdrawable = Math.max(0, currentVipWithdrawState.availableBalance - 50);
+    document.getElementById("vipModalMaxWithdrawable").textContent = `₹${maxWithdrawable.toFixed(2)}`;
+
+    // Payment destination toggle (Saved vs New)
+    const savedBankSec = document.getElementById("vipSavedBankSection");
+    const newBankSec = document.getElementById("vipNewBankSection");
+    const maskedBankEl = document.getElementById("vipMaskedBankInfo");
+
+    const isSetup = window.isBankDetailsSetup || (user.bankDetails && user.bankDetails.isSetup);
+    const bankData = window.userBankDetails || user.bankDetails;
+
+    if (isSetup && bankData && (bankData.accountNumber || bankData.upiId)) {
+        if (savedBankSec) savedBankSec.style.display = "block";
+        if (newBankSec) newBankSec.style.display = "none";
+
+        let detailsHtml = '';
+        if (bankData.upiId) {
+            const maskedUpi = bankData.upiId.replace(/(.{2}).*(@.*)/, '$1****$2');
+            detailsHtml += `<div>📱 <strong>UPI ID:</strong> ${escapeHtml(maskedUpi)}</div>`;
+        }
+        if (bankData.accountNumber) {
+            const maskedAcc = bankData.accountNumber.startsWith('XXXX') ? bankData.accountNumber : ('XXXX' + bankData.accountNumber.slice(-4));
+            detailsHtml += `<div>🏦 <strong>Bank:</strong> ${escapeHtml(bankData.bankName || 'Bank')} (${escapeHtml(maskedAcc)}) - IFSC: ${escapeHtml(bankData.ifscCode || 'N/A')}</div>`;
+        }
+        if (bankData.accountHolderName) {
+            detailsHtml += `<div>👤 <strong>Holder:</strong> ${escapeHtml(bankData.accountHolderName)}</div>`;
+        }
+        if (maskedBankEl) maskedBankEl.innerHTML = detailsHtml || 'Saved payment account';
+    } else {
+        if (savedBankSec) savedBankSec.style.display = "none";
+        if (newBankSec) {
+            newBankSec.style.display = "block";
+            const holderInput = document.getElementById("vipAccountHolderName");
+            if (holderInput && !holderInput.value) {
+                holderInput.value = user.name || '';
+            }
+        }
+    }
+
+    // Reset input
+    const input = document.getElementById("vipWithdrawAmountInput");
+    if (input) {
+        input.value = "";
+    }
+
+    const previewBox = document.getElementById("vipWithdrawPreviewBox");
+    if (previewBox) {
+        previewBox.style.display = "none";
+    }
+
+    modal.style.display = "flex";
+}
+
+function closeVipWithdrawModal() {
+    const modal = document.getElementById("vipWithdrawModal");
+    if (modal) {
+        modal.style.display = "none";
+    }
+}
+
+function setVipWithdrawPreset(preset) {
+    const input = document.getElementById("vipWithdrawAmountInput");
+    if (!input) return;
+
+    if (preset === 'max') {
+        const maxWithdrawable = Math.max(0, currentVipWithdrawState.availableBalance - 50);
+        input.value = maxWithdrawable > 0 ? maxWithdrawable : 0;
+    } else {
+        input.value = preset;
+    }
+    updateVipWithdrawPreview();
+}
+
+function updateVipWithdrawPreview() {
+    const input = document.getElementById("vipWithdrawAmountInput");
+    const previewBox = document.getElementById("vipWithdrawPreviewBox");
+    const requestedEl = document.getElementById("vipPreviewRequested");
+    const remainingEl = document.getElementById("vipPreviewRemaining");
+    const msgEl = document.getElementById("vipPreviewValidationMsg");
+    const submitBtn = document.getElementById("vipSubmitWithdrawBtn");
+
+    if (!input || !previewBox || !requestedEl || !remainingEl || !msgEl) return;
+
+    const val = parseFloat(input.value);
+    if (isNaN(val) || val <= 0) {
+        previewBox.style.display = "none";
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+    }
+
+    previewBox.style.display = "block";
+    requestedEl.textContent = `₹${val.toFixed(2)}`;
+
+    const remaining = currentVipWithdrawState.availableBalance - val;
+    remainingEl.textContent = `₹${remaining.toFixed(2)}`;
+
+    // Validation rule checks
+    if (val < 500) {
+        remainingEl.style.color = "#ef4444";
+        msgEl.innerHTML = `<span style="color: #ef4444; font-weight: 600;">❌ Minimum withdrawal amount allowed is ₹500.</span>`;
+    } else if (val > currentVipWithdrawState.availableBalance) {
+        remainingEl.style.color = "#ef4444";
+        msgEl.innerHTML = `<span style="color: #ef4444; font-weight: 600;">❌ Insufficient balance. Available is ₹${currentVipWithdrawState.availableBalance.toFixed(2)}.</span>`;
+    } else if (remaining < 50) {
+        remainingEl.style.color = "#ef4444";
+        msgEl.innerHTML = `<span style="color: #ef4444; font-weight: 600;">❌ A mandatory minimum balance of ₹50 must remain on the card after withdrawal.</span>`;
+    } else {
+        remainingEl.style.color = "#10b981";
+        msgEl.innerHTML = `<span style="color: #10b981; font-weight: 600;">✅ Valid withdrawal request. ₹${remaining.toFixed(2)} reserve balance will remain.</span>`;
+    }
+}
+
+async function submitVipWithdrawal() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("Please log in to proceed.");
+        return;
+    }
+
+    const input = document.getElementById("vipWithdrawAmountInput");
+    const amount = parseFloat(input ? input.value : 0);
+
+    if (isNaN(amount) || amount <= 0) {
+        alert("Please enter a valid withdrawal amount.");
+        return;
+    }
+
+    if (amount < 500) {
+        alert("Minimum withdrawal amount allowed for VIP Master Card is ₹500.");
+        return;
+    }
+
+    const available = currentVipWithdrawState.availableBalance;
+    if (amount > available) {
+        alert(`Insufficient balance. Your available VIP balance is ₹${available.toFixed(2)}.`);
+        return;
+    }
+
+    if ((available - amount) < 50) {
+        const maxWithdrawable = Math.max(0, available - 50);
+        alert(`A mandatory minimum balance of ₹50 must remain in your VIP Master Card balance after withdrawal.\n\nAvailable Balance: ₹${available.toFixed(2)}\nMaximum Withdrawable: ₹${maxWithdrawable.toFixed(2)}`);
+        return;
+    }
+
+    // Prepare payload
+    const payload = {
+        amount,
+        cardNumber: currentVipWithdrawState.cardNumber,
+        cardTier: currentVipWithdrawState.cardTier
+    };
+
+    // If bank details not setup, validate and collect from input fields
+    const isSetup = window.isBankDetailsSetup;
+    if (!isSetup) {
+        const holder = document.getElementById("vipAccountHolderName")?.value?.trim();
+        const accNum = document.getElementById("vipAccountNumber")?.value?.trim();
+        const ifsc = document.getElementById("vipIfscCode")?.value?.trim()?.toUpperCase();
+        const bank = document.getElementById("vipBankName")?.value?.trim();
+        const upi = document.getElementById("vipUpiId")?.value?.trim()?.toLowerCase();
+
+        if (!holder) {
+            alert("Please enter the Account Holder Name.");
+            return;
+        }
+
+        const hasUpi = Boolean(upi);
+        const hasBank = Boolean(accNum && ifsc && bank);
+
+        if (!hasUpi && !hasBank) {
+            alert("Please provide either your UPI ID or complete Bank Details (Account Number, Bank Name, and IFSC Code).");
+            return;
+        }
+
+        payload.accountHolderName = holder;
+        payload.accountNumber = accNum || null;
+        payload.bankName = bank || null;
+        payload.ifscCode = ifsc || null;
+        payload.upiId = upi || null;
+    }
+
+    const submitBtn = document.getElementById("vipSubmitWithdrawBtn");
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span>⏳ Submitting...</span>`;
+    }
+
+    try {
+        const res = await fetch(`${API}/commission/vip-withdraw`, {
+            method: 'POST',
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            const withdrawnAmount = Number(data.withdrawalAmount || amount);
+            const remainingBal = data.remainingBalance !== undefined ? Number(data.remainingBalance) : Math.max(0, available - withdrawnAmount);
+            const successMsg = `Successfully withdrawn ₹${withdrawnAmount.toFixed(2)} from your VIP Master Card.`;
+
+            // 1. Instantly update local state and localStorage
+            const localUser = JSON.parse(localStorage.getItem("user") || "{}");
+            localUser.wallet = remainingBal;
+            if (!isSetup && payload.accountHolderName) {
+                localUser.bankDetails = {
+                    accountHolderName: payload.accountHolderName,
+                    accountNumber: payload.accountNumber,
+                    bankName: payload.bankName,
+                    ifscCode: payload.ifscCode,
+                    upiId: payload.upiId,
+                    isSetup: true
+                };
+                window.isBankDetailsSetup = true;
+                window.userBankDetails = localUser.bankDetails;
+            }
+            localStorage.setItem("user", JSON.stringify(localUser));
+
+            currentVipWithdrawState.availableBalance = remainingBal;
+
+            // 2. Instantly update UI DOM balance elements
+            const walletBalEl = document.getElementById("walletBalance");
+            if (walletBalEl) walletBalEl.textContent = `₹${remainingBal.toFixed(2)}`;
+            
+            const accCardWalletEl = document.getElementById("accCardWallet");
+            if (accCardWalletEl) accCardWalletEl.textContent = remainingBal.toFixed(2);
+            
+            const modalAvailEl = document.getElementById("vipModalAvailableBalance");
+            if (modalAvailEl) modalAvailEl.textContent = `₹${remainingBal.toFixed(2)}`;
+            
+            const modalMaxEl = document.getElementById("vipModalMaxWithdrawable");
+            if (modalMaxEl) modalMaxEl.textContent = `₹${Math.max(0, remainingBal - 50).toFixed(2)}`;
+
+            // 3. Close modal and display prominent success message
+            closeVipWithdrawModal();
+            showVipToast(`🎉 ${successMsg} Remaining Balance: ₹${remainingBal.toFixed(2)}`, 'success');
+            alert(`✅ ${successMsg}\n\n• Amount Withdrawn: ₹${withdrawnAmount.toFixed(2)}\n• Remaining VIP Card Balance: ₹${remainingBal.toFixed(2)}\n• Card Number: ${data.cardNumber || currentVipWithdrawState.cardNumber}\n• Status: Pending Admin Approval`);
+
+            // 4. Background re-sync
+            loadWalletData();
+            loadProfile();
+        } else {
+            alert(data.error || "Failed to submit VIP withdrawal request.");
+        }
+    } catch (err) {
+        console.error("Error requesting VIP withdrawal:", err);
+        alert("Network error processing VIP withdrawal. Please try again.");
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<span>💸 Submit Request</span>`;
+        }
+    }
+}
+
+// Prominent VIP Toast notification helper
+function showVipToast(message, type = 'success') {
+    let toast = document.getElementById("vipNotificationToast");
+    if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "vipNotificationToast";
+        toast.style.cssText = "position: fixed; top: 25px; right: 25px; z-index: 99999; background: #1e1914; border: 1.5px solid #d4af37; color: #f0e6d2; padding: 16px 22px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); display: flex; align-items: center; gap: 12px; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; opacity: 0; transform: translateY(-15px); transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none;";
+        document.body.appendChild(toast);
+    }
+
+    toast.innerHTML = `<span style="font-size: 20px;">${type === 'success' ? '👑' : '⚠️'}</span><span>${message}</span>`;
+    toast.style.opacity = "1";
+    toast.style.transform = "translateY(0)";
+
+    setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(-15px)";
+    }, 4500);
+}
+
+/* -----------------------------------------
+   GENERAL WALLET PAYMENT DESTINATION UI
+----------------------------------------- */
+function updateGeneralBankDetailsUI() {
+    const savedSec = document.getElementById("generalSavedBankSection");
+    const newSec = document.getElementById("generalNewBankSection");
+    const maskedInfo = document.getElementById("generalMaskedBankInfo");
+
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const isSetup = window.isBankDetailsSetup || (user.bankDetails && user.bankDetails.isSetup);
+    const bankData = window.userBankDetails || user.bankDetails;
+
+    if (isSetup && bankData && (bankData.accountNumber || bankData.upiId)) {
+        if (savedSec) savedSec.style.display = "block";
+        if (newSec) newSec.style.display = "none";
+
+        let detailsHtml = '';
+        if (bankData.upiId) {
+            const maskedUpi = bankData.upiId.replace(/(.{2}).*(@.*)/, '$1****$2');
+            detailsHtml += `<div>📱 <strong>UPI ID:</strong> ${escapeHtml(maskedUpi)}</div>`;
+        }
+        if (bankData.accountNumber) {
+            const maskedAcc = bankData.accountNumber.startsWith('XXXX') ? bankData.accountNumber : ('XXXX' + bankData.accountNumber.slice(-4));
+            detailsHtml += `<div>🏦 <strong>Bank:</strong> ${escapeHtml(bankData.bankName || 'Bank')} (${escapeHtml(maskedAcc)}) - IFSC: ${escapeHtml(bankData.ifscCode || 'N/A')}</div>`;
+        }
+        if (bankData.accountHolderName) {
+            detailsHtml += `<div>👤 <strong>Holder:</strong> ${escapeHtml(bankData.accountHolderName)}</div>`;
+        }
+        if (maskedInfo) maskedInfo.innerHTML = detailsHtml || 'Saved payment destination';
+    } else {
+        if (savedSec) savedSec.style.display = "none";
+        if (newSec) {
+            newSec.style.display = "block";
+            const holderInput = document.getElementById("generalAccountHolderName");
+            if (holderInput && !holderInput.value) {
+                holderInput.value = user.name || '';
+            }
+        }
+    }
+}
+
+/* -----------------------------------------
+   REQUEST WITHDRAWAL (REGULAR WALLET)
 ----------------------------------------- */
 async function requestWithdrawal() {
     const token = localStorage.getItem("token");
@@ -1005,10 +1442,49 @@ async function requestWithdrawal() {
         return;
     }
 
-    const amount = parseFloat(document.getElementById("withdrawalAmount").value);
+    const amountInput = document.getElementById("withdrawalAmount");
+    const amount = parseFloat(amountInput ? amountInput.value : 0);
     if (!amount || amount <= 0) {
         alert("Please enter a valid amount");
         return;
+    }
+
+    // Prepare payload
+    const payload = { amount };
+
+    // If payment details are not set up, validate & capture from input fields
+    const isSetup = window.isBankDetailsSetup;
+    if (!isSetup) {
+        const holder = document.getElementById("generalAccountHolderName")?.value?.trim();
+        const accNum = document.getElementById("generalAccountNumber")?.value?.trim();
+        const ifsc = document.getElementById("generalIfscCode")?.value?.trim()?.toUpperCase();
+        const bank = document.getElementById("generalBankName")?.value?.trim();
+        const upi = document.getElementById("generalUpiId")?.value?.trim()?.toLowerCase();
+
+        if (!holder) {
+            alert("Please enter the Account Holder Name.");
+            return;
+        }
+
+        const hasUpi = Boolean(upi);
+        const hasBank = Boolean(accNum && ifsc && bank);
+
+        if (!hasUpi && !hasBank) {
+            alert("Please provide either your UPI ID or complete Bank Details (Account Number, Bank Name, and IFSC Code).");
+            return;
+        }
+
+        payload.accountHolderName = holder;
+        payload.accountNumber = accNum || null;
+        payload.bankName = bank || null;
+        payload.ifscCode = ifsc || null;
+        payload.upiId = upi || null;
+    }
+
+    const submitBtn = document.getElementById("generalWithdrawSubmitBtn");
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "⏳ Submitting...";
     }
 
     try {
@@ -1018,21 +1494,46 @@ async function requestWithdrawal() {
                 "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ amount })
+            body: JSON.stringify(payload)
         });
 
         const data = await res.json();
         
         if (res.ok) {
-            alert("Withdrawal request submitted successfully! You will receive the money within 24-48 hours.");
-            document.getElementById("withdrawalAmount").value = "";
-            loadWalletData(); // Reload wallet data
+            // Update local user and bank details state
+            const localUser = JSON.parse(localStorage.getItem("user") || "{}");
+            localUser.wallet = Number(data.remainingBalance !== undefined ? data.remainingBalance : (localUser.wallet - amount));
+            if (!isSetup && payload.accountHolderName) {
+                localUser.bankDetails = {
+                    accountHolderName: payload.accountHolderName,
+                    accountNumber: payload.accountNumber,
+                    bankName: payload.bankName,
+                    ifscCode: payload.ifscCode,
+                    upiId: payload.upiId,
+                    isSetup: true
+                };
+                window.isBankDetailsSetup = true;
+                window.userBankDetails = localUser.bankDetails;
+            }
+            localStorage.setItem("user", JSON.stringify(localUser));
+
+            showVipToast(`🎉 Withdrawal request of ₹${amount.toFixed(2)} submitted successfully!`, 'success');
+            alert(`✅ Withdrawal request submitted successfully!\n\n• Amount: ₹${amount.toFixed(2)}\n• Remaining Balance: ₹${localUser.wallet.toFixed(2)}\n• Status: Pending Admin Approval\n\nProcessed within 24-48 hours directly to your registered destination.`);
+            
+            if (amountInput) amountInput.value = "";
+            loadWalletData(); // Reload wallet data & history
+            loadProfile();
         } else {
             alert(data.error || "Error processing withdrawal request");
         }
     } catch (err) {
         console.error("Error requesting withdrawal:", err);
         alert("Error processing withdrawal request. Please try again.");
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Request Withdrawal";
+        }
     }
 }
 
