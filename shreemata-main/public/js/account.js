@@ -1,5 +1,17 @@
 const API = window.API_URL;
 
+// Global HTML sanitization helper function
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
+
 document.addEventListener("DOMContentLoaded", () => {
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -766,6 +778,13 @@ async function loadWalletData() {
             localStorage.setItem("user", JSON.stringify(profileData.user));
             console.log("Updated user data in localStorage");
         }
+
+        // Set wallet balance in UI
+        const walletBalance = Number(profileData.user?.wallet || 0);
+        const walletBalanceEl = document.getElementById("walletBalance");
+        if (walletBalanceEl) {
+            walletBalanceEl.textContent = `₹${walletBalance.toFixed(2)}`;
+        }
         
         // Save Bank Details state globally for withdrawals
         window.userBankDetails = profileData.maskedBankDetails || (profileData.user?.bankDetails?.isSetup ? profileData.user.bankDetails : null);
@@ -844,68 +863,65 @@ async function loadWalletData() {
                         vipSection.style.display = "block";
                         vipList.innerHTML = "";
                         
-                        vipData.cards.forEach((card, index) => {
-                            // The highest tier card gets progress bar
-                            card.isHighest = (index === 0);
-                            
-                            const nextMilestone = (Math.floor(vipData.cumulativeTotal / 100) + 1) * 100;
-                            const progressPercent = Math.min(100, Math.max(0, (vipData.cumulativeTotal % 100)));
-                            
-                            const cardHtml = `
-                                <div style="background: #181410; color: #f0e6d2; border-radius: 16px; padding: 24px; position: relative; overflow: hidden; box-shadow: 0 8px 25px rgba(24, 20, 16, 0.45); font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; min-height: 220px; display: flex; flex-direction: column; justify-content: space-between; border: 1.5px solid #d4af37;">
-                                    <!-- Card Header -->
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <div style="display: flex; align-items: center; gap: 8px;">
-                                            <div style="width: 32px; height: 32px; border-radius: 50%; background: #d4af37; color: #181410; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; border: 1.5px solid #f0e6d2;">👑</div>
-                                            <span style="font-weight: bold; font-size: 0.95rem; color: #d4af37; font-family: system-ui, sans-serif;">SHREE MATA</span>
-                                        </div>
-                                        <span style="font-style: italic; font-weight: 700; color: rgba(240, 230, 210, 0.7); font-size: 0.75rem; font-family: system-ui, sans-serif; letter-spacing: 0.5px;">VIP MASTER CARD</span>
+                        // Sort cards by tier descending to render ONLY the single highest tier card
+                        const sortedCards = [...vipData.cards].sort((a, b) => (Number(b.tier) || 0) - (Number(a.tier) || 0));
+                        const card = sortedCards[0];
+                        
+                        const nextMilestone = (Math.floor(vipData.cumulativeTotal / 100) + 1) * 100;
+                        const progressPercent = Math.min(100, Math.max(0, (vipData.cumulativeTotal % 100)));
+                        
+                        const cardHtml = `
+                            <div style="background: #181410; color: #f0e6d2; border-radius: 16px; padding: 24px; position: relative; overflow: hidden; box-shadow: 0 8px 25px rgba(24, 20, 16, 0.45); font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; min-height: 220px; display: flex; flex-direction: column; justify-content: space-between; border: 1.5px solid #d4af37;">
+                                <!-- Card Header -->
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #d4af37; color: #181410; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; border: 1.5px solid #f0e6d2;">👑</div>
+                                        <span style="font-weight: bold; font-size: 0.95rem; color: #d4af37; font-family: system-ui, sans-serif;">SHREE MATA</span>
                                     </div>
-                                    
-                                    <!-- Card Number -->
-                                    <div style="font-size: 1.5rem; font-weight: bold; color: #f0e6d2; margin: 15px 0 10px 0; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); text-align: center; letter-spacing: 2px;">
-                                        ${card.cardNumber}
-                                    </div>
-                                    
-                                    <!-- Cardholder & Tier Info -->
-                                    <div style="display: flex; justify-content: space-between; align-items: flex-end; font-family: system-ui, sans-serif; font-size: 0.75rem; color: #a8a29e; letter-spacing: 0;">
-                                        <div>
-                                            <div style="font-size: 0.55rem; text-transform: uppercase; color: #78716c; margin-bottom: 2px;">Cardholder</div>
-                                            <div style="font-weight: 700; color: #f0e6d2; font-size: 0.85rem;">${escapeHtml(profileData.user?.name || '')}</div>
-                                        </div>
-                                        <div style="text-align: right;">
-                                            <div style="font-size: 0.55rem; text-transform: uppercase; color: #78716c; margin-bottom: 2px;">Tier</div>
-                                            <div style="font-weight: 800; color: #d4af37; font-size: 0.85rem;">CARD ${String(card.tier).padStart(2, '0')}</div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Progress Bar toward Next Milestone (only shown on the top/highest tier card) -->
-                                    ${card.isHighest ? `
-                                    <div style="margin-top: 15px; font-family: system-ui, sans-serif; font-size: 0.75rem;">
-                                        <div style="display: flex; justify-content: space-between; color: #a8a29e; margin-bottom: 4px;">
-                                            <span>Next Milestone Progress:</span>
-                                            <span style="font-weight: 700; color: #d4af37;">₹${vipData.cumulativeTotal.toFixed(2)} / ₹${nextMilestone}</span>
-                                        </div>
-                                        <div style="background: rgba(240, 230, 210, 0.15); height: 6px; border-radius: 3px; overflow: hidden; border: 0.5px solid rgba(212, 175, 55, 0.3);">
-                                            <div style="background: linear-gradient(90deg, #d4af37 0%, #f0e6d2 100%); width: ${progressPercent}%; height: 100%; border-radius: 3px;"></div>
-                                        </div>
-                                    </div>
-                                    ` : ''}
-
-                                    <!-- Wallet Balance at the bottom -->
-                                    <div style="margin-top: 12px; padding-top: 10px; border-top: 1.5px dashed rgba(212, 175, 55, 0.2); display: flex; justify-content: space-between; align-items: center; font-family: system-ui, sans-serif; font-size: 0.75rem;">
-                                        <span style="color: #a8a29e;">Shared Commission Wallet:</span>
-                                        <span style="font-weight: bold; color: #d4af37; font-size: 0.9rem;">₹${walletBalance.toFixed(2)}</span>
-                                    </div>
-
-                                    <!-- VIP Master Card Withdrawal Button -->
-                                    <button type="button" onclick="openVipWithdrawModal('${escapeHtml(card.cardNumber)}', ${card.tier})" style="margin-top: 14px; width: 100%; padding: 11px; background: linear-gradient(135deg, #d4af37 0%, #aa820a 100%); color: #181410; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25); font-family: system-ui, sans-serif; transition: all 0.2s;">
-                                        <span>💸 Withdraw from VIP Card</span>
-                                    </button>
+                                    <span style="font-style: italic; font-weight: 700; color: rgba(240, 230, 210, 0.7); font-size: 0.75rem; font-family: system-ui, sans-serif; letter-spacing: 0.5px;">VIP MASTER CARD</span>
                                 </div>
-                            `;
-                            vipList.innerHTML += cardHtml;
-                        });
+                                
+                                <!-- Card Number -->
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #f0e6d2; margin: 15px 0 10px 0; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); text-align: center; letter-spacing: 2px;">
+                                    ${escapeHtml(card.cardNumber)}
+                                </div>
+                                
+                                <!-- Cardholder & Tier Info -->
+                                <div style="display: flex; justify-content: space-between; align-items: flex-end; font-family: system-ui, sans-serif; font-size: 0.75rem; color: #a8a29e; letter-spacing: 0;">
+                                    <div>
+                                        <div style="font-size: 0.55rem; text-transform: uppercase; color: #78716c; margin-bottom: 2px;">Cardholder</div>
+                                        <div style="font-weight: 700; color: #f0e6d2; font-size: 0.85rem;">${escapeHtml(profileData.user?.name || '')}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 0.55rem; text-transform: uppercase; color: #78716c; margin-bottom: 2px;">Tier</div>
+                                        <div style="font-weight: 800; color: #d4af37; font-size: 0.85rem;">CARD ${String(card.tier).padStart(2, '0')}</div>
+                                    </div>
+                                </div>
+
+                                <!-- Progress Bar toward Next Milestone (always shown on the active card) -->
+                                <div style="margin-top: 15px; font-family: system-ui, sans-serif; font-size: 0.75rem;">
+                                    <div style="display: flex; justify-content: space-between; color: #a8a29e; margin-bottom: 4px;">
+                                        <span>Next Milestone Progress:</span>
+                                        <span style="font-weight: 700; color: #d4af37;">₹${vipData.cumulativeTotal.toFixed(2)} / ₹${nextMilestone}</span>
+                                    </div>
+                                    <div style="background: rgba(240, 230, 210, 0.15); height: 6px; border-radius: 3px; overflow: hidden; border: 0.5px solid rgba(212, 175, 55, 0.3);">
+                                        <div style="background: linear-gradient(90deg, #d4af37 0%, #f0e6d2 100%); width: ${progressPercent}%; height: 100%; border-radius: 3px;"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Wallet Balance at the bottom -->
+                                <div style="margin-top: 12px; padding-top: 10px; border-top: 1.5px dashed rgba(212, 175, 55, 0.2); display: flex; justify-content: space-between; align-items: center; font-family: system-ui, sans-serif; font-size: 0.75rem;">
+                                    <span style="color: #a8a29e;">Shared Commission Wallet:</span>
+                                    <span style="font-weight: bold; color: #d4af37; font-size: 0.9rem;">₹${walletBalance.toFixed(2)}</span>
+                                </div>
+
+                                <!-- VIP Master Card Withdrawal Button -->
+                                <button type="button" onclick="openVipWithdrawModal('${escapeHtml(card.cardNumber)}', ${Number(card.tier || 1)})" style="margin-top: 14px; width: 100%; padding: 11px; background: linear-gradient(135deg, #d4af37 0%, #aa820a 100%); color: #181410; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25); font-family: system-ui, sans-serif; transition: all 0.2s;">
+                                    <span>💸 Withdraw from VIP Card</span>
+                                </button>
+                            </div>
+                        `;
+                        vipList.innerHTML = cardHtml;
                     } else {
                         vipSection.style.display = "none";
                     }

@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 const CommissionSettings = require("../models/CommissionSettings");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 
@@ -283,7 +284,7 @@ router.get("/commission/transactions", authenticateToken, async (req, res) => {
         for (const item of order.items) {
           let itemCashback = 0;
           
-          if (item.type === 'book' && item.id) {
+          if (item.type === 'book' && item.id && mongoose.Types.ObjectId.isValid(item.id)) {
             try {
               const book = await Book.findById(item.id);
               if (book) {
@@ -296,7 +297,7 @@ router.get("/commission/transactions", authenticateToken, async (req, res) => {
             } catch (err) {
               console.error('Error fetching book for cashback:', err);
             }
-          } else if (item.type === 'bundle' && item.id) {
+          } else if (item.type === 'bundle' && item.id && mongoose.Types.ObjectId.isValid(item.id)) {
             try {
               const bundle = await Bundle.findById(item.id);
               if (bundle) {

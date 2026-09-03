@@ -22,3 +22,16 @@ if (window.API_URL && window.API_URL !== API_URL) {
 }
 
 window.API_URL = API_URL;
+
+// Global HTML sanitization helper function
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
+
