@@ -122,6 +122,7 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
                     bankName: w.bankName || null,
                     bank: w.bank || null,
                     ifsc: w.ifsc || null,
+                    qrCodeData: w.qrCodeData || w.qrCode || (user.bankDetails && user.bankDetails.qrCode) || null,
                     // Purchase earnings data for admin
                     purchaseEarnings: {
                         directCommission: user.directCommissionEarned || 0,

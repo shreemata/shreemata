@@ -5,6 +5,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 let allWithdrawals = [];
 let filteredWithdrawals = [];
+let currentVipPage = 1;
+const vipRowsPerPage = 10;
 
 function setupEventListeners() {
     // Real-time search
@@ -14,6 +16,22 @@ function setupEventListeners() {
     document.getElementById('fromDate').addEventListener('change', applyFilters);
     document.getElementById('toDate').addEventListener('change', applyFilters);
     document.getElementById('statusFilter').addEventListener('change', applyFilters);
+
+    // Pagination buttons
+    document.getElementById('vipPrevPageBtn')?.addEventListener('click', () => {
+        if (currentVipPage > 1) {
+            currentVipPage--;
+            displayWithdrawals();
+        }
+    });
+
+    document.getElementById('vipNextPageBtn')?.addEventListener('click', () => {
+        const totalPages = Math.ceil(filteredWithdrawals.length / vipRowsPerPage) || 1;
+        if (currentVipPage < totalPages) {
+            currentVipPage++;
+            displayWithdrawals();
+        }
+    });
 }
 
 async function loadWithdrawals() {
@@ -52,46 +70,69 @@ function updateStatistics() {
 
 function displayWithdrawals() {
     const tbody = document.getElementById("withdrawTableBody");
+    if (!tbody) return;
     tbody.innerHTML = "";
 
-    filteredWithdrawals.forEach((item, index) => {
-        const tr = document.createElement("tr");
-        const originalIndex = allWithdrawals.indexOf(item);
-        
-        // Calculate total earnings for display
-        const totalEarnings = item.purchaseEarnings ? item.purchaseEarnings.totalEarnings : 0;
+    const totalPages = Math.ceil(filteredWithdrawals.length / vipRowsPerPage) || 1;
+    if (currentVipPage > totalPages) currentVipPage = totalPages;
+    if (currentVipPage < 1) currentVipPage = 1;
 
-        tr.innerHTML = `
-            <td>${index + 1}</td>
-            <td>
-                ${item.name}
-                <br><small style="color: #28a745; font-weight: 600; font-size: 11px;">💰 Earned: ₹${totalEarnings}</small>
-            </td>
-            <td>${item.email}</td>
-            <td>₹${item.amount}</td>
-            <td>${new Date(item.date).toLocaleString()}</td>
-            <td>
-                <span class="status-badge status-${item.status}">${item.status}</span>
-            </td>
-            <td>
-                <button class="view-btn" onclick="viewUserDetails(${originalIndex})">👁️ View</button>
-            </td>
-            <td>
-                ${item.status === "pending" ? `
-                    <button class="approve-btn" onclick="approve('${item.userId}','${item.withdrawId}')">✅ Approve</button>
-                    <button class="reject-btn" onclick="rejectWithdraw('${item.userId}','${item.withdrawId}')">❌ Reject</button>
-                ` : "—"}
-            </td>
-        `;
+    const start = (currentVipPage - 1) * vipRowsPerPage;
+    const paginatedItems = filteredWithdrawals.slice(start, start + vipRowsPerPage);
 
-        tbody.appendChild(tr);
-    });
+    if (paginatedItems.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #888; padding: 20px;">No withdrawal requests found.</td></tr>`;
+    } else {
+        paginatedItems.forEach((item, index) => {
+            const tr = document.createElement("tr");
+            const originalIndex = allWithdrawals.indexOf(item);
+            const displayIndex = start + index + 1;
+            
+            // Calculate total earnings for display
+            const totalEarnings = item.purchaseEarnings ? item.purchaseEarnings.totalEarnings : 0;
+
+            tr.innerHTML = `
+                <td>${displayIndex}</td>
+                <td>
+                    ${item.name}
+                    <br><small style="color: #28a745; font-weight: 600; font-size: 11px;">💰 Earned: ₹${totalEarnings}</small>
+                </td>
+                <td>${item.email}</td>
+                <td>₹${item.amount}</td>
+                <td>${new Date(item.date).toLocaleString()}</td>
+                <td>
+                    <span class="status-badge status-${item.status}">${item.status}</span>
+                </td>
+                <td>
+                    <button class="view-btn" onclick="viewUserDetails(${originalIndex})">👁️ View</button>
+                </td>
+                <td>
+                    ${item.status === "pending" ? `
+                        <button class="approve-btn" onclick="approve('${item.userId}','${item.withdrawId}')">✅ Approve</button>
+                        <button class="reject-btn" onclick="rejectWithdraw('${item.userId}','${item.withdrawId}')">❌ Reject</button>
+                    ` : "—"}
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+    }
     
     // Store data globally for modal access
     window.withdrawalsData = allWithdrawals;
+    window.allVipWithdrawals = allWithdrawals;
+
+    // Update pagination controls
+    const indicator = document.getElementById('vipPageIndicator');
+    const prevBtn = document.getElementById('vipPrevPageBtn');
+    const nextBtn = document.getElementById('vipNextPageBtn');
+    if (indicator) indicator.innerText = `Page ${currentVipPage} of ${totalPages} (${filteredWithdrawals.length} records)`;
+    if (prevBtn) prevBtn.disabled = currentVipPage === 1;
+    if (nextBtn) nextBtn.disabled = currentVipPage >= totalPages;
 }
 
 function applyFilters() {
+    currentVipPage = 1;
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const fromDate = document.getElementById('fromDate').value;
     const toDate = document.getElementById('toDate').value;
@@ -118,6 +159,7 @@ function applyFilters() {
 }
 
 function resetFilters() {
+    currentVipPage = 1;
     document.getElementById('searchInput').value = '';
     document.getElementById('fromDate').value = '';
     document.getElementById('toDate').value = '';
@@ -185,12 +227,28 @@ function viewUserDetails(index) {
         // UPI Details
         const upiElement = document.getElementById('modalUpi');
         const upiCopyBtn = upiElement.nextElementSibling;
-        if (item.upi) {
-            upiElement.textContent = item.upi;
+        const upiVal = item.upi || item.upiId || '';
+
+        if (upiVal) {
+            upiElement.textContent = upiVal;
             upiCopyBtn.style.display = 'inline-block';
         } else {
             upiElement.textContent = 'Not provided';
             upiCopyBtn.style.display = 'none';
+        }
+
+        // QR Code Display Container
+        const qrContainerEl = document.getElementById('adminQrContainer');
+        const qrImageEl = document.getElementById('adminQrImage');
+        const qrOpenLink = document.getElementById('adminQrOpenLink');
+
+        if (item.qrCodeData || item.qrCode || upiVal) {
+            const qrSrc = item.qrCodeData || item.qrCode || `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('upi://pay?pa=' + upiVal + '&pn=' + encodeURIComponent(item.name || 'User') + '&cu=INR')}`;
+            if (qrImageEl) qrImageEl.src = qrSrc;
+            if (qrOpenLink) qrOpenLink.href = qrSrc;
+            if (qrContainerEl) qrContainerEl.style.display = 'block';
+        } else {
+            if (qrContainerEl) qrContainerEl.style.display = 'none';
         }
         
         // Bank Details

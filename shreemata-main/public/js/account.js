@@ -1051,58 +1051,121 @@ function displayWalletHistory(transactions) {
 }
 
 /* -----------------------------------------
-   RENDER WITHDRAWAL REQUESTS & PAYOUT STATUS
+   RENDER WITHDRAWAL REQUESTS & PAYOUT STATUS (WITH PAGINATION)
 ----------------------------------------- */
+let currentVipPage = 1;
+const vipRowsPerPage = 5;
+
 function renderWithdrawalHistory(withdrawals) {
+    window.allVipWithdrawals = withdrawals || [];
+    renderVipWithdrawalTable(window.allVipWithdrawals);
+}
+
+function renderVipWithdrawalTable(withdrawalsList) {
     const listEl = document.getElementById("withdrawalRequestsList");
-    if (!listEl) return;
+    const tbody = document.getElementById('vipWithdrawalsTableBody');
+    if (!listEl && !tbody) return;
     
-    if (!withdrawals || withdrawals.length === 0) {
-        listEl.innerHTML = "<p style='color: #a8a29e; font-size: 13px; margin: 0; padding: 10px 0;'>No withdrawal requests submitted yet.</p>";
+    if (!withdrawalsList || withdrawalsList.length === 0) {
+        if (listEl) listEl.innerHTML = "<p style='color: #a8a29e; font-size: 13px; margin: 0; padding: 10px 0;'>No withdrawal requests submitted yet.</p>";
+        if (tbody) tbody.innerHTML = "<tr><td colspan='4' style='text-align: center; color: #888;'>No withdrawal requests found.</td></tr>";
+        const pageIndicator = document.getElementById('vipPageIndicator');
+        const prevBtn = document.getElementById('vipPrevPageBtn');
+        const nextBtn = document.getElementById('vipNextPageBtn');
+        if (pageIndicator) pageIndicator.innerText = "Page 1 of 1";
+        if (prevBtn) prevBtn.disabled = true;
+        if (nextBtn) nextBtn.disabled = true;
         return;
     }
 
-    const sorted = [...withdrawals].sort((a, b) => new Date(b.requestedAt || b.date || 0) - new Date(a.requestedAt || a.date || 0));
-    listEl.innerHTML = "";
+    const sorted = [...withdrawalsList].sort((a, b) => new Date(b.requestedAt || b.date || b.createdAt || 0) - new Date(a.requestedAt || a.date || a.createdAt || 0));
 
-    sorted.forEach(w => {
-        const dateStr = new Date(w.requestedAt || w.date).toLocaleString();
-        const isVip = (w.source === 'vip_master_card');
-        const sourceLabel = isVip ? `👑 VIP Master Card (${escapeHtml(w.cardNumber || 'VIP Card')})` : `💼 Commission Wallet`;
-        
-        let destinationText = 'Destination not specified';
-        if (w.upi) {
-            destinationText = `📱 UPI: ${escapeHtml(w.upi)}`;
-        } else if (w.bank) {
-            const maskedAcc = w.bank.length > 4 ? 'XXXX' + w.bank.slice(-4) : w.bank;
-            destinationText = `🏦 ${escapeHtml(w.bankName || 'Bank')}: ${escapeHtml(maskedAcc)} (IFSC: ${escapeHtml(w.ifsc || 'N/A')})`;
-        }
+    const totalPages = Math.ceil(sorted.length / vipRowsPerPage) || 1;
+    if (currentVipPage > totalPages) currentVipPage = totalPages;
+    if (currentVipPage < 1) currentVipPage = 1;
 
-        let statusHtml = '';
-        if (w.status === 'approved') {
-            statusHtml = `<span style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">✅ Approved — Paid</span>`;
-        } else if (w.status === 'rejected') {
-            statusHtml = `<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">❌ Rejected — Refunded to Wallet</span>`;
-        } else {
-            statusHtml = `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">⏳ Pending Admin Approval</span>`;
-        }
+    const start = (currentVipPage - 1) * vipRowsPerPage;
+    const paginatedItems = sorted.slice(start, start + vipRowsPerPage);
 
-        const div = document.createElement("div");
-        div.style.cssText = "background: #181410; border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 10px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;";
-        div.innerHTML = `
-            <div>
-                <div style="font-weight: 700; color: #f0e6d2; font-size: 14px; margin-bottom: 3px;">${sourceLabel}</div>
-                <div style="color: #d4af37; font-size: 12px; font-family: monospace; margin-bottom: 4px;">${destinationText}</div>
-                <div style="color: #78716c; font-size: 11px;">Requested on ${dateStr}</div>
-            </div>
-            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
-                <div style="font-size: 16px; font-weight: 800; color: #f0e6d2;">₹${Number(w.amount).toFixed(2)}</div>
-                <div>${statusHtml}</div>
-            </div>
-        `;
-        listEl.appendChild(div);
-    });
+    if (tbody) {
+        tbody.innerHTML = paginatedItems.map(item => `
+            <tr>
+                <td>₹${Number(item.amount || 0).toFixed(2)}</td>
+                <td>${escapeHtml(item.upiId || item.upi || (item.bank ? item.bankName + ' (' + item.bank.slice(-4) + ')' : 'Bank Transfer'))}</td>
+                <td>${new Date(item.requestedAt || item.date || item.createdAt).toLocaleString()}</td>
+                <td><span class="badge ${item.status}">${item.status}</span></td>
+            </tr>
+        `).join('');
+    }
+
+    if (listEl) {
+        listEl.innerHTML = "";
+        paginatedItems.forEach(w => {
+            const dateStr = new Date(w.requestedAt || w.date || w.createdAt).toLocaleString();
+            const isVip = (w.source === 'vip_master_card');
+            const sourceLabel = isVip ? `👑 VIP Master Card (${escapeHtml(w.cardNumber || 'VIP Card')})` : `💼 Commission Wallet`;
+            
+            let destinationText = 'Destination not specified';
+            if (w.upi || w.upiId) {
+                destinationText = `📱 UPI: ${escapeHtml(w.upi || w.upiId)}`;
+            } else if (w.bank) {
+                const maskedAcc = w.bank.length > 4 ? 'XXXX' + w.bank.slice(-4) : w.bank;
+                destinationText = `🏦 ${escapeHtml(w.bankName || 'Bank')}: ${escapeHtml(maskedAcc)} (IFSC: ${escapeHtml(w.ifsc || 'N/A')})`;
+            }
+
+            let statusHtml = '';
+            if (w.status === 'approved') {
+                statusHtml = `<span style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">✅ Approved — Paid</span>`;
+            } else if (w.status === 'rejected') {
+                statusHtml = `<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">❌ Rejected — Refunded to Wallet</span>`;
+            } else {
+                statusHtml = `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">⏳ Pending Admin Approval</span>`;
+            }
+
+            const div = document.createElement("div");
+            div.style.cssText = "background: #181410; border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 10px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;";
+            div.innerHTML = `
+                <div>
+                    <div style="font-weight: 700; color: #f0e6d2; font-size: 14px; margin-bottom: 3px;">${sourceLabel}</div>
+                    <div style="color: #d4af37; font-size: 12px; font-family: monospace; margin-bottom: 4px;">${destinationText}</div>
+                    <div style="color: #78716c; font-size: 11px;">Requested on ${dateStr}</div>
+                </div>
+                <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+                    <div style="font-size: 16px; font-weight: 800; color: #f0e6d2;">₹${Number(w.amount).toFixed(2)}</div>
+                    <div>${statusHtml}</div>
+                </div>
+            `;
+            listEl.appendChild(div);
+        });
+    }
+
+    // Update pagination indicators
+    const pageIndicator = document.getElementById('vipPageIndicator');
+    const prevBtn = document.getElementById('vipPrevPageBtn');
+    const nextBtn = document.getElementById('vipNextPageBtn');
+
+    if (pageIndicator) pageIndicator.innerText = `Page ${currentVipPage} of ${totalPages}`;
+    if (prevBtn) prevBtn.disabled = currentVipPage === 1;
+    if (nextBtn) nextBtn.disabled = currentVipPage >= totalPages;
 }
+
+// Event listeners for pagination buttons
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('vipPrevPageBtn')?.addEventListener('click', () => {
+        if (currentVipPage > 1) {
+            currentVipPage--;
+            renderVipWithdrawalTable(window.allVipWithdrawals || []);
+        }
+    });
+
+    document.getElementById('vipNextPageBtn')?.addEventListener('click', () => {
+        const totalPages = Math.ceil((window.allVipWithdrawals || []).length / vipRowsPerPage) || 1;
+        if (currentVipPage < totalPages) {
+            currentVipPage++;
+            renderVipWithdrawalTable(window.allVipWithdrawals || []);
+        }
+    });
+});
 
 /* -----------------------------------------
    VIP MASTER CARD WITHDRAWAL MODAL & LOGIC
@@ -1138,16 +1201,25 @@ function openVipWithdrawModal(cardNumber, cardTier) {
     document.getElementById("vipModalMaxWithdrawable").textContent = `₹${maxWithdrawable.toFixed(2)}`;
 
     // Payment destination toggle (Saved vs New)
-    const savedBankSec = document.getElementById("vipSavedBankSection");
-    const newBankSec = document.getElementById("vipNewBankSection");
-    const maskedBankEl = document.getElementById("vipMaskedBankInfo");
+    const savedContainer = document.getElementById("savedPaymentContainer") || document.getElementById("vipSavedBankSection");
+    const formContainer = document.getElementById("paymentFormContainer") || document.getElementById("vipNewBankSection");
+    const detailsTextEl = document.getElementById("savedPaymentDetailsText") || document.getElementById("vipMaskedBankInfo");
+
+    // Reset attached QR state
+    currentAttachedQrData = '';
+    const attachedPreview = document.getElementById("vipAttachedQrPreview");
+    if (attachedPreview) attachedPreview.style.display = "none";
+    const qrThumb = document.getElementById("vipQrThumb");
+    if (qrThumb) qrThumb.src = "";
+    const qrFileInput = document.getElementById("vipQrFileInput");
+    if (qrFileInput) qrFileInput.value = "";
 
     const isSetup = window.isBankDetailsSetup || (user.bankDetails && user.bankDetails.isSetup);
     const bankData = window.userBankDetails || user.bankDetails;
 
     if (isSetup && bankData && (bankData.accountNumber || bankData.upiId)) {
-        if (savedBankSec) savedBankSec.style.display = "block";
-        if (newBankSec) newBankSec.style.display = "none";
+        if (savedContainer) savedContainer.style.display = "block";
+        if (formContainer) formContainer.style.display = "none";
 
         let detailsHtml = '';
         if (bankData.upiId) {
@@ -1161,11 +1233,11 @@ function openVipWithdrawModal(cardNumber, cardTier) {
         if (bankData.accountHolderName) {
             detailsHtml += `<div>👤 <strong>Holder:</strong> ${escapeHtml(bankData.accountHolderName)}</div>`;
         }
-        if (maskedBankEl) maskedBankEl.innerHTML = detailsHtml || 'Saved payment account';
+        if (detailsTextEl) detailsTextEl.innerHTML = detailsHtml || 'Saved payment account';
     } else {
-        if (savedBankSec) savedBankSec.style.display = "none";
-        if (newBankSec) {
-            newBankSec.style.display = "block";
+        if (savedContainer) savedContainer.style.display = "none";
+        if (formContainer) {
+            formContainer.style.display = "block";
             const holderInput = document.getElementById("vipAccountHolderName");
             if (holderInput && !holderInput.value) {
                 holderInput.value = user.name || '';
@@ -1285,9 +1357,12 @@ async function submitVipWithdrawal() {
         cardTier: currentVipWithdrawState.cardTier
     };
 
-    // If bank details not setup, validate and collect from input fields
-    const isSetup = window.isBankDetailsSetup;
-    if (!isSetup) {
+    // If bank details not setup or user clicked change payment details, validate and collect from form
+    const formContainer = document.getElementById("paymentFormContainer") || document.getElementById("vipNewBankSection");
+    const isFormVisible = formContainer && formContainer.style.display !== 'none';
+    const isSetup = window.isBankDetailsSetup && !isFormVisible;
+
+    if (isFormVisible || !isSetup) {
         const holder = document.getElementById("vipAccountHolderName")?.value?.trim();
         const accNum = document.getElementById("vipAccountNumber")?.value?.trim();
         const ifsc = document.getElementById("vipIfscCode")?.value?.trim()?.toUpperCase();
@@ -1312,6 +1387,9 @@ async function submitVipWithdrawal() {
         payload.bankName = bank || null;
         payload.ifscCode = ifsc || null;
         payload.upiId = upi || null;
+        if (currentAttachedQrData) {
+            payload.qrCodeData = currentAttachedQrData;
+        }
     }
 
     const submitBtn = document.getElementById("vipSubmitWithdrawBtn");
@@ -2285,6 +2363,88 @@ function handleGeneralQrUpload(event) {
         }
     });
 }
+
+// Handle attached QR code image upload and decoding
+let currentAttachedQrData = '';
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Handle attached QR code upload for VIP modal
+    const qrFileInput = document.getElementById('vipQrFileInput');
+    if (qrFileInput) {
+        qrFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const base64Image = event.target.result;
+                currentAttachedQrData = base64Image;
+
+                // Show thumbnail preview
+                const thumb = document.getElementById('vipQrThumb');
+                const previewContainer = document.getElementById('vipAttachedQrPreview');
+                if (thumb) thumb.src = base64Image;
+                if (previewContainer) previewContainer.style.display = 'flex';
+
+                // Decode using jsQR if available
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d', { willReadFrequently: true }) || canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    context.drawImage(img, 0, 0);
+                    
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                    if (typeof jsQR !== 'undefined') {
+                        let code = jsQR(imageData.data, imageData.width, imageData.height, {
+                            inversionAttempts: "dontInvert"
+                        });
+                        if (!code || !code.data) {
+                            code = jsQR(imageData.data, imageData.width, imageData.height, {
+                                inversionAttempts: "attemptBoth"
+                            });
+                        }
+                        if (code && code.data) {
+                            let scannedData = code.data;
+                            if (scannedData.toLowerCase().includes('pa=')) {
+                                try {
+                                    const urlObj = new URL(scannedData.includes('://') ? scannedData : 'upi://pay?' + scannedData);
+                                    const pa = urlObj.searchParams.get('pa');
+                                    if (pa) scannedData = decodeURIComponent(pa).trim();
+                                } catch (err) {
+                                    const match = scannedData.match(/[?&]pa=([^&]+)/i);
+                                    if (match && match[1]) scannedData = decodeURIComponent(match[1]).trim();
+                                }
+                            } else {
+                                const directMatch = scannedData.match(/[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}/);
+                                if (directMatch) scannedData = directMatch[0].trim();
+                            }
+                            const upiInput = document.getElementById('vipUpiId');
+                            if (upiInput) {
+                                upiInput.value = scannedData;
+                                upiInput.style.borderColor = "#10b981";
+                            }
+                        }
+                    }
+                };
+                img.src = base64Image;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Toggle between saved view and edit form
+    const changeBtn = document.getElementById('changePaymentBtn');
+    if (changeBtn) {
+        changeBtn.addEventListener('click', () => {
+            const savedCont = document.getElementById('savedPaymentContainer') || document.getElementById('vipSavedBankSection');
+            const formCont = document.getElementById('paymentFormContainer') || document.getElementById('vipNewBankSection');
+            if (savedCont) savedCont.style.display = 'none';
+            if (formCont) formCont.style.display = 'block';
+        });
+    }
+});
 
 window.extractUpiFromQrString = extractUpiFromQrString;
 window.decodeQrCodeImage = decodeQrCodeImage;

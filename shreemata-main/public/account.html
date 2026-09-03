@@ -1532,6 +1532,13 @@
                     <div id="withdrawalRequestsList" style="display: flex; flex-direction: column; gap: 10px;">
                         <p style="color: #a8a29e; font-size: 13px; margin: 0;">Loading withdrawal requests...</p>
                     </div>
+
+                    <!-- VIP / Withdrawal Pagination Controls -->
+                    <div id="vipWithdrawalPagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 10px 0;">
+                        <button type="button" id="vipPrevPageBtn" class="pagination-btn" style="padding: 6px 12px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; cursor: pointer;">Previous</button>
+                        <span id="vipPageIndicator" style="font-size: 13px; color: #aaa;">Page 1 of 1</span>
+                        <button type="button" id="vipNextPageBtn" class="pagination-btn" style="padding: 6px 12px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; cursor: pointer;">Next</button>
+                    </div>
                 </div>
 
                 <div class="wallet-history">
@@ -1801,12 +1808,12 @@
 
     <!-- VIP Master Card Withdrawal Modal -->
     <div id="vipWithdrawModal" class="modal"
-        style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.75); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
-        <div
-            style="background: #1e1914; border: 1.5px solid #d4af37; border-radius: 18px; max-width: 480px; width: 92%; color: #f0e6d2; box-shadow: 0 15px 40px rgba(0,0,0,0.6); overflow: hidden; animation: modalFadeIn 0.25s ease-out;">
+        style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.75); backdrop-filter: blur(4px); align-items: center; justify-content: center; overflow-y: auto;">
+        <div class="vip-modal-content"
+            style="padding: 24px 28px; background: #1a1a1a; border-radius: 12px; max-width: 520px; width: 92%; margin: 40px auto; color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1.5px solid #d4af37; overflow: hidden; animation: modalFadeIn 0.25s ease-out; box-sizing: border-box;">
             <!-- Header -->
             <div
-                style="padding: 18px 24px; background: linear-gradient(135deg, #2a221b 0%, #1a1511 100%); border-bottom: 1px solid rgba(212, 175, 55, 0.3); display: flex; justify-content: space-between; align-items: center;">
+                style="padding: 0 0 16px 0; border-bottom: 1px solid rgba(212, 175, 55, 0.3); display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 24px;">👑</span>
                     <div>
@@ -1822,7 +1829,7 @@
             </div>
 
             <!-- Body -->
-            <div style="padding: 22px 24px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="padding: 18px 0 0 0; display: flex; flex-direction: column; gap: 16px;">
                 <!-- Balance & Limit Details Box -->
                 <div
                     style="background: rgba(212, 175, 55, 0.08); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 12px; padding: 14px 16px;">
@@ -1855,84 +1862,51 @@
                 </div>
 
                 <!-- Payment Destination Section -->
-                <!-- Saved Payment Destination (When Bank details exist) -->
-                <div id="vipSavedBankSection"
-                    style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 12px 14px; font-size: 13px;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-weight: 700; color: #10b981;">💳 Payout Destination (Saved):</span>
-                        <span
-                            style="font-size: 11px; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 4px; font-weight: 600;">Verified</span>
+                <div class="payment-destination-section">
+                    <!-- Existing Saved Details View (Shown if details exist) -->
+                    <div id="savedPaymentContainer" style="display: none; background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #444;">
+                        <h4 style="margin-top: 0; color: #fff; font-size: 14px; margin-bottom: 10px;">📋 Saved Payment Destination</h4>
+                        <div id="savedPaymentDetailsText" style="color: #ccc; font-size: 13px; line-height: 1.6;"></div>
+                        <button type="button" id="changePaymentBtn" style="margin-top: 10px; background: #333; color: #fff; border: 1px solid #555; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✏️ Change Payment Details</button>
                     </div>
-                    <div id="vipMaskedBankInfo"
-                        style="color: #f0e6d2; font-family: monospace; font-size: 13px; line-height: 1.5;">
-                        <!-- Masked Bank/UPI Info injected here -->
-                    </div>
-                    <small style="color: #94a3b8; font-size: 11px; display: block; margin-top: 4px;">Funds will be sent
-                        directly to this destination upon admin approval.</small>
-                </div>
 
-                <!-- New Payment Destination Form (When Bank details are not setup) -->
-                <div id="vipNewBankSection"
-                    style="display: none; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 14px; font-size: 13px;">
-                    <div
-                        style="font-weight: 700; color: #fbbf24; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                        <span>🏦 Setup Payment Destination</span>
-                    </div>
-                    <p style="margin: 0 0 10px 0; font-size: 11px; color: #d6d3d1;">Provide your bank or UPI details.
-                        These will be saved to your profile for this and future payouts.</p>
-
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <div>
-                            <label style="display: block; font-size: 11px; color: #a8a29e; margin-bottom: 3px;">Account
-                                Holder Name *</label>
-                            <input type="text" id="vipAccountHolderName" placeholder="Full name as per bank records"
-                                style="width: 100%; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                    <!-- Payment Input Form (Shown if no saved details or user clicks change) -->
+                    <div id="paymentFormContainer">
+                        <h4 style="margin-top: 0; color: #fff; font-size: 14px; margin-bottom: 10px;">🏦 Setup Payment Destination</h4>
+                        <p style="font-size: 12px; color: #aaa; margin-bottom: 12px;">Provide your bank or UPI details. These will be saved to your profile for this and future payouts.</p>
+                        
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 4px;">Account Holder Name *</label>
+                            <input type="text" id="vipAccountHolderName" placeholder="Enter account holder name" style="width: 100%; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;" />
+                        </div>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 4px;">Account Number</label>
+                            <input type="text" id="vipAccountNumber" placeholder="Bank Account Number" style="width: 100%; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;" />
+                        </div>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 4px;">IFSC Code</label>
+                            <input type="text" id="vipIfscCode" placeholder="E.G. SBIN0001234" style="width: 100%; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px; text-transform: uppercase;" />
+                        </div>
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 4px;">Bank Name</label>
+                            <input type="text" id="vipBankName" placeholder="e.g. State Bank of India, HDFC" style="width: 100%; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;" />
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                            <div>
-                                <label
-                                    style="display: block; font-size: 11px; color: #a8a29e; margin-bottom: 3px;">Account
-                                    Number</label>
-                                <input type="text" id="vipAccountNumber" placeholder="Bank Account Number"
-                                    style="width: 100%; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
-                            </div>
-                            <div>
-                                <label style="display: block; font-size: 11px; color: #a8a29e; margin-bottom: 3px;">IFSC
-                                    Code</label>
-                                <input type="text" id="vipIfscCode" placeholder="e.g. SBIN0001234"
-                                    style="width: 100%; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px; text-transform: uppercase;">
-                            </div>
-                        </div>
+                        <div style="text-align: center; margin: 15px 0; color: #777; font-size: 12px;">— OR USE UPI & ATTACH QR —</div>
 
-                        <div>
-                            <label style="display: block; font-size: 11px; color: #a8a29e; margin-bottom: 3px;">Bank
-                                Name</label>
-                            <input type="text" id="vipBankName" placeholder="e.g. State Bank of India, HDFC"
-                                style="width: 100%; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
-                        </div>
-
-                        <div style="text-align: center; color: #78716c; font-size: 11px; font-weight: 700;">— OR USE UPI
-                            —</div>
-
-                        <div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                <label style="font-size: 11px; color: #a8a29e;">UPI / PhonePe / GPay ID</label>
-                                <label for="vipQrCodeInput" style="font-size: 11px; color: #d4af37; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; padding: 2px 7px; background: rgba(212, 175, 55, 0.12); border: 1px solid rgba(212, 175, 55, 0.35); border-radius: 4px; transition: all 0.2s;">
-                                    <span>📷 Upload QR Code</span>
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 4px;">UPI / PhonePe / GPay ID *</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="vipUpiId" placeholder="username@upi" style="flex: 1; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;" />
+                                <label for="vipQrFileInput" style="background: #2b2b2b; color: #fff; border: 1px solid #555; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
+                                    📷 Attach QR
                                 </label>
-                                <input type="file" id="vipQrCodeInput" accept="image/*" style="display: none;" onchange="handleVipQrUpload(event)">
+                                <input type="file" id="vipQrFileInput" accept="image/*" style="display: none;" />
                             </div>
-                            <div style="display: flex; gap: 6px;">
-                                <input type="text" id="vipUpiId" placeholder="e.g. yourname@paytm / 9876543210@ybl"
-                                    style="flex: 1; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
-                                <button type="button" onclick="document.getElementById('vipQrCodeInput').click()" title="Upload or Scan QR Code"
-                                    style="padding: 0 10px; background: #26211a; border: 1px solid #d4af37; color: #f0e6d2; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
-                                    <span>📷 Scan QR</span>
-                                </button>
+                            <div id="vipAttachedQrPreview" style="margin-top: 8px; display: none; align-items: center; gap: 8px;">
+                                <img id="vipQrThumb" src="" alt="QR Preview" style="width: 36px; height: 36px; border-radius: 4px; object-fit: cover; border: 1px solid #555;" />
+                                <span style="font-size: 11px; color: #4ade80;">QR Code Attached Successfully</span>
                             </div>
-                            <div id="vipQrScanStatus" style="display: none; margin-top: 4px; font-size: 11px; line-height: 1.4;"></div>
                         </div>
                     </div>
                 </div>
