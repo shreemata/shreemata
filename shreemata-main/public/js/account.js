@@ -2120,7 +2120,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-    
+
     // Close modal when clicking outside
     window.addEventListener('click', (e) => {
         const modal = document.getElementById('utrModal');
@@ -2129,3 +2129,164 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 });
+
+/* -----------------------------------------
+   UPI QR CODE SCANNER & AUTO-FILL
+----------------------------------------- */
+function extractUpiFromQrString(qrText) {
+    if (!qrText) return '';
+    qrText = qrText.trim();
+    
+    // Case 1: Standard UPI URI (e.g. upi://pay?pa=username@bank&pn=Name...)
+    if (qrText.toLowerCase().includes('pa=')) {
+        try {
+            const urlObj = new URL(qrText.includes('://') ? qrText : 'upi://pay?' + qrText);
+            const pa = urlObj.searchParams.get('pa');
+            if (pa) return decodeURIComponent(pa).trim();
+        } catch (e) {
+            const match = qrText.match(/[?&]pa=([^&]+)/i);
+            if (match && match[1]) return decodeURIComponent(match[1]).trim();
+        }
+    }
+    
+    // Case 2: Direct UPI ID matching (e.g. username@okhdfcbank, 9876543210@paytm, user.name@upi)
+    const directMatch = qrText.match(/[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}/);
+    if (directMatch) {
+        return directMatch[0].trim();
+    }
+    
+    return qrText.trim();
+}
+
+function decodeQrCodeImage(file, callback) {
+    if (!file) return;
+    if (typeof jsQR === 'undefined') {
+        callback(new Error("QR Scanner library is loading or unavailable. Please check your network connection."));
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d', { willReadFrequently: true }) || canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0, img.width, img.height);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                let code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert"
+                });
+                
+                if (!code || !code.data) {
+                    code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "attemptBoth"
+                    });
+                }
+                
+                if (code && code.data) {
+                    const upiId = extractUpiFromQrString(code.data);
+                    callback(null, upiId, code.data);
+                } else {
+                    callback(new Error("No valid QR code detected in the image. Please ensure the QR is clear and visible."));
+                }
+            } catch (err) {
+                callback(err);
+            }
+        };
+        img.onerror = function() {
+            callback(new Error("Failed to load image file. Please upload a valid image (PNG/JPG/WebP)."));
+        };
+        img.src = e.target.result;
+    };
+    reader.onerror = function() {
+        callback(new Error("Failed to read image file."));
+    };
+    reader.readAsDataURL(file);
+}
+
+function handleVipQrUpload(event) {
+    const file = event.target.files && event.target.files[0];
+    const statusEl = document.getElementById("vipQrScanStatus");
+    const upiInput = document.getElementById("vipUpiId");
+    
+    if (!file) return;
+    
+    if (statusEl) {
+        statusEl.style.display = "block";
+        statusEl.style.color = "#fbbf24";
+        statusEl.innerHTML = `<span>⏳ Decoding QR code image...</span>`;
+    }
+    
+    decodeQrCodeImage(file, (err, upiId, rawData) => {
+        event.target.value = '';
+        
+        if (err || !upiId) {
+            if (statusEl) {
+                statusEl.style.display = "block";
+                statusEl.style.color = "#ef4444";
+                statusEl.innerHTML = `<span>❌ ${escapeHtml(err ? err.message : 'Could not extract UPI ID from QR.')}</span>`;
+            }
+            return;
+        }
+        
+        if (upiInput) {
+            upiInput.value = upiId;
+            upiInput.style.borderColor = "#10b981";
+            upiInput.focus();
+        }
+        
+        if (statusEl) {
+            statusEl.style.display = "block";
+            statusEl.style.color = "#10b981";
+            statusEl.innerHTML = `<span>✅ Extracted UPI ID: <strong>${escapeHtml(upiId)}</strong></span>`;
+        }
+    });
+}
+
+function handleGeneralQrUpload(event) {
+    const file = event.target.files && event.target.files[0];
+    const statusEl = document.getElementById("generalQrScanStatus");
+    const upiInput = document.getElementById("generalUpiId");
+    
+    if (!file) return;
+    
+    if (statusEl) {
+        statusEl.style.display = "block";
+        statusEl.style.color = "#fbbf24";
+        statusEl.innerHTML = `<span>⏳ Decoding QR code image...</span>`;
+    }
+    
+    decodeQrCodeImage(file, (err, upiId, rawData) => {
+        event.target.value = '';
+        
+        if (err || !upiId) {
+            if (statusEl) {
+                statusEl.style.display = "block";
+                statusEl.style.color = "#ef4444";
+                statusEl.innerHTML = `<span>❌ ${escapeHtml(err ? err.message : 'Could not extract UPI ID from QR.')}</span>`;
+            }
+            return;
+        }
+        
+        if (upiInput) {
+            upiInput.value = upiId;
+            upiInput.style.borderColor = "#10b981";
+            upiInput.focus();
+        }
+        
+        if (statusEl) {
+            statusEl.style.display = "block";
+            statusEl.style.color = "#10b981";
+            statusEl.innerHTML = `<span>✅ Extracted UPI ID: <strong>${escapeHtml(upiId)}</strong></span>`;
+        }
+    });
+}
+
+window.extractUpiFromQrString = extractUpiFromQrString;
+window.decodeQrCodeImage = decodeQrCodeImage;
+window.handleVipQrUpload = handleVipQrUpload;
+window.handleGeneralQrUpload = handleGeneralQrUpload;

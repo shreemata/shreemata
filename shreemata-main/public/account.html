@@ -1487,10 +1487,22 @@
                                 — OR USE UPI —</div>
 
                             <div>
-                                <label style="display: block; font-size: 12px; color: #a8a29e; margin-bottom: 4px;">UPI
-                                    / PhonePe / GPay ID</label>
-                                <input type="text" id="generalUpiId" placeholder="e.g. yourname@paytm / 9876543210@ybl"
-                                    style="width: 100%; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <label style="font-size: 12px; color: #a8a29e;">UPI / PhonePe / GPay ID</label>
+                                    <label for="generalQrCodeInput" style="font-size: 11px; color: #d4af37; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; padding: 2px 8px; background: rgba(212, 175, 55, 0.12); border: 1px solid rgba(212, 175, 55, 0.35); border-radius: 4px; transition: all 0.2s;">
+                                        <span>📷 Upload QR Code</span>
+                                    </label>
+                                    <input type="file" id="generalQrCodeInput" accept="image/*" style="display: none;" onchange="handleGeneralQrUpload(event)">
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="text" id="generalUpiId" placeholder="e.g. yourname@paytm / 9876543210@ybl"
+                                        style="flex: 1; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                                    <button type="button" onclick="document.getElementById('generalQrCodeInput').click()" title="Upload or Scan QR Code"
+                                        style="padding: 0 14px; background: #26211a; border: 1px solid #d4af37; color: #f0e6d2; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                                        <span>📷 Scan QR</span>
+                                    </button>
+                                </div>
+                                <div id="generalQrScanStatus" style="display: none; margin-top: 5px; font-size: 12px; line-height: 1.4;"></div>
                             </div>
                         </div>
                     </div>
@@ -1618,6 +1630,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="/js/config.js"></script>
     <script src="/js/account.js"></script>
 
@@ -1904,10 +1917,22 @@
                             —</div>
 
                         <div>
-                            <label style="display: block; font-size: 11px; color: #a8a29e; margin-bottom: 3px;">UPI /
-                                PhonePe / GPay ID</label>
-                            <input type="text" id="vipUpiId" placeholder="e.g. yourname@paytm / 9876543210@ybl"
-                                style="width: 100%; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <label style="font-size: 11px; color: #a8a29e;">UPI / PhonePe / GPay ID</label>
+                                <label for="vipQrCodeInput" style="font-size: 11px; color: #d4af37; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; padding: 2px 7px; background: rgba(212, 175, 55, 0.12); border: 1px solid rgba(212, 175, 55, 0.35); border-radius: 4px; transition: all 0.2s;">
+                                    <span>📷 Upload QR Code</span>
+                                </label>
+                                <input type="file" id="vipQrCodeInput" accept="image/*" style="display: none;" onchange="handleVipQrUpload(event)">
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <input type="text" id="vipUpiId" placeholder="e.g. yourname@paytm / 9876543210@ybl"
+                                    style="flex: 1; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                                <button type="button" onclick="document.getElementById('vipQrCodeInput').click()" title="Upload or Scan QR Code"
+                                    style="padding: 0 10px; background: #26211a; border: 1px solid #d4af37; color: #f0e6d2; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
+                                    <span>📷 Scan QR</span>
+                                </button>
+                            </div>
+                            <div id="vipQrScanStatus" style="display: none; margin-top: 4px; font-size: 11px; line-height: 1.4;"></div>
                         </div>
                     </div>
                 </div>

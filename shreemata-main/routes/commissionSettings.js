@@ -550,16 +550,28 @@ router.post("/commission/withdraw", authenticateToken, async (req, res) => {
 });
 
 /* -------------------------------------------
-   POST /api/commission/vip-withdraw
+   POST /api/commission/vip-withdraw & /api/vip-withdraw
    Request VIP Master Card commission withdrawal
    Validation Rules:
    - Minimum withdrawal amount allowed: ₹500
    - Mandatory minimum balance remaining: ₹50
    - Reject if (Available Balance - Requested Amount) < 50 OR Requested Amount < 500
 --------------------------------------------*/
-router.post("/commission/vip-withdraw", authenticateToken, async (req, res) => {
+const handleVipWithdrawRequest = async (req, res) => {
   try {
-    const { amount, cardNumber: requestedCardNumber } = req.body;
+    const { 
+      amount, 
+      cardNumber: requestedCardNumber, 
+      cardId,
+      cardTier: requestedTier,
+      accountHolderName, 
+      accountNumber, 
+      bankName, 
+      ifscCode, 
+      upiId,
+      bankDetails 
+    } = req.body;
+
     const userId = req.user.id || req.user.userId;
     const User = require("../models/User");
     const VipMasterCard = require("../models/VipMasterCard");
@@ -569,6 +581,7 @@ router.post("/commission/vip-withdraw", authenticateToken, async (req, res) => {
     const numericAmount = Number(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) {
       return res.status(400).json({ 
+        success: false,
         error: "Please enter a valid withdrawal amount." 
       });
     }
@@ -576,6 +589,7 @@ router.post("/commission/vip-withdraw", authenticateToken, async (req, res) => {
     // Rule 1: Minimum withdrawal is ₹500
     if (numericAmount < 500) {
       return res.status(400).json({ 
+        success: false,
         error: "Minimum withdrawal amount allowed for VIP Master Card is ₹500.",
         minAmount: 500
       });
@@ -583,7 +597,7 @@ router.post("/commission/vip-withdraw", authenticateToken, async (req, res) => {
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found." });
+      return res.status(404).json({ success: false, error: "User not found." });
     }
 
     // Check VIP card ownership
@@ -592,6 +606,7 @@ router.post("/commission/vip-withdraw", authenticateToken, async (req, res) => {
 
     if (!hasVipCards) {
       return res.status(403).json({ 
+        success: false,
         error: "No active VIP Master Card found for your account." 
       });
     }
@@ -609,10 +624,19 @@ router.post("/commission/vip-withdraw", authenticateToken, async (req, res) => {
         cardNumber = user.masterCard.cardNumber;
         cardTier = 1;
       } else {
-        // Strict security check: card does not belong to authenticated user
         return res.status(403).json({
+          success: false,
           error: "Unauthorized: You can only withdraw from a VIP Master Card assigned to your account."
         });
+      }
+    } else if (cardId) {
+      targetCard = userCards.find(c => String(c._id) === String(cardId) || c.cardNumber === cardId);
+      if (targetCard) {
+        cardNumber = targetCard.cardNumber;
+        cardTier = targetCard.tier;
+      } else if (user.masterCard && user.masterCard.isAssigned) {
+        cardNumber = user.masterCard.cardNumber || 'VIP Master Card';
+        cardTier = 1;
       }
     } else {
       if (userCards.length > 0) {
@@ -631,9 +655,9 @@ router.post("/commission/vip-withdraw", authenticateToken, async (req, res) => {
     const availableBalance = Number(user.wallet || 0);
 
     // Rule 2 & 3: Check balance and mandatory reserve of ₹50
-    // Reject if (Available Balance - Requested Amount) < 50
     if (numericAmount > availableBalance) {
       return res.status(400).json({
+        success: false,
         error: `Insufficient balance. Your available VIP card balance is ₹${availableBalance.toFixed(2)}.`,
         availableBalance
       });
@@ -643,6 +667,7 @@ router.post("/commission/vip-withdraw", authenticateToken, async (req, res) => {
     if (remainingAfterWithdrawal < 50) {
       const maxWithdrawable = Math.max(0, availableBalance - 50);
       return res.status(400).json({
+        success: false,
         error: `A mandatory minimum balance of ₹50 must remain in your VIP Master Card balance after withdrawal. Available: ₹${availableBalance.toFixed(2)}, Maximum withdrawable: ₹${maxWithdrawable.toFixed(2)}.`,
         availableBalance,
         mandatoryReserve: 50,
@@ -651,15 +676,21 @@ router.post("/commission/vip-withdraw", authenticateToken, async (req, res) => {
     }
 
     // Payment Details Validation (Bank or UPI)
-    const { accountHolderName, accountNumber, bankName, ifscCode, upiId } = req.body;
+    const holderName = (accountHolderName || bankDetails?.accountHolderName || bankDetails?.holderName || '').trim();
+    const accNum = (accountNumber || bankDetails?.accountNumber || bankDetails?.accNumber || '').trim();
+    const bName = (bankName || bankDetails?.bankName || '').trim();
+    const ifsc = (ifscCode || bankDetails?.ifscCode || bankDetails?.ifsc || '').trim().toUpperCase();
+    const upi = (upiId || bankDetails?.upiId || bankDetails?.upi || '').trim().toLowerCase();
+
     const isBankSetup = user.bankDetails && user.bankDetails.isSetup;
 
     if (!isBankSetup) {
-      const hasUpi = Boolean(upiId && upiId.trim());
-      const hasBank = Boolean(accountNumber && accountNumber.trim() && bankName && bankName.trim() && ifscCode && ifscCode.trim());
+      const hasUpi = Boolean(upi);
+      const hasBank = Boolean(accNum && bName && ifsc);
 
       if (!hasUpi && !hasBank) {
         return res.status(400).json({
+          success: false,
           error: "Payment destination required. Please provide either complete Bank details (Account Number, Bank Name, IFSC Code) or a UPI ID.",
           requiresPaymentDetails: true
         });
@@ -668,11 +699,11 @@ router.post("/commission/vip-withdraw", authenticateToken, async (req, res) => {
       // Save to user bank details for this and future withdrawals
       user.bankDetails = {
         ...(user.bankDetails || {}),
-        accountHolderName: (accountHolderName || user.name || 'User').trim(),
-        accountNumber: accountNumber ? accountNumber.trim() : null,
-        bankName: bankName ? bankName.trim() : null,
-        ifscCode: ifscCode ? ifscCode.trim().toUpperCase() : null,
-        upiId: upiId ? upiId.trim().toLowerCase() : null,
+        accountHolderName: holderName || user.name || 'User',
+        accountNumber: accNum || null,
+        bankName: bName || null,
+        ifscCode: ifsc || null,
+        upiId: upi || null,
         isSetup: true,
         setupDate: new Date(),
         lastModifiedBy: 'user'
@@ -763,9 +794,13 @@ router.post("/commission/vip-withdraw", authenticateToken, async (req, res) => {
 
   } catch (err) {
     console.error("Error processing VIP Master Card withdrawal:", err);
-    res.status(500).json({ error: "Server error processing VIP Master Card withdrawal." });
+    res.status(500).json({ success: false, error: "Server error processing VIP Master Card withdrawal." });
   }
-});
+};
+
+router.post("/commission/vip-withdraw", authenticateToken, handleVipWithdrawRequest);
+router.post("/vip-withdraw", authenticateToken, handleVipWithdrawRequest);
+router.post("/vip-withdrawal", authenticateToken, handleVipWithdrawRequest);
 
 /* -------------------------------------------
    POST /api/admin/simulate-commission-payout
