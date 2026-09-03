@@ -29,13 +29,13 @@ async function autoVerifyAllEmployees() {
                 alreadyVerifiedCount++;
             } else {
                 console.log(`🔧 ${employee.name} (${employee.email}) - Verifying now...`);
-                
+
                 // Auto-verify the employee
                 employee.emailVerified = true;
                 employee.emailVerificationToken = undefined;
                 employee.emailVerificationExpires = undefined;
                 await employee.save();
-                
+
                 verifiedCount++;
                 console.log(`✅ ${employee.name} - Email verified successfully`);
             }
@@ -46,7 +46,7 @@ async function autoVerifyAllEmployees() {
         console.log(`✅ Already verified: ${alreadyVerifiedCount}`);
         console.log(`🔧 Newly verified: ${verifiedCount}`);
         console.log(`📊 Total employees: ${allEmployees.length}`);
-        
+
         if (verifiedCount > 0) {
             console.log('\n🎉 All employees are now verified and can receive salary notifications!');
         } else {
