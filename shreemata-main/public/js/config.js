@@ -25,7 +25,7 @@ window.API_URL = API_URL;
 
 // Global HTML sanitization helper function
 function escapeHtml(str) {
-    if (str === null || str === undefined) return '';
+    if (!str) return '';
     return String(str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -33,5 +33,10 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
+function escapehtml(str) {
+    return escapeHtml(str);
+}
 window.escapeHtml = escapeHtml;
+window.escapehtml = escapehtml;
+
 
