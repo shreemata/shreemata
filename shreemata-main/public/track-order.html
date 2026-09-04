@@ -96,6 +96,15 @@
             border: 1px solid rgba(255, 255, 255, 0.6);
             backdrop-filter: blur(12px);
             transition: all 0.3s ease;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 24px 18px;
+                border-radius: 16px;
+            }
         }
 
         .form-group {

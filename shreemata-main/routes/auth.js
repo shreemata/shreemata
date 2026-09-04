@@ -1124,6 +1124,52 @@ router.put("/users/update", authenticateToken, async (req, res) => {
   }
 });
 
+// Helper to sanitize withdrawal records for lightweight client payload
+function sanitizeWithdrawalsList(withdrawals) {
+  if (!withdrawals || !Array.isArray(withdrawals)) return [];
+  return withdrawals.map(w => {
+    const item = typeof w.toObject === 'function' ? w.toObject() : { ...w };
+    item.hasScanner = Boolean(
+      item.scannerImage || item.scannerImageUrl || item.qrCodeData || 
+      (typeof item.qrCode === 'string' && item.qrCode.length > 0) ||
+      (item.paymentDetails && (item.paymentDetails.scannerImage || item.paymentDetails.scannerImageUrl || item.paymentDetails.qrCodeData))
+    );
+    item.hasPaymentProof = Boolean(
+      item.paymentProof || item.paymentProofUrl ||
+      (item.paymentDetails && (item.paymentDetails.paymentProof || item.paymentDetails.paymentProofUrl))
+    );
+    
+    // Remove heavy binary/base64 strings from customer-facing API responses
+    delete item.scannerImage;
+    delete item.scannerImageUrl;
+    delete item.qrCodeData;
+    delete item.paymentProof;
+    delete item.qrCode;
+
+    if (item.paymentDetails && typeof item.paymentDetails === 'object') {
+      const p = typeof item.paymentDetails.toObject === 'function' ? item.paymentDetails.toObject() : { ...item.paymentDetails };
+      delete p.scannerImage;
+      delete p.scannerImageUrl;
+      delete p.qrCodeData;
+      delete p.paymentProof;
+      delete p.qrCode;
+      item.paymentDetails = p;
+    }
+    return item;
+  });
+}
+
+function sanitizeBankDetails(bankDetails) {
+  if (!bankDetails) return null;
+  const b = typeof bankDetails.toObject === 'function' ? bankDetails.toObject() : { ...bankDetails };
+  b.hasScanner = Boolean(b.scannerImage || b.scannerImageUrl || b.qrCodeData);
+  delete b.scannerImage;
+  delete b.scannerImageUrl;
+  delete b.qrCodeData;
+  delete b.paymentProof;
+  return b;
+}
+
 // GET USER PROFILE
 router.get("/users/profile", authenticateToken, async (req, res) => {
   try {
@@ -1131,11 +1177,21 @@ router.get("/users/profile", authenticateToken, async (req, res) => {
     if (!user)
       return res.status(404).json({ error: "User not found" });
 
+    const userObj = user.toObject();
+    if (userObj.bankDetails) {
+      userObj.bankDetails = sanitizeBankDetails(userObj.bankDetails);
+    }
+    if (userObj.bankChangeRequest) {
+      userObj.bankChangeRequest = sanitizeBankDetails(userObj.bankChangeRequest);
+    }
+    const cleanWithdrawals = sanitizeWithdrawalsList(userObj.withdrawals);
+    userObj.withdrawals = cleanWithdrawals;
+
     res.json({ 
-      user,
+      user: userObj,
       bankDetailsSetup: Boolean(user.bankDetails?.isSetup),
       maskedBankDetails: user.getMaskedBankDetails ? user.getMaskedBankDetails() : null,
-      withdrawals: user.withdrawals || []
+      withdrawals: cleanWithdrawals
     });
 
   } catch (err) {
@@ -1151,13 +1207,13 @@ router.get("/users/profile/vip-mastercards", authenticateToken, async (req, res)
     const Order = require("../models/Order");
 
     const userId = req.user.id;
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select("wallet masterCard bankDetails withdrawals");
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Calculate user's cumulative completed purchases
-    const completedOrders = await Order.find({ user_id: userId, status: 'completed' });
+    // Calculate user's cumulative completed purchases with lean projection
+    const completedOrders = await Order.find({ user_id: userId, status: 'completed' }).select('totalAmount').lean();
     const cumulativeTotal = completedOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
     // Get all user's cards, sorted by tier desc (highest first)
@@ -1193,6 +1249,8 @@ router.get("/users/profile/vip-mastercards", authenticateToken, async (req, res)
       }));
     }
 
+    const cleanWithdrawals = sanitizeWithdrawalsList(user.withdrawals);
+
     res.json({
       success: true,
       cards,
@@ -1204,7 +1262,7 @@ router.get("/users/profile/vip-mastercards", authenticateToken, async (req, res)
       hasVipCard: cards.length > 0 || (user.masterCard && user.masterCard.isAssigned),
       bankDetailsSetup: Boolean(user.bankDetails?.isSetup),
       maskedBankDetails: user.getMaskedBankDetails ? user.getMaskedBankDetails() : null,
-      withdrawals: user.withdrawals || []
+      withdrawals: cleanWithdrawals
     });
   } catch (err) {
     console.error("Error fetching user VIP Master Cards:", err);

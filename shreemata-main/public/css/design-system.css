@@ -1,0 +1,314 @@
+/* ==========================================================================
+   SHREE MATA — MASTER DESIGN SYSTEM TOKENS & TYPOGRAPHY
+   Global Design Foundation for All Pages
+   ========================================================================== */
+
+/* ── 1. GLOBAL DESIGN TOKENS ── */
+:root {
+    /* Core Brand & Surface Colors */
+    --sm-bg: #F7F3EA;
+    --sm-surface: #FFFDF9;
+    --sm-surface-pure: #FFFFFF;
+    --sm-surface-warm: #FAF7F1;
+    --sm-surface-muted: #F0EAE0;
+    
+    /* Ink & Typography Colors */
+    --sm-ink: #101820;
+    --sm-body: #2B3642;
+    --sm-muted: #667085;
+    --sm-muted-light: #8E9BAE;
+    
+    /* Brand Navy */
+    --sm-navy: #102A43;
+    --sm-navy-dark: #0A1B2C;
+    --sm-navy-surface: #173859;
+    --sm-navy-border: rgba(16, 42, 67, 0.12);
+    
+    /* Brand Gold */
+    --sm-gold: #D4A72C;
+    --sm-gold-muted: #C99A35;
+    --sm-gold-soft: #E7D39C;
+    --sm-gold-pale: #FAF5E8;
+    --sm-gold-border: rgba(212, 167, 44, 0.35);
+    
+    /* Editorial Borders */
+    --sm-border: #E7E1D6;
+    --sm-border-light: #F0EAE0;
+    --sm-border-subtle: rgba(16, 24, 32, 0.08);
+    
+    /* Functional Status */
+    --sm-success: #15803D;
+    --sm-success-bg: #DCFCE7;
+    --sm-success-border: #86EFAC;
+    --sm-danger: #D92D20;
+    --sm-danger-bg: #FEE2E2;
+    --sm-danger-border: #FCA5A5;
+    --sm-warning: #B45309;
+    --sm-warning-bg: #FEF3C7;
+    --sm-warning-border: #FCD34D;
+    
+    /* Typography */
+    --sm-font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --sm-price-font: var(--sm-font-ui);
+    --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+    --font-sans: var(--sm-font-ui);
+    
+    /* Unified Price Typography Tokens */
+    --font-size-price: 20px;
+    --font-size-price-mrp: 14px;
+    
+    /* Shadows & Elevations */
+    --shadow-xs: 0 1px 2px rgba(16, 24, 32, 0.04);
+    --shadow-soft: 0 4px 20px -2px rgba(16, 24, 32, 0.05), 0 2px 6px -1px rgba(16, 24, 32, 0.02);
+    --shadow-card: 0 10px 30px -5px rgba(16, 24, 32, 0.06), 0 4px 10px -2px rgba(16, 24, 32, 0.02);
+    --shadow-card-hover: 0 20px 40px -8px rgba(16, 24, 32, 0.12), 0 8px 16px -4px rgba(16, 24, 32, 0.05);
+    --shadow-dropdown: 0 14px 34px -4px rgba(16, 24, 32, 0.14), 0 4px 12px -2px rgba(16, 24, 32, 0.06);
+    --shadow-modal: 0 25px 60px -10px rgba(16, 24, 32, 0.28);
+    --shadow-book: 0 16px 36px -8px rgba(16, 24, 32, 0.3);
+    
+    /* Border Radii */
+    --radius-xs: 3px;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-full: 9999px;
+    
+    /* Layout Dimensions */
+    --container-max: 1400px;
+    --header-height: 80px;
+    --topbar-height: 38px;
+    
+    /* Transitions */
+    --transition-fast: 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    --transition-smooth: 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── 2. BASE RESETS & BOX MODEL ── */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    background-color: var(--sm-bg);
+    color: var(--sm-body);
+    font-family: var(--font-sans);
+    font-size: 15.5px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+}
+
+main {
+    flex: 1 0 auto;
+}
+
+img, svg, picture, video {
+    display: block;
+    max-width: 100%;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+button, input, select, textarea {
+    font: inherit;
+    color: inherit;
+    border: none;
+    outline: none;
+    background: none;
+}
+
+button {
+    cursor: pointer;
+}
+
+ul, ol {
+    list-style: none;
+}
+
+/* ── 3. GLOBAL TYPOGRAPHY HIERARCHY ── */
+.editorial-display {
+    font-family: var(--font-serif);
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 700;
+    line-height: 1.12;
+    color: var(--sm-ink);
+    letter-spacing: -0.025em;
+}
+
+.editorial-h1, h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    line-height: 1.18;
+    color: var(--sm-ink);
+    letter-spacing: -0.02em;
+}
+
+.editorial-h2, h2 {
+    font-family: var(--font-serif);
+    font-size: clamp(1.6rem, 3vw, 2.25rem);
+    font-weight: 700;
+    line-height: 1.24;
+    color: var(--sm-ink);
+    letter-spacing: -0.015em;
+}
+
+.editorial-h3, h3 {
+    font-family: var(--font-serif);
+    font-size: clamp(1.25rem, 2.2vw, 1.65rem);
+    font-weight: 700;
+    line-height: 1.32;
+    color: var(--sm-ink);
+}
+
+.editorial-h4, h4 {
+    font-family: var(--font-serif);
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.38;
+    color: var(--sm-ink);
+}
+
+.editorial-sub {
+    font-size: 1.05rem;
+    color: var(--sm-muted);
+    line-height: 1.6;
+}
+
+.serif-italic {
+    font-family: var(--font-serif);
+    font-style: italic;
+}
+
+.gold-accent {
+    color: var(--sm-gold);
+}
+
+/* ── 4. CONTAINER & LAYOUT UTILITIES ── */
+.container,
+.sm-container,
+.main-container,
+.account-container {
+    width: 100%;
+    max-width: var(--container-max, 1400px);
+    margin-inline: auto;
+    padding-inline: 36px;
+    box-sizing: border-box;
+}
+
+.container-narrow {
+    width: 100%;
+    max-width: 960px;
+    margin-inline: auto;
+    padding-inline: 36px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 1439px) {
+    .container,
+    .sm-container,
+    .main-container,
+    .account-container,
+    .container-narrow {
+        padding-inline: 28px;
+    }
+}
+
+@media (max-width: 1023px) {
+    .container,
+    .sm-container,
+    .main-container,
+    .account-container,
+    .container-narrow {
+        padding-inline: 20px;
+    }
+}
+
+@media (max-width: 767px) {
+    .container,
+    .sm-container,
+    .main-container,
+    .account-container,
+    .container-narrow {
+        padding-inline: 16px;
+    }
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+}
+
+.section-spacing {
+    padding: 72px 0;
+}
+
+.section-header {
+    margin-bottom: 36px;
+}
+
+.section-header.text-center {
+    text-align: center;
+}
+
+.section-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--sm-gold-pale);
+    color: var(--sm-gold-muted);
+    border: 1px solid var(--sm-gold-border);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: var(--radius-full);
+    margin-bottom: 12px;
+}
+
+/* ── 5. ACCESSIBILITY & FOCUS UTILITIES ── */
+:focus-visible {
+    outline: 2px solid var(--sm-gold);
+    outline-offset: 2px;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

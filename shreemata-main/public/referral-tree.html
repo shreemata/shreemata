@@ -43,10 +43,30 @@ body {
 }
 
 .container {
-    max-width: 100%;
+    width: 100%;
+    max-width: var(--container-max, 1400px);
     margin: 0 auto;
-    padding: 20px;
+    padding: 36px;
+    box-sizing: border-box;
     animation: fadeIn 0.6s ease-out;
+}
+
+@media (max-width: 1439px) {
+    .container {
+        padding: 28px;
+    }
+}
+
+@media (max-width: 1023px) {
+    .container {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 767px) {
+    .container {
+        padding: 16px;
+    }
 }
 
 .tree-card {
@@ -56,6 +76,7 @@ body {
     box-shadow: var(--shadow-lg);
     border: 1px solid rgba(255,255,255,0.5);
     backdrop-filter: blur(10px);
+    box-sizing: border-box;
 }
 
 /* =========================================

@@ -13,19 +13,37 @@
             align-items: center;
             justify-content: center;
             margin: 0;
+            padding: 20px 16px;
+            box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         .success-container {
             background: white;
-            padding: 50px;
+            padding: 50px 36px;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.15);
             text-align: center;
-            max-width: 600px;
-            width: 90%;
+            max-width: min(600px, calc(100vw - 32px));
+            width: 100%;
             position: relative;
             overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        @media (max-width: 480px) {
+            .success-container {
+                padding: 30px 18px;
+                border-radius: 16px;
+            }
+            .success-title {
+                font-size: 24px;
+            }
+            .redirect-button {
+                width: 100%;
+                margin: 8px 0;
+                box-sizing: border-box;
+            }
         }
         
         .success-container::before {

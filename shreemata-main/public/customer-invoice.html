@@ -14,7 +14,7 @@
         body {
             background: #eef1f5;
             font-family: 'Times New Roman', Times, serif;
-            padding: 20px;
+            padding: 20px 16px;
             color: #000;
         }
 
@@ -24,6 +24,20 @@
             background: #fff;
             border: 2px solid #000;
             box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+            .invoice-scroll-container {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .invoice-wrapper {
+                min-width: 620px;
+            }
         }
 
         /* 1. Top Header Box */

@@ -53,7 +53,7 @@ async function loadClassesAndSubjects() {
             console.log('Extracted classes:', classes);
             console.log('Extracted subjects:', subjects);
             
-            // Populate class filter
+            // Populate class filter dropdown
             const classFilter = document.getElementById('classFilter');
             console.log('Class filter element:', classFilter);
             if (classFilter) {
@@ -67,8 +67,56 @@ async function loadClassesAndSubjects() {
                 });
                 console.log(`Added ${classes.length} class options`);
             }
+
+            // Populate dynamic Class Container (Adaptive Class 10 Hub or multi-class chips)
+            const classChipsContainer = document.getElementById('classChipsContainer');
+            if (classChipsContainer) {
+                if (classes.length === 1 && classes[0] === '10') {
+                    classChipsContainer.innerHTML = `
+                        <div class="class-feature-banner">
+                            <div class="class-feature-info">
+                                <span class="class-feature-pill">Curriculum Spotlight</span>
+                                <h3 class="class-feature-title">Everything for Class 10</h3>
+                                <p class="class-feature-desc">
+                                    Complete official syllabus textbooks, practice workbooks, and discounted all-in-one sets covering Mathematics, Science, Social Science, English, Kannada, and Hindi.
+                                </p>
+                                <div class="class-feature-badges">
+                                    <span class="class-subject-tag">📐 Mathematics</span>
+                                    <span class="class-subject-tag">🔬 Science</span>
+                                    <span class="class-subject-tag">🌍 Social Science</span>
+                                    <span class="class-subject-tag">📖 Languages</span>
+                                </div>
+                                <div class="class-feature-actions">
+                                    <button type="button" class="btn-class-primary" onclick="selectClassChip(this, '10')">Explore Class 10 Books →</button>
+                                    <a href="#bundlesSection" class="btn-class-secondary">Buy Complete 10th Set (₹325)</a>
+                                </div>
+                            </div>
+                            <div class="class-feature-visual" aria-hidden="true">
+                                <div class="class-book-thumb">
+                                    <img src="https://res.cloudinary.com/dbtqqalo2/image/upload/v1766247514/kl2gbelkihjecix4uf11.jpg" alt="Mathematics" loading="lazy">
+                                </div>
+                                <div class="class-book-thumb">
+                                    <img src="https://res.cloudinary.com/dbtqqalo2/image/upload/v1766248060/yvfjzpxleo9yb0fbav6z.jpg" alt="Science" loading="lazy">
+                                </div>
+                                <div class="class-book-thumb">
+                                    <img src="https://res.cloudinary.com/dbtqqalo2/image/upload/v1766250002/rwbfwmpvmmsljwwj2cmq.jpg" alt="Kannada" loading="lazy">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    classChipsContainer.innerHTML = `
+                        <div class="class-chips-scroll">
+                            <button type="button" class="class-chip-pill active" data-class="" onclick="selectClassChip(this, '')">All Grades</button>
+                            ${classes.map(className => `
+                                <button type="button" class="class-chip-pill" data-class="${className}" onclick="selectClassChip(this, '${className}')">Class ${className}</button>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+            }
             
-            // Populate subject filter
+            // Populate subject filter dropdown
             const subjectFilter = document.getElementById('subjectFilter');
             console.log('Subject filter element:', subjectFilter);
             if (subjectFilter) {
@@ -81,6 +129,26 @@ async function loadClassesAndSubjects() {
                     subjectFilter.appendChild(option);
                 });
                 console.log(`Added ${subjects.length} subject options`);
+            }
+
+            // Populate dynamic Subject Cards with Real Book Thumbnails from catalog
+            const subjectChipsContainer = document.getElementById('subjectChipsContainer');
+            if (subjectChipsContainer) {
+                subjectChipsContainer.innerHTML = subjects.map(subject => {
+                    const matchingBooks = books.filter(b => b.subject && b.subject.toLowerCase() === subject.toLowerCase());
+                    const repBook = matchingBooks[0] || books[0];
+                    const minPrice = Math.min(...matchingBooks.map(b => parseFloat(b.price) || 99));
+                    return `
+                        <div class="subject-real-card" onclick="selectSubjectChip('${subject}')">
+                            <div class="subject-thumb-box">
+                                <img src="${repBook.cover_image || 'images/press.png'}" alt="${subject}" loading="lazy" />
+                            </div>
+                            <div class="subject-title">${subject}</div>
+                            <div class="subject-meta">${matchingBooks.length} Book${matchingBooks.length > 1 ? 's' : ''} • From ₹${minPrice.toFixed(0)}</div>
+                            <span class="subject-explore-link">Explore Subject →</span>
+                        </div>
+                    `;
+                }).join('');
             }
             
             console.log(`Successfully loaded ${classes.length} classes and ${subjects.length} subjects`);
@@ -154,16 +222,24 @@ async function loadNotifications() {
 
 function displayNotifications(notifications) {
     const section = document.getElementById('notificationsSection');
+    if (!section || !notifications || notifications.length === 0) return;
     
-    section.innerHTML = notifications.map(notif => `
-        <div class="notification-banner ${notif.type}">
-            <div class="notification-header">
-                <div class="notification-title">📢 ${notif.title}</div>
-                <span class="notification-type-badge badge-${notif.type}">${notif.type}</span>
+    const notif = notifications[0];
+    section.innerHTML = `
+        <div class="editorial-offer-banner">
+            <div class="editorial-offer-content">
+                <span class="editorial-offer-pill">Special Promotion</span>
+                <h3 class="editorial-offer-title">${notif.title}</h3>
+                <p class="editorial-offer-desc">${notif.message}</p>
+                <button type="button" class="btn-editorial-offer" onclick="document.getElementById('booksSection').scrollIntoView({behavior: 'smooth'})">Explore Offers →</button>
             </div>
-            <div class="notification-message">${notif.message}</div>
+            <div class="class-feature-visual" aria-hidden="true" style="display: flex; gap: 12px;">
+                <div class="class-book-thumb" style="width: 130px; height: 180px;">
+                    <img src="https://res.cloudinary.com/dbtqqalo2/image/upload/v1766681378/bundles/bundle_1766681375288_gh0s4iuo3.jpg" alt="Special Offer" loading="lazy">
+                </div>
+            </div>
         </div>
-    `).join('');
+    `;
     
     section.style.display = 'block';
 }
@@ -368,6 +444,9 @@ async function loadBooksWithFilters({ page = 1, limit = 12, category, minPrice, 
    AUTH CHECK
 --------------------------------*/
 function checkAuth() {
+    if (typeof window.updateGlobalNavbarAuth === "function") {
+        return window.updateGlobalNavbarAuth();
+    }
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
 
@@ -382,23 +461,21 @@ function checkAuth() {
         const cartLink = document.getElementById("cartLink");
 
         if (authLinks) authLinks.style.display = "none";
-        if (userLinks) userLinks.style.display = "flex";
-        if (userName) userName.textContent = `Hello, ${user.name}`;
-        if (accountLink) accountLink.style.display = "block";
-        if (ordersLink) ordersLink.style.display = "block";
-        if (referralLink) referralLink.style.display = "block";
+        if (userLinks) userLinks.style.display = "inline-flex";
+        if (userName) userName.textContent = user.name || "Account";
+        if (accountLink) accountLink.style.display = "flex";
+        if (ordersLink) ordersLink.style.display = "flex";
+        if (referralLink) referralLink.style.display = "flex";
         
-        // Show cart and update count
         if (cartLink) {
-            cartLink.style.display = "block";
+            cartLink.style.display = "inline-flex";
             updateCartCount();
         }
 
         if (user.role === "admin" && adminLink) {
-            adminLink.style.display = "block";
+            adminLink.style.display = "flex";
         }
     } else {
-        // Hide cart for non-logged in users
         const cartLink = document.getElementById("cartLink");
         if (cartLink) cartLink.style.display = "none";
     }
@@ -715,62 +792,38 @@ function displayBundles(bundles, totalCount, limit) {
     grid.innerHTML = "";
 
     bundles.forEach((bundle) => {
-        const card = document.createElement("div");
-        card.className = "book-card bundle-card";
-        card.style.border = "2px solid #ff4444";
-        card.style.position = "relative";
-
         const discount = bundle.discount || Math.round(((bundle.originalPrice - bundle.bundlePrice) / bundle.originalPrice) * 100);
-
-        // Create prominent points badge if bundle has reward points
+        const savings = bundle.originalPrice - bundle.bundlePrice;
         const pointsBadge = bundle.rewardPoints && bundle.rewardPoints > 0 
-            ? `<div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 6px 8px; border-radius: 6px; margin: 6px 0; text-align: center; box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3); font-weight: 700; font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                   <span style="font-size: 14px;">🎁</span>
-                   <span>Earn ${bundle.rewardPoints} Points</span>
-               </div>`
+            ? `<span style="background: #DCFCE7; color: #166534; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 9999px; margin-left: 8px;">🎁 ${bundle.rewardPoints} Points</span>`
             : '';
 
-        // Create cashback sticker for bundle
-        const getCashbackSticker = (bundle) => {
-            let cashbackAmount = 0;
-            
-            if (bundle.cashbackAmount > 0) {
-                cashbackAmount = bundle.cashbackAmount;
-            } else if (bundle.cashbackPercentage > 0) {
-                cashbackAmount = (bundle.bundlePrice * bundle.cashbackPercentage) / 100;
-            }
-            
-            if (cashbackAmount > 0) {
-                return `<div class="cashback-sticker">
-                           <span class="cashback-icon">💰</span>
-                           <span class="cashback-text">₹${cashbackAmount.toFixed(0)} Cashback</span>
-                       </div>`;
-            }
-            return '';
-        };
-
-        const cashbackSticker = getCashbackSticker(bundle);
-
-        card.innerHTML = `
-            <div style="position: relative;">
-                <div style="position: absolute; top: 6px; right: 6px; background: #ff4444; color: white; padding: 4px 8px; border-radius: 3px; font-weight: bold; font-size: 10px;">
-                    ${discount}% OFF
-                </div>
-                <img src="${bundle.image || 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"250\" height=\"300\"%3E%3Crect fill=\"%23ddd\" width=\"250\" height=\"300\"/%3E%3Ctext fill=\"%23999\" font-family=\"Arial\" font-size=\"20\" x=\"50%25\" y=\"50%25\" text-anchor=\"middle\" dy=\".3em\"%3EBundle%3C/text%3E%3C/svg%3E'}" class="book-cover" style="height: 160px; object-fit: cover;" />
-                ${cashbackSticker}
+        const bundleCard = document.createElement("div");
+        bundleCard.className = "bundle-hero-showcase";
+        bundleCard.innerHTML = `
+            <div class="bundle-3d-visual-wrap">
+                <img src="${bundle.image || 'images/press.png'}" alt="${bundle.name}" />
             </div>
-            <h3 style="font-size: 14px; margin: 8px 0 4px 0;">🎁 ${bundle.name}</h3>
-            <p style="font-size: 11px; color: #666; margin: 2px 0;">${bundle.books.length} Books Included</p>
-            ${pointsBadge}
-            <p style="text-decoration: line-through; color: #999; font-size: 12px; margin: 2px 0;">₹${bundle.originalPrice}</p>
-            <p class="book-price" style="font-size: 16px; color: #ff4444; margin: 4px 0;">₹${bundle.bundlePrice}</p>
-            <div class="book-actions">
-                <button class="btn-secondary" onclick="viewBundle('${bundle._id}')" style="padding: 6px 10px; font-size: 11px;">View Bundle</button>
-                <button class="btn-primary" onclick="handleBundleBuyClick('${bundle._id}')" style="padding: 6px 10px; font-size: 11px;">Buy</button>
-                <button class="btn-secondary" onclick="addBundleToCart('${bundle._id}')" style="padding: 6px 10px; font-size: 11px;">Add to Cart</button>
+            <div class="bundle-details-wrap">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span class="bundle-savings-badge">${discount}% OFF • COMPLETE SET</span>
+                    ${pointsBadge}
+                </div>
+                <h3 class="bundle-name-title">${bundle.name}</h3>
+                <p class="bundle-books-list"><strong>${bundle.books ? bundle.books.length : 6} Books Included:</strong> Complete grade syllabus package with all core textbooks & study guides.</p>
+                <div class="bundle-price-row">
+                    <span class="bundle-price-current">₹${bundle.bundlePrice}</span>
+                    ${bundle.originalPrice ? `<span class="bundle-price-mrp">₹${bundle.originalPrice}</span>` : ''}
+                    ${savings > 0 ? `<span class="bundle-save-amt">Save ₹${savings}</span>` : ''}
+                </div>
+                <div class="bundle-actions-row">
+                    <button class="btn-bundle-buy" onclick="handleBundleBuyClick('${bundle._id}')">Buy Complete Set</button>
+                    <button class="btn-bundle-cart" onclick="addBundleToCart('${bundle._id}')">Add to Cart</button>
+                    <button class="btn-bundle-view" onclick="viewBundle('${bundle._id}')">View Details</button>
+                </div>
             </div>
         `;
-        grid.appendChild(card);
+        grid.appendChild(bundleCard);
     });
 
     // Add "View All Offers" button if there are more bundles than the limit
@@ -1120,9 +1173,19 @@ async function loadBooksWithFilters() {
     const loadingSpinner = document.getElementById("loadingSpinner");
     const booksGrid = document.getElementById("booksGrid");
     
+    // Show skeleton placeholders while loading
+    if (booksGrid) {
+        booksGrid.style.display = "grid";
+        booksGrid.innerHTML = `
+            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
+            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
+            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
+            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
+        `;
+    }
+    
     try {
-        loadingSpinner.style.display = "block";
-        booksGrid.style.display = "none";
+        if (loadingSpinner) loadingSpinner.style.display = "none";
         
         const response = await fetch(`${API_URL}/books`);
         const data = await response.json();
@@ -1133,26 +1196,20 @@ async function loadBooksWithFilters() {
             totalBooks = allBooks.length;
             
             console.log('📚 Books loaded:', totalBooks);
-            console.log('📦 Sample book stock data:', allBooks[0] ? {
-                title: allBooks[0].title,
-                trackStock: allBooks[0].trackStock,
-                stockQuantity: allBooks[0].stockQuantity,
-                stockStatus: allBooks[0].stockStatus
-            } : 'No books');
             
             displayPaginatedBooks();
             updatePaginationUI();
             updateBooksStats();
         } else {
             document.getElementById('emptyState').style.display = 'block';
-            booksGrid.style.display = 'none';
+            if (booksGrid) booksGrid.style.display = 'none';
         }
     } catch (error) {
         console.error("Error loading books:", error);
         document.getElementById('emptyState').style.display = 'block';
-        booksGrid.style.display = 'none';
+        if (booksGrid) booksGrid.style.display = 'none';
     } finally {
-        loadingSpinner.style.display = "none";
+        if (loadingSpinner) loadingSpinner.style.display = "none";
     }
 }
 

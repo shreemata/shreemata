@@ -228,7 +228,13 @@ const userSchema = new mongoose.Schema({
     dailyWithdrawn: { type: Number, default: 0 },
     monthlyWithdrawn: { type: Number, default: 0 },
     lastResetDate: { type: Date, default: Date.now }
-  }
+  },
+
+  // Soft-deleted / hidden transaction IDs for customer view
+  hiddenTransactions: [{ type: String }],
+
+  // Permanently deleted transaction IDs by admin (excluded from history queries)
+  adminDeletedTransactions: [{ type: String }]
 }, { timestamps: true });
 
 // Compound index for efficient tree traversal and position queries

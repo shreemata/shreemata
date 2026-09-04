@@ -252,7 +252,17 @@ router.get("/commission/transactions", authenticateToken, async (req, res) => {
     const Order = require("../models/Order");
     const Book = require("../models/Book");
     const Bundle = require("../models/Bundle");
+    const WalletTransaction = require("../models/WalletTransaction");
+    const User = require("../models/User");
     const userId = req.user.id || req.user.userId;
+
+    // Fetch user for hiddenTransactions, adminDeletedTransactions, and role
+    const userDoc = await User.findById(userId).select("hiddenTransactions adminDeletedTransactions role");
+    const hiddenTransactions = userDoc?.hiddenTransactions || [];
+    const adminDeletedTransactions = userDoc?.adminDeletedTransactions || [];
+    const hiddenSet = new Set(hiddenTransactions.map(String));
+    const adminDeletedSet = new Set(adminDeletedTransactions.map(String));
+    const isAdmin = (req.user && req.user.role === 'admin') || (userDoc && userDoc.role === 'admin');
     
     // Get all commission transactions where user is involved
     const commissionTransactions = await CommissionTransaction.find({
@@ -268,47 +278,68 @@ router.get("/commission/transactions", authenticateToken, async (req, res) => {
     .sort({ createdAt: -1 })
     .limit(100);
 
-    // Get all orders by this user to calculate cashback
+    // Get all orders by this user to calculate cashback (lean projection)
     const userOrders = await Order.find({ 
       user_id: userId, 
       status: 'completed' 
-    }).sort({ createdAt: -1 });
+    }).select('items totalAmount createdAt').sort({ createdAt: -1 }).lean();
+
+    // Collect all unique book and bundle IDs to batch query
+    const bookIds = [];
+    const bundleIds = [];
+    for (const order of userOrders) {
+      if (order.items && order.items.length > 0) {
+        for (const item of order.items) {
+          if (item.type === 'book' && item.id && mongoose.Types.ObjectId.isValid(item.id)) {
+            bookIds.push(item.id);
+          } else if (item.type === 'bundle' && item.id && mongoose.Types.ObjectId.isValid(item.id)) {
+            bundleIds.push(item.id);
+          }
+        }
+      }
+    }
+
+    // Batch query books and bundles in parallel
+    const [books, bundles] = await Promise.all([
+      bookIds.length > 0 ? Book.find({ _id: { $in: bookIds } }).select('cashbackAmount cashbackPercentage').lean() : [],
+      bundleIds.length > 0 ? Bundle.find({ _id: { $in: bundleIds } }).select('cashbackAmount cashbackPercentage').lean() : []
+    ]);
+
+    const bookMap = new Map((books || []).map(b => [b._id.toString(), b]));
+    const bundleMap = new Map((bundles || []).map(b => [b._id.toString(), b]));
 
     const allTransactions = [];
     
-    // Add cashback transactions from user's orders
+    // Add cashback transactions from user's orders (excluding admin-deleted)
     for (const order of userOrders) {
+      const cashbackTxId = order._id.toString() + '_cashback';
+      if (adminDeletedSet.has(cashbackTxId) || adminDeletedSet.has(order._id.toString())) {
+        continue;
+      }
+
       let totalCashback = 0;
       
       if (order.items && order.items.length > 0) {
         for (const item of order.items) {
           let itemCashback = 0;
           
-          if (item.type === 'book' && item.id && mongoose.Types.ObjectId.isValid(item.id)) {
-            try {
-              const book = await Book.findById(item.id);
-              if (book) {
-                if (book.cashbackAmount > 0) {
-                  itemCashback = book.cashbackAmount * item.quantity;
-                } else if (book.cashbackPercentage > 0) {
-                  itemCashback = (item.price * book.cashbackPercentage / 100) * item.quantity;
-                }
+          if (item.type === 'book' && item.id) {
+            const book = bookMap.get(item.id.toString());
+            if (book) {
+              if (book.cashbackAmount > 0) {
+                itemCashback = book.cashbackAmount * (item.quantity || 1);
+              } else if (book.cashbackPercentage > 0) {
+                itemCashback = (item.price * book.cashbackPercentage / 100) * (item.quantity || 1);
               }
-            } catch (err) {
-              console.error('Error fetching book for cashback:', err);
             }
-          } else if (item.type === 'bundle' && item.id && mongoose.Types.ObjectId.isValid(item.id)) {
-            try {
-              const bundle = await Bundle.findById(item.id);
-              if (bundle) {
-                if (bundle.cashbackAmount > 0) {
-                  itemCashback = bundle.cashbackAmount * item.quantity;
-                } else if (bundle.cashbackPercentage > 0) {
-                  itemCashback = (item.price * bundle.cashbackPercentage / 100) * item.quantity;
-                }
+          } else if (item.type === 'bundle' && item.id) {
+            const bundle = bundleMap.get(item.id.toString());
+            if (bundle) {
+              if (bundle.cashbackAmount > 0) {
+                itemCashback = bundle.cashbackAmount * (item.quantity || 1);
+              } else if (bundle.cashbackPercentage > 0) {
+                itemCashback = (item.price * bundle.cashbackPercentage / 100) * (item.quantity || 1);
               }
-            } catch (err) {
-              console.error('Error fetching bundle for cashback:', err);
             }
           }
           
@@ -318,7 +349,9 @@ router.get("/commission/transactions", authenticateToken, async (req, res) => {
       
       if (totalCashback > 0) {
         allTransactions.push({
-          _id: order._id + '_cashback',
+          _id: cashbackTxId,
+          recordId: order._id.toString(),
+          sourceType: 'cashback',
           type: 'cashback',
           amount: totalCashback,
           description: `Cashback from order #${order._id.toString().slice(-8)}`,
@@ -329,59 +362,78 @@ router.get("/commission/transactions", authenticateToken, async (req, res) => {
       }
     }
     
-    // Add referral commission transactions
+    // Add referral commission transactions (excluding admin-deleted)
     for (const tx of commissionTransactions) {
-      // Add direct referral commission (3%)
-      if (tx.directReferrer && tx.directReferrer.toString() === userId && tx.directCommissionAmount > 0) {
-        const isSelf = tx.purchaser && tx.purchaser._id.toString() === userId;
-        allTransactions.push({
-          _id: tx._id + '_direct',
-          type: 'direct_commission',
-          amount: tx.directCommissionAmount,
-          description: isSelf ? `Direct Commission (Cashback) from own purchase` : `Direct commission from ${tx.purchaser?.name || 'User'}`,
-          status: 'completed',
-          createdAt: tx.createdAt,
-          orderId: tx.orderId?._id
-        });
-      }
-      
-      // Add referral commission (2%)
-      if (tx.referralReferrer && tx.referralReferrer.toString() === userId && tx.referralCommissionAmount > 0) {
-        allTransactions.push({
-          _id: tx._id + '_referral',
-          type: 'referral_commission',
-          amount: tx.referralCommissionAmount,
-          description: `Referral commission from ${tx.purchaser?.name || 'User'}`,
-          status: 'completed',
-          createdAt: tx.createdAt,
-          orderId: tx.orderId?._id
-        });
-      }
-      
-      // Add tree commissions
-      tx.treeCommissions.forEach((treeComm, index) => {
-        if (treeComm.recipient.toString() === userId) {
+      // Direct referral commission (3%)
+      const directTxId = tx._id.toString() + '_direct';
+      if (!adminDeletedSet.has(directTxId) && !adminDeletedSet.has(tx._id.toString())) {
+        if (tx.directReferrer && tx.directReferrer.toString() === userId && tx.directCommissionAmount > 0) {
+          const isSelf = tx.purchaser && tx.purchaser._id.toString() === userId;
           allTransactions.push({
-            _id: tx._id + '_tree_' + index,
-            type: 'level_commission',
-            amount: treeComm.amount,
-            description: `Level ${treeComm.level} commission from ${tx.purchaser?.name || 'User'}`,
+            _id: directTxId,
+            recordId: tx._id.toString(),
+            sourceType: 'commission_direct',
+            type: 'direct_commission',
+            amount: tx.directCommissionAmount,
+            description: isSelf ? `Direct Commission (Cashback) from own purchase` : `Direct commission from ${tx.purchaser?.name || 'User'}`,
             status: 'completed',
             createdAt: tx.createdAt,
             orderId: tx.orderId?._id
           });
         }
+      }
+      
+      // Referral commission (2%)
+      const referralTxId = tx._id.toString() + '_referral';
+      if (!adminDeletedSet.has(referralTxId) && !adminDeletedSet.has(tx._id.toString())) {
+        if (tx.referralReferrer && tx.referralReferrer.toString() === userId && tx.referralCommissionAmount > 0) {
+          allTransactions.push({
+            _id: referralTxId,
+            recordId: tx._id.toString(),
+            sourceType: 'commission_referral',
+            type: 'referral_commission',
+            amount: tx.referralCommissionAmount,
+            description: `Referral commission from ${tx.purchaser?.name || 'User'}`,
+            status: 'completed',
+            createdAt: tx.createdAt,
+            orderId: tx.orderId?._id
+          });
+        }
+      }
+      
+      // Tree commissions
+      tx.treeCommissions.forEach((treeComm, index) => {
+        const treeTxId = tx._id.toString() + '_tree_' + index;
+        if (!adminDeletedSet.has(treeTxId) && !adminDeletedSet.has(tx._id.toString())) {
+          if (treeComm.recipient.toString() === userId) {
+            allTransactions.push({
+              _id: treeTxId,
+              recordId: tx._id.toString(),
+              sourceType: 'commission_tree',
+              type: 'level_commission',
+              amount: treeComm.amount,
+              description: `Level ${treeComm.level} commission from ${tx.purchaser?.name || 'User'}`,
+              status: 'completed',
+              createdAt: tx.createdAt,
+              orderId: tx.orderId?._id
+            });
+          }
+        }
       });
     }
 
-    // Add debit and refund ledger records from WalletTransaction
-    const WalletTransaction = require("../models/WalletTransaction");
+    // Add debit and refund ledger records from WalletTransaction (excluding admin-deleted)
     const walletRecords = await WalletTransaction.find({ 
       userId, 
       $or: [{ type: 'debit' }, { category: 'refund' }]
     }).sort({ createdAt: -1 });
 
     for (const wtx of walletRecords) {
+      const wtxIdStr = wtx._id.toString();
+      if (adminDeletedSet.has(wtxIdStr)) {
+        continue;
+      }
+
       let txType = 'withdrawal';
       if (wtx.category === 'vip_master_card_withdrawal') {
         txType = 'vip_master_card_withdrawal';
@@ -390,7 +442,9 @@ router.get("/commission/transactions", authenticateToken, async (req, res) => {
       }
 
       allTransactions.push({
-        _id: wtx._id.toString(),
+        _id: wtxIdStr,
+        recordId: wtxIdStr,
+        sourceType: 'wallet_transaction',
         type: txType,
         amount: wtx.amount,
         description: wtx.description || (txType === 'refund' ? 'Withdrawal Refund' : 'Withdrawal'),
@@ -402,13 +456,169 @@ router.get("/commission/transactions", authenticateToken, async (req, res) => {
     
     // Sort all transactions by date (newest first)
     allTransactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
+
+    const mappedTransactions = allTransactions.map(tx => ({
+      ...tx,
+      isHidden: hiddenSet.has(String(tx._id))
+    }));
+
     res.json({ 
-      transactions: allTransactions
+      transactions: mappedTransactions,
+      hiddenTransactions: Array.from(hiddenSet),
+      isAdmin: Boolean(isAdmin)
     });
   } catch (err) {
     console.error("Error fetching commission transactions:", err);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+/* -------------------------------------------
+   POST /api/commission/transactions/hide
+   Soft-hide a transaction from customer history
+--------------------------------------------*/
+router.post("/commission/transactions/hide", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id || req.user.userId;
+    const { transactionId } = req.body;
+    if (!transactionId) {
+      return res.status(400).json({ error: "Transaction ID is required" });
+    }
+    const User = require("../models/User");
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { hiddenTransactions: String(transactionId) }
+    });
+    res.json({ 
+      success: true, 
+      message: "Transaction hidden from history", 
+      transactionId: String(transactionId) 
+    });
+  } catch (err) {
+    console.error("Error hiding transaction:", err);
+    res.status(500).json({ error: "Failed to hide transaction" });
+  }
+});
+
+/* -------------------------------------------
+   POST /api/commission/transactions/restore
+   Restore a soft-hidden transaction to customer history
+--------------------------------------------*/
+router.post("/commission/transactions/restore", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id || req.user.userId;
+    const { transactionId } = req.body;
+    if (!transactionId) {
+      return res.status(400).json({ error: "Transaction ID is required" });
+    }
+    const User = require("../models/User");
+    await User.findByIdAndUpdate(userId, {
+      $pull: { hiddenTransactions: String(transactionId) }
+    });
+    res.json({ 
+      success: true, 
+      message: "Transaction restored to history", 
+      transactionId: String(transactionId) 
+    });
+  } catch (err) {
+    console.error("Error restoring transaction:", err);
+    res.status(500).json({ error: "Failed to restore transaction" });
+  }
+});
+
+/* -------------------------------------------
+   DELETE /api/commission/transactions/:id
+   ADMIN ONLY: Permanent delete financial transaction
+--------------------------------------------*/
+router.delete("/commission/transactions/:id", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id || req.user.userId;
+    const User = require("../models/User");
+    const userDoc = await User.findById(userId).select("role");
+    const isAdmin = (req.user && req.user.role === 'admin') || (userDoc && userDoc.role === 'admin');
+    
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Access denied: Admin authorization required" });
+    }
+
+    const txId = (req.params.id || '').trim();
+    if (!txId) {
+      return res.status(400).json({ error: "Invalid transaction identifier: ID is missing" });
+    }
+
+    console.log("🗑️ Admin permanent delete requested for ID:", txId, "by admin:", userId);
+
+    // Multi-source identifier resolution
+    let sourceType = req.body?.sourceType;
+    let recordId = req.body?.recordId;
+
+    if (!sourceType || !recordId) {
+      if (txId.endsWith('_cashback')) {
+        sourceType = 'cashback';
+        recordId = txId.replace('_cashback', '');
+      } else if (txId.endsWith('_direct')) {
+        sourceType = 'commission_direct';
+        recordId = txId.replace('_direct', '');
+      } else if (txId.endsWith('_referral')) {
+        sourceType = 'commission_referral';
+        recordId = txId.replace('_referral', '');
+      } else if (txId.includes('_tree_')) {
+        sourceType = 'commission_tree';
+        recordId = txId.split('_tree_')[0];
+      } else if (mongoose.Types.ObjectId.isValid(txId)) {
+        sourceType = 'wallet_transaction';
+        recordId = txId;
+      } else {
+        sourceType = 'custom';
+        recordId = txId;
+      }
+    }
+
+    // Process source-specific deletion
+    if (sourceType === 'wallet_transaction' && mongoose.Types.ObjectId.isValid(recordId)) {
+      const WalletTransaction = require("../models/WalletTransaction");
+      await WalletTransaction.findByIdAndDelete(recordId);
+      
+      // If matching withdrawal entry in user's withdrawals array, clean it up
+      await User.findByIdAndUpdate(userId, {
+        $pull: { withdrawals: { _id: recordId } }
+      });
+    } else if (sourceType === 'cashback') {
+      const Order = require("../models/Order");
+      if (mongoose.Types.ObjectId.isValid(recordId)) {
+        const orderExists = await Order.findById(recordId).select("_id user_id");
+        if (orderExists && orderExists.user_id) {
+          await User.findByIdAndUpdate(orderExists.user_id, {
+            $addToSet: { adminDeletedTransactions: String(txId) }
+          });
+        }
+      }
+    } else if (sourceType.startsWith('commission_')) {
+      const CommissionTransaction = require("../models/CommissionTransaction");
+      if (mongoose.Types.ObjectId.isValid(recordId)) {
+        await CommissionTransaction.findById(recordId).select("_id");
+      }
+    }
+
+    // Persist exclusion on user document so transaction is never returned in history
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { adminDeletedTransactions: String(txId) },
+      $pull: { hiddenTransactions: String(txId) }
+    });
+
+    // Clean up hidden arrays system-wide
+    await User.updateMany({}, { $pull: { hiddenTransactions: String(txId) } });
+
+    console.log("✅ Admin permanent delete completed successfully for:", { txId, sourceType, recordId });
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Transaction permanently deleted by admin", 
+      transactionId: txId,
+      sourceType: sourceType 
+    });
+  } catch (err) {
+    console.error("❌ Error permanently deleting transaction:", err);
+    return res.status(500).json({ error: err.message || "Failed to delete transaction" });
   }
 });
 

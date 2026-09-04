@@ -279,11 +279,31 @@
 
         /* ── CONTAINER ── */
         .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 28px;
+            width: 100%;
+            max-width: var(--container-max, 1400px);
+            margin-inline: auto;
+            padding-inline: 36px;
             position: relative;
             z-index: 1;
+            box-sizing: border-box;
+        }
+
+        @media (max-width: 1439px) {
+            .container {
+                padding-inline: 28px;
+            }
+        }
+
+        @media (max-width: 1023px) {
+            .container {
+                padding-inline: 20px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .container {
+                padding-inline: 16px;
+            }
         }
 
         /* ── BUNDLES CONTAINER ── */
@@ -674,14 +694,11 @@
                 font-size: 15px !important;
             }
             
-            .container {
-                padding: 0 14px;
-            }
-            
             .bundles-container {
-                padding: 30px 20px;
+                padding: 24px 16px;
                 margin: 20px auto;
                 border-radius: 16px;
+                box-sizing: border-box;
             }
             
             .bundles-grid {

@@ -4,1665 +4,1136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0f0e2a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Account - Shree Mata</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap"
-        rel="stylesheet">
-
-    <style>
-        /* =========================================
-           ROYAL NAVY & GOLD THEME
-           ========================================= */
-        body {
-            background: #0f0e2a;
-            background-image: radial-gradient(circle at 10% 20%, rgba(201, 162, 39, 0.05) 0%, transparent 25%),
-                radial-gradient(circle at 90% 80%, rgba(79, 70, 229, 0.08) 0%, transparent 25%);
-            background-attachment: fixed;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
-            color: #e2e8f0;
-            min-height: 100vh;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 20% 80%, rgba(201, 162, 39, 0.03) 0%, transparent 40%),
-                radial-gradient(circle at 80% 20%, rgba(79, 70, 229, 0.05) 0%, transparent 40%);
-            animation: auroraShift 30s ease-in-out infinite alternate;
-            z-index: -1;
-            pointer-events: none;
-        }
-
-        @keyframes auroraShift {
-            0% {
-                transform: translate(0, 0) rotate(0deg);
-            }
-
-            100% {
-                transform: translate(-2%, -2%) rotate(2deg);
-            }
-        }
-
-        /* Navbar */
-        .navbar {
-            background: rgba(15, 14, 42, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid rgba(201, 162, 39, 0.15);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            padding: 15px 0;
-        }
-
-        .navbar-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo a {
-            text-decoration: none;
-            font-family: 'Playfair Display', serif;
-            font-size: 22px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #c9a227, #f0c96b);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.3s ease;
-        }
-
-        .logo a:hover {
-            transform: translateY(-2px);
-            filter: drop-shadow(0 4px 12px rgba(201, 162, 39, 0.4));
-        }
-
-        .logo img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 1px solid rgba(201, 162, 39, 0.3);
-            box-shadow: 0 0 15px rgba(201, 162, 39, 0.2);
-            transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-
-        .logo a:hover img {
-            transform: rotate(360deg) scale(1.1);
-        }
-
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: 500;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-links a:hover {
-            color: #f0c96b;
-            transform: translateY(-2px);
-        }
-
-        /* Container & Layout */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        .account-container {
-            display: grid;
-            grid-template-columns: 260px 1fr;
-            grid-template-rows: auto 1fr;
-            gap: 30px;
-            margin-top: 40px;
-            margin-bottom: 60px;
-        }
-
-        .account-container>h1 {
-            grid-column: 1 / -1;
-            font-family: 'Playfair Display', serif;
-            font-size: 36px;
-            margin: 0 0 10px 0;
-            background: linear-gradient(135deg, #c9a227, #f0c96b);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* Sidebar Menu */
-        .account-menu {
-            grid-row: 2;
-            grid-column: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            position: sticky;
-            top: 100px;
-            height: fit-content;
-            background: rgba(15, 14, 42, 0.65);
-            backdrop-filter: blur(20px);
-            padding: 20px;
-            border-radius: 20px;
-            border: 1px solid rgba(201, 162, 39, 0.15);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .account-menu button {
-            background: transparent;
-            border: 1px solid transparent;
-            color: rgba(255, 255, 255, 0.7);
-            padding: 12px 16px;
-            border-radius: 12px;
-            text-align: left;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .account-menu button:hover {
-            background: rgba(201, 162, 39, 0.05);
-            color: #f0c96b;
-            border-color: rgba(201, 162, 39, 0.2);
-            transform: translateX(5px);
-        }
-
-        .account-menu button.active {
-            background: linear-gradient(135deg, rgba(201, 162, 39, 0.15), rgba(240, 201, 107, 0.05));
-            color: #f0c96b;
-            border-color: rgba(201, 162, 39, 0.4);
-            box-shadow: 0 4px 15px rgba(201, 162, 39, 0.1);
-        }
-
-        /* Main Content Sections */
-        .account-section {
-            grid-row: 2;
-            grid-column: 2;
-            background: rgba(15, 14, 42, 0.65);
-            backdrop-filter: blur(20px);
-            padding: 30px;
-            border-radius: 24px;
-            border: 1px solid rgba(201, 162, 39, 0.15);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-            animation: fadeInUp 0.5s ease both;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .account-section h2 {
-            font-family: 'Playfair Display', serif;
-            color: #f0c96b;
-            font-size: 26px;
-            margin-top: 0;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        /* Profile & Address Display */
-        #profileSection p,
-        #addressDisplay p {
-            font-size: 15px;
-            margin: 12px 0;
-            padding: 12px 16px;
-            background: rgba(15, 14, 42, 0.4);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.3s ease;
-        }
-
-        #profileSection p:hover,
-        #addressDisplay p:hover {
-            border-color: rgba(201, 162, 39, 0.2);
-        }
-
-        #profileSection strong,
-        #addressDisplay strong {
-            color: #f0c96b;
-            margin-right: 10px;
-            font-weight: 700;
-        }
-
-        /* Forms & Inputs */
-        input[type="text"],
-        input[type="email"],
-        input[type="tel"],
-        input[type="number"],
-        input[type="date"],
-        textarea,
-        select {
-            width: 100%;
-            padding: 12px 15px;
-            background: rgba(15, 14, 42, 0.6);
-            border: 1.5px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            color: #fff;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
-
-        input:focus,
-        textarea:focus,
-        select:focus {
-            outline: none;
-            border-color: #c9a227;
-            box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.15);
-            background: rgba(15, 14, 42, 0.8);
-        }
-
-        input::placeholder {
-            color: rgba(255, 255, 255, 0.3);
-        }
-
-        label {
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: 600;
-            font-size: 13px;
-            margin-bottom: 6px;
-            display: block;
-        }
-
-        small {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 12px;
-            margin-top: 5px;
-            display: block;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        .form-group.full {
-            grid-column: 1 / -1;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        /* Buttons */
-        .btn-primary,
-        .action-btn {
-            background: linear-gradient(135deg, #c9a227, #f0c96b);
-            color: #0f0e2a;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 10px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(201, 162, 39, 0.3);
-            position: relative;
-            overflow: hidden;
-            font-size: 14px;
-        }
-
-        .btn-primary::after,
-        .action-btn::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100%);
-            transform: rotate(30deg) translateX(-100%);
-            transition: transform 0.6s ease;
-        }
-
-        .btn-primary:hover::after,
-        .action-btn:hover::after {
-            transform: rotate(30deg) translateX(100%);
-        }
-
-        .btn-primary:hover,
-        .action-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(201, 162, 39, 0.5);
-        }
-
-        .btn-secondary,
-        .cancel-btn {
-            background: rgba(15, 14, 42, 0.6);
-            color: #f0c96b;
-            border: 1.5px solid rgba(201, 162, 39, 0.4);
-            padding: 12px 24px;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 14px;
-        }
-
-        .btn-secondary:hover,
-        .cancel-btn:hover {
-            background: rgba(201, 162, 39, 0.1);
-            border-color: #f0c96b;
-            transform: translateY(-2px);
-        }
-
-        .button-group {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        /* Store Info */
-        .store-info-card {
-            background: rgba(34, 197, 94, 0.05);
-            border: 1px solid rgba(34, 197, 94, 0.2);
-            border-left: 4px solid #22c55e;
-            padding: 25px;
-            border-radius: 16px;
-            margin-bottom: 20px;
-        }
-
-        .store-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .store-icon {
-            font-size: 28px;
-        }
-
-        .store-info-card h3 {
-            margin: 0;
-            color: #86efac;
-            font-family: 'Playfair Display', serif;
-            font-size: 22px;
-        }
-
-        .store-details {
-            display: grid;
-            gap: 12px;
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .store-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .store-label {
-            font-weight: 600;
-            min-width: 90px;
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .store-row a {
-            color: #86efac;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .store-row a:hover {
-            text-shadow: 0 0 10px rgba(134, 239, 172, 0.5);
-        }
-
-        .pickup-instructions {
-            margin-top: 20px;
-            padding: 15px;
-            background: rgba(34, 197, 94, 0.08);
-            border-radius: 10px;
-            color: rgba(255, 255, 255, 0.8);
-            line-height: 1.5;
-        }
-
-        .pickup-title {
-            font-weight: 700;
-            color: #86efac;
-            margin-bottom: 8px;
-        }
-
-        .map-link-container {
-            margin-top: 20px;
-        }
-
-        .pickup-benefits {
-            background: rgba(245, 158, 11, 0.05);
-            border: 1px solid rgba(245, 158, 11, 0.2);
-            border-left: 4px solid #f59e0b;
-            padding: 20px;
-            border-radius: 12px;
-        }
-
-        .pickup-benefits h4 {
-            margin: 0 0 12px 0;
-            color: #fcd34d;
-            font-size: 16px;
-        }
-
-        .pickup-benefits ul {
-            margin: 0;
-            padding-left: 20px;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 14px;
-            line-height: 1.8;
-        }
-
-        /* Wallet & Points Cards */
-        .wallet-summary,
-        .points-summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .wallet-card,
-        .points-card {
-            background: rgba(15, 14, 42, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 25px;
-            border-radius: 16px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .wallet-card:hover,
-        .points-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(201, 162, 39, 0.3);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        .wallet-card h3,
-        .points-card h3 {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.6);
-            margin-top: 0;
-            font-weight: 600;
-        }
-
-        .wallet-value,
-        .points-value {
-            font-size: 32px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #c9a227, #f0c96b);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 10px 0;
-        }
-
-        .wallet-card small {
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 12px;
-        }
-
-        .withdrawal-section,
-        .redeem-section,
-        .wallet-history,
-        .points-history {
-            background: rgba(15, 14, 42, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 25px;
-            border-radius: 16px;
-            margin-bottom: 25px;
-        }
-
-        .withdrawal-section h3,
-        .redeem-section h3,
-        .wallet-history h3,
-        .points-history h3 {
-            color: #f0c96b;
-            font-family: 'Playfair Display', serif;
-            margin-top: 0;
-            margin-bottom: 15px;
-        }
-
-        .withdrawal-form {
-            display: flex;
-            gap: 12px;
-            margin-top: 15px;
-        }
-
-        .withdrawal-form input {
-            flex: 1;
-        }
-
-        /* Cash Conversion */
-        .cash-conversion-section {
-            margin-top: 30px;
-            padding: 25px;
-            background: rgba(15, 14, 42, 0.5);
-            border: 1px solid rgba(201, 162, 39, 0.15);
-            border-radius: 16px;
-        }
-
-        .cash-conversion-section h3 {
-            margin-top: 0;
-            color: #f0c96b;
-            font-family: 'Playfair Display', serif;
-        }
-
-        .conversion-rate-box {
-            background: rgba(59, 130, 246, 0.08);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .conversion-rate-box h4 {
-            margin: 0 0 10px 0;
-            color: #93c5fd;
-            font-size: 16px;
-        }
-
-        .rate-value {
-            font-size: 26px;
-            font-weight: 800;
-            color: #93c5fd;
-            margin-bottom: 5px;
-        }
-
-        .rate-sub {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .available-points-box {
-            background: rgba(245, 158, 11, 0.08);
-            border: 1px solid rgba(245, 158, 11, 0.2);
-            padding: 15px 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-
-        .avail-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .avail-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .avail-label {
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .avail-value {
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        .avail-value.points {
-            color: #fcd34d;
-        }
-
-        .avail-value.cash {
-            color: #86efac;
-        }
-
-        .convert-input-row {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .convert-input-row input {
-            flex: 1;
-        }
-
-        .conversion-preview {
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid rgba(34, 197, 94, 0.2);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .preview-text {
-            font-size: 20px;
-            font-weight: 700;
-            color: #86efac;
-        }
-
-        .convert-note {
-            color: rgba(255, 255, 255, 0.5);
-            display: block;
-            text-align: center;
-            font-size: 13px;
-        }
-
-        /* Modal */
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 14, 42, 0.85);
-            backdrop-filter: blur(8px);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes scaleIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9);
-            }
-
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        .modal-content {
-            background: rgba(26, 24, 96, 0.95);
-            border: 1px solid rgba(201, 162, 39, 0.3);
-            border-radius: 24px;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
-            overflow: hidden;
-            max-width: 500px;
-            width: 90%;
-            animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, #c9a227, #f0c96b);
-            color: #0f0e2a;
-            padding: 20px 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h3 {
-            margin: 0;
-            font-family: 'Playfair Display', serif;
-            font-size: 20px;
-        }
-
-        .close {
-            background: rgba(15, 14, 42, 0.2);
-            border: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 20px;
-            color: #0f0e2a;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-
-        .close:hover {
-            background: rgba(15, 14, 42, 0.4);
-            transform: rotate(90deg);
-        }
-
-        .modal-body {
-            padding: 25px;
-            color: #e2e8f0;
-        }
-
-        .info-box.blue {
-            background: rgba(59, 130, 246, 0.08);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        .info-box.blue h4 {
-            margin: 0 0 10px 0;
-            color: #93c5fd;
-            font-size: 15px;
-        }
-
-        .info-box.blue ul {
-            margin: 0;
-            padding-left: 20px;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 13px;
-            line-height: 1.8;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 25px;
-        }
-
-        .modal-actions button {
-            flex: 1;
-        }
-
-        /* =========================================
-           ORDER HISTORY SECTION STYLES
-           ========================================= */
-        .order-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
-        }
-
-        .order-tab {
-            background: rgba(15, 14, 42, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.7);
-            padding: 10px 20px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .order-tab:hover {
-            border-color: rgba(201, 162, 39, 0.3);
-            color: #f0c96b;
-        }
-
-        .order-tab.active {
-            background: linear-gradient(135deg, #c9a227, #f0c96b);
-            color: #0f0e2a;
-            border-color: transparent;
-            box-shadow: 0 4px 15px rgba(201, 162, 39, 0.3);
-        }
-
-        .acc-order-card {
-            background: rgba(15, 14, 42, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            margin-bottom: 20px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            animation: fadeInUp 0.5s ease both;
-        }
-
-        .acc-order-card:hover {
-            border-color: rgba(201, 162, 39, 0.2);
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        .acc-order-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            background: rgba(201, 162, 39, 0.05);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .acc-order-id {
-            font-size: 14px;
-            color: #f0c96b;
-            font-weight: 700;
-            font-family: monospace;
-        }
-
-        .acc-order-date {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-top: 2px;
-        }
-
-        .acc-order-status {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border: 1px solid;
-        }
-
-        .acc-status-delivered,
-        .acc-status-completed {
-            background: rgba(34, 197, 94, 0.15);
-            color: #86efac;
-            border-color: rgba(34, 197, 94, 0.3);
-        }
-
-        .acc-status-pending,
-        .acc-status-failed {
-            background: rgba(245, 158, 11, 0.15);
-            color: #fcd34d;
-            border-color: rgba(245, 158, 11, 0.3);
-        }
-
-        .acc-status-processing {
-            background: rgba(59, 130, 246, 0.15);
-            color: #93c5fd;
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .acc-status-shipped {
-            background: rgba(168, 85, 247, 0.15);
-            color: #d8b4fe;
-            border-color: rgba(168, 85, 247, 0.3);
-        }
-
-        .acc-order-body {
-            padding: 20px;
-        }
-
-        .acc-order-items {
-            margin-bottom: 20px;
-        }
-
-        .acc-order-item {
-            display: flex;
-            gap: 15px;
-            padding: 12px;
-            background: rgba(15, 14, 42, 0.4);
-            border-radius: 10px;
-            margin-bottom: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            transition: all 0.3s ease;
-        }
-
-        .acc-order-item:hover {
-            border-color: rgba(201, 162, 39, 0.15);
-        }
-
-        .acc-order-item img {
-            width: 60px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 6px;
-            border: 1px solid rgba(201, 162, 39, 0.2);
-        }
-
-        .acc-order-item-info {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .acc-order-item-title {
-            font-weight: 600;
-            color: #fff;
-            font-size: 15px;
-            margin-bottom: 4px;
-        }
-
-        .acc-order-item-meta {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .acc-order-item-price {
-            color: #f0c96b;
-            font-weight: 700;
-            font-size: 16px;
-            margin-top: 5px;
-        }
-
-        .acc-order-section {
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            border-left: 3px solid;
-        }
-
-        .acc-order-section h4 {
-            margin: 0 0 8px 0;
-            font-size: 14px;
-            font-weight: 700;
-        }
-
-        .acc-order-section p {
-            margin: 4px 0;
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .acc-order-section a {
-            color: inherit;
-            text-decoration: none;
-            font-weight: 600;
-            border-bottom: 1px dashed currentColor;
-            transition: all 0.3s;
-        }
-
-        .acc-order-section a:hover {
-            opacity: 0.8;
-        }
-
-        .acc-section-address {
-            background: rgba(59, 130, 246, 0.05);
-            border-color: #3b82f6;
-        }
-
-        .acc-section-address h4 {
-            color: #93c5fd;
-        }
-
-        .acc-section-tracking {
-            background: rgba(245, 158, 11, 0.05);
-            border-color: #f59e0b;
-        }
-
-        .acc-section-tracking h4 {
-            color: #fcd34d;
-        }
-
-        .acc-section-offer {
-            background: rgba(34, 197, 94, 0.05);
-            border-color: #22c55e;
-        }
-
-        .acc-section-offer h4 {
-            color: #86efac;
-        }
-
-        .acc-order-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            background: rgba(201, 162, 39, 0.03);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .acc-order-total {
-            font-size: 22px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #c9a227, #f0c96b);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .acc-order-payment {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
-            font-family: monospace;
-        }
-
-        .acc-btn-invoice {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: linear-gradient(135deg, #c9a227, #f0c96b);
-            color: #0f0e2a !important;
-            font-size: 13px;
-            font-weight: 700;
-            padding: 8px 16px;
-            border-radius: 8px;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(201, 162, 39, 0.25);
-        }
-
-        .acc-btn-invoice:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(201, 162, 39, 0.45);
-        }
-
-        .acc-empty-state {
-            text-align: center;
-            padding: 50px 20px;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .acc-empty-state svg {
-            margin-bottom: 15px;
-            opacity: 0.4;
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .account-container {
-                grid-template-columns: 1fr;
-            }
-
-            .account-menu {
-                grid-row: 2;
-                grid-column: 1;
-                position: relative;
-                top: 0;
-                flex-direction: row;
-                overflow-x: auto;
-                padding: 15px;
-                gap: 10px;
-            }
-
-            .account-menu button {
-                white-space: nowrap;
-                font-size: 13px;
-                padding: 10px 14px;
-            }
-
-            .account-menu button:hover {
-                transform: none;
-            }
-
-            .account-section {
-                grid-row: 3;
-                grid-column: 1;
-                padding: 20px;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .withdrawal-form,
-            .convert-input-row,
-            .modal-actions {
-                flex-direction: column;
-            }
-
-            .navbar-content {
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .nav-links {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 15px;
-            }
-
-            .acc-order-item {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-            }
-
-            .acc-order-footer {
-                flex-direction: column;
-                text-align: center;
-            }
-        }
-    </style>
+    <meta name="theme-color" content="#F7F3EA">
+    <title>My Account — Shree Mata</title>
+    <meta name="description" content="Manage your profile, delivery addresses, order history, wallet balance and rewards on Shree Mata.">
+    <link rel="icon" href="/images/press.png" type="image/png">
+
+    <!-- Premium Google Fonts: Playfair Display + Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
+
+    <!-- Design System & Customer Shell Stylesheets -->
+    <link rel="stylesheet" href="/css/design-system.css">
+    <link rel="stylesheet" href="/css/customer-layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/account.css">
 </head>
 
 <body>
 
-    <header>
-        <div class="navbar">
-            <div class="navbar-content">
-                <div class="logo">
-                    <a href="/">
-                        <img src="/images/press.png" alt="Shree Mata Logo">
-                        <span>Shree Mata</span>
+    <!-- 1. ANNOUNCEMENT BAR -->
+    <div class="top-bar" role="region" aria-label="Notice">
+        <div class="top-bar-inner">
+            <div class="top-bar-left">
+                <span class="badge-gold-pill">Store Notice</span>
+                <span>Store pickup & doorstep courier delivery available across Karnataka</span>
+            </div>
+            <div class="top-bar-right">
+                <a href="/orders.html" class="top-bar-link">📦 Track Your Order</a>
+                <a href="/#trustSection" class="top-bar-link">🛡️ Genuine Curriculum Books</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. GLOBAL MAIN HEADER -->
+    <header class="main-header" role="banner">
+        <div class="container">
+            <div class="header-inner">
+                <!-- Brand Logo & Identity -->
+                <a href="/" class="brand-logo" aria-label="Shree Mata Home">
+                    <img src="/images/press.png" alt="Shree Mata Logo" width="44" height="44">
+                    <div class="brand-text">
+                        <span class="brand-title">Shree Mata</span>
+                        <span class="brand-sub">Disseminating Knowledge</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Primary Navigation Links -->
+                <nav class="header-nav-links" aria-label="Primary Navigation">
+                    <a href="/#booksSection" class="nav-item-link">Books</a>
+                    <a href="/#bundlesSection" class="nav-item-link">
+                        <span>Book Sets</span>
+                        <span class="nav-badge-accent">Combos</span>
                     </a>
+                    <a href="/#classSection" class="nav-item-link">Class 10</a>
+                    <a href="/#subjectSection" class="nav-item-link">Categories</a>
+                    <a href="/#notificationsSection" class="nav-item-link">Offers</a>
+                </nav>
+
+                <!-- Wide Search Field -->
+                <div class="header-search">
+                    <div class="search-box" role="search">
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                        <input 
+                            type="search" 
+                            id="searchInput" 
+                            class="search-input" 
+                            placeholder="Search books, subjects, class..." 
+                            aria-label="Search catalog"
+                            autocomplete="off"
+                        >
+                        <button type="button" id="searchBtn" class="search-btn" aria-label="Search">Search</button>
+                    </div>
                 </div>
-                <div class="nav-links">
-                    <a href="/">Home</a>
-                    <a href="cart.html">Cart</a>
-                    <a href="#" id="logoutBtn">Logout</a>
+
+                <!-- User & Cart Actions -->
+                <div class="header-actions">
+                    <!-- Guest Auth Links -->
+                    <div id="authLinks" class="auth-group">
+                        <a href="/login.html" class="btn-login">Log In</a>
+                        <a href="/signup.html" class="btn-signup">Sign Up</a>
+                    </div>
+
+                    <!-- Logged-in User Navigation Dropdown -->
+                    <div id="userLinks" class="user-nav-wrap" style="display: none;">
+                        <button type="button" class="user-name-badge" id="userMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-label="User Account Menu">
+                            <span class="user-avatar-icon" aria-hidden="true">👤</span>
+                            <span class="user-name-block">
+                                <span class="user-greeting">Hello,</span>
+                                <span id="userName" class="user-name-text">Account</span>
+                            </span>
+                            <span class="dropdown-chevron" aria-hidden="true">▾</span>
+                        </button>
+                        <div class="user-dropdown-menu" id="userDropdownMenu" role="menu" aria-labelledby="userMenuBtn">
+                            <div class="dropdown-header">
+                                <span class="dropdown-greeting-small">Signed in as</span>
+                                <span class="dropdown-user-name" id="dropdownUserName">User</span>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="/account.html" class="dropdown-item-link" id="accountLink" role="menuitem">
+                                <span class="dropdown-item-icon">👤</span> <span>My Account</span>
+                            </a>
+                            <a href="/orders.html" class="dropdown-item-link" id="ordersLink" role="menuitem">
+                                <span class="dropdown-item-icon">📦</span> <span>My Orders</span>
+                            </a>
+                            <a href="/referral.html" class="dropdown-item-link" id="referralLink" role="menuitem">
+                                <span class="dropdown-item-icon">💰</span> <span>Referral & Rewards</span>
+                            </a>
+                            <a href="/admin.html" class="dropdown-item-link" id="adminLink" role="menuitem" style="display: none;">
+                                <span class="dropdown-item-icon">⚙️</span> <span>Admin Dashboard</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button type="button" id="logoutBtn" class="btn-logout-item" role="menuitem">
+                                <span class="dropdown-item-icon">🚪</span> <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Orders Link (Quick Access) -->
+                    <a href="/orders.html" class="nav-item-link" style="display: inline-flex; align-items: center; gap: 4px;">Orders</a>
+
+                    <!-- Shopping Cart Button with Dynamic Badge -->
+                    <a href="/cart.html" id="cartLink" class="btn-cart-header" title="Shopping Cart">
+                        <span aria-hidden="true">🛒</span>
+                        <span>Cart</span>
+                        <span id="cartCount" class="cart-count-badge">0</span>
+                    </a>
+
+                    <!-- Mobile Menu Hamburger Button -->
+                    <button type="button" id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="Open Navigation Menu">☰</button>
                 </div>
             </div>
         </div>
     </header>
 
-    <main>
-        <div class="container account-container">
-
-            <h1>My Account</h1>
-
-            <div class="account-menu">
-                <button onclick="showSection('profile')">👤 Profile</button>
-                <button onclick="showSection('edit')">✏️ Edit Profile</button>
-                <button onclick="showSection('address')">🏠 Delivery Address</button>
-                <button onclick="showSection('store')">🏪 Store Details</button>
-                <button onclick="showSection('orders')">📦 Order History</button>
-                <button onclick="showSection('wallet')">💰 Wallet & Cashback</button>
-                <button onclick="showSection('points')">🎁 Points & Rewards</button>
-                <button onclick="logout()">🚪 Logout</button>
+    <!-- 3. MAIN ACCOUNT CONTENT -->
+    <main class="account-page-wrapper">
+        <div class="container">
+            
+            <!-- Page Hero -->
+            <div class="account-page-header">
+                <div class="account-breadcrumb">
+                    <a href="/">Home</a>
+                    <span>/</span>
+                    <span>My Account</span>
+                </div>
+                <h1 class="account-page-title">My Account</h1>
+                <p class="account-page-subtitle">Manage your profile, delivery details, orders, wallet and rewards.</p>
             </div>
 
-            <div id="profileSection" class="account-section">
-                <h2>👤 Profile</h2>
-                <p><strong>Name:</strong> <span id="accName"></span></p>
-                <p><strong>Email:</strong> <span id="accEmail"></span></p>
+            <!-- Two-Column Layout Grid -->
+            <div class="account-layout-grid">
 
-                <!-- Digital VIP MasterCard Container -->
-                <div id="masterCardContainer" style="display: none; margin-top: 30px;">
-                    <h3
-                        style="color: #f0c96b; font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
-                        👑 Your Digital VIP Master Card
-                    </h3>
-                    <div
-                        style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; border-radius: 16px; padding: 24px; position: relative; overflow: hidden; box-shadow: 0 8px 25px rgba(15, 23, 42, 0.5); font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; max-width: 400px; min-height: 200px; display: flex; flex-direction: column; justify-content: space-between; border: 1.5px solid rgba(212, 175, 55, 0.5);">
-                        <!-- Card Header -->
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 1.2rem;">👑</span>
-                                <span
-                                    style="font-weight: bold; font-size: 1.1rem; color: #facc15; font-family: system-ui, sans-serif;">SHREE
-                                    MATA</span>
-                            </div>
-                            <span
-                                style="font-style: italic; font-weight: 700; color: rgba(255,255,255,0.7); font-size: 0.8rem; font-family: system-ui, sans-serif;">DIGITAL
-                                VIP CARD</span>
+                <!-- Left Sidebar Navigation -->
+                <aside class="account-sidebar" aria-label="Account Menu">
+                    <div class="account-user-card-mini">
+                        <div class="account-user-avatar-circle" aria-hidden="true">👤</div>
+                        <div class="account-user-meta">
+                            <span class="account-user-greeting">Welcome back,</span>
+                            <div class="account-user-name-display" id="sidebarUserName">Account</div>
                         </div>
+                    </div>
 
-                        <!-- Chip -->
-                        <div
-                            style="background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); width: 42px; height: 32px; border-radius: 6px; margin: 12px 0 5px 0; border: 1px solid rgba(0,0,0,0.1);">
-                        </div>
-
-                        <!-- Card Number -->
-                        <div id="accCardNumber"
-                            style="font-size: 1.4rem; font-weight: bold; color: #fff; margin: 8px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); letter-spacing: 2px;">
-                            SMC-10001</div>
-
-                        <!-- Card Footer Info -->
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: flex-end; font-family: system-ui, sans-serif; font-size: 0.8rem; color: #94a3b8; letter-spacing: 0;">
-                            <div>
-                                <div
-                                    style="font-size: 0.6rem; text-transform: uppercase; color: #64748b; margin-bottom: 2px;">
-                                    Card Holder</div>
-                                <div id="accCardHolder" style="font-weight: 600; color: #f8fafc;">User Name</div>
-                            </div>
-                            <div style="text-align: center;">
-                                <div
-                                    style="font-size: 0.6rem; text-transform: uppercase; color: #64748b; margin-bottom: 2px;">
-                                    Lifetime Earnings</div>
-                                <div style="font-weight: bold; color: #10b981; font-size: 0.95rem;">₹<span
-                                        id="accCardEarnings">0.00</span></div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div
-                                    style="font-size: 0.6rem; text-transform: uppercase; color: #64748b; margin-bottom: 2px;">
-                                    Issued Date</div>
-                                <div id="accCardIssued" style="font-weight: 600; color: #f8fafc;">08/2026</div>
-                            </div>
-                        </div>
-
-                        <!-- Shared Commission Wallet -->
-                        <div
-                            style="margin-top: 12px; padding-top: 10px; border-top: 1.5px dashed rgba(212, 175, 55, 0.3); display: flex; justify-content: space-between; align-items: center; font-family: system-ui, sans-serif; font-size: 0.75rem;">
-                            <span style="color: #94a3b8;">Shared Commission Wallet:</span>
-                            <span style="font-weight: bold; color: #facc15; font-size: 0.95rem;">₹<span
-                                    id="accCardWallet">0.00</span></span>
-                        </div>
-
-                        <!-- Quick Withdraw Button -->
-                        <button type="button"
-                            onclick="openVipWithdrawModal(document.getElementById('accCardNumber').textContent, 1)"
-                            style="margin-top: 14px; width: 100%; padding: 11px; background: linear-gradient(135deg, #d4af37 0%, #aa820a 100%); color: #181410; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25); font-family: system-ui, sans-serif; transition: all 0.2s;">
-                            <span>💸 Withdraw from VIP Card</span>
+                    <nav class="account-menu">
+                        <button type="button" class="active" onclick="showSection('profile')">
+                            <span class="menu-icon">👤</span> <span>Profile Overview</span>
                         </button>
-                    </div>
-                </div>
-            </div>
+                        <button type="button" onclick="showSection('edit')">
+                            <span class="menu-icon">✏️</span> <span>Edit Profile</span>
+                        </button>
+                        <button type="button" onclick="showSection('address')">
+                            <span class="menu-icon">🏠</span> <span>Delivery Address</span>
+                        </button>
+                        <button type="button" onclick="showSection('store')">
+                            <span class="menu-icon">🏪</span> <span>Store Details</span>
+                        </button>
+                        <button type="button" onclick="showSection('orders')">
+                            <span class="menu-icon">📦</span> <span>Order History</span>
+                        </button>
+                        <button type="button" onclick="showSection('wallet')">
+                            <span class="menu-icon">💰</span> <span>Wallet & Cashback</span>
+                        </button>
+                        <button type="button" onclick="showSection('points')">
+                            <span class="menu-icon">🎁</span> <span>Points & Rewards</span>
+                        </button>
+                        <a href="/referral.html" class="account-menu-link">
+                            <span class="menu-icon">👥</span> <span>Referral & Rewards</span>
+                        </a>
+                        <div class="account-menu-divider"></div>
+                        <button type="button" class="logout-btn-item" onclick="logout()">
+                            <span class="menu-icon">🚪</span> <span>Logout</span>
+                        </button>
+                    </nav>
+                </aside>
 
-            <div id="editSection" class="account-section" style="display:none;">
-                <h2>✏️ Edit Profile</h2>
-                <form id="editForm">
-                    <div class="form-group">
-                        <label for="editName">Name</label>
-                        <input type="text" id="editName" placeholder="New Name">
-                    </div>
-                    <div class="form-group">
-                        <label for="editEmail">Email</label>
-                        <input type="email" id="editEmail" placeholder="New Email">
-                    </div>
-                    <button class="btn-primary" type="submit">💾 Update Profile</button>
-                </form>
-            </div>
+                <!-- Right Content Area -->
+                <div class="account-content-area">
 
-            <div id="addressSection" class="account-section" style="display:none;">
-                <h2>🏠 Delivery Address</h2>
-                <div id="addressDisplay" style="margin-bottom: 20px;">
-                    <p><strong>Home Address 1:</strong> <span id="displayHomeAddress1">Not set</span></p>
-                    <p><strong>Home Address 2:</strong> <span id="displayHomeAddress2">-</span></p>
-                    <p><strong>Street Name:</strong> <span id="displayStreetName">Not set</span></p>
-                    <p><strong>Landmark:</strong> <span id="displayLandmark">-</span></p>
-                    <p><strong>Village/Area:</strong> <span id="displayVillage">Not set</span></p>
-                    <p><strong>Taluk:</strong> <span id="displayTaluk">Not set</span></p>
-                    <p><strong>District:</strong> <span id="displayDistrict">Not set</span></p>
-                    <p><strong>State:</strong> <span id="displayState">Not set</span></p>
-                    <p><strong>Pincode:</strong> <span id="displayPincode">Not set</span></p>
-                    <p><strong>Phone:</strong> <span id="displayPhone">Not set</span></p>
-                </div>
-                <button class="action-btn" onclick="toggleAddressEdit()">✏️ Edit Address</button>
-
-                <form id="addressForm" class="address-form" style="display:none; margin-top: 20px;">
-                    <div class="form-grid">
-                        <div class="form-group full"><label for="homeAddress1">Home Address 1 *</label><input
-                                type="text" id="homeAddress1" placeholder="House/Building number and name" required>
+                    <!-- SECTION 1: PROFILE OVERVIEW -->
+                    <section id="profileSection" class="account-section">
+                        <div class="account-section-header">
+                            <h2>👤 Profile Overview</h2>
+                            <button type="button" class="btn-secondary" onclick="showSection('edit')" style="padding: 8px 14px; font-size: 13px;">
+                                ✏️ Edit Profile
+                            </button>
                         </div>
-                        <div class="form-group full"><label for="homeAddress2">Home Address 2 (Optional)</label><input
-                                type="text" id="homeAddress2" placeholder="Apartment, suite, floor, etc."></div>
-                        <div class="form-group"><label for="streetName">Street Name</label><input type="text"
-                                id="streetName" placeholder="Street name"></div>
-                        <div class="form-group"><label for="landmark">Landmark</label><input type="text" id="landmark"
-                                placeholder="Near landmark"></div>
-                        <div class="form-group"><label for="village">Village/Area</label><input type="text" id="village"
-                                placeholder="Village or area name"></div>
-                        <div class="form-group"><label for="taluk">Taluk *</label><input type="text" id="taluk"
-                                placeholder="Taluk name" required></div>
-                        <div class="form-group"><label for="district">District *</label><input type="text" id="district"
-                                placeholder="District name" required></div>
-                        <div class="form-group"><label for="state">State *</label><input type="text" id="state"
-                                placeholder="State name" required></div>
-                        <div class="form-group"><label for="pincode">Pincode *</label><input type="text" id="pincode"
-                                placeholder="6-digit pincode" required pattern="[0-9]{6}"></div>
-                        <div class="form-group"><label for="phone">Phone Number *</label><input type="tel" id="phone"
-                                placeholder="10-digit phone number" required pattern="[0-9]{10}"></div>
-                    </div>
-                    <div class="button-group">
-                        <button class="btn-primary" type="submit">💾 Save Address</button>
-                        <button class="btn-secondary" type="button" onclick="toggleAddressEdit()">❌ Cancel</button>
-                    </div>
-                </form>
-            </div>
 
-            <div id="storeSection" class="account-section" style="display:none;">
-                <h2>🏪 Store Information</h2>
-                <div class="store-info-card">
-                    <div class="store-header"><span class="store-icon">🏪</span>
-                        <h3 id="accountStoreName">Loading...</h3>
-                    </div>
-                    <div class="store-details">
-                        <div class="store-row"><span class="store-label">📍 Address:</span><span
-                                id="accountStoreAddress">Loading...</span></div>
-                        <div class="store-row"><span class="store-label">🕒 Hours:</span><span
-                                id="accountStoreHours">Loading...</span></div>
-                        <div class="store-row"><span class="store-label">📞 Phone:</span><a href="#"
-                                id="accountStorePhoneLink"><span id="accountStorePhone">Loading...</span></a></div>
-                    </div>
-                    <div class="pickup-instructions">
-                        <div class="pickup-title">📞 Pickup Instructions:</div>
-                        <div id="accountPickupInstructions">Loading...</div>
-                    </div>
-                    <div id="accountMapLinkContainer" class="map-link-container" style="display: none;"><a
-                            id="accountMapLinkButton" href="#" target="_blank" class="btn-primary">🗺️ View Store on
-                            Map</a></div>
-                </div>
-                <div class="pickup-benefits">
-                    <h4>💡 Store Pickup Benefits</h4>
-                    <ul>
-                        <li>Save on delivery charges (FREE pickup!)</li>
-                        <li>Inspect books before taking them</li>
-                        <li>No delivery delays</li>
-                        <li>Personal service and recommendations</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- =========================================
-             UPDATED ORDER HISTORY SECTION
-             ========================================= -->
-            <div id="ordersSection" class="account-section" style="display:none;">
-                <h2>📦 Order History</h2>
-
-                <div class="order-tabs">
-                    <button class="order-tab active" onclick="filterAccountOrders('all', this)">All Orders</button>
-                    <button class="order-tab" onclick="filterAccountOrders('pending', this)">Pending</button>
-                    <button class="order-tab" onclick="filterAccountOrders('processing', this)">Processing</button>
-                    <button class="order-tab" onclick="filterAccountOrders('shipped', this)">Shipped</button>
-                    <button class="order-tab" onclick="filterAccountOrders('delivered', this)">Delivered</button>
-                </div>
-
-                <div id="ordersList">
-                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">
-                        <div class="loading-spinner"
-                            style="margin: 0 auto 15px auto; border: 4px solid rgba(201,162,39,0.1); border-left-color: #c9a227; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite;">
-                        </div>
-                        Loading your orders...
-                    </div>
-                </div>
-            </div>
-
-            <div id="walletSection" class="account-section" style="display:none;">
-                <h2>💰 Wallet & Cashback</h2>
-                <div class="wallet-summary">
-                    <div class="wallet-card">
-                        <h3>💰 Available Balance</h3>
-                        <p class="wallet-value" id="walletBalance">₹0</p><small>Includes cashback and referral
-                            earnings</small>
-                    </div>
-                    <div class="wallet-card">
-                        <h3>🎯 Total Cashback Earned</h3>
-                        <p class="wallet-value" id="totalCashbackEarned">₹0</p><small>From all your purchases</small>
-                    </div>
-                    <div class="wallet-card">
-                        <h3>👥 Total Referral Earnings</h3>
-                        <p class="wallet-value" id="totalReferralEarnings">₹0</p><small>From your referral
-                            network</small>
-                    </div>
-                </div>
-
-                <!-- VIP Master Cards Milestone Tiers -->
-                <div id="vipMasterCardsSection"
-                    style="margin-top: 30px; display: none; background: #26211a; padding: 25px; border-radius: 16px; border: 1px solid #d4af37; margin-bottom: 30px;">
-                    <h3
-                        style="color: #d4af37; font-family: 'Playfair Display', serif; font-size: 20px; margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                        👑 VIP Master Cards
-                    </h3>
-                    <div id="vipMasterCardsList"
-                        style="display: flex; flex-direction: column; gap: 20px; max-width: 400px;">
-                        <!-- Cards will be dynamically injected here -->
-                    </div>
-                </div>
-
-                <div class="withdrawal-section">
-                    <h3>💸 Withdraw Money</h3>
-                    <p style="color: rgba(255,255,255,0.7);">Minimum withdrawal: <span id="minWithdrawal">₹100</span>
-                    </p>
-
-                    <!-- Payment Destination (General Wallet) -->
-                    <!-- Saved State -->
-                    <div id="generalSavedBankSection"
-                        style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 14px; margin-bottom: 15px; font-size: 13px;">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <span style="font-weight: 700; color: #10b981;">💳 Payout Destination (Saved):</span>
-                            <span
-                                style="font-size: 11px; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 4px; font-weight: 600;">Verified</span>
-                        </div>
-                        <div id="generalMaskedBankInfo"
-                            style="color: #f0e6d2; font-family: monospace; font-size: 13px; line-height: 1.5;">
-                            <!-- Masked Bank/UPI Info injected here -->
-                        </div>
-                        <small style="color: #94a3b8; font-size: 11px; display: block; margin-top: 4px;">Funds will be
-                            sent directly to this destination upon admin approval.</small>
-                    </div>
-
-                    <!-- First-Time Setup State -->
-                    <div id="generalNewBankSection"
-                        style="display: none; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 16px; margin-bottom: 15px; font-size: 13px;">
-                        <div
-                            style="font-weight: 700; color: #fbbf24; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                            <span>🏦 Setup Payment Destination</span>
-                        </div>
-                        <p style="margin: 0 0 12px 0; font-size: 12px; color: #d6d3d1;">Please provide your bank or UPI
-                            details below. These will be saved to your profile for this and future payouts.</p>
-
-                        <div style="display: grid; gap: 12px;">
-                            <div>
-                                <label
-                                    style="display: block; font-size: 12px; color: #a8a29e; margin-bottom: 4px;">Account
-                                    Holder Name *</label>
-                                <input type="text" id="generalAccountHolderName"
-                                    placeholder="Full name as per bank records"
-                                    style="width: 100%; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
-                            </div>
-
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="profile-overview-card">
+                            <div class="profile-overview-user">
+                                <div class="profile-avatar-large">👤</div>
                                 <div>
-                                    <label
-                                        style="display: block; font-size: 12px; color: #a8a29e; margin-bottom: 4px;">Account
-                                        Number</label>
-                                    <input type="text" id="generalAccountNumber" placeholder="Bank Account Number"
-                                        style="width: 100%; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
-                                </div>
-                                <div>
-                                    <label
-                                        style="display: block; font-size: 12px; color: #a8a29e; margin-bottom: 4px;">IFSC
-                                        Code</label>
-                                    <input type="text" id="generalIfscCode" placeholder="e.g. SBIN0001234"
-                                        style="width: 100%; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px; text-transform: uppercase;">
+                                    <div class="profile-overview-name" id="accName">Loading Name...</div>
+                                    <div class="profile-overview-email" id="accEmail">loading@example.com</div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div>
-                                <label style="display: block; font-size: 12px; color: #a8a29e; margin-bottom: 4px;">Bank
-                                    Name</label>
-                                <input type="text" id="generalBankName" placeholder="e.g. State Bank of India, HDFC"
-                                    style="width: 100%; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                        <div class="profile-info-grid">
+                            <div class="profile-info-item">
+                                <div class="profile-info-label">Full Name</div>
+                                <div class="profile-info-value" id="profileDisplayName">—</div>
                             </div>
-
-                            <div
-                                style="text-align: center; color: #78716c; font-size: 11px; font-weight: 700; margin: 4px 0;">
-                                — OR USE UPI —</div>
-
-                            <div>
-                                <label style="display: block; font-size: 12px; color: #a8a29e; margin-bottom: 4px;">UPI / PhonePe / GPay ID</label>
-                                <input type="text" id="generalUpiId" placeholder="e.g. yourname@paytm / 9876543210@ybl"
-                                    style="width: 100%; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
+                            <div class="profile-info-item">
+                                <div class="profile-info-label">Email Address</div>
+                                <div class="profile-info-value" id="profileDisplayEmail">—</div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Optional Scanner / QR Upload Field (Always accessible) -->
-                    <div style="margin-bottom: 15px; padding: 12px; background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.35); border-radius: 8px;">
-                        <label style="display: block; font-size: 12px; color: #f0c96b; margin-bottom: 4px; font-weight: 600;">📷 Upload UPI Scanner / QR Code (optional)</label>
-                        <input type="file" id="generalScannerFileInput" accept="image/*" onchange="handleGeneralScannerFileSelected(event)"
-                            style="width: 100%; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 12px;">
-                        <small style="display: block; color: #a8a29e; font-size: 11px; margin-top: 3px;">Optional: Upload photo of your UPI QR / PhonePe Scanner so admin can scan & pay directly.</small>
+                        <!-- Digital VIP MasterCard Container -->
+                        <div id="masterCardContainer" class="vip-mastercard-wrapper" style="display: none;">
+                            <h3 style="display: flex; align-items: center; gap: 8px; font-size: 17px; margin-bottom: 16px;">
+                                <span>👑</span> <span>Your Digital VIP Master Card</span>
+                            </h3>
+                            <div class="vip-mastercard-card">
+                                <!-- Card Header -->
+                                <div class="vip-card-header">
+                                    <div class="vip-card-brand">
+                                        <span style="font-size: 1.2rem;">👑</span>
+                                        <span class="vip-card-brand-name">SHREE MATA</span>
+                                    </div>
+                                    <span class="vip-card-badge">DIGITAL VIP CARD</span>
+                                </div>
 
-                        <!-- Preview Thumbnail Container -->
-                        <div id="generalScannerPreviewContainer" style="display: none; align-items: center; gap: 10px; margin-top: 8px; padding: 8px 12px; background: rgba(212, 175, 55, 0.08); border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.25);">
-                            <img id="generalScannerThumb" src="" alt="Scanner Preview" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid #d4af37;">
-                            <div style="flex: 1;">
-                                <span style="font-size: 12px; color: #10b981; font-weight: 600; display: block;">✅ Scanner QR Attached</span>
-                                <span id="generalScannerFileName" style="font-size: 11px; color: #a8a29e; word-break: break-all;">Ready to upload</span>
+                                <!-- Chip -->
+                                <div class="vip-chip-graphic"></div>
+
+                                <!-- Card Number -->
+                                <div id="accCardNumber" class="vip-card-number-display">SMC-10001</div>
+
+                                <!-- Card Footer Info -->
+                                <div class="vip-card-footer-info">
+                                    <div>
+                                        <div class="vip-card-meta-label">Card Holder</div>
+                                        <div id="accCardHolder" class="vip-card-meta-val">User Name</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div class="vip-card-meta-label">Lifetime Earnings</div>
+                                        <div class="vip-card-earnings-val">₹<span id="accCardEarnings"><span class="sm-skeleton-text">—</span></span></div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div class="vip-card-meta-label">Issued Date</div>
+                                        <div id="accCardIssued" class="vip-card-meta-val">08/2026</div>
+                                    </div>
+                                </div>
+
+                                <!-- Shared Commission Wallet -->
+                                <div class="vip-card-wallet-row">
+                                    <span style="color: #94A3B8;">Shared Commission Wallet:</span>
+                                    <span class="vip-card-wallet-val">₹<span id="accCardWallet"><span class="sm-skeleton-text">—</span></span></span>
+                                </div>
+
+                                <!-- Quick Withdraw Button -->
+                                <button type="button" class="btn-vip-withdraw"
+                                    onclick="openVipWithdrawModal(document.getElementById('accCardNumber').textContent, 1)">
+                                    <span>💸 Withdraw from VIP Card</span>
+                                </button>
                             </div>
-                            <button type="button" onclick="removeGeneralScannerFile()" style="background: none; border: none; color: #ef4444; font-size: 12px; cursor: pointer; padding: 2px 6px; text-decoration: underline;">✕ Remove</button>
                         </div>
-                        <div id="generalQrScanStatus" style="display: none; margin-top: 5px; font-size: 12px; line-height: 1.4;"></div>
-                    </div>
+                    </section>
 
-                    <div class="withdrawal-form">
-                        <input type="number" id="withdrawalAmount" placeholder="Enter amount to withdraw" min="100"
-                            step="1">
-                        <button class="btn-primary" id="generalWithdrawSubmitBtn" onclick="requestWithdrawal()">Request
-                            Withdrawal</button>
-                    </div>
-                    <small style="margin-top: 15px; display: block; color: #a8a29e;">Withdrawals are processed within
-                        24-48 hours to your registered payment destination.</small>
-                </div>
-                <!-- Withdrawal Requests & Payout Status -->
-                <div class="withdrawal-history"
-                    style="margin-top: 30px; background: #26211a; padding: 22px; border-radius: 14px; border: 1px solid rgba(212, 175, 55, 0.4);">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h3
-                            style="margin: 0; color: #d4af37; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
-                            <span>📋 Withdrawal Requests & Payout Status</span>
-                        </h3>
-                        <button type="button" onclick="loadWalletData()"
-                            style="background: transparent; border: 1px solid rgba(212, 175, 55, 0.5); color: #d4af37; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600;">🔄
-                            Refresh Status</button>
-                    </div>
-                    <div id="withdrawalRequestsList" style="display: flex; flex-direction: column; gap: 10px;">
-                        <p style="color: #a8a29e; font-size: 13px; margin: 0;">Loading withdrawal requests...</p>
-                    </div>
+                    <!-- SECTION 2: EDIT PROFILE -->
+                    <section id="editSection" class="account-section" style="display:none;">
+                        <div class="account-section-header">
+                            <h2>✏️ Edit Profile</h2>
+                        </div>
+                        <form id="editForm">
+                            <div class="form-grid">
+                                <div class="form-group full">
+                                    <label for="editName">Full Name *</label>
+                                    <input type="text" id="editName" placeholder="Your full name" required>
+                                </div>
+                                <div class="form-group full">
+                                    <label for="editEmail">Email Address *</label>
+                                    <input type="email" id="editEmail" placeholder="yourname@example.com" required>
+                                </div>
+                            </div>
+                            <div class="button-group">
+                                <button class="btn-primary" type="submit">💾 Save Changes</button>
+                                <button class="btn-secondary" type="button" onclick="showSection('profile')">Cancel</button>
+                            </div>
+                        </form>
+                    </section>
 
-                    <!-- VIP / Withdrawal Pagination Controls -->
-                    <div id="vipWithdrawalPagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 10px 0;">
-                        <button type="button" id="vipPrevPageBtn" class="pagination-btn" style="padding: 6px 12px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; cursor: pointer;">Previous</button>
-                        <span id="vipPageIndicator" style="font-size: 13px; color: #aaa;">Page 1 of 1</span>
-                        <button type="button" id="vipNextPageBtn" class="pagination-btn" style="padding: 6px 12px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; cursor: pointer;">Next</button>
-                    </div>
-                </div>
+                    <!-- SECTION 3: DELIVERY ADDRESS -->
+                    <section id="addressSection" class="account-section" style="display:none;">
+                        <div class="account-section-header">
+                            <h2>🏠 Delivery Address</h2>
+                            <button type="button" class="btn-primary" onclick="toggleAddressEdit()" style="padding: 8px 16px; font-size: 13px;">
+                                ✏️ Edit Address
+                            </button>
+                        </div>
 
-                <div class="wallet-history">
-                    <h3>💳 Transaction History</h3>
-                    <div id="walletHistoryList">Loading...</div>
+                        <!-- Address Display Cards -->
+                        <div id="addressDisplay" class="address-display-grid">
+                            <div class="address-field-card">
+                                <div class="address-field-label">Home Address 1</div>
+                                <div class="address-field-value" id="displayHomeAddress1">Not set</div>
+                            </div>
+                            <div class="address-field-card">
+                                <div class="address-field-label">Home Address 2</div>
+                                <div class="address-field-value" id="displayHomeAddress2">-</div>
+                            </div>
+                            <div class="address-field-card">
+                                <div class="address-field-label">Street Name</div>
+                                <div class="address-field-value" id="displayStreetName">Not set</div>
+                            </div>
+                            <div class="address-field-card">
+                                <div class="address-field-label">Landmark</div>
+                                <div class="address-field-value" id="displayLandmark">-</div>
+                            </div>
+                            <div class="address-field-card">
+                                <div class="address-field-label">Village / Area</div>
+                                <div class="address-field-value" id="displayVillage">Not set</div>
+                            </div>
+                            <div class="address-field-card">
+                                <div class="address-field-label">Taluk</div>
+                                <div class="address-field-value" id="displayTaluk">Not set</div>
+                            </div>
+                            <div class="address-field-card">
+                                <div class="address-field-label">District</div>
+                                <div class="address-field-value" id="displayDistrict">Not set</div>
+                            </div>
+                            <div class="address-field-card">
+                                <div class="address-field-label">State</div>
+                                <div class="address-field-value" id="displayState">Not set</div>
+                            </div>
+                            <div class="address-field-card">
+                                <div class="address-field-label">Pincode</div>
+                                <div class="address-field-value" id="displayPincode">Not set</div>
+                            </div>
+                            <div class="address-field-card">
+                                <div class="address-field-label">Contact Phone</div>
+                                <div class="address-field-value" id="displayPhone">Not set</div>
+                            </div>
+                        </div>
+
+                        <!-- Address Edit Form -->
+                        <form id="addressForm" class="address-form" style="display:none; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--sm-border-light);">
+                            <h3 style="margin-top: 0; margin-bottom: 18px;">Update Delivery Details</h3>
+                            <div class="form-grid">
+                                <div class="form-group full">
+                                    <label for="homeAddress1">Home Address 1 *</label>
+                                    <input type="text" id="homeAddress1" placeholder="House/Building number and name" required>
+                                </div>
+                                <div class="form-group full">
+                                    <label for="homeAddress2">Home Address 2 (Optional)</label>
+                                    <input type="text" id="homeAddress2" placeholder="Apartment, suite, floor, etc.">
+                                </div>
+                                <div class="form-group">
+                                    <label for="streetName">Street Name</label>
+                                    <input type="text" id="streetName" placeholder="Street name">
+                                </div>
+                                <div class="form-group">
+                                    <label for="landmark">Landmark</label>
+                                    <input type="text" id="landmark" placeholder="Near landmark">
+                                </div>
+                                <div class="form-group">
+                                    <label for="village">Village / Area</label>
+                                    <input type="text" id="village" placeholder="Village or area name">
+                                </div>
+                                <div class="form-group">
+                                    <label for="taluk">Taluk *</label>
+                                    <input type="text" id="taluk" placeholder="Taluk name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="district">District *</label>
+                                    <input type="text" id="district" placeholder="District name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="state">State *</label>
+                                    <input type="text" id="state" placeholder="State name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pincode">Pincode *</label>
+                                    <input type="text" id="pincode" placeholder="6-digit pincode" required pattern="[0-9]{6}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="phone">Phone Number *</label>
+                                    <input type="tel" id="phone" placeholder="10-digit phone number" required pattern="[0-9]{10}">
+                                </div>
+                            </div>
+                            <div class="button-group">
+                                <button class="btn-primary" type="submit">💾 Save Address</button>
+                                <button class="btn-secondary" type="button" onclick="toggleAddressEdit()">Cancel</button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <!-- SECTION 4: STORE DETAILS -->
+                    <section id="storeSection" class="account-section" style="display:none;">
+                        <div class="account-section-header">
+                            <h2>🏪 Store Information</h2>
+                        </div>
+                        <div class="store-info-card">
+                            <div class="store-header">
+                                <span class="store-icon" aria-hidden="true">🏪</span>
+                                <h3 id="accountStoreName">Loading...</h3>
+                            </div>
+                            <div class="store-details">
+                                <div class="store-row">
+                                    <span class="store-label">📍 Address:</span>
+                                    <span id="accountStoreAddress">Loading...</span>
+                                </div>
+                                <div class="store-row">
+                                    <span class="store-label">🕒 Hours:</span>
+                                    <span id="accountStoreHours">Loading...</span>
+                                </div>
+                                <div class="store-row">
+                                    <span class="store-label">📞 Phone:</span>
+                                    <a href="#" id="accountStorePhoneLink" style="color: var(--sm-ink); font-weight: 600;">
+                                        <span id="accountStorePhone">Loading...</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="pickup-instructions">
+                                <div class="pickup-title">📞 Pickup Instructions:</div>
+                                <div id="accountPickupInstructions" style="color: var(--sm-body); font-size: 13.5px; line-height: 1.5;">Loading...</div>
+                            </div>
+                            <div id="accountMapLinkContainer" class="map-link-container" style="display: none; margin-top: 14px;">
+                                <a id="accountMapLinkButton" href="#" target="_blank" class="btn-primary" style="display: inline-flex;">
+                                    🗺️ View Store on Google Maps
+                                </a>
+                            </div>
+                        </div>
+                        <div class="pickup-benefits">
+                            <h4>💡 Store Pickup Benefits</h4>
+                            <ul>
+                                <li>Save on delivery charges (FREE store pickup)</li>
+                                <li>Inspect books and curriculum sets before collection</li>
+                                <li>No courier shipping delays</li>
+                                <li>Personal academic assistance and book recommendations</li>
+                            </ul>
+                        </div>
+                    </section>
+
+                    <!-- SECTION 5: ORDER HISTORY -->
+                    <section id="ordersSection" class="account-section" style="display:none;">
+                        <div class="account-section-header">
+                            <h2>📦 Order History</h2>
+                        </div>
+
+                        <div class="order-tabs" role="tablist">
+                            <button class="order-tab active" onclick="filterAccountOrders('all', this)">All Orders</button>
+                            <button class="order-tab" onclick="filterAccountOrders('pending', this)">Pending</button>
+                            <button class="order-tab" onclick="filterAccountOrders('processing', this)">Processing</button>
+                            <button class="order-tab" onclick="filterAccountOrders('shipped', this)">Shipped</button>
+                            <button class="order-tab" onclick="filterAccountOrders('delivered', this)">Delivered</button>
+                        </div>
+
+                        <div id="ordersList">
+                            <div style="text-align: center; padding: 48px 20px; color: var(--sm-muted);">
+                                <div class="loading-spinner"
+                                    style="margin: 0 auto 16px auto; border: 3.5px solid var(--sm-border); border-left-color: var(--sm-gold); border-radius: 50%; width: 36px; height: 36px; animation: spin 0.8s linear infinite;">
+                                </div>
+                                <span>Loading your orders...</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- SECTION 6: WALLET & CASHBACK -->
+                    <section id="walletSection" class="account-section" style="display:none;">
+                        <div class="account-section-header">
+                            <h2>💰 Wallet & Cashback</h2>
+                        </div>
+
+                        <div class="wallet-summary">
+                            <div class="wallet-card">
+                                <h3>💰 Available Balance</h3>
+                                <p class="wallet-value" id="walletBalance"><span class="sm-skeleton-text">—</span></p>
+                                <small>Includes cashback & referral earnings</small>
+                            </div>
+                            <div class="wallet-card">
+                                <h3>🎯 Total Cashback Earned</h3>
+                                <p class="wallet-value" id="totalCashbackEarned"><span class="sm-skeleton-text">—</span></p>
+                                <small>From all your book orders</small>
+                            </div>
+                            <div class="wallet-card">
+                                <h3>👥 Total Referral Earnings</h3>
+                                <p class="wallet-value" id="totalReferralEarnings"><span class="sm-skeleton-text">—</span></p>
+                                <small>From your active referral network</small>
+                            </div>
+                        </div>
+
+                        <!-- VIP Master Cards Milestone Tiers -->
+                        <div id="vipMasterCardsSection"
+                            style="margin-top: 24px; display: none; background: var(--sm-surface-warm); padding: 24px; border-radius: 16px; border: 1px solid var(--sm-gold-border); margin-bottom: 24px;">
+                            <h3 style="color: var(--sm-gold-dark); font-size: 18px; margin-top: 0; margin-bottom: 18px; display: flex; align-items: center; gap: 8px;">
+                                👑 VIP Master Cards
+                            </h3>
+                            <div id="vipMasterCardsList" style="display: flex; flex-direction: column; gap: 16px; max-width: 420px;">
+                                <!-- Cards injected dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Withdrawal Form Card -->
+                        <div class="withdrawal-section">
+                            <h3 style="margin-top: 0; font-size: 17px;">💸 Request Withdrawal</h3>
+                            <p style="color: var(--sm-muted); font-size: 13.5px; margin-bottom: 16px;">
+                                Minimum withdrawal amount: <strong style="color: var(--sm-ink);" id="minWithdrawal">₹100</strong>
+                            </p>
+
+                            <!-- Payout Destination: Saved State -->
+                            <div id="generalSavedBankSection"
+                                style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 14px; margin-bottom: 16px; font-size: 13px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span style="font-weight: 700; color: #10b981;">💳 Payout Destination (Saved):</span>
+                                    <span style="font-size: 11px; background: rgba(16, 185, 129, 0.2); color: #047857; padding: 2px 8px; border-radius: 4px; font-weight: 700;">Verified</span>
+                                </div>
+                                <div id="generalMaskedBankInfo" style="color: var(--sm-ink); font-family: monospace; font-size: 13px; line-height: 1.5;">
+                                    <!-- Masked Bank/UPI Info injected here -->
+                                </div>
+                                <small style="color: var(--sm-muted); font-size: 11.5px; display: block; margin-top: 4px;">Funds will be sent directly to this verified destination upon admin approval.</small>
+                            </div>
+
+                            <!-- Payout Destination: First-Time Setup -->
+                            <div id="generalNewBankSection"
+                                style="display: none; background: var(--sm-surface-warm); border: 1px solid var(--sm-border); border-radius: 12px; padding: 18px; margin-bottom: 16px; font-size: 13px;">
+                                <div style="font-weight: 700; color: var(--sm-ink); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                                    <span>🏦 Setup Payment Destination</span>
+                                </div>
+                                <p style="margin: 0 0 14px 0; font-size: 12.5px; color: var(--sm-muted);">Please provide your bank or UPI details below. These will be saved for this and future payouts.</p>
+
+                                <div style="display: grid; gap: 12px;">
+                                    <div>
+                                        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--sm-ink); margin-bottom: 4px;">Account Holder Name *</label>
+                                        <input type="text" id="generalAccountHolderName" placeholder="Full name as per bank records" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--sm-border); border-radius: 6px; font-size: 13px;">
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                        <div>
+                                            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--sm-ink); margin-bottom: 4px;">Account Number</label>
+                                            <input type="text" id="generalAccountNumber" placeholder="Bank Account Number" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--sm-border); border-radius: 6px; font-size: 13px;">
+                                        </div>
+                                        <div>
+                                            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--sm-ink); margin-bottom: 4px;">IFSC Code</label>
+                                            <input type="text" id="generalIfscCode" placeholder="e.g. SBIN0001234" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--sm-border); border-radius: 6px; font-size: 13px; text-transform: uppercase;">
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--sm-ink); margin-bottom: 4px;">Bank Name</label>
+                                        <input type="text" id="generalBankName" placeholder="e.g. State Bank of India, HDFC" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--sm-border); border-radius: 6px; font-size: 13px;">
+                                    </div>
+
+                                    <div style="text-align: center; color: var(--sm-muted); font-size: 11px; font-weight: 700; margin: 4px 0;">— OR USE UPI —</div>
+
+                                    <div>
+                                        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--sm-ink); margin-bottom: 4px;">UPI / PhonePe / GPay ID</label>
+                                        <input type="text" id="generalUpiId" placeholder="e.g. yourname@paytm / 9876543210@ybl" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--sm-border); border-radius: 6px; font-size: 13px;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Optional Scanner / QR Upload Field -->
+                            <div style="margin-bottom: 16px; padding: 14px; background: var(--sm-surface-warm); border: 1px dashed var(--sm-gold); border-radius: 8px;">
+                                <label style="display: block; font-size: 12.5px; color: var(--sm-ink); margin-bottom: 4px; font-weight: 600;">📷 Upload UPI Scanner / QR Code (Optional)</label>
+                                <input type="file" id="generalScannerFileInput" accept="image/*" onchange="handleGeneralScannerFileSelected(event)"
+                                    style="width: 100%; box-sizing: border-box; padding: 8px 10px; background: #fff; border: 1px solid var(--sm-border); border-radius: 6px; font-size: 12px;">
+                                <small style="display: block; color: var(--sm-muted); font-size: 11px; margin-top: 4px;">Optional: Upload photo of your UPI QR code so admin can scan & disburse directly.</small>
+
+                                <!-- Preview Thumbnail Container -->
+                                <div id="generalScannerPreviewContainer" style="display: none; align-items: center; gap: 10px; margin-top: 10px; padding: 8px 12px; background: #fff; border-radius: 6px; border: 1px solid var(--sm-border);">
+                                    <img id="generalScannerThumb" src="" alt="Scanner Preview" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid var(--sm-gold);">
+                                    <div style="flex: 1;">
+                                        <span style="font-size: 12px; color: var(--sm-success); font-weight: 600; display: block;">✅ Scanner QR Attached</span>
+                                        <span id="generalScannerFileName" style="font-size: 11px; color: var(--sm-muted); word-break: break-all;">Ready to upload</span>
+                                    </div>
+                                    <button type="button" onclick="removeGeneralScannerFile()" style="background: none; border: none; color: var(--sm-danger); font-size: 12px; cursor: pointer; padding: 2px 6px; text-decoration: underline;">✕ Remove</button>
+                                </div>
+                                <div id="generalQrScanStatus" style="display: none; margin-top: 6px; font-size: 12px; line-height: 1.4;"></div>
+                            </div>
+
+                            <!-- Withdrawal Amount and Submit -->
+                            <div class="withdrawal-form">
+                                <input type="number" id="withdrawalAmount" placeholder="Enter amount to withdraw" min="100" step="1">
+                                <button class="btn-primary" id="generalWithdrawSubmitBtn" onclick="requestWithdrawal()">
+                                    Request Withdrawal
+                                </button>
+                            </div>
+                            <small style="margin-top: 12px; display: block; color: var(--sm-muted); font-size: 12px;">Withdrawals are reviewed and processed within 24–48 hours directly to your payment destination.</small>
+                        </div>
+
+                        <!-- Withdrawal Requests & Payout Status -->
+                        <div class="withdrawal-history">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                                    <span>📋 Withdrawal Requests & Payout Status</span>
+                                </h3>
+                                <button type="button" onclick="loadWalletData()" class="btn-secondary" style="padding: 4px 10px; font-size: 12px;">
+                                    🔄 Refresh Status
+                                </button>
+                            </div>
+                            <div id="withdrawalRequestsList" style="display: flex; flex-direction: column; gap: 10px;">
+                                <p style="color: var(--sm-muted); font-size: 13px; margin: 0;">Loading withdrawal requests...</p>
+                            </div>
+
+                            <!-- VIP / Withdrawal Pagination Controls -->
+                            <div id="vipWithdrawalPagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--sm-border-light);">
+                                <button type="button" id="vipPrevPageBtn" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;">Previous</button>
+                                <span id="vipPageIndicator" style="font-size: 13px; color: var(--sm-muted);">Page 1 of 1</span>
+                                <button type="button" id="vipNextPageBtn" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;">Next</button>
+                            </div>
+                        </div>
+
+                        <!-- Transaction History -->
+                        <div class="wallet-history">
+                            <div class="wallet-history-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                                <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                                    <span>💳 Transaction History</span>
+                                </h3>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <button type="button" id="toggleHiddenTxBtn" onclick="toggleShowHiddenTransactions()" class="btn-secondary" style="padding: 5px 12px; font-size: 12px; display: none; align-items: center; gap: 6px; border-radius: 20px;">
+                                        <span id="toggleHiddenTxIcon">👁️</span>
+                                        <span id="toggleHiddenTxText">Show Hidden</span>
+                                        <span id="hiddenTxCountBadge" class="hidden-tx-badge" style="background: var(--sm-border); color: var(--sm-ink); padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 700;">0</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="walletHistoryList" style="color: var(--sm-muted); font-size: 13.5px;">Loading...</div>
+                        </div>
+                    </section>
+
+                    <!-- SECTION 7: POINTS & REWARDS -->
+                    <section id="pointsSection" class="account-section" style="display:none;">
+                        <div class="account-section-header">
+                            <h2>🎁 Points & Rewards</h2>
+                        </div>
+
+                        <div class="points-summary">
+                            <div class="points-card">
+                                <h3>Available Points</h3>
+                                <p class="points-value" id="pointsWallet">0</p>
+                            </div>
+                            <div class="points-card">
+                                <h3>Total Points Earned</h3>
+                                <p class="points-value" id="totalPointsEarned">0</p>
+                            </div>
+                            <div class="points-card">
+                                <h3>Virtual Referrals</h3>
+                                <p class="points-value" id="virtualReferralsCreated">0</p>
+                            </div>
+                        </div>
+
+                        <!-- Virtual Referral Box -->
+                        <div class="redeem-section">
+                            <h3 style="margin-top: 0; font-size: 16px;">🌳 Create Virtual Referral</h3>
+                            <p style="color: var(--sm-body); font-size: 13.5px; margin-bottom: 14px;">
+                                Redeem <strong id="virtualTreeCost">100</strong> points to create a virtual referral in your placement tree.
+                            </p>
+                            <button class="btn-primary" id="redeemBtn" onclick="redeemVirtualReferral()">
+                                🎁 Redeem <span id="virtualTreeCostBtn">100</span> Points for Virtual Referral
+                            </button>
+                        </div>
+
+                        <!-- Cash Conversion Tool -->
+                        <div class="cash-conversion-section">
+                            <h3 style="margin-top: 0; font-size: 16px;">💰 Convert Points to Cash</h3>
+                            <div class="conversion-rate-box">
+                                <h4>📊 Current Conversion Rate</h4>
+                                <div class="rate-value" id="conversionRateDisplay">50 Points = ₹25.00</div>
+                                <div class="rate-sub">(1 Point = ₹<span id="perPointValue">0.50</span>)</div>
+                            </div>
+                            <div class="available-points-box">
+                                <div class="avail-row">
+                                    <span class="avail-label">Available for conversion:</span>
+                                    <span class="avail-value points" id="availableForConversion">0 points</span>
+                                </div>
+                                <div class="avail-row">
+                                    <span class="avail-label">Maximum cash you can get:</span>
+                                    <span class="avail-value cash">₹<span id="maxCashPossible">0.00</span></span>
+                                </div>
+                            </div>
+                            <div class="conversion-form">
+                                <div class="convert-input-row">
+                                    <input type="number" id="pointsToConvert" placeholder="Enter points to convert" min="0" step="50">
+                                    <button class="btn-primary" onclick="convertPointsToCash()" id="convertBtn" disabled>
+                                        💸 Convert to Cash
+                                    </button>
+                                </div>
+                                <div id="conversionPreview" class="conversion-preview" style="display: none;">
+                                    <div class="preview-text">
+                                        <span id="previewPoints">0</span> Points → ₹<span id="previewCash">0.00</span>
+                                    </div>
+                                </div>
+                                <small class="convert-note">Points must be converted in increments of <span id="conversionIncrement">50</span>. Conversions are instant to your wallet balance.</small>
+                            </div>
+                        </div>
+
+                        <!-- Points History -->
+                        <div class="points-history" style="margin-top: 28px;">
+                            <h3 style="margin-top: 0; font-size: 16px;">📋 Points History</h3>
+                            <div id="pointsHistoryList" style="color: var(--sm-muted); font-size: 13.5px;">Loading...</div>
+                        </div>
+                    </section>
+
                 </div>
             </div>
-
-            <div id="pointsSection" class="account-section" style="display:none;">
-                <h2>🎁 Points & Rewards</h2>
-                <div class="points-summary">
-                    <div class="points-card">
-                        <h3>Available Points</h3>
-                        <p class="points-value" id="pointsWallet">0</p>
-                    </div>
-                    <div class="points-card">
-                        <h3>Total Earned</h3>
-                        <p class="points-value" id="totalPointsEarned">0</p>
-                    </div>
-                    <div class="points-card">
-                        <h3>Virtual Referrals</h3>
-                        <p class="points-value" id="virtualReferralsCreated">0</p>
-                    </div>
-                </div>
-                <div class="redeem-section">
-                    <h3>🌳 Create Virtual Referral</h3>
-                    <p style="color: rgba(255,255,255,0.7);">You can redeem <span id="virtualTreeCost">100</span> points
-                        to create a virtual referral in your tree.</p>
-                    <button class="btn-primary" id="redeemBtn" onclick="redeemVirtualReferral()">🎁 Redeem <span
-                            id="virtualTreeCostBtn">100</span> Points for Virtual Referral</button>
-                </div>
-                <div class="cash-conversion-section">
-                    <h3>💰 Convert Points to Cash</h3>
-                    <div class="conversion-rate-box">
-                        <h4>📊 Current Conversion Rate</h4>
-                        <div class="rate-value" id="conversionRateDisplay">50 Points = ₹25</div>
-                        <div class="rate-sub">(1 Point = ₹<span id="perPointValue">0.50</span>)</div>
-                    </div>
-                    <div class="available-points-box">
-                        <div class="avail-row"><span class="avail-label">Available for conversion:</span><span
-                                class="avail-value points" id="availableForConversion">0 points</span></div>
-                        <div class="avail-row"><span class="avail-label">Maximum cash you can get:</span><span
-                                class="avail-value cash">₹<span id="maxCashPossible">0</span></span></div>
-                    </div>
-                    <div class="conversion-form">
-                        <div class="convert-input-row">
-                            <input type="number" id="pointsToConvert" placeholder="Enter points to convert" min="0"
-                                step="50">
-                            <button class="btn-primary" onclick="convertPointsToCash()" id="convertBtn" disabled>💸
-                                Convert to Cash</button>
-                        </div>
-                        <div id="conversionPreview" class="conversion-preview" style="display: none;">
-                            <div class="preview-text"><span id="previewPoints">0</span> Points → ₹<span
-                                    id="previewCash">0</span></div>
-                        </div>
-                        <small class="convert-note">Points must be in increments of <span
-                                id="conversionIncrement">50</span>. Conversion is instant and irreversible.</small>
-                    </div>
-                </div>
-                <div class="points-history" style="margin-top: 30px;">
-                    <h3>📋 Points History</h3>
-                    <div id="pointsHistoryList">Loading...</div>
-                </div>
-            </div>
-
         </div>
     </main>
 
-    <!-- UTR Update Modal -->
-    <div id="utrModal" class="modal" style="display: none;">
+    <!-- 4. UTR UPDATE MODAL -->
+    <div id="utrModal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="utrModalTitle">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>📝 Add/Update UTR Number</h3><button class="close" onclick="closeUTRModal()">&times;</button>
+                <h3 id="utrModalTitle">📝 Add / Update UTR Number</h3>
+                <button type="button" class="close" onclick="closeUTRModal()" aria-label="Close modal">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="utrForm">
-                    <div class="form-group"><label for="utrNumber">UTR/Reference Number *</label><input type="text"
-                            id="utrNumber" required placeholder="Enter 12-digit UTR number"><small>Find this in your
-                            bank statement or transfer receipt</small></div>
-                    <div class="form-group"><label for="transferDate">Transfer/Check Date</label><input type="date"
-                            id="transferDate"></div>
+                    <div class="form-group">
+                        <label for="utrNumber">UTR / Reference Number *</label>
+                        <input type="text" id="utrNumber" required placeholder="Enter 12-digit UTR number">
+                        <small style="color: var(--sm-muted); font-size: 11.5px; display: block; margin-top: 4px;">Found on your bank transfer receipt or UPI app transaction details</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="transferDate">Transfer Date</label>
+                        <input type="date" id="transferDate">
+                    </div>
                     <div class="info-box blue">
                         <h4>ℹ️ Instructions</h4>
                         <ul>
-                            <li>UTR number is usually 12 digits long</li>
-                            <li>You can find it in your bank statement</li>
-                            <li>For checks, add UTR after the check clears</li>
-                            <li>This helps us verify your payment faster</li>
+                            <li>UTR numbers are typically 12 characters/digits long</li>
+                            <li>Adding UTR expedites payment reconciliation and order dispatch</li>
                         </ul>
                     </div>
-                    <div class="modal-actions"><button type="submit" class="btn-primary">💾 Save UTR
-                            Number</button><button type="button" onclick="closeUTRModal()"
-                            class="btn-secondary">Cancel</button></div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-primary" style="flex: 1;">💾 Save UTR Number</button>
+                        <button type="button" onclick="closeUTRModal()" class="btn-secondary">Cancel</button>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <!-- 5. VIP MASTER CARD WITHDRAWAL MODAL -->
+    <div id="vipWithdrawModal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="vipWithdrawTitle">
+        <div class="vip-modal-content">
+            <!-- Header -->
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">👑</span>
+                    <div>
+                        <h3 id="vipWithdrawTitle" style="margin: 0; font-size: 18px; font-weight: 700;">VIP Master Card Withdrawal</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--sm-muted);" id="vipModalCardInfo">Card: VIP 0000 0001 (Tier 01)</p>
+                    </div>
+                </div>
+                <button type="button" class="close" onclick="closeVipWithdrawModal()" aria-label="Close modal">&times;</button>
+            </div>
+
+            <!-- Body -->
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- Balance & Limit Box -->
+                <div style="background: var(--sm-surface-warm); border: 1px solid var(--sm-border); border-radius: 12px; padding: 14px 16px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: var(--sm-muted); font-size: 13px;">Available Balance:</span>
+                        <span style="font-weight: 700; color: var(--sm-success); font-size: 15px;" id="vipModalAvailableBalance">₹0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: var(--sm-muted); font-size: 13px;">Mandatory Reserve Balance:</span>
+                        <span style="font-weight: 600; color: var(--sm-gold-dark); font-size: 13px;">₹50.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px dashed var(--sm-border-light);">
+                        <span style="color: var(--sm-ink); font-size: 13px; font-weight: 600;">Max Withdrawable:</span>
+                        <span style="font-weight: 700; color: var(--sm-ink); font-size: 15px;" id="vipModalMaxWithdrawable">₹0.00</span>
+                    </div>
+                </div>
+
+                <!-- Rules Notice -->
+                <div style="background: #FFFBEB; border-left: 3px solid #F59E0B; padding: 10px 14px; border-radius: 6px; font-size: 12px; color: #92400E;">
+                    <div style="font-weight: 600; margin-bottom: 2px;">📋 VIP Withdrawal Rules:</div>
+                    <ul style="margin: 4px 0 0 16px; padding: 0;">
+                        <li>Minimum withdrawal amount allowed is <b>₹500</b>.</li>
+                        <li>A mandatory balance of at least <b>₹50</b> must remain in the VIP card.</li>
+                    </ul>
+                </div>
+
+                <!-- Payment Destination Section -->
+                <div class="payment-destination-section">
+                    <!-- Saved Details View -->
+                    <div id="savedPaymentContainer" style="display: none; background: var(--sm-surface-warm); padding: 14px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--sm-border);">
+                        <h4 style="margin-top: 0; font-size: 13px; margin-bottom: 6px; color: var(--sm-ink);">📋 Saved Payment Destination</h4>
+                        <div id="savedPaymentDetailsText" style="color: var(--sm-body); font-size: 12.5px; line-height: 1.5;"></div>
+                        <button type="button" id="changePaymentBtn" class="btn-secondary" style="margin-top: 8px; padding: 4px 10px; font-size: 11.5px;">✏️ Change Payment Details</button>
+                    </div>
+
+                    <!-- Payment Input Form -->
+                    <div id="paymentFormContainer">
+                        <h4 style="margin-top: 0; font-size: 13px; margin-bottom: 8px; color: var(--sm-ink);">🏦 Setup Payment Destination</h4>
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <label style="font-size: 12px; margin-bottom: 2px;">Account Holder Name *</label>
+                            <input type="text" id="vipAccountHolderName" placeholder="Enter account holder name" style="width: 100%; padding: 8px 10px; font-size: 13px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <label style="font-size: 12px; margin-bottom: 2px;">Account Number</label>
+                            <input type="text" id="vipAccountNumber" placeholder="Bank Account Number" style="width: 100%; padding: 8px 10px; font-size: 13px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <label style="font-size: 12px; margin-bottom: 2px;">IFSC Code</label>
+                            <input type="text" id="vipIfscCode" placeholder="e.g. SBIN0001234" style="width: 100%; padding: 8px 10px; font-size: 13px; text-transform: uppercase;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <label style="font-size: 12px; margin-bottom: 2px;">Bank Name</label>
+                            <input type="text" id="vipBankName" placeholder="e.g. State Bank of India, HDFC" style="width: 100%; padding: 8px 10px; font-size: 13px;">
+                        </div>
+                        <div style="text-align: center; margin: 8px 0; color: var(--sm-muted); font-size: 11px;">— OR USE UPI —</div>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label style="font-size: 12px; margin-bottom: 2px;">UPI / PhonePe / GPay ID</label>
+                            <input type="text" id="vipUpiId" placeholder="username@upi" style="width: 100%; padding: 8px 10px; font-size: 13px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Optional Scanner / QR Upload Field for VIP -->
+                <div style="padding: 12px; background: var(--sm-surface-warm); border: 1px dashed var(--sm-gold); border-radius: 8px;">
+                    <label style="font-size: 12px; color: var(--sm-ink); display: block; margin-bottom: 4px; font-weight: 600;">📷 Upload UPI Scanner / QR Code (Optional)</label>
+                    <input type="file" id="vipScannerFileInput" accept="image/*" onchange="handleVipScannerFileSelected(event)"
+                        style="width: 100%; box-sizing: border-box; padding: 6px; background: #fff; border: 1px solid var(--sm-border); border-radius: 4px; font-size: 12px;">
+                    
+                    <div id="vipScannerPreviewContainer" style="display: none; align-items: center; gap: 10px; margin-top: 8px; padding: 6px 10px; background: #fff; border-radius: 6px; border: 1px solid var(--sm-border);">
+                        <img id="vipScannerThumb" src="" alt="Scanner Preview" style="width: 44px; height: 44px; object-fit: cover; border-radius: 4px; border: 1px solid var(--sm-gold);">
+                        <div style="flex: 1;">
+                            <span style="font-size: 12px; color: var(--sm-success); font-weight: 600; display: block;">✅ Attached</span>
+                            <span id="vipScannerFileName" style="font-size: 11px; color: var(--sm-muted); word-break: break-all;">Ready</span>
+                        </div>
+                        <button type="button" onclick="removeVipScannerFile()" style="background: none; border: none; color: var(--sm-danger); font-size: 12px; cursor: pointer; text-decoration: underline;">✕ Remove</button>
+                    </div>
+                    <div id="vipQrScanStatus" style="display: none; margin-top: 5px; font-size: 12px; line-height: 1.4;"></div>
+                </div>
+
+                <!-- Input Amount -->
+                <div>
+                    <label for="vipWithdrawAmountInput" style="display: block; font-size: 13px; font-weight: 600; color: var(--sm-ink); margin-bottom: 4px;">
+                        Withdrawal Amount (₹) *
+                    </label>
+                    <input type="number" id="vipWithdrawAmountInput" min="500" step="1"
+                        placeholder="Enter amount (min 500)" oninput="updateVipWithdrawPreview()"
+                        style="width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1.5px solid var(--sm-border); border-radius: 8px; font-size: 16px; font-weight: 600;">
+                </div>
+
+                <!-- Quick Preset Buttons -->
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" onclick="setVipWithdrawPreset(500)" class="btn-secondary" style="flex: 1; padding: 6px 8px; font-size: 12px;">₹500</button>
+                    <button type="button" onclick="setVipWithdrawPreset(1000)" class="btn-secondary" style="flex: 1; padding: 6px 8px; font-size: 12px;">₹1,000</button>
+                    <button type="button" onclick="setVipWithdrawPreset('max')" class="btn-secondary" style="flex: 1.2; padding: 6px 8px; font-size: 12px; font-weight: 700; color: var(--sm-gold-dark);">⚡ Max Allowed</button>
+                </div>
+
+                <!-- Real-time Preview Calculation Box -->
+                <div id="vipWithdrawPreviewBox" style="display: none; background: var(--sm-surface-warm); border: 1px solid var(--sm-border); border-radius: 8px; padding: 12px 14px; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="color: var(--sm-muted);">Requested Amount:</span>
+                        <span style="font-weight: 600; color: var(--sm-ink);" id="vipPreviewRequested">₹0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="color: var(--sm-muted);">Remaining Balance:</span>
+                        <span style="font-weight: 700;" id="vipPreviewRemaining">₹0.00</span>
+                    </div>
+                    <div id="vipPreviewValidationMsg" style="font-size: 12px; margin-top: 4px; padding-top: 6px; border-top: 1px dashed var(--sm-border-light);"></div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="modal-actions">
+                    <button type="button" onclick="closeVipWithdrawModal()" class="btn-secondary" style="flex: 1;">Cancel</button>
+                    <button type="button" id="vipSubmitWithdrawBtn" onclick="submitVipWithdrawal()" class="btn-primary" style="flex: 2;">
+                        <span>💸 Submit Request</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction Details Modal -->
+    <div id="txDetailsModal" class="modal tx-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="txDetailsTitle">
+        <div class="modal-content tx-modal-content">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">📄</span>
+                    <h3 id="txDetailsTitle" style="margin: 0; font-size: 17px; font-weight: 700;">Transaction Details</h3>
+                </div>
+                <button type="button" class="close" onclick="closeTxDetailsModal()" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="tx-details-body" id="txDetailsModalBody">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button type="button" onclick="closeTxDetailsModal()" class="btn-secondary" style="width: 100%;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hide Transaction Confirmation Modal -->
+    <div id="txHideConfirmModal" class="modal tx-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="txHideConfirmTitle">
+        <div class="modal-content tx-modal-content">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px; color: var(--sm-gold-dark);">👁️‍🗨️</span>
+                    <h3 id="txHideConfirmTitle" style="margin: 0; font-size: 17px; font-weight: 700;">Hide Transaction</h3>
+                </div>
+                <button type="button" class="close" onclick="closeTxHideConfirmModal()" aria-label="Close modal">&times;</button>
+            </div>
+            <div style="padding: 10px 0; color: var(--sm-ink); font-size: 14px;">
+                <p style="margin: 0 0 10px 0; font-weight: 600; font-size: 15px;">Hide this transaction from your history?</p>
+                <p style="margin: 0 0 8px 0; color: var(--sm-muted); font-size: 13px; line-height: 1.5;">
+                    This transaction will be hidden from your account view. Your wallet balance and calculations will not be changed.
+                </p>
+                <div id="txHidePreviewCard" style="background: var(--sm-surface-warm); padding: 12px; border-radius: 8px; border: 1px solid var(--sm-border); font-size: 13px; margin-top: 12px;">
+                    <!-- Snippet preview of the transaction -->
+                </div>
+            </div>
+            <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="closeTxHideConfirmModal()" class="btn-secondary" style="flex: 1;">Cancel</button>
+                <button type="button" id="confirmHideTxBtn" onclick="submitHideTransaction()" class="btn-primary" style="flex: 1.3; background: var(--sm-ink); border-color: var(--sm-ink);">
+                    Hide Transaction
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Permanent Delete Confirmation Modal -->
+    <div id="txAdminDeleteModal" class="modal tx-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="txAdminDeleteTitle">
+        <div class="modal-content tx-modal-content" style="border-top: 4px solid var(--sm-danger);">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px; color: var(--sm-danger);">⚠️</span>
+                    <h3 id="txAdminDeleteTitle" style="margin: 0; font-size: 17px; font-weight: 700; color: var(--sm-danger);">Delete Permanently (Admin)</h3>
+                </div>
+                <button type="button" class="close" onclick="closeTxAdminDeleteModal()" aria-label="Close modal">&times;</button>
+            </div>
+            <div style="padding: 10px 0; color: var(--sm-ink); font-size: 14px;">
+                <p style="margin: 0 0 10px 0; font-weight: 700; color: var(--sm-danger); font-size: 15px;">This action cannot be undone.</p>
+                <p style="margin: 0 0 8px 0; color: var(--sm-muted); font-size: 13px; line-height: 1.5;">
+                    Permanently deleting this financial record will purge it from database records. Are you sure you wish to proceed?
+                </p>
+                <div id="txAdminDeletePreviewCard" style="background: rgba(220, 53, 69, 0.06); padding: 12px; border-radius: 8px; border: 1px solid rgba(220, 53, 69, 0.2); font-size: 13px; margin-top: 12px;">
+                    <!-- Snippet preview -->
+                </div>
+            </div>
+            <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="closeTxAdminDeleteModal()" class="btn-secondary" style="flex: 1;">Cancel</button>
+                <button type="button" id="confirmAdminDeleteTxBtn" onclick="submitAdminPermanentDelete()" class="btn-primary" style="flex: 1.4; background: var(--sm-danger); border-color: var(--sm-danger);">
+                    Delete Permanently
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="txToastContainer" class="tx-toast-container" aria-live="polite"></div>
+
+    <!-- 6. GLOBAL FOOTER -->
+    <footer class="main-footer" role="contentinfo">
+        <div class="container">
+            <div class="footer-grid">
+                <!-- ABOUT Column -->
+                <div class="footer-brand-col">
+                    <a href="/" class="footer-brand-link">
+                        <img src="/images/press.png" alt="Shree Mata" width="40" height="40">
+                        <span class="footer-brand-name">Shree Mata</span>
+                    </a>
+                    <p class="footer-tagline">
+                        Disseminating Knowledge — Providing authentic Karnataka state syllabus and CBSE curriculum textbooks, guides, and complete grade book sets.
+                    </p>
+                    <div class="footer-trust-badge">
+                        <span>🛡️ 100% Genuine Educational Material</span>
+                    </div>
+                </div>
+
+                <!-- SHOP & CATEGORIES Column -->
+                <div>
+                    <h4 class="footer-col-title">SHOP & CATEGORIES</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="/#booksSection">Textbooks Catalog</a></li>
+                        <li><a href="/#bundlesSection">Complete Book Sets</a></li>
+                        <li><a href="/#classSection">Class 10 Curriculum</a></li>
+                        <li><a href="/#subjectSection">Categories & Subjects</a></li>
+                    </ul>
+                </div>
+
+                <!-- CUSTOMER CARE Column -->
+                <div>
+                    <h4 class="footer-col-title">CUSTOMER CARE</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="/orders.html">Track Order</a></li>
+                        <li><a href="/account.html">My Account</a></li>
+                        <li><a href="/#trustSection">Shipping & Pickup</a></li>
+                        <li><a href="/#trustSection">Terms & Returns</a></li>
+                    </ul>
+                </div>
+
+                <!-- ACCOUNT Column -->
+                <div>
+                    <h4 class="footer-col-title">ACCOUNT</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="/account.html">Profile Overview</a></li>
+                        <li><a href="/orders.html">My Orders</a></li>
+                        <li><a href="/referral.html">Referral & Rewards</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer Bottom Bar -->
+            <div class="footer-bottom">
+                <span>© 2026 Shree Mata. All rights reserved.</span>
+                <div style="display: flex; gap: 16px;">
+                    <span>Curriculum Books</span>
+                    <span>•</span>
+                    <span>Secure Checkout</span>
+                    <span>•</span>
+                    <span>Store Pickup & Delivery</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 7. MOBILE NAVIGATION DRAWER -->
+    <div id="mobileNavDrawer" class="mobile-nav-drawer" aria-hidden="true">
+        <div id="drawerBackdrop" class="drawer-backdrop"></div>
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <a href="/" class="brand-logo" aria-label="Shree Mata">
+                    <img src="/images/press.png" alt="Shree Mata" width="36" height="36">
+                    <span class="brand-title" style="font-size: 18px;">Shree Mata</span>
+                </a>
+                <button type="button" id="drawerCloseBtn" class="drawer-close-btn" aria-label="Close menu">&times;</button>
+            </div>
+            <nav class="drawer-nav">
+                <a href="/#booksSection" class="drawer-link">📚 All Books</a>
+                <a href="/#bundlesSection" class="drawer-link">🎁 Complete Book Sets</a>
+                <a href="/#classSection" class="drawer-link">🎓 Class 10 Curriculum</a>
+                <a href="/#subjectSection" class="drawer-link">🏷️ Categories & Subjects</a>
+                <a href="/#notificationsSection" class="drawer-link">🎉 Offers & Deals</a>
+                <a href="/orders.html" class="drawer-link">📦 Track Orders</a>
+                <a href="/cart.html" class="drawer-link">🛒 Shopping Cart</a>
+            </nav>
+            <div id="drawerAuthSection" class="drawer-auth">
+                <!-- Guest View -->
+                <div id="drawerGuestAuth" class="drawer-auth-buttons">
+                    <a href="/login.html" class="btn-secondary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">Log In</a>
+                    <a href="/signup.html" class="btn-primary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center;">Sign Up</a>
+                </div>
+                <!-- Logged In View -->
+                <div id="drawerUserAuth" class="drawer-user-menu" style="display: none;">
+                    <div class="drawer-user-info" style="display: flex; align-items: center; gap: 10px; padding: 8px 0 14px; border-bottom: 1px solid var(--sm-border-light); margin-bottom: 10px;">
+                        <span class="user-avatar-icon" style="font-size: 20px;">👤</span>
+                        <div>
+                            <span style="font-size: 11px; color: var(--sm-muted); text-transform: uppercase; display: block;">Signed in as</span>
+                            <span id="drawerUserName" style="font-size: 14.5px; font-weight: 700; color: var(--sm-ink);">User</span>
+                        </div>
+                    </div>
+                    <div class="drawer-user-links" style="display: flex; flex-direction: column; gap: 4px;">
+                        <a href="/account.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">👤 My Account</a>
+                        <a href="/orders.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">📦 My Orders</a>
+                        <a href="/referral.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">💰 Referral & Rewards</a>
+                        <a href="/admin.html" id="drawerAdminLink" class="drawer-link" style="min-height: 44px; padding: 10px 12px; display: none;">⚙️ Admin Dashboard</a>
+                        <button type="button" id="drawerLogoutBtn" class="btn-logout-item" style="min-height: 44px; padding: 10px 12px; margin-top: 4px;">🚪 Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="/js/config.js"></script>
+    <script src="/js/cartUtils.js"></script>
     <script src="/js/cloudinaryUpload.js"></script>
+    <script src="/js/global.js"></script>
+    <script src="/js/global-nav.js"></script>
     <script src="/js/account.js"></script>
 
     <script>
-        // Enhance menu active state visually
+        // Sidebar active tab state and display sync
         document.addEventListener('DOMContentLoaded', () => {
-            const buttons = document.querySelectorAll('.account-menu button');
-            buttons.forEach(btn => {
+            const menuButtons = document.querySelectorAll('.account-menu button:not(.logout-btn-item)');
+            menuButtons.forEach(btn => {
                 btn.addEventListener('click', function () {
-                    buttons.forEach(b => b.classList.remove('active'));
+                    menuButtons.forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                 });
             });
-            if (buttons.length > 0) buttons[0].classList.add('active');
 
-            // Load orders immediately
-            loadAccountOrders();
+            // Populate user greeting if present
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                if (user && user.name) {
+                    const sbUser = document.getElementById('sidebarUserName');
+                    if (sbUser) sbUser.textContent = user.name;
+                    const pName = document.getElementById('profileDisplayName');
+                    if (pName) pName.textContent = user.name;
+                    const pEmail = document.getElementById('profileDisplayEmail');
+                    if (pEmail) pEmail.textContent = user.email || '—';
+                }
+            } catch (e) {}
         });
+
+        // Safe helper to update profile display fields
+        const origLoadProfile = window.loadProfile;
+        if (typeof origLoadProfile === 'function') {
+            window.loadProfile = async function() {
+                await origLoadProfile();
+                try {
+                    const user = JSON.parse(localStorage.getItem('user') || '{}');
+                    if (user && user.name) {
+                        const sbUser = document.getElementById('sidebarUserName');
+                        if (sbUser) sbUser.textContent = user.name;
+                        const pName = document.getElementById('profileDisplayName');
+                        if (pName) pName.textContent = user.name;
+                        const pEmail = document.getElementById('profileDisplayEmail');
+                        if (pEmail) pEmail.textContent = user.email || '—';
+                    }
+                } catch(e) {}
+            };
+        }
 
         let allAccountOrders = [];
 
@@ -1680,28 +1151,36 @@
                     allAccountOrders = data.orders;
                     renderAccountOrders(allAccountOrders);
                 } else {
-                    showAccEmptyState("No orders found. Start shopping to see your order history here!");
+                    showAccEmptyState("No orders found. Explore our textbook catalog to start shopping!");
                 }
             } catch (err) {
                 console.error("Error loading account orders:", err);
-                document.getElementById('ordersList').innerHTML = `<p style="text-align:center; color:#fca5a5; padding: 40px;">Failed to load orders. Please try again later.</p>`;
+                const ordersList = document.getElementById('ordersList');
+                if (ordersList) {
+                    ordersList.innerHTML = `<p style="text-align:center; color:var(--sm-danger); padding: 40px;">Failed to load orders. Please try again later.</p>`;
+                }
             }
         }
 
         function showAccEmptyState(message) {
-            document.getElementById('ordersList').innerHTML = `
-            <div class="acc-empty-state">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
-                    <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
-                </svg>
-                <p>${message}</p>
-            </div>
-        `;
+            const ordersList = document.getElementById('ordersList');
+            if (!ordersList) return;
+            ordersList.innerHTML = `
+                <div style="text-align: center; padding: 48px 20px; color: var(--sm-muted);">
+                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 14px auto; display: block; color: var(--sm-gold);">
+                        <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+                        <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
+                    </svg>
+                    <p style="font-size: 15px; color: var(--sm-body); margin: 0 0 16px 0;">${message}</p>
+                    <a href="/#booksSection" class="btn-primary" style="display: inline-flex;">Browse Books</a>
+                </div>
+            `;
         }
 
         function renderAccountOrders(orders) {
             const container = document.getElementById('ordersList');
+            if (!container) return;
+
             if (!orders || orders.length === 0) {
                 showAccEmptyState("No orders match this filter.");
                 return;
@@ -1712,16 +1191,16 @@
                 const statusClass = `acc-status-${status}`;
                 const displayStatus = status.replace('_', ' ');
 
-                const itemsHTML = order.items.map(item => `
-                <div class="acc-order-item">
-                    <img src="${item.coverImage || 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"60\" height=\"80\"%3E%3Crect fill=\"%231a1860\" width=\"60\" height=\"80\"/%3E%3Ctext fill=\"%23c9a227\" font-family=\"Arial\" font-size=\"10\" x=\"50%25\" y=\"50%25\" text-anchor=\"middle\" dy=\".3em\"%3EBook%3C/text%3E%3C/svg%3E'}" alt="${item.title}">
-                    <div class="acc-order-item-info">
-                        <div class="acc-order-item-title">${item.title}</div>
-                        <div class="acc-order-item-meta">${item.author || 'Unknown Author'} • Qty: ${item.quantity}</div>
-                        <div class="acc-order-item-price">₹${item.price}</div>
+                const itemsHTML = (order.items || []).map(item => `
+                    <div class="acc-order-item">
+                        <img src="${item.coverImage || '/images/press.png'}" alt="${item.title || 'Book'}" onerror="this.src='/images/press.png'">
+                        <div class="acc-order-item-info">
+                            <div class="acc-order-item-title">${item.title || 'Book Title'}</div>
+                            <div class="acc-order-item-meta">${item.author || 'Shree Mata'} • Qty: ${item.quantity || 1}</div>
+                            <div class="acc-order-item-price">₹${Number(item.price || 0).toFixed(2)}</div>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
 
                 let addressHTML = '';
                 if (order.deliveryAddress && (order.deliveryAddress.homeAddress1 || order.deliveryAddress.street)) {
@@ -1729,78 +1208,76 @@
                     const line1 = addr.homeAddress1 || addr.street || '';
                     const line2 = [addr.village || addr.city, addr.taluk, addr.district, addr.state, addr.pincode].filter(Boolean).join(', ');
                     addressHTML = `
-                    <div class="acc-order-section acc-section-address">
-                        <h4>📍 Delivery Address</h4>
-                        <p><strong>${line1}</strong></p>
-                        <p>${line2}</p>
-                        ${addr.phone ? `<p>📞 ${addr.phone}</p>` : ''}
-                    </div>
-                `;
+                        <div class="acc-order-section">
+                            <h4>📍 Delivery Address</h4>
+                            <p><strong>${line1}</strong></p>
+                            <p>${line2}</p>
+                            ${addr.phone ? `<p>📞 ${addr.phone}</p>` : ''}
+                        </div>
+                    `;
                 }
 
                 let trackingHTML = '';
                 if (order.trackingInfo && (order.trackingInfo.trackingId || order.trackingInfo.trackingUrl)) {
                     trackingHTML = `
-                    <div class="acc-order-section acc-section-tracking">
-                        <h4>🚚 Tracking Info</h4>
-                        ${order.trackingInfo.trackingId ? `<p><strong>ID:</strong> ${order.trackingInfo.trackingId}</p>` : ''}
-                        ${order.trackingInfo.trackingUrl ? `<p><a href="${order.trackingInfo.trackingUrl}" target="_blank">Track Order on Courier Website →</a></p>` : ''}
-                    </div>
-                `;
+                        <div class="acc-order-section">
+                            <h4>🚚 Tracking Info</h4>
+                            ${order.trackingInfo.trackingId ? `<p><strong>ID:</strong> ${order.trackingInfo.trackingId}</p>` : ''}
+                            ${order.trackingInfo.trackingUrl ? `<p><a href="${order.trackingInfo.trackingUrl}" target="_blank" style="color:var(--sm-navy); font-weight:600;">Track Order on Courier Website →</a></p>` : ''}
+                        </div>
+                    `;
                 }
 
                 let offerHTML = '';
                 if (order.appliedOffer) {
                     offerHTML = `
-                    <div class="acc-order-section acc-section-offer">
-                        <h4>🎉 ${order.appliedOffer.offerTitle}</h4>
-                        <p>You saved <strong>₹${order.appliedOffer.savings.toFixed(2)}</strong> on this order!</p>
-                    </div>
-                `;
+                        <div class="acc-order-section" style="background:#ECFDF5; border-color:#A7F3D0; color:#065F46;">
+                            <h4 style="color:#065F46;">🎉 ${order.appliedOffer.offerTitle || 'Applied Offer'}</h4>
+                            <p>You saved <strong>₹${Number(order.appliedOffer.savings || 0).toFixed(2)}</strong> on this order!</p>
+                        </div>
+                    `;
                 }
 
                 const isBillable = order.status !== 'cancelled' && order.status !== 'failed';
                 const invoiceButtonHTML = isBillable ? `
-                <a href="/invoice.html?orderId=${order._id}" target="_blank" class="acc-btn-invoice">
-                    📄 Download Bill / Invoice
-                </a>
-            ` : '';
+                    <a href="/invoice.html?orderId=${order._id}" target="_blank" class="acc-btn-invoice">
+                        📄 Download Bill / Invoice
+                    </a>
+                ` : '';
 
                 return `
-                <div class="acc-order-card">
-                    <div class="acc-order-header">
-                        <div>
-                            <div class="acc-order-id">#${order._id.slice(-8).toUpperCase()}</div>
-                            <div class="acc-order-date">${new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                    <div class="acc-order-card">
+                        <div class="acc-order-header">
+                            <div>
+                                <div class="acc-order-id">#${(order._id || '').slice(-8).toUpperCase()}</div>
+                                <div class="acc-order-date">${order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent'}</div>
+                            </div>
+                            <div class="acc-order-status ${statusClass}">${displayStatus}</div>
                         </div>
-                        <div class="acc-order-status ${statusClass}">${displayStatus}</div>
-                    </div>
-                    
-                    <div class="acc-order-body">
-                        <div class="acc-order-items">${itemsHTML}</div>
-                        ${addressHTML}
-                        ${trackingHTML}
-                        ${offerHTML}
-                    </div>
-                    
-                    <div class="acc-order-footer">
-                        <div>
-                            <div class="acc-order-total">Total: ₹${order.totalAmount}</div>
-                            <div class="acc-order-payment">ID: ${order.razorpay_payment_id || 'N/A'}</div>
+                        
+                        <div class="acc-order-body">
+                            <div class="acc-order-items">${itemsHTML}</div>
+                            ${addressHTML}
+                            ${trackingHTML}
+                            ${offerHTML}
                         </div>
-                        ${invoiceButtonHTML}
+                        
+                        <div class="acc-order-footer">
+                            <div>
+                                <div class="acc-order-total">Total: ₹${Number(order.totalAmount || 0).toFixed(2)}</div>
+                                <div class="acc-order-payment">Payment ID: ${order.razorpay_payment_id || 'Direct / Bank'}</div>
+                            </div>
+                            ${invoiceButtonHTML}
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
             }).join('');
         }
 
         function filterAccountOrders(status, btn) {
-            // Update tabs UI
             document.querySelectorAll('.order-tab').forEach(tab => tab.classList.remove('active'));
-            btn.classList.add('active');
+            if (btn) btn.classList.add('active');
 
-            // Filter and render
             if (status === 'all') {
                 renderAccountOrders(allAccountOrders);
             } else {
@@ -1813,197 +1290,10 @@
         }
     </script>
 
-    <!-- VIP Master Card Withdrawal Modal -->
-    <div id="vipWithdrawModal" class="modal"
-        style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.75); backdrop-filter: blur(4px); align-items: center; justify-content: center; overflow-y: auto;">
-        <div class="vip-modal-content"
-            style="padding: 24px 28px; background: #1a1a1a; border-radius: 12px; max-width: 520px; width: 92%; margin: 40px auto; color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1.5px solid #d4af37; overflow: hidden; animation: modalFadeIn 0.25s ease-out; box-sizing: border-box;">
-            <!-- Header -->
-            <div
-                style="padding: 0 0 16px 0; border-bottom: 1px solid rgba(212, 175, 55, 0.3); display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 24px;">👑</span>
-                    <div>
-                        <h3
-                            style="margin: 0; color: #d4af37; font-size: 18px; font-weight: 700; font-family: 'Playfair Display', serif;">
-                            VIP Master Card Withdrawal</h3>
-                        <p style="margin: 2px 0 0 0; font-size: 12px; color: #a8a29e;" id="vipModalCardInfo">Card: VIP
-                            0000 0001 (Tier 01)</p>
-                    </div>
-                </div>
-                <button type="button" onclick="closeVipWithdrawModal()"
-                    style="background: transparent; border: none; color: #a8a29e; font-size: 22px; cursor: pointer; padding: 4px 8px; line-height: 1;">✕</button>
-            </div>
-
-            <!-- Body -->
-            <div style="padding: 18px 0 0 0; display: flex; flex-direction: column; gap: 16px;">
-                <!-- Balance & Limit Details Box -->
-                <div
-                    style="background: rgba(212, 175, 55, 0.08); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 12px; padding: 14px 16px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span style="color: #a8a29e; font-size: 13px;">Available Balance:</span>
-                        <span style="font-weight: 700; color: #10b981; font-size: 15px;"
-                            id="vipModalAvailableBalance">₹0.00</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span style="color: #a8a29e; font-size: 13px;">Mandatory Reserve Balance:</span>
-                        <span style="font-weight: 600; color: #fbbf24; font-size: 13px;">₹50.00</span>
-                    </div>
-                    <div
-                        style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px dashed rgba(212, 175, 55, 0.2);">
-                        <span style="color: #f0e6d2; font-size: 13px; font-weight: 600;">Max Withdrawable:</span>
-                        <span style="font-weight: 700; color: #d4af37; font-size: 15px;"
-                            id="vipModalMaxWithdrawable">₹0.00</span>
-                    </div>
-                </div>
-
-                <!-- Rules notice banner -->
-                <div
-                    style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; padding: 10px 14px; border-radius: 6px; font-size: 12px; color: #fde68a;">
-                    <div style="font-weight: 600; margin-bottom: 2px;">📋 VIP Withdrawal Rules:</div>
-                    <ul style="margin: 4px 0 0 16px; padding: 0;">
-                        <li>Minimum withdrawal amount allowed is <b>₹500</b>.</li>
-                        <li>A mandatory balance of at least <b>₹50</b> must remain in the VIP card balance after
-                            withdrawal.</li>
-                    </ul>
-                </div>
-
-                <!-- Payment Destination Section -->
-                <div class="payment-destination-section">
-                    <!-- Existing Saved Details View (Shown if details exist) -->
-                    <div id="savedPaymentContainer" style="display: none; background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #444;">
-                        <h4 style="margin-top: 0; color: #fff; font-size: 14px; margin-bottom: 10px;">📋 Saved Payment Destination</h4>
-                        <div id="savedPaymentDetailsText" style="color: #ccc; font-size: 13px; line-height: 1.6;"></div>
-                        <button type="button" id="changePaymentBtn" style="margin-top: 10px; background: #333; color: #fff; border: 1px solid #555; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✏️ Change Payment Details</button>
-                    </div>
-
-                    <!-- Payment Input Form (Shown if no saved details or user clicks change) -->
-                    <div id="paymentFormContainer">
-                        <h4 style="margin-top: 0; color: #fff; font-size: 14px; margin-bottom: 10px;">🏦 Setup Payment Destination</h4>
-                        <p style="font-size: 12px; color: #aaa; margin-bottom: 12px;">Provide your bank or UPI details. These will be saved to your profile for this and future payouts.</p>
-                        
-                        <div class="form-group" style="margin-bottom: 10px;">
-                            <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 4px;">Account Holder Name *</label>
-                            <input type="text" id="vipAccountHolderName" placeholder="Enter account holder name" style="width: 100%; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;" />
-                        </div>
-                        <div class="form-group" style="margin-bottom: 10px;">
-                            <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 4px;">Account Number</label>
-                            <input type="text" id="vipAccountNumber" placeholder="Bank Account Number" style="width: 100%; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;" />
-                        </div>
-                        <div class="form-group" style="margin-bottom: 10px;">
-                            <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 4px;">IFSC Code</label>
-                            <input type="text" id="vipIfscCode" placeholder="E.G. SBIN0001234" style="width: 100%; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px; text-transform: uppercase;" />
-                        </div>
-                        <div class="form-group" style="margin-bottom: 15px;">
-                            <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 4px;">Bank Name</label>
-                            <input type="text" id="vipBankName" placeholder="e.g. State Bank of India, HDFC" style="width: 100%; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;" />
-                        </div>
-
-                        <div style="text-align: center; margin: 15px 0; color: #777; font-size: 12px;">— OR USE UPI —</div>
-
-                        <div class="form-group" style="margin-bottom: 12px;">
-                            <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 4px;">UPI / PhonePe / GPay ID</label>
-                            <input type="text" id="vipUpiId" placeholder="username@upi" style="width: 100%; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;" />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Optional Scanner / QR Upload Field for VIP (Always accessible) -->
-                <div style="margin-bottom: 15px; padding: 12px; background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.35); border-radius: 8px;">
-                    <label style="font-size: 12px; color: #d4af37; display: block; margin-bottom: 4px; font-weight: 600;">📷 Upload UPI Scanner / QR Code (optional)</label>
-                    <input type="file" id="vipScannerFileInput" accept="image/*" onchange="handleVipScannerFileSelected(event)"
-                        style="width: 100%; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px; font-size: 12px;" />
-                    <small style="display: block; color: #888; font-size: 11px; margin-top: 3px;">Optional: Upload photo of your UPI QR / Scanner so admin can scan & pay directly.</small>
-
-                    <!-- Preview Thumbnail Container -->
-                    <div id="vipScannerPreviewContainer" style="display: none; align-items: center; gap: 10px; margin-top: 8px; padding: 8px 12px; background: rgba(212, 175, 55, 0.08); border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.25);">
-                        <img id="vipScannerThumb" src="" alt="Scanner Preview" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid #d4af37;">
-                        <div style="flex: 1;">
-                            <span style="font-size: 12px; color: #10b981; font-weight: 600; display: block;">✅ Scanner QR Attached</span>
-                            <span id="vipScannerFileName" style="font-size: 11px; color: #888; word-break: break-all;">Ready to upload</span>
-                        </div>
-                        <button type="button" onclick="removeVipScannerFile()" style="background: none; border: none; color: #ef4444; font-size: 12px; cursor: pointer; padding: 2px 6px; text-decoration: underline;">✕ Remove</button>
-                    </div>
-                    <div id="vipQrScanStatus" style="display: none; margin-top: 5px; font-size: 12px; line-height: 1.4;"></div>
-                </div>
-
-                <!-- Input Amount -->
-                <div>
-                    <label for="vipWithdrawAmountInput"
-                        style="display: block; font-size: 13px; font-weight: 600; color: #f0e6d2; margin-bottom: 6px;">Withdrawal
-                        Amount (₹) *</label>
-                    <div style="position: relative;">
-                        <span
-                            style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #d4af37; font-weight: bold; font-size: 16px;">₹</span>
-                        <input type="number" id="vipWithdrawAmountInput" min="500" step="1"
-                            placeholder="Enter amount (min 500)" oninput="updateVipWithdrawPreview()"
-                            style="width: 100%; box-sizing: border-box; padding: 12px 14px 12px 30px; background: #120e0b; border: 1.5px solid rgba(212, 175, 55, 0.4); border-radius: 8px; color: #fff; font-size: 16px; font-weight: 600; outline: none; transition: border-color 0.2s;">
-                    </div>
-                </div>
-
-                <!-- Quick Preset Buttons -->
-                <div style="display: flex; gap: 8px;">
-                    <button type="button" onclick="setVipWithdrawPreset(500)"
-                        style="flex: 1; padding: 6px 8px; background: #26211a; border: 1px solid #d4af37; color: #f0e6d2; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">₹500</button>
-                    <button type="button" onclick="setVipWithdrawPreset(1000)"
-                        style="flex: 1; padding: 6px 8px; background: #26211a; border: 1px solid #d4af37; color: #f0e6d2; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">₹1,000</button>
-                    <button type="button" onclick="setVipWithdrawPreset('max')"
-                        style="flex: 1.2; padding: 6px 8px; background: #26211a; border: 1px solid #d4af37; color: #d4af37; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;">⚡
-                        Max Allowed</button>
-                </div>
-
-                <!-- Real-time Preview Calculation Box -->
-                <div id="vipWithdrawPreviewBox"
-                    style="display: none; background: #15110d; border: 1px solid #332a22; border-radius: 8px; padding: 12px 14px; font-size: 13px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <span style="color: #a8a29e;">Requested Amount:</span>
-                        <span style="font-weight: 600; color: #f0e6d2;" id="vipPreviewRequested">₹0.00</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                        <span style="color: #a8a29e;">Remaining Balance:</span>
-                        <span style="font-weight: 700;" id="vipPreviewRemaining">₹0.00</span>
-                    </div>
-                    <div id="vipPreviewValidationMsg"
-                        style="font-size: 12px; margin-top: 4px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.1);">
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div style="display: flex; gap: 12px; margin-top: 4px;">
-                    <button type="button" onclick="closeVipWithdrawModal()"
-                        style="flex: 1; padding: 12px; background: #26211a; border: 1px solid #443c33; color: #a8a29e; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
-                    <button type="button" id="vipSubmitWithdrawBtn" onclick="submitVipWithdrawal()"
-                        style="flex: 2; padding: 12px; background: linear-gradient(135deg, #d4af37 0%, #aa820a 100%); border: none; color: #181410; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);">
-                        <span>💸 Submit Request</span>
-                    </button>
-                </div>
-                <small style="text-align: center; color: #78716c; font-size: 11px;">Processed within 24-48 hours
-                    directly to your registered bank account or UPI.</small>
-            </div>
-        </div>
-    </div>
-
     <style>
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        @keyframes modalFadeIn {
-            from {
-                opacity: 0;
-                transform: scale(0.95);
-            }
-
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 

@@ -121,11 +121,32 @@
 
         /* Container & Header */
         .orders-container {
-            max-width: 1200px;
+            width: 100%;
+            max-width: var(--container-max, 1400px);
             margin: 40px auto;
-            padding: 0 20px;
+            padding-inline: 36px;
             position: relative;
             z-index: 1;
+            box-sizing: border-box;
+        }
+
+        @media (max-width: 1439px) {
+            .orders-container {
+                padding-inline: 28px;
+            }
+        }
+
+        @media (max-width: 1023px) {
+            .orders-container {
+                padding-inline: 20px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .orders-container {
+                padding-inline: 16px;
+                margin: 20px auto;
+            }
         }
         .page-header {
             background: rgba(15, 14, 42, 0.65);
@@ -427,13 +448,16 @@
         @media (max-width: 768px) {
             .navbar-content { flex-direction: column; gap: 15px; }
             .nav-links { flex-wrap: wrap; justify-content: center; gap: 10px; }
-            .page-header { padding: 20px; }
+            .page-header { padding: 20px 16px; border-radius: 16px; }
             .header-content { flex-direction: column; text-align: center; }
-            .order-header { flex-direction: column; gap: 10px; }
-            .order-item { flex-direction: column; align-items: center; text-align: center; }
-            .order-item img { width: 100%; max-width: 200px; height: 250px; }
-            .order-footer { flex-direction: column; align-items: center; text-align: center; }
-            .order-total { font-size: 28px; }
+            .order-card { padding: 20px 16px; border-radius: 16px; }
+            .order-header { flex-direction: column; gap: 10px; align-items: flex-start; }
+            .order-item { flex-direction: column; align-items: center; text-align: center; padding: 12px; }
+            .order-item img { width: 100%; max-width: 140px; height: auto; aspect-ratio: 3/4; }
+            .order-footer { flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+            .order-total { font-size: 26px; }
+            .order-payment-id { word-break: break-all; }
+            .info-box { padding: 12px 14px; }
         }
     </style>
 </head>

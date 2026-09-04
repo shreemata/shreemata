@@ -12,9 +12,29 @@ body {
 }
 
 .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
+    width: 100%;
+    max-width: var(--container-max, 1400px);
+    margin-inline: auto;
+    padding-inline: 36px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 1439px) {
+    .container {
+        padding-inline: 28px;
+    }
+}
+
+@media (max-width: 1023px) {
+    .container {
+        padding-inline: 20px;
+    }
+}
+
+@media (max-width: 767px) {
+    .container {
+        padding-inline: 16px;
+    }
 }
 
 header {
@@ -787,10 +807,6 @@ footer {
 
 /* Tablets and smaller */
 @media (max-width: 1024px) {
-    .container {
-        padding: 0 15px;
-    }
-
     .books-grid {
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         gap: 15px;
@@ -1319,9 +1335,6 @@ footer {
 
 /* Mobile-first approach */
 @media (max-width: 1200px) {
-    .container {
-        padding: 0 15px;
-    }
 }
 
 @media (max-width: 768px) {
@@ -1358,40 +1371,20 @@ footer {
         transition: all 0.3s ease;
     }
 
-    /* Container adjustments */
-    .container {
-        padding: 0 10px;
-    }
-
-    /* Form improvements */
-    input, select, textarea {
-        font-size: 16px !important; /* Prevents zoom on iOS */
-        padding: 12px 15px;
-        border-radius: 8px;
-    }
-
-    /* Button improvements */
-    .btn, .btn-primary, .btn-secondary {
-        min-height: 44px; /* iOS recommended touch target */
-        padding: 12px 20px;
-        font-size: 14px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
     /* Card layouts */
     .card, .book-card, .bundle-card {
         margin-bottom: 10px;
-        padding: 10px;
+        padding: 12px;
         border-radius: 8px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        box-sizing: border-box;
+        max-width: 100%;
     }
 
     /* Grid layouts */
     .books-grid, .bundles-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
+        gap: 12px;
     }
 
     /* Typography */
@@ -1402,8 +1395,10 @@ footer {
 
     /* Modal improvements */
     .modal, .modal-content {
-        padding: 15px;
-        margin: 10px;
+        padding: 20px 16px;
+        margin: 16px auto;
+        max-width: calc(100vw - 32px);
+        box-sizing: border-box;
         border-radius: 15px;
     }
 
@@ -1419,10 +1414,6 @@ footer {
 
 @media (max-width: 480px) {
     /* Extra small devices */
-    .container {
-        padding: 0 8px;
-    }
-
     .navbar-content {
         gap: 10px;
         padding: 8px 0;
