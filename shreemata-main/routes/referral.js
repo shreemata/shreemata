@@ -229,7 +229,8 @@ router.post("/withdraw", authenticateToken, async (req, res) => {
         const amount = Number(req.body.amount);
         
         // Check if bank details are setup or provided in request
-        const { accountHolderName, accountNumber, bankName, ifscCode, upiId } = req.body;
+        const { accountHolderName, accountNumber, bankName, ifscCode, upiId, scannerImageUrl, scannerImage, qrCodeData, paymentProof } = req.body;
+        const scannerPath = scannerImageUrl || scannerImage || qrCodeData || paymentProof || user.bankDetails?.scannerImageUrl || user.bankDetails?.scannerImage || null;
         const isBankSetup = user.bankDetails && user.bankDetails.isSetup;
 
         if (!isBankSetup) {
@@ -251,10 +252,18 @@ router.post("/withdraw", authenticateToken, async (req, res) => {
                 bankName: bankName ? bankName.trim() : null,
                 ifscCode: ifscCode ? ifscCode.trim().toUpperCase() : null,
                 upiId: upiId ? upiId.trim().toLowerCase() : null,
+                scannerImageUrl: scannerPath,
+                scannerImage: scannerPath,
+                qrCode: scannerPath,
+                qrCodeData: scannerPath,
                 isSetup: true,
                 setupDate: new Date(),
                 lastModifiedBy: 'user'
             };
+        } else if (scannerPath && (!user.bankDetails.scannerImageUrl && !user.bankDetails.scannerImage)) {
+            user.bankDetails.scannerImageUrl = scannerPath;
+            user.bankDetails.scannerImage = scannerPath;
+            user.bankDetails.qrCodeData = scannerPath;
         }
 
         // Get minimum withdrawal amount from settings
@@ -292,6 +301,19 @@ router.post("/withdraw", authenticateToken, async (req, res) => {
             bankName: user.bankDetails.bankName,
             bank: user.bankDetails.accountNumber,
             ifsc: user.bankDetails.ifscCode,
+            scannerImageUrl: scannerPath,
+            scannerImage: scannerPath,
+            qrCodeData: scannerPath,
+            paymentProof: scannerPath,
+            paymentDetails: {
+                scannerImageUrl: scannerPath,
+                scannerImage: scannerPath,
+                upiId: user.bankDetails.upiId || null,
+                accountNumber: user.bankDetails.accountNumber || null,
+                bankName: user.bankDetails.bankName || null,
+                ifscCode: user.bankDetails.ifscCode || null,
+                accountHolderName: user.bankDetails.accountHolderName || null
+            },
             date: new Date(),
             status: "pending" // Set to pending for admin approval
         });

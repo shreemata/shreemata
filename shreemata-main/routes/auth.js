@@ -1215,7 +1215,8 @@ router.get("/users/profile/vip-mastercards", authenticateToken, async (req, res)
 // POST USER VIP MASTER CARD WITHDRAWAL (ALIAS)
 router.post("/users/profile/vip-mastercards/withdraw", authenticateToken, async (req, res) => {
   try {
-    const { amount, cardNumber: requestedCardNumber, accountHolderName, accountNumber, bankName, ifscCode, upiId } = req.body;
+    const { amount, cardNumber: requestedCardNumber, accountHolderName, accountNumber, bankName, ifscCode, upiId, scannerImageUrl, scannerImage, qrCodeData, paymentProof } = req.body;
+    const scannerPath = scannerImageUrl || scannerImage || qrCodeData || paymentProof || null;
     const userId = req.user.id;
     const VipMasterCard = require("../models/VipMasterCard");
     const WalletTransaction = require("../models/WalletTransaction");
@@ -1251,32 +1252,27 @@ router.post("/users/profile/vip-mastercards/withdraw", authenticateToken, async 
     let cardTier = 1;
 
     if (requestedCardNumber) {
+      const isProfileCard = user.masterCard && user.masterCard.cardNumber === requestedCardNumber;
       targetCard = userCards.find(c => c.cardNumber === requestedCardNumber);
-      if (targetCard) {
-        cardNumber = targetCard.cardNumber;
-        cardTier = targetCard.tier;
-      } else if (user.masterCard && user.masterCard.isAssigned && user.masterCard.cardNumber === requestedCardNumber) {
-        cardNumber = user.masterCard.cardNumber;
-        cardTier = 1;
-      } else {
-        // Strict security check: card does not belong to authenticated user
-        return res.status(403).json({
-          error: "Unauthorized: You can only withdraw from a VIP Master Card assigned to your account."
-        });
+
+      if (!targetCard && !isProfileCard) {
+        return res.status(403).json({ error: "Unauthorized: You can only withdraw from a VIP Master Card assigned to your account." });
       }
+
+      cardNumber = requestedCardNumber;
+      cardTier = targetCard ? (targetCard.tier || 1) : 1;
     } else {
       if (userCards.length > 0) {
         targetCard = userCards[0];
         cardNumber = targetCard.cardNumber;
-        cardTier = targetCard.tier;
-      } else if (user.masterCard && user.masterCard.isAssigned && user.masterCard.cardNumber) {
+        cardTier = targetCard.tier || 1;
+      } else if (user.masterCard && user.masterCard.isAssigned) {
         cardNumber = user.masterCard.cardNumber;
-        cardTier = 1;
-      } else {
-        cardNumber = 'VIP Master Card';
         cardTier = 1;
       }
     }
+
+    // Balance check
     const availableBalance = Number(user.wallet || 0);
 
     if (numericAmount > availableBalance) {
@@ -1300,6 +1296,7 @@ router.post("/users/profile/vip-mastercards/withdraw", authenticateToken, async 
 
     // Payment Details Validation (Bank or UPI)
     const isBankSetup = user.bankDetails && user.bankDetails.isSetup;
+    const finalScannerPath = scannerPath || user.bankDetails?.scannerImageUrl || user.bankDetails?.scannerImage || null;
 
     if (!isBankSetup) {
       const hasUpi = Boolean(upiId && upiId.trim());
@@ -1320,10 +1317,18 @@ router.post("/users/profile/vip-mastercards/withdraw", authenticateToken, async 
         bankName: bankName ? bankName.trim() : null,
         ifscCode: ifscCode ? ifscCode.trim().toUpperCase() : null,
         upiId: upiId ? upiId.trim().toLowerCase() : null,
+        scannerImageUrl: finalScannerPath,
+        scannerImage: finalScannerPath,
+        qrCode: finalScannerPath,
+        qrCodeData: finalScannerPath,
         isSetup: true,
         setupDate: new Date(),
         lastModifiedBy: 'user'
       };
+    } else if (finalScannerPath && (!user.bankDetails.scannerImageUrl && !user.bankDetails.scannerImage)) {
+      user.bankDetails.scannerImageUrl = finalScannerPath;
+      user.bankDetails.scannerImage = finalScannerPath;
+      user.bankDetails.qrCodeData = finalScannerPath;
     }
 
     // Real-time balance deduction
@@ -1350,6 +1355,19 @@ router.post("/users/profile/vip-mastercards/withdraw", authenticateToken, async 
       bankName: user.bankDetails?.bankName || null,
       bank: user.bankDetails?.accountNumber || null,
       ifsc: user.bankDetails?.ifscCode || null,
+      scannerImageUrl: finalScannerPath,
+      scannerImage: finalScannerPath,
+      qrCodeData: finalScannerPath,
+      paymentProof: finalScannerPath,
+      paymentDetails: {
+        scannerImageUrl: finalScannerPath,
+        scannerImage: finalScannerPath,
+        upiId: user.bankDetails?.upiId || null,
+        accountNumber: user.bankDetails?.accountNumber || null,
+        bankName: user.bankDetails?.bankName || null,
+        ifscCode: user.bankDetails?.ifscCode || null,
+        accountHolderName: user.bankDetails?.accountHolderName || null
+      },
       status: "pending",
       requestedAt: new Date()
     };

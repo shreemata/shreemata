@@ -1487,24 +1487,30 @@
                                 — OR USE UPI —</div>
 
                             <div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                    <label style="font-size: 12px; color: #a8a29e;">UPI / PhonePe / GPay ID</label>
-                                    <label for="generalQrCodeInput" style="font-size: 11px; color: #d4af37; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; padding: 2px 8px; background: rgba(212, 175, 55, 0.12); border: 1px solid rgba(212, 175, 55, 0.35); border-radius: 4px; transition: all 0.2s;">
-                                        <span>📷 Upload QR Code</span>
-                                    </label>
-                                    <input type="file" id="generalQrCodeInput" accept="image/*" style="display: none;" onchange="handleGeneralQrUpload(event)">
-                                </div>
-                                <div style="display: flex; gap: 8px;">
-                                    <input type="text" id="generalUpiId" placeholder="e.g. yourname@paytm / 9876543210@ybl"
-                                        style="flex: 1; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
-                                    <button type="button" onclick="document.getElementById('generalQrCodeInput').click()" title="Upload or Scan QR Code"
-                                        style="padding: 0 14px; background: #26211a; border: 1px solid #d4af37; color: #f0e6d2; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
-                                        <span>📷 Scan QR</span>
-                                    </button>
-                                </div>
-                                <div id="generalQrScanStatus" style="display: none; margin-top: 5px; font-size: 12px; line-height: 1.4;"></div>
+                                <label style="display: block; font-size: 12px; color: #a8a29e; margin-bottom: 4px;">UPI / PhonePe / GPay ID</label>
+                                <input type="text" id="generalUpiId" placeholder="e.g. yourname@paytm / 9876543210@ybl"
+                                    style="width: 100%; box-sizing: border-box; padding: 10px 12px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 13px;">
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Optional Scanner / QR Upload Field (Always accessible) -->
+                    <div style="margin-bottom: 15px; padding: 12px; background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.35); border-radius: 8px;">
+                        <label style="display: block; font-size: 12px; color: #f0c96b; margin-bottom: 4px; font-weight: 600;">📷 Upload UPI Scanner / QR Code (optional)</label>
+                        <input type="file" id="generalScannerFileInput" accept="image/*" onchange="handleGeneralScannerFileSelected(event)"
+                            style="width: 100%; box-sizing: border-box; padding: 8px 10px; background: #120e0b; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; color: #fff; font-size: 12px;">
+                        <small style="display: block; color: #a8a29e; font-size: 11px; margin-top: 3px;">Optional: Upload photo of your UPI QR / PhonePe Scanner so admin can scan & pay directly.</small>
+
+                        <!-- Preview Thumbnail Container -->
+                        <div id="generalScannerPreviewContainer" style="display: none; align-items: center; gap: 10px; margin-top: 8px; padding: 8px 12px; background: rgba(212, 175, 55, 0.08); border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.25);">
+                            <img id="generalScannerThumb" src="" alt="Scanner Preview" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid #d4af37;">
+                            <div style="flex: 1;">
+                                <span style="font-size: 12px; color: #10b981; font-weight: 600; display: block;">✅ Scanner QR Attached</span>
+                                <span id="generalScannerFileName" style="font-size: 11px; color: #a8a29e; word-break: break-all;">Ready to upload</span>
+                            </div>
+                            <button type="button" onclick="removeGeneralScannerFile()" style="background: none; border: none; color: #ef4444; font-size: 12px; cursor: pointer; padding: 2px 6px; text-decoration: underline;">✕ Remove</button>
+                        </div>
+                        <div id="generalQrScanStatus" style="display: none; margin-top: 5px; font-size: 12px; line-height: 1.4;"></div>
                     </div>
 
                     <div class="withdrawal-form">
@@ -1639,6 +1645,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="/js/config.js"></script>
+    <script src="/js/cloudinaryUpload.js"></script>
     <script src="/js/account.js"></script>
 
     <script>
@@ -1892,23 +1899,32 @@
                             <input type="text" id="vipBankName" placeholder="e.g. State Bank of India, HDFC" style="width: 100%; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;" />
                         </div>
 
-                        <div style="text-align: center; margin: 15px 0; color: #777; font-size: 12px;">— OR USE UPI & ATTACH QR —</div>
+                        <div style="text-align: center; margin: 15px 0; color: #777; font-size: 12px;">— OR USE UPI —</div>
 
-                        <div class="form-group" style="margin-bottom: 15px;">
-                            <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 4px;">UPI / PhonePe / GPay ID *</label>
-                            <div style="display: flex; gap: 8px;">
-                                <input type="text" id="vipUpiId" placeholder="username@upi" style="flex: 1; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;" />
-                                <label for="vipQrFileInput" style="background: #2b2b2b; color: #fff; border: 1px solid #555; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
-                                    📷 Attach QR
-                                </label>
-                                <input type="file" id="vipQrFileInput" accept="image/*" style="display: none;" />
-                            </div>
-                            <div id="vipAttachedQrPreview" style="margin-top: 8px; display: none; align-items: center; gap: 8px;">
-                                <img id="vipQrThumb" src="" alt="QR Preview" style="width: 36px; height: 36px; border-radius: 4px; object-fit: cover; border: 1px solid #555;" />
-                                <span style="font-size: 11px; color: #4ade80;">QR Code Attached Successfully</span>
-                            </div>
+                        <div class="form-group" style="margin-bottom: 12px;">
+                            <label style="font-size: 12px; color: #ccc; display: block; margin-bottom: 4px;">UPI / PhonePe / GPay ID</label>
+                            <input type="text" id="vipUpiId" placeholder="username@upi" style="width: 100%; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px;" />
                         </div>
                     </div>
+                </div>
+
+                <!-- Optional Scanner / QR Upload Field for VIP (Always accessible) -->
+                <div style="margin-bottom: 15px; padding: 12px; background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.35); border-radius: 8px;">
+                    <label style="font-size: 12px; color: #d4af37; display: block; margin-bottom: 4px; font-weight: 600;">📷 Upload UPI Scanner / QR Code (optional)</label>
+                    <input type="file" id="vipScannerFileInput" accept="image/*" onchange="handleVipScannerFileSelected(event)"
+                        style="width: 100%; box-sizing: border-box; padding: 8px; background: #222; border: 1px solid #444; color: #fff; border-radius: 4px; font-size: 12px;" />
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 3px;">Optional: Upload photo of your UPI QR / Scanner so admin can scan & pay directly.</small>
+
+                    <!-- Preview Thumbnail Container -->
+                    <div id="vipScannerPreviewContainer" style="display: none; align-items: center; gap: 10px; margin-top: 8px; padding: 8px 12px; background: rgba(212, 175, 55, 0.08); border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.25);">
+                        <img id="vipScannerThumb" src="" alt="Scanner Preview" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid #d4af37;">
+                        <div style="flex: 1;">
+                            <span style="font-size: 12px; color: #10b981; font-weight: 600; display: block;">✅ Scanner QR Attached</span>
+                            <span id="vipScannerFileName" style="font-size: 11px; color: #888; word-break: break-all;">Ready to upload</span>
+                        </div>
+                        <button type="button" onclick="removeVipScannerFile()" style="background: none; border: none; color: #ef4444; font-size: 12px; cursor: pointer; padding: 2px 6px; text-decoration: underline;">✕ Remove</button>
+                    </div>
+                    <div id="vipQrScanStatus" style="display: none; margin-top: 5px; font-size: 12px; line-height: 1.4;"></div>
                 </div>
 
                 <!-- Input Amount -->

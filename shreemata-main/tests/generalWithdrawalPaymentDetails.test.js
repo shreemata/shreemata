@@ -292,4 +292,98 @@ describe('General Wallet & VIP MasterCard Unified Payment Destination System', (
       expect(refundTx.balanceAfter).toBe(2000);
     });
   });
+
+  describe('4. Optional Scanner Image URL (QR Code) in Withdrawals Flow', () => {
+    it('should save scannerImageUrl on general withdrawal and return it to admin in GET /admin/withdrawals', async () => {
+      const cloudinaryUrl = 'https://res.cloudinary.com/shreemata/image/upload/v1234567890/scanner_qr.jpg';
+      
+      const res = await client.post(
+        '/commission/withdraw',
+        {
+          amount: 250,
+          accountHolderName: 'Ramesh Kumar',
+          upiId: 'ramesh@upi',
+          scannerImageUrl: cloudinaryUrl
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.data.success).toBe(true);
+
+      const refreshedUser = await User.findById(user._id);
+      const withdrawal = refreshedUser.withdrawals[0];
+      expect(withdrawal.scannerImageUrl).toBe(cloudinaryUrl);
+      expect(withdrawal.paymentDetails.scannerImageUrl).toBe(cloudinaryUrl);
+
+      // Verify admin can fetch it
+      const adminRes = await client.get('/admin/withdrawals', {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(adminRes.status).toBe(200);
+      const adminWithdrawal = adminRes.data.find(w => w.userId.toString() === user._id.toString());
+      expect(adminWithdrawal).toBeDefined();
+      expect(adminWithdrawal.scannerImageUrl).toBe(cloudinaryUrl);
+    });
+
+    it('should save scannerImageUrl on VIP withdrawal and return it to admin in GET /admin/withdrawals', async () => {
+      const cloudinaryUrl = 'https://res.cloudinary.com/shreemata/image/upload/v1234567890/vip_scanner_qr.png';
+      
+      const res = await client.post(
+        '/commission/vip-withdraw',
+        {
+          amount: 500,
+          cardNumber: 'VIP 0000 8888',
+          accountHolderName: 'Ramesh Kumar',
+          upiId: 'ramesh@vipbank',
+          scannerImageUrl: cloudinaryUrl
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.data.success).toBe(true);
+
+      const refreshedUser = await User.findById(user._id);
+      const withdrawal = refreshedUser.withdrawals[0];
+      expect(withdrawal.scannerImageUrl).toBe(cloudinaryUrl);
+      expect(withdrawal.paymentDetails.scannerImageUrl).toBe(cloudinaryUrl);
+
+      // Verify admin gets scannerImageUrl
+      const adminRes = await client.get('/admin/withdrawals', {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(adminRes.status).toBe(200);
+      const adminWithdrawal = adminRes.data.find(w => w.userId.toString() === user._id.toString());
+      expect(adminWithdrawal).toBeDefined();
+      expect(adminWithdrawal.scannerImageUrl).toBe(cloudinaryUrl);
+    });
+
+    it('should successfully submit withdrawal WITHOUT scannerImageUrl and keep it null', async () => {
+      const res = await client.post(
+        '/commission/withdraw',
+        {
+          amount: 200,
+          accountHolderName: 'Ramesh Kumar',
+          upiId: 'ramesh@upi'
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.data.success).toBe(true);
+
+      const refreshedUser = await User.findById(user._id);
+      const withdrawal = refreshedUser.withdrawals[0];
+      expect(withdrawal.scannerImageUrl).toBeNull();
+
+      // Admin fetch should have null scannerImageUrl
+      const adminRes = await client.get('/admin/withdrawals', {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      const adminWithdrawal = adminRes.data.find(w => w.userId.toString() === user._id.toString());
+      expect(adminWithdrawal).toBeDefined();
+      expect(adminWithdrawal.scannerImageUrl).toBeNull();
+    });
+  });
 });

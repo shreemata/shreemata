@@ -155,6 +155,20 @@ const userSchema = new mongoose.Schema({
       bank: String,
       bankName: String,  // Added bank name field
       ifsc: String,
+      scannerImageUrl: { type: String, default: null },
+      scannerImage: { type: String, default: null },
+      qrCodeData: { type: String, default: null },
+      qrCode: { type: String, default: null },
+      paymentProof: { type: String, default: null },
+      paymentDetails: {
+        scannerImageUrl: { type: String, default: null },
+        scannerImage: { type: String, default: null },
+        upiId: { type: String, default: null },
+        accountNumber: { type: String, default: null },
+        bankName: { type: String, default: null },
+        ifscCode: { type: String, default: null },
+        accountHolderName: { type: String, default: null }
+      },
       status: { type: String, default: "pending" }, // pending, approved, rejected
       requestedAt: { type: Date, default: Date.now },
       approvedAt: Date,
@@ -181,6 +195,12 @@ const userSchema = new mongoose.Schema({
     
     // UPI Details
     upiId: String,
+    
+    // Scanner / QR Code
+    scannerImageUrl: { type: String, default: null },
+    scannerImage: { type: String, default: null },
+    qrCode: { type: String, default: null },
+    qrCodeData: { type: String, default: null },
     
     // Security & Verification
     isVerified: { type: Boolean, default: false },

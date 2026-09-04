@@ -1114,12 +1114,16 @@ function renderVipWithdrawalTable(withdrawalsList) {
             }
 
             let statusHtml = '';
+            let actionBtnHtml = '';
             if (w.status === 'approved') {
                 statusHtml = `<span style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">✅ Approved — Paid</span>`;
+                actionBtnHtml = `<button type="button" onclick="cancelUserWithdrawal('${w._id || w.id}')" style="background: transparent; border: 1px solid #555; color: #888; border-radius: 4px; padding: 2px 7px; font-size: 10px; cursor: pointer; transition: all 0.2s;">🗑️ Remove</button>`;
             } else if (w.status === 'rejected') {
-                statusHtml = `<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">❌ Rejected — Refunded to Wallet</span>`;
+                statusHtml = `<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">❌ Rejected — Refunded</span>`;
+                actionBtnHtml = `<button type="button" onclick="cancelUserWithdrawal('${w._id || w.id}')" style="background: transparent; border: 1px solid #555; color: #888; border-radius: 4px; padding: 2px 7px; font-size: 10px; cursor: pointer; transition: all 0.2s;">🗑️ Remove</button>`;
             } else {
-                statusHtml = `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">⏳ Pending Admin Approval</span>`;
+                statusHtml = `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">⏳ Pending Approval</span>`;
+                actionBtnHtml = `<button type="button" onclick="cancelUserWithdrawal('${w._id || w.id}')" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; font-weight: 600; transition: all 0.2s;">❌ Cancel & Refund</button>`;
             }
 
             const div = document.createElement("div");
@@ -1132,7 +1136,10 @@ function renderVipWithdrawalTable(withdrawalsList) {
                 </div>
                 <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
                     <div style="font-size: 16px; font-weight: 800; color: #f0e6d2;">₹${Number(w.amount).toFixed(2)}</div>
-                    <div>${statusHtml}</div>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+                        ${statusHtml}
+                        ${actionBtnHtml}
+                    </div>
                 </div>
             `;
             listEl.appendChild(div);
@@ -1148,6 +1155,36 @@ function renderVipWithdrawalTable(withdrawalsList) {
     if (prevBtn) prevBtn.disabled = currentVipPage === 1;
     if (nextBtn) nextBtn.disabled = currentVipPage >= totalPages;
 }
+
+async function cancelUserWithdrawal(withdrawId) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    if (!confirm("Are you sure you want to remove/cancel this withdrawal request?")) return;
+
+    try {
+        const res = await fetch(`${API}/commission/withdraw/cancel/${withdrawId}`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            }
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            showVipToast(data.message || "Withdrawal request removed", "success");
+            loadWalletData();
+            loadProfile();
+        } else {
+            alert(data.error || "Failed to remove withdrawal request");
+        }
+    } catch (err) {
+        console.error("Error cancelling withdrawal:", err);
+        alert("Error removing withdrawal request");
+    }
+}
+window.cancelUserWithdrawal = cancelUserWithdrawal;
 
 // Event listeners for pagination buttons
 document.addEventListener('DOMContentLoaded', () => {
@@ -1206,13 +1243,7 @@ function openVipWithdrawModal(cardNumber, cardTier) {
     const detailsTextEl = document.getElementById("savedPaymentDetailsText") || document.getElementById("vipMaskedBankInfo");
 
     // Reset attached QR state
-    currentAttachedQrData = '';
-    const attachedPreview = document.getElementById("vipAttachedQrPreview");
-    if (attachedPreview) attachedPreview.style.display = "none";
-    const qrThumb = document.getElementById("vipQrThumb");
-    if (qrThumb) qrThumb.src = "";
-    const qrFileInput = document.getElementById("vipQrFileInput");
-    if (qrFileInput) qrFileInput.value = "";
+    removeVipScannerFile();
 
     const isSetup = window.isBankDetailsSetup || (user.bankDetails && user.bankDetails.isSetup);
     const bankData = window.userBankDetails || user.bankDetails;
@@ -1389,6 +1420,9 @@ async function submitVipWithdrawal() {
         payload.upiId = upi || null;
         if (currentAttachedQrData) {
             payload.qrCodeData = currentAttachedQrData;
+            payload.scannerImage = currentAttachedQrData;
+            payload.scannerImageUrl = currentAttachedQrData;
+            payload.paymentProof = currentAttachedQrData;
         }
     }
 
@@ -1396,6 +1430,24 @@ async function submitVipWithdrawal() {
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = `<span>⏳ Submitting...</span>`;
+    }
+
+    // If a scanner file is selected, upload to Cloudinary first
+    if (selectedVipScannerFile) {
+        if (submitBtn) submitBtn.innerHTML = `<span>📤 Uploading Scanner...</span>`;
+        try {
+            if (window.cloudinaryUpload && typeof window.cloudinaryUpload.uploadToCloudinary === 'function') {
+                const uploadedUrl = await window.cloudinaryUpload.uploadToCloudinary(selectedVipScannerFile);
+                if (uploadedUrl) {
+                    payload.scannerImageUrl = uploadedUrl;
+                    payload.scannerImage = uploadedUrl;
+                    payload.qrCodeData = uploadedUrl;
+                    payload.paymentProof = uploadedUrl;
+                }
+            }
+        } catch (uploadErr) {
+            console.warn("Cloudinary direct upload failed, continuing with fallback:", uploadErr);
+        }
     }
 
     try {
@@ -1448,6 +1500,7 @@ async function submitVipWithdrawal() {
             if (modalMaxEl) modalMaxEl.textContent = `₹${Math.max(0, remainingBal - 50).toFixed(2)}`;
 
             // 3. Close modal and display prominent success message
+            removeVipScannerFile();
             closeVipWithdrawModal();
             showVipToast(`🎉 ${successMsg} Remaining Balance: ₹${remainingBal.toFixed(2)}`, 'success');
             alert(`✅ ${successMsg}\n\n• Amount Withdrawn: ₹${withdrawnAmount.toFixed(2)}\n• Remaining VIP Card Balance: ₹${remainingBal.toFixed(2)}\n• Card Number: ${data.cardNumber || currentVipWithdrawState.cardNumber}\n• Status: Pending Admin Approval`);
@@ -1579,10 +1632,35 @@ async function requestWithdrawal() {
         payload.upiId = upi || null;
     }
 
+    if (typeof currentGeneralQrData !== 'undefined' && currentGeneralQrData) {
+        payload.scannerImage = currentGeneralQrData;
+        payload.scannerImageUrl = currentGeneralQrData;
+        payload.qrCodeData = currentGeneralQrData;
+        payload.paymentProof = currentGeneralQrData;
+    }
+
     const submitBtn = document.getElementById("generalWithdrawSubmitBtn");
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.textContent = "⏳ Submitting...";
+    }
+
+    // If a scanner file is selected, upload to Cloudinary first
+    if (selectedGeneralScannerFile) {
+        if (submitBtn) submitBtn.textContent = "📤 Uploading Scanner...";
+        try {
+            if (window.cloudinaryUpload && typeof window.cloudinaryUpload.uploadToCloudinary === 'function') {
+                const uploadedUrl = await window.cloudinaryUpload.uploadToCloudinary(selectedGeneralScannerFile);
+                if (uploadedUrl) {
+                    payload.scannerImageUrl = uploadedUrl;
+                    payload.scannerImage = uploadedUrl;
+                    payload.qrCodeData = uploadedUrl;
+                    payload.paymentProof = uploadedUrl;
+                }
+            }
+        } catch (uploadErr) {
+            console.warn("Cloudinary direct upload failed, continuing with fallback:", uploadErr);
+        }
     }
 
     try {
@@ -1619,6 +1697,7 @@ async function requestWithdrawal() {
             alert(`✅ Withdrawal request submitted successfully!\n\n• Amount: ₹${amount.toFixed(2)}\n• Remaining Balance: ₹${localUser.wallet.toFixed(2)}\n• Status: Pending Admin Approval\n\nProcessed within 24-48 hours directly to your registered destination.`);
             
             if (amountInput) amountInput.value = "";
+            removeGeneralScannerFile();
             loadWalletData(); // Reload wallet data & history
             loadProfile();
         } else {
@@ -2286,154 +2365,138 @@ function decodeQrCodeImage(file, callback) {
     reader.readAsDataURL(file);
 }
 
-function handleVipQrUpload(event) {
-    const file = event.target.files && event.target.files[0];
-    const statusEl = document.getElementById("vipQrScanStatus");
-    const upiInput = document.getElementById("vipUpiId");
-    
-    if (!file) return;
-    
-    if (statusEl) {
-        statusEl.style.display = "block";
-        statusEl.style.color = "#fbbf24";
-        statusEl.innerHTML = `<span>⏳ Decoding QR code image...</span>`;
-    }
-    
-    decodeQrCodeImage(file, (err, upiId, rawData) => {
-        event.target.value = '';
-        
-        if (err || !upiId) {
-            if (statusEl) {
-                statusEl.style.display = "block";
-                statusEl.style.color = "#ef4444";
-                statusEl.innerHTML = `<span>❌ ${escapeHtml(err ? err.message : 'Could not extract UPI ID from QR.')}</span>`;
-            }
-            return;
-        }
-        
-        if (upiInput) {
-            upiInput.value = upiId;
-            upiInput.style.borderColor = "#10b981";
-            upiInput.focus();
-        }
-        
-        if (statusEl) {
-            statusEl.style.display = "block";
-            statusEl.style.color = "#10b981";
-            statusEl.innerHTML = `<span>✅ Extracted UPI ID: <strong>${escapeHtml(upiId)}</strong></span>`;
-        }
-    });
-}
-
-function handleGeneralQrUpload(event) {
-    const file = event.target.files && event.target.files[0];
-    const statusEl = document.getElementById("generalQrScanStatus");
-    const upiInput = document.getElementById("generalUpiId");
-    
-    if (!file) return;
-    
-    if (statusEl) {
-        statusEl.style.display = "block";
-        statusEl.style.color = "#fbbf24";
-        statusEl.innerHTML = `<span>⏳ Decoding QR code image...</span>`;
-    }
-    
-    decodeQrCodeImage(file, (err, upiId, rawData) => {
-        event.target.value = '';
-        
-        if (err || !upiId) {
-            if (statusEl) {
-                statusEl.style.display = "block";
-                statusEl.style.color = "#ef4444";
-                statusEl.innerHTML = `<span>❌ ${escapeHtml(err ? err.message : 'Could not extract UPI ID from QR.')}</span>`;
-            }
-            return;
-        }
-        
-        if (upiInput) {
-            upiInput.value = upiId;
-            upiInput.style.borderColor = "#10b981";
-            upiInput.focus();
-        }
-        
-        if (statusEl) {
-            statusEl.style.display = "block";
-            statusEl.style.color = "#10b981";
-            statusEl.innerHTML = `<span>✅ Extracted UPI ID: <strong>${escapeHtml(upiId)}</strong></span>`;
-        }
-    });
-}
-
-// Handle attached QR code image upload and decoding
+let selectedGeneralScannerFile = null;
+let selectedVipScannerFile = null;
+let currentGeneralQrData = '';
 let currentAttachedQrData = '';
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Handle attached QR code upload for VIP modal
-    const qrFileInput = document.getElementById('vipQrFileInput');
-    if (qrFileInput) {
-        qrFileInput.addEventListener('change', async (e) => {
-            const file = e.target.files && e.target.files[0];
-            if (!file) return;
+function handleGeneralScannerFileSelected(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const base64Image = event.target.result;
-                currentAttachedQrData = base64Image;
+    selectedGeneralScannerFile = file;
+    const previewContainer = document.getElementById("generalScannerPreviewContainer");
+    const thumb = document.getElementById("generalScannerThumb");
+    const nameEl = document.getElementById("generalScannerFileName");
+    const statusEl = document.getElementById("generalQrScanStatus");
 
-                // Show thumbnail preview
-                const thumb = document.getElementById('vipQrThumb');
-                const previewContainer = document.getElementById('vipAttachedQrPreview');
-                if (thumb) thumb.src = base64Image;
-                if (previewContainer) previewContainer.style.display = 'flex';
+    if (nameEl) nameEl.textContent = file.name || 'Image selected';
 
-                // Decode using jsQR if available
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d', { willReadFrequently: true }) || canvas.getContext('2d');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    context.drawImage(img, 0, 0);
-                    
-                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                    if (typeof jsQR !== 'undefined') {
-                        let code = jsQR(imageData.data, imageData.width, imageData.height, {
-                            inversionAttempts: "dontInvert"
-                        });
-                        if (!code || !code.data) {
-                            code = jsQR(imageData.data, imageData.width, imageData.height, {
-                                inversionAttempts: "attemptBoth"
-                            });
-                        }
-                        if (code && code.data) {
-                            let scannedData = code.data;
-                            if (scannedData.toLowerCase().includes('pa=')) {
-                                try {
-                                    const urlObj = new URL(scannedData.includes('://') ? scannedData : 'upi://pay?' + scannedData);
-                                    const pa = urlObj.searchParams.get('pa');
-                                    if (pa) scannedData = decodeURIComponent(pa).trim();
-                                } catch (err) {
-                                    const match = scannedData.match(/[?&]pa=([^&]+)/i);
-                                    if (match && match[1]) scannedData = decodeURIComponent(match[1]).trim();
-                                }
-                            } else {
-                                const directMatch = scannedData.match(/[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}/);
-                                if (directMatch) scannedData = directMatch[0].trim();
-                            }
-                            const upiInput = document.getElementById('vipUpiId');
-                            if (upiInput) {
-                                upiInput.value = scannedData;
-                                upiInput.style.borderColor = "#10b981";
-                            }
-                        }
-                    }
-                };
-                img.src = base64Image;
-            };
-            reader.readAsDataURL(file);
-        });
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        currentGeneralQrData = e.target.result;
+        if (thumb) thumb.src = e.target.result;
+        if (previewContainer) previewContainer.style.display = "flex";
+    };
+    reader.readAsDataURL(file);
+
+    if (statusEl) {
+        statusEl.style.display = "block";
+        statusEl.style.color = "#fbbf24";
+        statusEl.innerHTML = `<span>⏳ Checking QR code...</span>`;
     }
 
+    decodeQrCodeImage(file, (err, upiId, rawData) => {
+        if (err || !upiId) {
+            if (statusEl) {
+                statusEl.style.display = "block";
+                statusEl.style.color = "#a8a29e";
+                statusEl.innerHTML = `<span>📷 Scanner image ready for upload</span>`;
+            }
+            return;
+        }
+
+        const upiInput = document.getElementById("generalUpiId");
+        if (upiInput && !upiInput.value) {
+            upiInput.value = upiId;
+            upiInput.style.borderColor = "#10b981";
+        }
+
+        if (statusEl) {
+            statusEl.style.display = "block";
+            statusEl.style.color = "#10b981";
+            statusEl.innerHTML = `<span>✅ Extracted UPI ID: <strong>${escapeHtml(upiId)}</strong></span>`;
+        }
+    });
+}
+
+function removeGeneralScannerFile() {
+    selectedGeneralScannerFile = null;
+    currentGeneralQrData = '';
+    const fileInput = document.getElementById("generalScannerFileInput");
+    if (fileInput) fileInput.value = "";
+    const previewContainer = document.getElementById("generalScannerPreviewContainer");
+    if (previewContainer) previewContainer.style.display = "none";
+    const thumb = document.getElementById("generalScannerThumb");
+    if (thumb) thumb.src = "";
+    const statusEl = document.getElementById("generalQrScanStatus");
+    if (statusEl) statusEl.style.display = "none";
+}
+
+function handleVipScannerFileSelected(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    selectedVipScannerFile = file;
+    const previewContainer = document.getElementById("vipScannerPreviewContainer");
+    const thumb = document.getElementById("vipScannerThumb");
+    const nameEl = document.getElementById("vipScannerFileName");
+    const statusEl = document.getElementById("vipQrScanStatus");
+
+    if (nameEl) nameEl.textContent = file.name || 'Image selected';
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        currentAttachedQrData = e.target.result;
+        if (thumb) thumb.src = e.target.result;
+        if (previewContainer) previewContainer.style.display = "flex";
+    };
+    reader.readAsDataURL(file);
+
+    if (statusEl) {
+        statusEl.style.display = "block";
+        statusEl.style.color = "#fbbf24";
+        statusEl.innerHTML = `<span>⏳ Checking QR code...</span>`;
+    }
+
+    decodeQrCodeImage(file, (err, upiId, rawData) => {
+        if (err || !upiId) {
+            if (statusEl) {
+                statusEl.style.display = "block";
+                statusEl.style.color = "#a8a29e";
+                statusEl.innerHTML = `<span>📷 Scanner image ready for upload</span>`;
+            }
+            return;
+        }
+
+        const upiInput = document.getElementById("vipUpiId");
+        if (upiInput && !upiInput.value) {
+            upiInput.value = upiId;
+            upiInput.style.borderColor = "#10b981";
+        }
+
+        if (statusEl) {
+            statusEl.style.display = "block";
+            statusEl.style.color = "#10b981";
+            statusEl.innerHTML = `<span>✅ Extracted UPI ID: <strong>${escapeHtml(upiId)}</strong></span>`;
+        }
+    });
+}
+
+function removeVipScannerFile() {
+    selectedVipScannerFile = null;
+    currentAttachedQrData = '';
+    const fileInput = document.getElementById("vipScannerFileInput");
+    if (fileInput) fileInput.value = "";
+    const previewContainer = document.getElementById("vipScannerPreviewContainer");
+    if (previewContainer) previewContainer.style.display = "none";
+    const thumb = document.getElementById("vipScannerThumb");
+    if (thumb) thumb.src = "";
+    const statusEl = document.getElementById("vipQrScanStatus");
+    if (statusEl) statusEl.style.display = "none";
+}
+
+document.addEventListener('DOMContentLoaded', () => {
     // Toggle between saved view and edit form
     const changeBtn = document.getElementById('changePaymentBtn');
     if (changeBtn) {
@@ -2448,5 +2511,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.extractUpiFromQrString = extractUpiFromQrString;
 window.decodeQrCodeImage = decodeQrCodeImage;
-window.handleVipQrUpload = handleVipQrUpload;
-window.handleGeneralQrUpload = handleGeneralQrUpload;
+window.handleGeneralScannerFileSelected = handleGeneralScannerFileSelected;
+window.removeGeneralScannerFile = removeGeneralScannerFile;
+window.handleVipScannerFileSelected = handleVipScannerFileSelected;
+window.removeVipScannerFile = removeVipScannerFile;
+window.handleVipQrUpload = handleVipScannerFileSelected;
+window.handleGeneralQrUpload = handleGeneralScannerFileSelected;

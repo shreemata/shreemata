@@ -73,6 +73,11 @@ function displayWithdrawals() {
     if (!tbody) return;
     tbody.innerHTML = "";
 
+    // Reset master checkbox and bulk delete button
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) selectAllCheckbox.checked = false;
+    updateSelectedCount();
+
     const totalPages = Math.ceil(filteredWithdrawals.length / vipRowsPerPage) || 1;
     if (currentVipPage > totalPages) currentVipPage = totalPages;
     if (currentVipPage < 1) currentVipPage = 1;
@@ -81,7 +86,7 @@ function displayWithdrawals() {
     const paginatedItems = filteredWithdrawals.slice(start, start + vipRowsPerPage);
 
     if (paginatedItems.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #888; padding: 20px;">No withdrawal requests found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #888; padding: 20px;">No withdrawal requests found.</td></tr>`;
     } else {
         paginatedItems.forEach((item, index) => {
             const tr = document.createElement("tr");
@@ -91,7 +96,17 @@ function displayWithdrawals() {
             // Calculate total earnings for display
             const totalEarnings = item.purchaseEarnings ? item.purchaseEarnings.totalEarnings : 0;
 
+            const scannerImage = item.scannerImage || item.qrCodeData || (item.paymentDetails && item.paymentDetails.scannerImage) || null;
+            const scannerHtml = scannerImage 
+                ? `<a href="${scannerImage}" target="_blank" class="scanner-preview-link" title="Click to view full scanner">
+                     <img src="${scannerImage}" alt="User Scanner" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #d4af37;" />
+                   </a>`
+                : `<span class="text-muted" style="color: #888; font-size: 11px;">No Scanner</span>`;
+
             tr.innerHTML = `
+                <td style="text-align: center;">
+                    <input type="checkbox" class="row-checkbox" data-user-id="${item.userId}" data-withdraw-id="${item.withdrawId}" data-status="${item.status}" onchange="updateSelectedCount()" style="cursor: pointer; width: 16px; height: 16px;">
+                </td>
                 <td>${displayIndex}</td>
                 <td>
                     ${item.name}
@@ -99,6 +114,7 @@ function displayWithdrawals() {
                 </td>
                 <td>${item.email}</td>
                 <td>₹${item.amount}</td>
+                <td>${scannerHtml}</td>
                 <td>${new Date(item.date).toLocaleString()}</td>
                 <td>
                     <span class="status-badge status-${item.status}">${item.status}</span>
@@ -110,7 +126,10 @@ function displayWithdrawals() {
                     ${item.status === "pending" ? `
                         <button class="approve-btn" onclick="approve('${item.userId}','${item.withdrawId}')">✅ Approve</button>
                         <button class="reject-btn" onclick="rejectWithdraw('${item.userId}','${item.withdrawId}')">❌ Reject</button>
-                    ` : "—"}
+                        <button class="delete-action-btn" onclick="deleteSingleWithdrawal('${item.userId}','${item.withdrawId}','${item.status}')">🗑️ Delete</button>
+                    ` : `
+                        <button class="delete-action-btn" onclick="deleteSingleWithdrawal('${item.userId}','${item.withdrawId}','${item.status}')">🗑️ Delete</button>
+                    `}
                 </td>
             `;
 
@@ -201,6 +220,153 @@ async function rejectWithdraw(userId, withdrawId) {
     loadWithdrawals();
 }
 
+// Toggle select all checkboxes
+function toggleSelectAll(masterCheckbox) {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
+    updateSelectedCount();
+}
+
+// Update selected count and bulk delete button visibility
+function updateSelectedCount() {
+    const selected = document.querySelectorAll('.row-checkbox:checked');
+    const bulkBtn = document.getElementById('bulkDeleteBtn');
+    const countSpan = document.getElementById('selectedCount');
+    const selectAll = document.getElementById('selectAllCheckbox');
+
+    if (countSpan) countSpan.textContent = selected.length;
+    if (bulkBtn) {
+        bulkBtn.style.display = selected.length > 0 ? 'inline-block' : 'none';
+    }
+
+    const allCheckboxes = document.querySelectorAll('.row-checkbox');
+    if (selectAll && allCheckboxes.length > 0) {
+        selectAll.checked = (selected.length === allCheckboxes.length);
+    }
+}
+
+// Delete single withdrawal request
+async function deleteSingleWithdrawal(userId, withdrawId, status) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    let confirmMsg = "Are you sure you want to permanently delete this withdrawal request?";
+    if (status === "pending") {
+        confirmMsg = "⚠️ This is a PENDING withdrawal request.\n\nDeleting it will remove the request and automatically refund the withdrawal amount back to the user's wallet.\n\nAre you sure you want to proceed?";
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const res = await fetch(`/api/admin/withdrawals/${userId}/${withdrawId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.message || "Withdrawal request deleted successfully!");
+            loadWithdrawals();
+        } else {
+            alert(data.error || "Failed to delete withdrawal request");
+        }
+    } catch (err) {
+        console.error("Error deleting withdrawal request:", err);
+        alert("Error deleting withdrawal request");
+    }
+}
+
+// Bulk delete selected withdrawals
+async function deleteSelectedWithdrawals() {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const selected = Array.from(document.querySelectorAll('.row-checkbox:checked'));
+    if (selected.length === 0) {
+        alert("Please select at least one withdrawal request to delete.");
+        return;
+    }
+
+    const hasPending = selected.some(cb => cb.dataset.status === "pending");
+    let confirmMsg = `Are you sure you want to delete ${selected.length} selected withdrawal request(s)?`;
+    if (hasPending) {
+        confirmMsg = `⚠️ You have selected ${selected.length} request(s), including PENDING requests.\n\nDeleting pending requests will automatically refund the amounts to the respective users' wallets.\n\nAre you sure you want to proceed?`;
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    const items = selected.map(cb => ({
+        userId: cb.dataset.userId,
+        withdrawId: cb.dataset.withdrawId
+    }));
+
+    try {
+        const res = await fetch("/api/admin/withdrawals/bulk-delete", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ items })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.message || `Deleted ${data.deletedCount || items.length} request(s) successfully!`);
+            const selectAll = document.getElementById('selectAllCheckbox');
+            if (selectAll) selectAll.checked = false;
+            loadWithdrawals();
+        } else {
+            alert(data.error || "Failed to delete selected requests");
+        }
+    } catch (err) {
+        console.error("Error bulk deleting requests:", err);
+        alert("Error deleting selected requests");
+    }
+}
+
+// Clear withdrawals by status
+async function clearWithdrawals(status = 'all') {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    let confirmMsg = `Are you sure you want to clear ALL withdrawal requests from the list?`;
+    if (status === 'rejected') {
+        confirmMsg = `Are you sure you want to clear all REJECTED withdrawal requests?`;
+    } else if (status === 'approved') {
+        confirmMsg = `Are you sure you want to clear all APPROVED withdrawal requests?`;
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const res = await fetch("/api/admin/withdrawals/clear-all", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ status })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.message || "Withdrawal requests cleared successfully!");
+            const selectAll = document.getElementById('selectAllCheckbox');
+            if (selectAll) selectAll.checked = false;
+            loadWithdrawals();
+        } else {
+            alert(data.error || "Failed to clear withdrawal requests");
+        }
+    } catch (err) {
+        console.error("Error clearing withdrawals:", err);
+        alert("Error clearing withdrawal requests");
+    }
+}
+
 function viewUserDetails(index) {
     try {
         const item = window.withdrawalsData[index];
@@ -237,18 +403,26 @@ function viewUserDetails(index) {
             upiCopyBtn.style.display = 'none';
         }
 
-        // QR Code Display Container
+        // QR Code Display Container & Fallback Note
         const qrContainerEl = document.getElementById('adminQrContainer');
         const qrImageEl = document.getElementById('adminQrImage');
         const qrOpenLink = document.getElementById('adminQrOpenLink');
+        const noQrNoteEl = document.getElementById('adminNoQrNote');
 
-        if (item.qrCodeData || item.qrCode || upiVal) {
-            const qrSrc = item.qrCodeData || item.qrCode || `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('upi://pay?pa=' + upiVal + '&pn=' + encodeURIComponent(item.name || 'User') + '&cu=INR')}`;
-            if (qrImageEl) qrImageEl.src = qrSrc;
-            if (qrOpenLink) qrOpenLink.href = qrSrc;
+        // Reset elements first to prevent previous image lingering
+        if (qrImageEl) qrImageEl.src = '';
+        if (qrOpenLink) qrOpenLink.href = '#';
+
+        const scannerSrc = item.scannerImageUrl || item.scannerImage || item.qrCodeData || item.qrCode || item.paymentProof || (item.paymentDetails && (item.paymentDetails.scannerImageUrl || item.paymentDetails.scannerImage)) || null;
+
+        if (scannerSrc) {
+            if (qrImageEl) qrImageEl.src = scannerSrc;
+            if (qrOpenLink) qrOpenLink.href = scannerSrc;
             if (qrContainerEl) qrContainerEl.style.display = 'block';
+            if (noQrNoteEl) noQrNoteEl.style.display = 'none';
         } else {
             if (qrContainerEl) qrContainerEl.style.display = 'none';
+            if (noQrNoteEl) noQrNoteEl.style.display = 'block';
         }
         
         // Bank Details
@@ -283,6 +457,16 @@ function viewUserDetails(index) {
 }
 
 function closeModal() {
+    const qrContainerEl = document.getElementById('adminQrContainer');
+    const qrImageEl = document.getElementById('adminQrImage');
+    const qrOpenLink = document.getElementById('adminQrOpenLink');
+    const noQrNoteEl = document.getElementById('adminNoQrNote');
+
+    if (qrImageEl) qrImageEl.src = '';
+    if (qrOpenLink) qrOpenLink.href = '#';
+    if (qrContainerEl) qrContainerEl.style.display = 'none';
+    if (noQrNoteEl) noQrNoteEl.style.display = 'none';
+
     document.getElementById('userDetailsModal').style.display = 'none';
 }
 

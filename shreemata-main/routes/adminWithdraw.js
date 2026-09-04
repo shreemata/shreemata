@@ -95,7 +95,7 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
     try {
         const users = await User.find({
             "withdrawals.0": { $exists: true }
-        }).select("name email withdrawals directCommissionEarned treeCommissionEarned wallet");
+        }).select("name email withdrawals directCommissionEarned treeCommissionEarned wallet bankDetails");
 
         let list = [];
 
@@ -104,9 +104,12 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
             const totalPurchaseEarnings = (user.directCommissionEarned || 0) + (user.treeCommissionEarned || 0);
             
             user.withdrawals.forEach(w => {
+                const scannerImg = w.scannerImageUrl || w.scannerImage || w.qrCodeData || w.qrCode || w.paymentProof || (w.paymentDetails && (w.paymentDetails.scannerImageUrl || w.paymentDetails.scannerImage)) || (user.bankDetails && (user.bankDetails.scannerImageUrl || user.bankDetails.scannerImage || user.bankDetails.qrCode || user.bankDetails.qrCodeData)) || null;
+
                 list.push({
                     userId: user._id,
                     name: user.name,
+                    username: user.name,
                     email: user.email,
                     amount: w.amount,
                     source: w.source || 'wallet',
@@ -118,11 +121,23 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
                     date: w.date || w.requestedAt || null,
                     status: w.status,
                     withdrawId: w._id,
-                    upi: w.upi || null,
-                    bankName: w.bankName || null,
-                    bank: w.bank || null,
-                    ifsc: w.ifsc || null,
-                    qrCodeData: w.qrCodeData || w.qrCode || (user.bankDetails && user.bankDetails.qrCode) || null,
+                    upi: w.upi || (w.paymentDetails && w.paymentDetails.upiId) || (user.bankDetails && user.bankDetails.upiId) || null,
+                    bankName: w.bankName || (w.paymentDetails && w.paymentDetails.bankName) || (user.bankDetails && user.bankDetails.bankName) || null,
+                    bank: w.bank || (w.paymentDetails && w.paymentDetails.accountNumber) || (user.bankDetails && user.bankDetails.accountNumber) || null,
+                    ifsc: w.ifsc || (w.paymentDetails && w.paymentDetails.ifscCode) || (user.bankDetails && user.bankDetails.ifscCode) || null,
+                    scannerImageUrl: scannerImg,
+                    scannerImage: scannerImg,
+                    qrCodeData: scannerImg,
+                    paymentProof: scannerImg,
+                    paymentDetails: {
+                        scannerImageUrl: scannerImg,
+                        scannerImage: scannerImg,
+                        upiId: w.upi || (w.paymentDetails && w.paymentDetails.upiId) || (user.bankDetails && user.bankDetails.upiId) || null,
+                        accountNumber: w.bank || (w.paymentDetails && w.paymentDetails.accountNumber) || (user.bankDetails && user.bankDetails.accountNumber) || null,
+                        bankName: w.bankName || (w.paymentDetails && w.paymentDetails.bankName) || (user.bankDetails && user.bankDetails.bankName) || null,
+                        ifscCode: w.ifsc || (w.paymentDetails && w.paymentDetails.ifscCode) || (user.bankDetails && user.bankDetails.ifscCode) || null,
+                        accountHolderName: (w.paymentDetails && w.paymentDetails.accountHolderName) || (user.bankDetails && user.bankDetails.accountHolderName) || user.name || null
+                    },
                     // Purchase earnings data for admin
                     purchaseEarnings: {
                         directCommission: user.directCommissionEarned || 0,
@@ -385,6 +400,177 @@ router.post("/reject", authenticateToken, isAdmin, async (req, res) => {
     } catch (err) {
         console.error("Reject error:", err);
         res.status(500).json({ error: "Server error" });
+    }
+});
+
+/* -------------------------------------------
+   🗑️ Admin — Delete single withdrawal request
+--------------------------------------------*/
+const handleDeleteSingleWithdrawal = async (req, res) => {
+    try {
+        const userId = req.params.userId || req.body.userId;
+        const withdrawId = req.params.withdrawId || req.body.withdrawId;
+
+        if (!userId || !withdrawId) {
+            return res.status(400).json({ error: "User ID and Withdrawal ID are required" });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const withdrawal = user.withdrawals.id(withdrawId);
+        if (!withdrawal) return res.status(404).json({ error: "Withdrawal not found" });
+
+        // If deleting a pending withdrawal, automatically refund user's wallet
+        if (withdrawal.status === "pending") {
+            user.wallet += (withdrawal.amount || 0);
+
+            const WalletTransaction = require("../models/WalletTransaction");
+            const refundTx = new WalletTransaction({
+                userId: user._id,
+                amount: withdrawal.amount,
+                type: 'credit',
+                category: 'refund',
+                description: `Refund for deleted pending withdrawal (₹${withdrawal.amount})`,
+                balanceAfter: user.wallet
+            });
+            await refundTx.save();
+        }
+
+        user.withdrawals.pull({ _id: withdrawId });
+        await user.save();
+
+        res.json({ 
+            success: true, 
+            message: "Withdrawal request deleted successfully",
+            remainingBalance: user.wallet 
+        });
+
+    } catch (err) {
+        console.error("Delete withdrawal error:", err);
+        res.status(500).json({ error: "Server error deleting withdrawal" });
+    }
+};
+
+router.delete("/:userId/:withdrawId", authenticateToken, isAdmin, handleDeleteSingleWithdrawal);
+router.post("/delete", authenticateToken, isAdmin, handleDeleteSingleWithdrawal);
+
+/* -------------------------------------------
+   🗑️ Admin — Bulk delete withdrawal requests
+--------------------------------------------*/
+router.post("/bulk-delete", authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { items } = req.body; // Array of { userId, withdrawId }
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: "No withdrawal items provided for deletion" });
+        }
+
+        const WalletTransaction = require("../models/WalletTransaction");
+        let deletedCount = 0;
+
+        // Group by user
+        const userMap = new Map();
+        for (const it of items) {
+            if (!it.userId || !it.withdrawId) continue;
+            if (!userMap.has(it.userId)) {
+                userMap.set(it.userId, []);
+            }
+            userMap.get(it.userId).push(it.withdrawId);
+        }
+
+        for (const [userId, withdrawIds] of userMap.entries()) {
+            const user = await User.findById(userId);
+            if (!user) continue;
+
+            for (const wid of withdrawIds) {
+                const w = user.withdrawals.id(wid);
+                if (!w) continue;
+
+                if (w.status === "pending") {
+                    user.wallet += (w.amount || 0);
+                    const refundTx = new WalletTransaction({
+                        userId: user._id,
+                        amount: w.amount,
+                        type: 'credit',
+                        category: 'refund',
+                        description: `Refund for bulk-deleted pending withdrawal (₹${w.amount})`,
+                        balanceAfter: user.wallet
+                    });
+                    await refundTx.save();
+                }
+
+                user.withdrawals.pull({ _id: wid });
+                deletedCount++;
+            }
+
+            await user.save();
+        }
+
+        res.json({ 
+            success: true, 
+            message: `Successfully deleted ${deletedCount} withdrawal request(s)`,
+            deletedCount 
+        });
+
+    } catch (err) {
+        console.error("Bulk delete error:", err);
+        res.status(500).json({ error: "Server error deleting withdrawal requests" });
+    }
+});
+
+/* -------------------------------------------
+   🗑️ Admin — Clear all withdrawal requests
+   (Supports optional status filter: 'rejected', 'approved', 'pending', or 'all')
+--------------------------------------------*/
+router.post("/clear-all", authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { status } = req.body; // 'rejected' | 'approved' | 'pending' | 'all'
+        const WalletTransaction = require("../models/WalletTransaction");
+
+        const query = { "withdrawals.0": { $exists: true } };
+        const users = await User.find(query);
+        let clearedCount = 0;
+
+        for (const user of users) {
+            const initialLen = user.withdrawals.length;
+            const toRemove = [];
+
+            for (const w of user.withdrawals) {
+                if (!status || status === "all" || w.status === status) {
+                    toRemove.push(w);
+                }
+            }
+
+            if (toRemove.length > 0) {
+                for (const w of toRemove) {
+                    if (w.status === "pending") {
+                        user.wallet += (w.amount || 0);
+                        const refundTx = new WalletTransaction({
+                            userId: user._id,
+                            amount: w.amount,
+                            type: 'credit',
+                            category: 'refund',
+                            description: `Refund for cleared pending withdrawal (₹${w.amount})`,
+                            balanceAfter: user.wallet
+                        });
+                        await refundTx.save();
+                    }
+                    user.withdrawals.pull({ _id: w._id });
+                    clearedCount++;
+                }
+                await user.save();
+            }
+        }
+
+        res.json({ 
+            success: true, 
+            message: `Successfully cleared ${clearedCount} withdrawal request(s)`,
+            clearedCount 
+        });
+
+    } catch (err) {
+        console.error("Clear all withdrawals error:", err);
+        res.status(500).json({ error: "Server error clearing withdrawal requests" });
     }
 });
 

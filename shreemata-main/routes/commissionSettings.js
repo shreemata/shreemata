@@ -468,7 +468,8 @@ router.post("/commission/withdraw", authenticateToken, async (req, res) => {
     }
     
     // Payment Details Validation (Bank or UPI)
-    const { accountHolderName, accountNumber, bankName, ifscCode, upiId } = req.body;
+    const { accountHolderName, accountNumber, bankName, ifscCode, upiId, qrCodeData, scannerImage, scannerImageUrl, paymentProof } = req.body;
+    const scannerPath = scannerImageUrl || scannerImage || qrCodeData || paymentProof || user.bankDetails?.scannerImageUrl || user.bankDetails?.scannerImage || user.bankDetails?.qrCodeData || null;
     const isBankSetup = user.bankDetails && user.bankDetails.isSetup;
 
     if (!isBankSetup) {
@@ -490,10 +491,18 @@ router.post("/commission/withdraw", authenticateToken, async (req, res) => {
         bankName: bankName ? bankName.trim() : null,
         ifscCode: ifscCode ? ifscCode.trim().toUpperCase() : null,
         upiId: upiId ? upiId.trim().toLowerCase() : null,
+        scannerImageUrl: scannerPath,
+        scannerImage: scannerPath,
+        qrCode: scannerPath,
+        qrCodeData: scannerPath,
         isSetup: true,
         setupDate: new Date(),
         lastModifiedBy: 'user'
       };
+    } else if (scannerPath && (!user.bankDetails.scannerImageUrl && !user.bankDetails.scannerImage)) {
+      user.bankDetails.scannerImageUrl = scannerPath;
+      user.bankDetails.scannerImage = scannerPath;
+      user.bankDetails.qrCodeData = scannerPath;
     }
 
     const balanceBefore = walletBalance;
@@ -516,6 +525,19 @@ router.post("/commission/withdraw", authenticateToken, async (req, res) => {
       bankName: user.bankDetails?.bankName || null,
       bank: user.bankDetails?.accountNumber || null,
       ifsc: user.bankDetails?.ifscCode || null,
+      scannerImageUrl: scannerPath,
+      scannerImage: scannerPath,
+      qrCodeData: scannerPath,
+      paymentProof: scannerPath,
+      paymentDetails: {
+        scannerImageUrl: scannerPath,
+        scannerImage: scannerPath,
+        upiId: user.bankDetails?.upiId || null,
+        accountNumber: user.bankDetails?.accountNumber || null,
+        bankName: user.bankDetails?.bankName || null,
+        ifscCode: user.bankDetails?.ifscCode || null,
+        accountHolderName: user.bankDetails?.accountHolderName || null
+      },
       status: "pending",
       requestedAt: new Date()
     });
@@ -548,6 +570,66 @@ router.post("/commission/withdraw", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+/* -------------------------------------------
+   POST /api/commission/withdraw/cancel/:withdrawId & DELETE /api/commission/withdraw/:withdrawId
+   Cancel or delete user withdrawal request
+--------------------------------------------*/
+const handleUserCancelWithdrawal = async (req, res) => {
+  try {
+    const userId = req.user.id || req.user.userId;
+    const withdrawId = req.params.withdrawId || req.body.withdrawId;
+
+    if (!withdrawId) {
+      return res.status(400).json({ error: "Withdrawal ID is required" });
+    }
+
+    const User = require("../models/User");
+    const WalletTransaction = require("../models/WalletTransaction");
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const withdrawal = user.withdrawals.id(withdrawId);
+    if (!withdrawal) return res.status(404).json({ error: "Withdrawal request not found" });
+
+    if (withdrawal.status === "pending") {
+      // Refund wallet balance
+      user.wallet += (withdrawal.amount || 0);
+
+      const refundTx = new WalletTransaction({
+        userId: user._id,
+        amount: withdrawal.amount,
+        type: 'credit',
+        category: 'refund',
+        description: `Refund for cancelled ${withdrawal.source === 'vip_master_card' ? 'VIP Master Card' : 'wallet'} withdrawal`,
+        balanceAfter: user.wallet
+      });
+      await refundTx.save();
+    }
+
+    // Remove from withdrawals list
+    user.withdrawals.pull({ _id: withdrawId });
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Withdrawal request removed successfully",
+      remainingBalance: user.wallet
+    });
+
+  } catch (err) {
+    console.error("Cancel withdrawal error:", err);
+    res.status(500).json({ error: "Server error cancelling withdrawal" });
+  }
+};
+
+router.post("/commission/withdraw/cancel/:withdrawId", authenticateToken, handleUserCancelWithdrawal);
+router.post("/commission/withdraw/cancel", authenticateToken, handleUserCancelWithdrawal);
+router.delete("/commission/withdraw/:withdrawId", authenticateToken, handleUserCancelWithdrawal);
+router.post("/withdraw/cancel/:withdrawId", authenticateToken, handleUserCancelWithdrawal);
+router.post("/withdraw/cancel", authenticateToken, handleUserCancelWithdrawal);
+router.delete("/withdraw/:withdrawId", authenticateToken, handleUserCancelWithdrawal);
 
 /* -------------------------------------------
    POST /api/commission/vip-withdraw & /api/vip-withdraw
@@ -676,6 +758,14 @@ const handleVipWithdrawRequest = async (req, res) => {
     }
 
     // Payment Details Validation (Bank or UPI)
+    const { 
+      qrCodeData, 
+      scannerImage, 
+      scannerImageUrl,
+      paymentProof 
+    } = req.body;
+    const scannerPath = scannerImageUrl || scannerImage || qrCodeData || paymentProof || user.bankDetails?.scannerImageUrl || user.bankDetails?.scannerImage || user.bankDetails?.qrCodeData || null;
+
     const holderName = (accountHolderName || bankDetails?.accountHolderName || bankDetails?.holderName || '').trim();
     const accNum = (accountNumber || bankDetails?.accountNumber || bankDetails?.accNumber || '').trim();
     const bName = (bankName || bankDetails?.bankName || '').trim();
@@ -704,10 +794,18 @@ const handleVipWithdrawRequest = async (req, res) => {
         bankName: bName || null,
         ifscCode: ifsc || null,
         upiId: upi || null,
+        scannerImageUrl: scannerPath,
+        scannerImage: scannerPath,
+        qrCode: scannerPath,
+        qrCodeData: scannerPath,
         isSetup: true,
         setupDate: new Date(),
         lastModifiedBy: 'user'
       };
+    } else if (scannerPath && (!user.bankDetails.scannerImageUrl && !user.bankDetails.scannerImage)) {
+      user.bankDetails.scannerImageUrl = scannerPath;
+      user.bankDetails.scannerImage = scannerPath;
+      user.bankDetails.qrCodeData = scannerPath;
     }
 
     // Real-time balance updates
@@ -734,6 +832,19 @@ const handleVipWithdrawRequest = async (req, res) => {
       bankName: user.bankDetails?.bankName || null,
       bank: user.bankDetails?.accountNumber || null,
       ifsc: user.bankDetails?.ifscCode || null,
+      scannerImageUrl: scannerPath,
+      scannerImage: scannerPath,
+      qrCodeData: scannerPath,
+      paymentProof: scannerPath,
+      paymentDetails: {
+        scannerImageUrl: scannerPath,
+        scannerImage: scannerPath,
+        upiId: user.bankDetails?.upiId || null,
+        accountNumber: user.bankDetails?.accountNumber || null,
+        bankName: user.bankDetails?.bankName || null,
+        ifscCode: user.bankDetails?.ifscCode || null,
+        accountHolderName: user.bankDetails?.accountHolderName || null
+      },
       status: "pending",
       requestedAt: new Date()
     };
