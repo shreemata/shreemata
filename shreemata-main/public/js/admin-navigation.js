@@ -1074,9 +1074,8 @@ window.downloadDailyReport = async function(event) {
             return;
         }
         
-        const apiUrl = window.location.hostname === 'localhost' 
-            ? `http://localhost:3000/api/admin/daily-report?date=${selectedDate}`
-            : `${window.API_URL}/admin/daily-report?date=${selectedDate}`;
+        const apiBase = window.API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : '/api');
+        const apiUrl = `${apiBase}/admin/daily-report?date=${selectedDate}`;
         
         // Make API call to generate daily report
         const response = await fetch(apiUrl, {

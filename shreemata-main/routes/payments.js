@@ -507,9 +507,19 @@ router.post("/create-order", authenticateToken, async (req, res) => {
 
     res.json({ order: razorpayOrder, dbOrder });
   } catch (err) {
+    console.error("RAZORPAY ORDER CREATION FAILED", {
+      message: err.message,
+      statusCode: err.statusCode,
+      description: err.error?.description,
+      code: err.error?.code,
+      field: err.error?.field
+    });
     console.error("Create order error:", err);
-    console.error("Error details:", err.message);
-    res.status(500).json({ error: "Unable to create Razorpay order", details: err.message });
+    res.status(500).json({ 
+      error: "Unable to create Razorpay order", 
+      details: err.error?.description || err.message,
+      code: err.error?.code || 'ORDER_CREATION_FAILED'
+    });
   }
 });
 

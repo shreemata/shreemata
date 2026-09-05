@@ -4,6 +4,7 @@ const path = require("path");
 require("dotenv").config();
 
 const connectDB = require("./config/mongo");
+const { authenticateToken, isAdmin } = require("./middleware/auth");
 const authRoutes = require("./routes/auth");
 const bookRoutes = require("./routes/books");
 const categoryRoutes = require("./routes/categories");
@@ -56,7 +57,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api", authRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/orders", orderRoutes);
-app.use("/api/admin/orders", orderRoutes);
+app.use("/api/admin/orders", authenticateToken, isAdmin, orderRoutes);
 app.use("/api/referral", require("./routes/referral"));
 app.use("/api/referral", require("./routes/referralTree"));
 app.use("/api/admin/withdrawals", require("./routes/adminWithdraw"));
@@ -100,8 +101,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Debug endpoint to check Cloudinary config (REMOVE AFTER TESTING)
-app.get('/api/debug-cloudinary', (req, res) => {
+// Debug endpoint to check Cloudinary config (Admin only)
+app.get('/api/debug-cloudinary', authenticateToken, isAdmin, (req, res) => {
   res.json({
     cloudName: process.env.CLOUDINARY_CLOUD_NAME_NEW || process.env.CLOUDINARY_CLOUD_NAME,
     apiKey: process.env.CLOUDINARY_API_KEY_NEW || process.env.CLOUDINARY_API_KEY,
@@ -110,8 +111,8 @@ app.get('/api/debug-cloudinary', (req, res) => {
   });
 });
 
-// Test Cloudinary connection
-app.get('/api/test-cloudinary', async (req, res) => {
+// Test Cloudinary connection (Admin only)
+app.get('/api/test-cloudinary', authenticateToken, isAdmin, async (req, res) => {
   try {
     const crypto = require('crypto');
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME_NEW || process.env.CLOUDINARY_CLOUD_NAME;

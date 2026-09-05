@@ -1145,7 +1145,7 @@ console.log('🚀 Admin Referral Tree Visual - Script Starting');
 
 // API base (loaded from config.js)
 console.log('🔧 Config.js loading - API_URL:', window.API_URL);
-const API = window.API_URL || 'http://localhost:3000/api';
+const API = window.API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : '/api');
 console.log('🔧 Final API URL:', API);
 
 // Candidate endpoints (tried in order)

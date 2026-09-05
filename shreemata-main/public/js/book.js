@@ -298,21 +298,21 @@ async function displayBookDetails(book, hidePrice = false) {
         if (buyPickupBtn) {
             buyPickupBtn.disabled = true;
             buyPickupBtn.textContent = "❌ Out of Stock";
-            buyPickupBtn.style.background = "#dc3545";
+            buyPickupBtn.style.background = "linear-gradient(135deg, #dc3545 0%, #c82333 100%)";
             buyPickupBtn.style.cursor = "not-allowed";
         }
         
         if (buyCourierBtn) {
             buyCourierBtn.disabled = true;
             buyCourierBtn.textContent = "❌ Out of Stock";
-            buyCourierBtn.style.background = "#dc3545";
+            buyCourierBtn.style.background = "linear-gradient(135deg, #dc3545 0%, #c82333 100%)";
             buyCourierBtn.style.cursor = "not-allowed";
         }
         
         if (addToCartBtn) {
             addToCartBtn.disabled = true;
             addToCartBtn.textContent = "❌ Out of Stock";
-            addToCartBtn.style.background = "#dc3545";
+            addToCartBtn.style.background = "linear-gradient(135deg, #dc3545 0%, #c82333 100%)";
             addToCartBtn.style.cursor = "not-allowed";
         }
         

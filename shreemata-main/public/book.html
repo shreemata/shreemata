@@ -268,47 +268,62 @@
             animation: fadeInUp 0.6s ease-out 1s both;
         }
         
-        /* Button Groups with Ripple Effect */
-        .button-group {
+        /* Purchase Buttons with Ripple Effect matching Bundle page */
+        .purchase-buttons {
             display: flex;
-            gap: 10px;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 15px;
             width: 100%;
             animation: fadeInUp 0.6s ease-out 1.2s both;
         }
         
-        .button-group button {
-            flex: 1;
+        .purchase-buttons button,
+        .book-detail-left .purchase-buttons button {
+            width: 100%;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
-            transition: all 0.3s ease;
         }
 
-        .button-group button::after {
+        .purchase-buttons button::after,
+        .book-detail-left .purchase-buttons button::after {
             content: '';
             position: absolute;
             top: 50%;
             left: 50%;
             width: 0;
             height: 0;
+            background: rgba(255, 255, 255, 0.3);
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.5);
             transform: translate(-50%, -50%);
             transition: width 0.6s, height 0.6s;
         }
 
-        .button-group button:active::after {
+        .purchase-buttons button:active::after,
+        .book-detail-left .purchase-buttons button:active::after {
             width: 300px;
             height: 300px;
-            opacity: 0;
-            transition: 0s;
         }
 
-        .button-group button:hover {
+        .purchase-buttons button:hover,
+        .book-detail-left .purchase-buttons button:hover {
             transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
         }
 
-        .button-group button:active {
+        .purchase-buttons button:active,
+        .book-detail-left .purchase-buttons button:active {
             transform: translateY(-1px);
         }
         
@@ -1183,18 +1198,20 @@
                             </div>
                         </div>
 
-                        <!-- Purchase Buttons -->
-                        <div class="purchase-buttons">
-                            <!-- Buy Buttons -->
-                            <div class="button-group buy-buttons">
-                                <button id="buyPickupBtn" class="btn-primary btn-large">🏪 Buy through Store</button>
-                                <button id="buyCourierBtn" class="btn-primary btn-large">🚚 Buy by Courier</button>
-                            </div>
-                            
-                            <!-- Single Add to Cart Button -->
-                            <div class="button-group cart-buttons" style="margin-top: 15px;">
-                                <button id="addToCartBtn" class="btn-secondary btn-large" style="width: 100%;">🛒 Add to Cart</button>
-                            </div>
+                        <!-- Buy Buttons -->
+                        <div class="purchase-buttons" style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+                            <button id="buyPickupBtn"
+                                style="width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                🏪 Buy at Store
+                            </button>
+                            <button id="buyCourierBtn"
+                                style="width: 100%; padding: 14px; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                🚚 Buy through Courier
+                            </button>
+                            <button id="addToCartBtn"
+                                style="width: 100%; padding: 14px; background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                🛒 Add to Cart
+                            </button>
                         </div>
                     </div>
 
