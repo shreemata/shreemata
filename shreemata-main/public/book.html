@@ -1126,6 +1126,193 @@
             border-right: 3px solid #667eea;
             animation: typing 2s steps(40, end), blink 0.75s step-end infinite;
         }
+
+        /* Modal Overlay - True Viewport Overlay */
+        .modal {
+            position: fixed !important;
+            inset: 0 !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            background: rgba(0, 0, 0, 0.65) !important;
+            backdrop-filter: blur(4px) !important;
+            -webkit-backdrop-filter: blur(4px) !important;
+            display: none;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 20px !important;
+            box-sizing: border-box !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            margin: 0 !important;
+        }
+
+        .modal.show,
+        .modal[style*="display: block"],
+        .modal[style*="display: flex"] {
+            display: flex !important;
+        }
+
+        /* Modal Content Dialog */
+        .modal-content {
+            background: #ffffff !important;
+            border-radius: 16px !important;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+            width: min(520px, calc(100vw - 48px)) !important;
+            max-width: 520px !important;
+            max-height: calc(100vh - 40px) !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            position: relative !important;
+            margin: auto !important;
+            box-sizing: border-box !important;
+            animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 10 !important;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            border-radius: 16px 16px 0 0 !important;
+            padding: 16px 20px !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+
+        .modal-header h3 {
+            margin: 0 !important;
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            color: #ffffff !important;
+        }
+
+        .modal-header .close {
+            color: #ffffff !important;
+            font-size: 28px !important;
+            font-weight: bold !important;
+            cursor: pointer !important;
+            width: 36px !important;
+            height: 36px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 50% !important;
+            transition: all 0.2s ease !important;
+            line-height: 1 !important;
+        }
+
+        .modal-header .close:hover {
+            background: rgba(255, 255, 255, 0.2) !important;
+            transform: scale(1.1) !important;
+        }
+
+        .modal-body {
+            padding: 20px !important;
+            box-sizing: border-box !important;
+        }
+
+        .modal-body input[type="text"],
+        .modal-body input[type="tel"],
+        .modal-body input[type="email"],
+        .modal-body select {
+            width: 100% !important;
+            box-sizing: border-box !important;
+            min-height: 44px !important;
+            padding: 10px 14px !important;
+            font-size: 14px !important;
+            border: 2px solid #e0e0e0 !important;
+            border-radius: 8px !important;
+            background: #ffffff !important;
+            color: #333333 !important;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+        }
+
+        .modal-body input:focus,
+        .modal-body select:focus {
+            border-color: #667eea !important;
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15) !important;
+        }
+
+        .modal-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 16px;
+        }
+
+        .modal-form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 16px;
+        }
+
+        .modal-form-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .modal {
+                padding: 16px !important;
+            }
+            .modal-content {
+                width: calc(100vw - 40px) !important;
+                max-width: 520px !important;
+                max-height: calc(100vh - 32px) !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .modal {
+                padding: 12px !important;
+            }
+            .modal-content {
+                width: calc(100vw - 32px) !important;
+                max-width: 100% !important;
+                max-height: calc(100vh - 24px) !important;
+                border-radius: 12px !important;
+            }
+            .modal-header {
+                border-radius: 12px 12px 0 0 !important;
+                padding: 14px 16px !important;
+            }
+            .modal-body {
+                padding: 16px 14px !important;
+            }
+            .modal-form-row,
+            .modal-form-row-3,
+            #billingTalukDistrictStateRow,
+            #billingPincodeEmailRow {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+            .modal-form-actions {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+            .modal-form-actions button {
+                width: 100% !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1215,287 +1402,6 @@
                         </div>
                     </div>
 
-    <!-- Billing Address Collection Modal -->
-    <div id="billingAddressModal" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 700px; width: 95%; max-height: 90vh; overflow-y: auto; margin: 2% auto;">
-            <div class="modal-header" style="position: sticky; top: 0; z-index: 10; background: white; border-radius: 16px 16px 0 0;">
-                <h3 id="billingModalTitle">📋 Billing & Delivery Details</h3>
-                <span class="close" onclick="closeBillingAddressModal()">&times;</span>
-            </div>
-            <div class="modal-body" style="padding: 25px; padding-top: 10px;">
-                <form id="billingAddressForm">
-                    <!-- Permanent Address (Billing) Section -->
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-size: 200% 200%; animation: gradientShift 3s ease infinite; color: white; padding: 15px; border-radius: 12px; margin-bottom: 25px;">
-                        <h4 style="margin: 0 0 10px 0; font-size: 18px;">🏠 Permanent Address (For Billing)</h4>
-                        <p style="margin: 0; font-size: 14px; opacity: 0.9;">This address will be used for billing and invoice generation</p>
-                    </div>
-                    
-                    <!-- Use Previous Address Button for Billing -->
-                    <div style="margin-bottom: 20px;">
-                        <button id="usePreviousBillingAddressBtn" type="button" onclick="loadPreviousBillingAddresses()" style="
-                            width: 100%; 
-                            padding: 15px; 
-                            background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
-                            color: white; 
-                            border: none; 
-                            border-radius: 12px; 
-                            font-size: 16px; 
-                            font-weight: 600; 
-                            cursor: pointer; 
-                            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-                        ">
-                            📋 Use My Previous Address
-                        </button>
-                    </div>
-                    
-                    <!-- Previous Addresses Dropdown for Billing (Initially Hidden) -->
-                    <div id="previousBillingAddressesSection" style="display: none; margin-bottom: 20px;">
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; border: 2px solid #e9ecef; animation: slideDown 0.4s ease-out;">
-                            <h5 style="margin: 0 0 15px 0; color: #495057; font-size: 16px;">📍 Select from Previous Addresses:</h5>
-                            <select id="previousBillingAddressSelect" onchange="fillBillingAddressFromPrevious()" style="
-                                width: 100%; 
-                                padding: 12px; 
-                                border: 2px solid #ced4da; 
-                                border-radius: 8px; 
-                                font-size: 14px; 
-                                background: white;
-                                cursor: pointer;
-                            ">
-                                <option value="">-- Select a previous address --</option>
-                            </select>
-                            <div style="margin-top: 10px; text-align: center;">
-                                <button type="button" onclick="hidePreviousBillingAddresses()" style="
-                                    padding: 8px 16px; 
-                                    background: #6c757d; 
-                                    color: white; 
-                                    border: none; 
-                                    border-radius: 6px; 
-                                    font-size: 12px; 
-                                    cursor: pointer;
-                                    transition: all 0.3s ease;
-                                ">
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Full Name *</label>
-                            <input type="text" id="billingName" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Full name for billing">
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Phone Number *</label>
-                            <input type="tel" id="billingPhone" required pattern="[0-9]{10}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="10-digit phone number">
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">House/Building Address *</label>
-                        <input type="text" id="billingAddress1" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="House number, building name, street">
-                    </div>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Area/Locality (Optional)</label>
-                        <input type="text" id="billingAddress2" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Area, locality, landmark">
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Taluk *</label>
-                            <input type="text" id="billingTaluk" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Taluk">
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">District *</label>
-                            <input type="text" id="billingDistrict" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="District">
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">State *</label>
-                            <input type="text" id="billingState" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="State">
-                        </div>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Pincode *</label>
-                            <input type="text" id="billingPincode" required pattern="[0-9]{6}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="6-digit pincode">
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Email *</label>
-                            <input type="email" id="billingEmail" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Email for invoice">
-                        </div>
-                    </div>
-                    
-                    <!-- Delivery Address Section (Only for Courier) -->
-                    <div id="deliveryAddressSection" style="display: none;">
-                        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); background-size: 200% 200%; animation: gradientShift 3s ease infinite; color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                            <h4 style="margin: 0 0 10px 0; font-size: 18px;">🚚 Delivery Address</h4>
-                            <p style="margin: 0; font-size: 14px; opacity: 0.9;">Where should we deliver your order?</p>
-                        </div>
-                        
-                        <!-- Use Old Address Button -->
-                        <div style="margin-bottom: 20px;">
-                            <button id="useOldAddressBtn" onclick="loadPreviousAddresses()" style="
-                                width: 100%; 
-                                padding: 15px; 
-                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                                color: white; 
-                                border: none; 
-                                border-radius: 12px; 
-                                font-size: 16px; 
-                                font-weight: 600; 
-                                cursor: pointer; 
-                                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-                            ">
-                                📋 Use My Previous Address
-                            </button>
-                        </div>
-                        
-                        <!-- Previous Addresses Dropdown (Initially Hidden) -->
-                        <div id="previousAddressesSection" style="display: none; margin-bottom: 20px;">
-                            <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; border: 2px solid #e9ecef; animation: slideDown 0.4s ease-out;">
-                                <h5 style="margin: 0 0 15px 0; color: #495057; font-size: 16px;">📍 Select from Previous Addresses:</h5>
-                                <select id="previousAddressSelect" onchange="fillAddressFromPrevious()" style="
-                                    width: 100%; 
-                                    padding: 12px; 
-                                    border: 2px solid #ced4da; 
-                                    border-radius: 8px; 
-                                    font-size: 14px; 
-                                    background: white;
-                                    cursor: pointer;
-                                ">
-                                    <option value="">-- Select a previous address --</option>
-                                </select>
-                                <div style="margin-top: 10px; text-align: center;">
-                                    <button onclick="hidePreviousAddresses()" style="
-                                        padding: 8px 16px; 
-                                        background: #6c757d; 
-                                        color: white; 
-                                        border: none; 
-                                        border-radius: 6px; 
-                                        font-size: 12px; 
-                                        cursor: pointer;
-                                        transition: all 0.3s ease;
-                                    ">
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div style="margin-bottom: 20px;">
-                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
-                                <input type="checkbox" id="usePermanentAddress" onchange="toggleDeliveryAddress()" style="transform: scale(1.2);">
-                                <span style="font-weight: 600; color: #333;">📍 Use permanent address for delivery</span>
-                            </label>
-                        </div>
-                        
-                        <div id="deliveryAddressFields">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery Name *</label>
-                                    <input type="text" id="deliveryName" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Name for delivery">
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery Phone *</label>
-                                    <input type="tel" id="deliveryPhone" pattern="[0-9]{10}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="10-digit phone number">
-                                </div>
-                            </div>
-                            
-                            <div style="margin-bottom: 20px;">
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery Address *</label>
-                                <input type="text" id="deliveryAddress1" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="House number, building name, street">
-                            </div>
-                            
-                            <div style="margin-bottom: 20px;">
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Area/Locality (Optional)</label>
-                                <input type="text" id="deliveryAddress2" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Area, locality, landmark">
-                            </div>
-                            
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Taluk *</label>
-                                    <input type="text" id="deliveryTaluk" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Taluk">
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">District *</label>
-                                    <input type="text" id="deliveryDistrict" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="District">
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">State *</label>
-                                    <input type="text" id="deliveryState" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="State">
-                                </div>
-                            </div>
-                            
-                            <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px;">
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Pincode *</label>
-                                    <input type="text" id="deliveryPincode" pattern="[0-9]{6}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="6-digit pincode">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Sticky Submit Button -->
-                    <div style="position: sticky; bottom: 0; background: white; padding: 20px 0; margin-top: 30px; border-top: 1px solid #e0e0e0;">
-                        <div style="display: flex; gap: 15px;">
-                            <button type="submit" style="flex: 1; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
-                                💳 Continue to Payment Options
-                            </button>
-                            <button type="button" onclick="closeBillingAddressModal()" style="padding: 15px 25px; background: #6c757d; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: all 0.3s ease;">
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Payment Method Selection Modal -->
-    <div id="paymentMethodModal" class="modal" style="display: none;">
-        <div class="modal-content payment-modal">
-            <div class="modal-header">
-                <h3>Choose Payment Method</h3>
-                <span class="close" onclick="closePaymentMethodModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="payment-options">
-                    <div class="payment-option" onclick="proceedWithOnlinePayment()">
-                        <div class="payment-icon">💳</div>
-                        <div class="payment-details">
-                            <h4>Online Payment</h4>
-                            <p>UPI, Net Banking, Credit/Debit Card</p>
-                            <span class="payment-badge instant">Instant</span>
-                        </div>
-                        <div class="payment-arrow">→</div>
-                    </div>
-                    
-                    <div class="payment-option" onclick="proceedWithChequePayment()">
-                        <div class="payment-icon">📝</div>
-                        <div class="payment-details">
-                            <h4>Cheque Payment</h4>
-                            <p>Upload cheque image & details</p>
-                            <span class="payment-badge manual">Manual Verification</span>
-                        </div>
-                        <div class="payment-arrow">→</div>
-                    </div>
-                    
-                    <div class="payment-option" onclick="proceedWithAccountTransfer()">
-                        <div class="payment-icon">🏦</div>
-                        <div class="payment-details">
-                            <h4>Bank Transfer</h4>
-                            <p>Direct account transfer</p>
-                            <span class="payment-badge manual">Manual Verification</span>
-                        </div>
-                        <div class="payment-arrow">→</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
                     <!-- RIGHT SIDE -->
                     <div class="book-detail-right">
                         <h1 id="bookTitle"></h1>
@@ -1553,6 +1459,215 @@
             </div>
         </div>
     </main>
+
+    <!-- Billing Address Collection Modal -->
+    <div id="billingAddressModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="billingModalTitle">📋 Billing & Delivery Details</h3>
+                <span class="close" onclick="closeBillingAddressModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="billingAddressForm">
+                    <div id="billingModalBanner"
+                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                        <h4 id="billingModalBannerTitle" style="margin: 0 0 6px 0; font-size: 16px; color: white;">🏠 Permanent Address (For Billing)</h4>
+                        <p id="billingModalBannerSubtitle" style="margin: 0; font-size: 13px; opacity: 0.95; color: white;">This address will be used for billing and invoice generation</p>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <button id="usePreviousBillingAddressBtn" type="button" onclick="loadPreviousBillingAddresses()"
+                            style="width: 100%; min-height: 44px; padding: 12px 15px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.25);">
+                            📋 Use My Previous Address
+                        </button>
+                    </div>
+
+                    <div id="previousBillingAddressesSection" style="display: none; margin-bottom: 16px;">
+                        <div style="background: rgba(248, 249, 250, 0.95); padding: 16px; border-radius: 10px; border: 2px solid #e9ecef;">
+                            <h5 style="margin: 0 0 10px 0; color: #495057; font-size: 14px;">📍 Select from Previous Addresses:</h5>
+                            <select id="previousBillingAddressSelect" onchange="fillBillingAddressFromPrevious()"
+                                style="width: 100%; min-height: 44px; padding: 10px; border: 2px solid #ced4da; border-radius: 8px; font-size: 14px; background: white; cursor: pointer; margin-bottom: 12px;">
+                                <option value="">-- Select a previous address --</option>
+                            </select>
+                            <div style="text-align: center;">
+                                <button type="button" onclick="hidePreviousBillingAddresses()"
+                                    style="padding: 8px 18px; min-height: 36px; background: #6c757d; color: white; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.2s;">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-form-row">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Full Name *</label>
+                            <input type="text" id="billingName" required placeholder="Full name for billing">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Phone Number *</label>
+                            <input type="tel" id="billingPhone" required pattern="[0-9]{10}" placeholder="10-digit phone number">
+                        </div>
+                    </div>
+
+                    <div id="billingAddress1Group" style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">House/Building Address *</label>
+                        <input type="text" id="billingAddress1" required placeholder="House number, building name, street">
+                    </div>
+
+                    <div id="billingAddress2Group" style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Area/Locality (Optional)</label>
+                        <input type="text" id="billingAddress2" placeholder="Area, locality, landmark">
+                    </div>
+
+                    <div id="billingTalukDistrictStateRow" class="modal-form-row-3">
+                        <div id="billingTalukContainer">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Taluk *</label>
+                            <input type="text" id="billingTaluk" required placeholder="Taluk">
+                        </div>
+                        <div id="billingDistrictContainer">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">District *</label>
+                            <input type="text" id="billingDistrict" required placeholder="District">
+                        </div>
+                        <div id="billingStateContainer">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">State *</label>
+                            <input type="text" id="billingState" required placeholder="State">
+                        </div>
+                    </div>
+
+                    <div id="billingPincodeEmailRow" class="modal-form-row">
+                        <div id="billingPincodeContainer">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Pincode *</label>
+                            <input type="text" id="billingPincode" required pattern="[0-9]{6}" placeholder="6-digit pincode">
+                        </div>
+                        <div id="billingEmailContainer">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Email *</label>
+                            <input type="email" id="billingEmail" required placeholder="Email for invoice">
+                        </div>
+                    </div>
+
+                    <!-- Delivery Address Section (Only for Courier) -->
+                    <div id="deliveryAddressSection" style="display: none;">
+                        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 16px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.25);">
+                            <h4 style="margin: 0 0 6px 0; font-size: 16px; color: white;">🚚 Delivery Address</h4>
+                            <p style="margin: 0; font-size: 13px; opacity: 0.95; color: white;">Where should we deliver your order?</p>
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <button id="useOldAddressBtn" type="button" onclick="loadPreviousAddresses()"
+                                style="width: 100%; min-height: 44px; padding: 12px 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);">
+                                📋 Use My Previous Address
+                            </button>
+                        </div>
+
+                        <div id="previousAddressesSection" style="display: none; margin-bottom: 16px;">
+                            <div style="background: rgba(248, 249, 250, 0.95); padding: 16px; border-radius: 10px; border: 2px solid #e9ecef;">
+                                <h5 style="margin: 0 0 10px 0; color: #495057; font-size: 14px;">📍 Select from Previous Addresses:</h5>
+                                <select id="previousAddressSelect" onchange="fillAddressFromPrevious()"
+                                    style="width: 100%; min-height: 44px; padding: 10px; border: 2px solid #ced4da; border-radius: 8px; font-size: 14px; background: white; cursor: pointer; margin-bottom: 12px;">
+                                    <option value="">-- Select a previous address --</option>
+                                </select>
+                                <div style="text-align: center;">
+                                    <button type="button" onclick="hidePreviousAddresses()"
+                                        style="padding: 8px 18px; min-height: 36px; background: #6c757d; color: white; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.2s;">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(248, 249, 250, 0.95); padding: 12px 15px; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s;">
+                                <input type="checkbox" id="usePermanentAddress" onchange="toggleDeliveryAddress()"
+                                    style="transform: scale(1.2); cursor: pointer; width: auto; min-height: auto;">
+                                <span style="font-weight: 600; color: #333; font-size: 13px;">📍 Use permanent address for delivery</span>
+                            </label>
+                        </div>
+
+                        <div id="deliveryAddressFields">
+                            <div class="modal-form-row">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Delivery Name *</label>
+                                    <input type="text" id="deliveryName" placeholder="Name for delivery">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Delivery Phone *</label>
+                                    <input type="tel" id="deliveryPhone" pattern="[0-9]{10}" placeholder="10-digit phone number">
+                                </div>
+                            </div>
+                            <div id="deliveryAddress1Group" style="margin-bottom: 16px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Delivery Address *</label>
+                                <input type="text" id="deliveryAddress1" placeholder="House number, building name, street">
+                            </div>
+                            <div id="deliveryAddress2Group" style="margin-bottom: 16px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Area/Locality (Optional)</label>
+                                <input type="text" id="deliveryAddress2" placeholder="Area, locality, landmark">
+                            </div>
+                            <div class="modal-form-row-3">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Taluk *</label>
+                                    <input type="text" id="deliveryTaluk" placeholder="Taluk">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">District *</label>
+                                    <input type="text" id="deliveryDistrict" placeholder="District">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">State *</label>
+                                    <input type="text" id="deliveryState" placeholder="State">
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 16px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Pincode *</label>
+                                <input type="text" id="deliveryPincode" pattern="[0-9]{6}" placeholder="6-digit pincode">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div style="position: sticky; bottom: 0; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(8px); padding: 15px 0 0 0; margin-top: 20px; border-top: 1px solid #e0e0e0;">
+                        <div class="modal-form-actions">
+                            <button type="submit"
+                                style="flex: 1; min-height: 44px; padding: 12px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                                💳 Continue to Payment Options
+                            </button>
+                            <button type="button" onclick="closeBillingAddressModal()"
+                                style="min-height: 44px; padding: 12px 24px; background: #6c757d; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Method Selection Modal -->
+    <div id="paymentMethodModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💳 Select Payment Method</h3>
+                <span class="close" onclick="closePaymentMethodModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div style="display: grid; gap: 15px; margin: 15px 0;">
+                    <button onclick="proceedWithOnlinePayment()" class="payment-method-btn"
+                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 18px 20px; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: 600; text-align: left; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); transition: all 0.2s;">
+                        💳 Online Payment (UPI/Card/Net Banking)
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 6px; font-weight: 400;">Instant payment via Razorpay</div>
+                    </button>
+                    <button onclick="proceedWithChequePayment()" class="payment-method-btn"
+                        style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; border: none; padding: 18px 20px; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: 600; text-align: left; box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3); transition: all 0.2s;">
+                        📝 Cheque Payment
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 6px; font-weight: 400;">Upload cheque image for verification</div>
+                    </button>
+                    <button onclick="proceedWithAccountTransfer()" class="payment-method-btn"
+                        style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; padding: 18px 20px; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: 600; text-align: left; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); transition: all 0.2s;">
+                        🏦 Bank Transfer
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 6px; font-weight: 400;">Direct bank account transfer</div>
+                    </button>
+                </div>
+                <div style="background: rgba(248, 249, 250, 0.95); padding: 14px 16px; border-radius: 10px; margin-top: 15px; font-size: 13px; color: #666; border-left: 4px solid #667eea;">
+                    <strong>Note:</strong> For cheque and bank transfer payments, you'll need to upload payment proof and add UTR number later in your account.
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Image Lightbox Modal -->
     <div id="imageLightbox" class="lightbox" style="display: none;">

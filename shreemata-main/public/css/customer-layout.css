@@ -365,12 +365,13 @@
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    width: 240px;
+    width: 270px;
+    min-width: 260px;
     background: var(--sm-surface-pure);
     border: 1px solid var(--sm-border);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-dropdown);
-    padding: 8px 0;
+    box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.15), 0 8px 16px -6px rgba(0, 0, 0, 0.08);
+    padding: 10px 0;
     z-index: 1200;
     opacity: 0;
     visibility: hidden;
@@ -387,13 +388,13 @@
 }
 
 .dropdown-header {
-    padding: 10px 18px 8px;
+    padding: 12px 20px 10px;
     display: flex;
     flex-direction: column;
 }
 
 .dropdown-greeting-small {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--sm-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -401,10 +402,10 @@
 }
 
 .dropdown-user-name {
-    font-size: 14px;
+    font-size: 17px;
     font-weight: 700;
     color: var(--sm-ink);
-    max-width: 200px;
+    max-width: 220px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -414,10 +415,10 @@
 .dropdown-item-link {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 18px;
-    font-size: 13.5px;
-    font-weight: 500;
+    gap: 14px;
+    padding: 12px 20px;
+    font-size: 15.5px;
+    font-weight: 600;
     color: var(--sm-ink);
     transition: all var(--transition-fast);
 }
@@ -426,41 +427,44 @@
 .dropdown-item-link:focus-visible {
     background: var(--sm-bg);
     color: var(--sm-gold-muted);
-    padding-left: 21px;
+    padding-left: 24px;
 }
 
 .dropdown-item-icon {
-    font-size: 14px;
-    width: 16px;
+    font-size: 18px;
+    width: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .dropdown-divider {
     height: 1px;
-    background: var(--sm-border-light);
-    margin: 6px 0;
+    background: var(--sm-border);
+    margin: 8px 0;
 }
 
 .btn-logout-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     width: 100%;
-    padding: 10px 18px;
-    font-size: 13.5px;
+    padding: 12px 20px;
+    font-size: 15.5px;
     font-weight: 600;
-    color: var(--sm-danger);
+    color: var(--status-error);
     text-align: left;
     cursor: pointer;
+    background: none;
+    border: none;
     transition: all var(--transition-fast);
 }
 
 .btn-logout-item:hover,
 .btn-logout-item:focus-visible {
-    background: var(--sm-danger-bg);
-    padding-left: 21px;
+    background: var(--status-error-bg);
+    padding-left: 24px;
 }
 
 /* Cart Button */

@@ -95,30 +95,32 @@ async function uploadToCloudinary(buffer, filename) {
 ------------------------------------------- */
 router.get("/", async (req, res) => {
   try {
+    const { category, class: bookClass, subject, author, minPrice, maxPrice, search } = req.query;
 
     const page = Math.max(1, parseInt(req.query.page || "1"));
-    const limit = Math.max(1, parseInt(req.query.limit || "12"));
+    const requestedLimit = req.query.limit ? parseInt(req.query.limit) : null;
+    const limit = requestedLimit ? Math.max(1, requestedLimit) : (search ? 50 : 100);
     const skip = (page - 1) * limit;
-
-    const { category, class: bookClass, subject, author, minPrice, maxPrice, search } = req.query;
 
     const query = {};
 
     if (category) query.category = category;
     if (bookClass) query.class = bookClass;
-    if (subject) query.subject = new RegExp(subject, "i");
-    if (author) query.author = new RegExp(author, "i");
+    if (subject) query.subject = new RegExp(subject.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
+    if (author) query.author = new RegExp(author.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
     if (minPrice) query.price = { ...query.price, $gte: parseFloat(minPrice) };
     if (maxPrice) query.price = { ...query.price, $lte: parseFloat(maxPrice) };
 
-    if (search) {
-      const s = new RegExp(search, "i");
+    if (search && search.trim()) {
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const s = new RegExp(escaped, "i");
       query.$or = [
         { title: s },
         { author: s },
         { description: s },
         { class: s },
-        { subject: s }
+        { subject: s },
+        { category: s }
       ];
     }
 
@@ -145,6 +147,43 @@ router.get("/", async (req, res) => {
       currentPage: 1,
       totalCount: 0
     });
+  }
+});
+
+/* -------------------------------------------
+   SEARCH BOOKS (DEDICATED SEARCH ENDPOINT)
+------------------------------------------- */
+router.get("/search", async (req, res) => {
+  try {
+    const query = (req.query.q || req.query.search || "").trim();
+    if (!query) {
+      return res.status(400).json({ success: false, error: "Search query is required", count: 0, books: [] });
+    }
+
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escaped, "i");
+
+    // Search title, author, description, subject, class, category
+    const books = await Book.find({
+      $or: [
+        { title: { $regex: regex } },
+        { author: { $regex: regex } },
+        { description: { $regex: regex } },
+        { subject: { $regex: regex } },
+        { class: { $regex: regex } },
+        { category: { $regex: regex } }
+      ]
+    }).sort({ createdAt: -1 }).limit(50);
+
+    res.json({
+      success: true,
+      count: books.length,
+      totalCount: books.length,
+      books
+    });
+  } catch (err) {
+    console.error("Search API Error:", err);
+    res.status(500).json({ success: false, error: "Server error during search", books: [] });
   }
 });
 

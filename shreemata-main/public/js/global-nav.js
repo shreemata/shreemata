@@ -108,18 +108,21 @@
 
     // ── 3. ACCOUNT DROPDOWN INTERACTION CONTROLLER ──
     function initAccountDropdown() {
-        const userNavWrap = document.getElementById("userLinks");
-        const userMenuBtn = document.getElementById("userMenuBtn") || (userNavWrap ? userNavWrap.querySelector(".user-name-badge") : null);
-        const dropdownMenu = document.getElementById("userDropdownMenu") || (userNavWrap ? userNavWrap.querySelector(".user-dropdown-menu") : null);
+        const userNavWrap = document.getElementById("userLinks") || document.querySelector(".user-nav-wrap, .user-menu-wrap");
+        const userMenuBtn = document.querySelector("#userMenuBtn, .user-menu-trigger, .user-name-badge");
+        const dropdownMenu = document.querySelector("#userDropdownMenu, .user-dropdown-menu, .dropdown-content");
 
-        if (!userNavWrap || !userMenuBtn) return;
+        if (!userMenuBtn) return;
 
         function toggleDropdown(e) {
             if (e) {
                 e.stopPropagation();
                 e.preventDefault();
             }
-            const isOpen = userNavWrap.classList.contains("open");
+            const isOpen = userNavWrap 
+                ? userNavWrap.classList.contains("open") 
+                : (dropdownMenu && !dropdownMenu.classList.contains("hidden") && dropdownMenu.style.display !== "none");
+
             if (isOpen) {
                 closeDropdown();
             } else {
@@ -128,12 +131,18 @@
         }
 
         function openDropdown() {
-            userNavWrap.classList.add("open");
+            if (userNavWrap) userNavWrap.classList.add("open");
+            if (dropdownMenu) {
+                dropdownMenu.classList.remove("hidden");
+            }
             userMenuBtn.setAttribute("aria-expanded", "true");
         }
 
         function closeDropdown() {
-            userNavWrap.classList.remove("open");
+            if (userNavWrap) userNavWrap.classList.remove("open");
+            if (dropdownMenu) {
+                dropdownMenu.classList.add("hidden");
+            }
             userMenuBtn.setAttribute("aria-expanded", "false");
         }
 
@@ -142,14 +151,18 @@
 
         // Click outside listener
         document.addEventListener("click", (e) => {
-            if (!userNavWrap.contains(e.target)) {
+            const isClickInside = (userNavWrap && userNavWrap.contains(e.target)) || 
+                                  userMenuBtn.contains(e.target) || 
+                                  (dropdownMenu && dropdownMenu.contains(e.target));
+            if (!isClickInside) {
                 closeDropdown();
             }
         });
 
         // Keyboard listener (Escape to close and return focus)
         document.addEventListener("keydown", (e) => {
-            if (e.key === "Escape" && userNavWrap.classList.contains("open")) {
+            const isOpen = userNavWrap ? userNavWrap.classList.contains("open") : (dropdownMenu && !dropdownMenu.classList.contains("hidden"));
+            if (e.key === "Escape" && isOpen) {
                 closeDropdown();
                 userMenuBtn.focus();
             }

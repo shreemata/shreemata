@@ -1,16 +1,22 @@
 // Email service using nodemailer with Gmail SMTP
 const nodemailer = require('nodemailer');
 
-// Create transporter for Gmail
-const transporter = (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD)
+const emailUser = process.env.GMAIL_USER || process.env.SMTP_USER || process.env.EMAIL_FROM;
+const emailPass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
+const emailHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+const emailPort = parseInt(process.env.SMTP_PORT) || 587;
+const fromEmail = process.env.EMAIL_FROM || emailUser;
+
+// Create transporter for Gmail / SMTP
+const transporter = (emailUser && emailPass)
     ? nodemailer.createTransport({
         service: 'gmail',
-        host: 'smtp.gmail.com',
-        port: 587,
+        host: emailHost,
+        port: emailPort,
         secure: false,
         auth: {
-            user: process.env.GMAIL_USER,
-            pass: process.env.GMAIL_APP_PASSWORD
+            user: emailUser,
+            pass: emailPass
         }
     })
     : null;
@@ -19,19 +25,23 @@ const transporter = (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD)
 if (transporter) {
     transporter.verify((error, success) => {
         if (error) {
-            console.error('❌ Gmail transporter error:', error);
+            console.error('❌ Gmail transporter error:', error.message || error);
         } else {
-            console.log('✅ Gmail server is ready to send messages');
+            console.log('✅ Gmail server is ready to send messages (authenticated as ' + emailUser + ')');
         }
     });
 } else {
-    console.log('⚠️ Gmail credentials not set in environment variables (email service idle)');
+    console.log('⚠️ Gmail / SMTP credentials not set in environment variables (email service idle)');
 }
 
 async function sendEmailSafely(mailOptions) {
     if (!transporter) {
         console.log('⚠️ (Email skipped - SMTP credentials not set):', mailOptions.subject);
         return { messageId: 'skipped_no_smtp', accepted: [mailOptions.to], rejected: [], response: 'skipped' };
+    }
+    // Ensure 'from' header is populated
+    if (!mailOptions.from) {
+        mailOptions.from = `"Shree Mata" <${fromEmail}>`;
     }
     return transporter.sendMail(mailOptions);
 }
@@ -92,7 +102,7 @@ async function sendOrderConfirmationEmail(order, user) {
         }
 
         const mailOptions = {
-            from: `"Shree Mata" <${process.env.GMAIL_USER}>`,
+            from: `"Shree Mata" <${fromEmail}>`,
             to: user.email,
             subject: `Order Confirmation - Order #${order._id}`,
             html: `
@@ -187,7 +197,7 @@ async function sendOrderConfirmationEmail(order, user) {
 async function sendAdminNotification(order, user) {
     try {
         const mailOptions = {
-            from: `"Shree Mata" <${process.env.GMAIL_USER}>`,
+            from: `"Shree Mata" <${fromEmail}>`,
             to: "shashistudy2125@gmail.com", // Send to admin email
             subject: `New Order Received - Order #${order._id}`,
             html: `
@@ -297,7 +307,7 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
         }
 
         const mailOptions = {
-            from: `"Shree Mata" <${process.env.GMAIL_USER}>`,
+            from: `"Shree Mata" <${fromEmail}>`,
             to: user.email,
             subject: `${statusInfo.icon} ${statusInfo.title} - Order #${order._id}`,
             html: `
@@ -389,7 +399,7 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
 async function sendEmailOTP(email, otp) {
     try {
         const mailOptions = {
-            from: `"Shree Mata" <${process.env.GMAIL_USER}>`,
+            from: `"Shree Mata" <${fromEmail}>`,
             to: email,
             subject: 'Email Verification Code - Shree Mata',
             html: `
@@ -461,7 +471,7 @@ async function sendEmailOTP(email, otp) {
 async function sendPasswordResetOTP(email, otp) {
     try {
         const mailOptions = {
-            from: `"Shree Mata" <${process.env.GMAIL_USER}>`,
+            from: `"Shree Mata" <${fromEmail}>`,
             to: email,
             subject: 'Password Reset Code - Shree Mata',
             html: `
@@ -534,7 +544,7 @@ async function sendEmployeeVerificationEmail(employee, verificationToken) {
         console.log('🔗 Fallback verification URL:', fallbackVerificationUrl);
         
         const mailOptions = {
-            from: `"Shree Mata HR" <${process.env.GMAIL_USER}>`,
+            from: `"Shree Mata HR" <${fromEmail}>`,
             to: employee.email,
             subject: 'Employee Account Verification - Shree Mata',
             html: `
@@ -630,7 +640,7 @@ async function sendEmployeeVerificationEmail(employee, verificationToken) {
 async function sendSalaryNotificationEmail(employee, salaryRecord) {
     try {
         const mailOptions = {
-            from: `"Shree Mata HR" <${process.env.GMAIL_USER}>`,
+            from: `"Shree Mata HR" <${fromEmail}>`,
             to: employee.email,
             subject: `Salary Processed - ${salaryRecord.month} | Shree Mata`,
             html: `
@@ -739,7 +749,7 @@ async function sendSalaryNotificationEmail(employee, salaryRecord) {
 async function sendSalaryUpdateOTP(employee, otp, salaryDetails) {
     try {
         const mailOptions = {
-            from: `"Shree Mata HR" <${process.env.GMAIL_USER}>`,
+            from: `"Shree Mata HR" <${fromEmail}>`,
             to: employee.email,
             subject: 'Salary Update Verification - Shree Mata',
             html: `
@@ -834,7 +844,7 @@ async function sendSalaryPaymentStatusUpdateEmail(employee, salaryRecord, oldSta
         const statusInfo = statusMessages[newStatus] || statusMessages['pending'];
 
         const mailOptions = {
-            from: `"Shree Mata HR" <${process.env.GMAIL_USER}>`,
+            from: `"Shree Mata HR" <${fromEmail}>`,
             to: employee.email,
             subject: `${statusInfo.icon} Salary Payment Status Update - ${salaryRecord.periodDescription || salaryRecord.period}`,
             html: `

@@ -568,12 +568,13 @@ img {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    width: 240px;
+    width: 270px;
+    min-width: 260px;
     background: var(--bg-white-pure);
     border: 1px solid var(--border-editorial);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-card-hover);
-    padding: 8px 0;
+    box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.15), 0 8px 16px -6px rgba(0, 0, 0, 0.08);
+    padding: 10px 0;
     z-index: 1200;
     opacity: 0;
     visibility: hidden;
@@ -590,13 +591,13 @@ img {
 }
 
 .dropdown-header {
-    padding: 10px 18px 8px;
+    padding: 12px 20px 10px;
     display: flex;
     flex-direction: column;
 }
 
 .dropdown-greeting-small {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -604,10 +605,10 @@ img {
 }
 
 .dropdown-user-name {
-    font-size: 14px;
+    font-size: 17px;
     font-weight: 700;
     color: var(--text-ink);
-    max-width: 200px;
+    max-width: 220px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -617,10 +618,10 @@ img {
 .dropdown-item-link {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 18px;
-    font-size: 13.5px;
-    font-weight: 500;
+    gap: 14px;
+    padding: 12px 20px;
+    font-size: 15.5px;
+    font-weight: 600;
     color: var(--text-body);
     transition: all var(--transition-fast);
 }
@@ -629,30 +630,31 @@ img {
 .dropdown-item-link:focus-visible {
     background: var(--bg-warm-ivory);
     color: var(--text-ink);
-    padding-left: 21px;
+    padding-left: 24px;
 }
 
 .dropdown-item-icon {
-    font-size: 14px;
-    width: 16px;
+    font-size: 18px;
+    width: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .dropdown-divider {
     height: 1px;
     background: var(--border-editorial);
-    margin: 6px 0;
+    margin: 8px 0;
 }
 
 .btn-logout-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     width: 100%;
-    padding: 10px 18px;
-    font-size: 13.5px;
+    padding: 12px 20px;
+    font-size: 15.5px;
     font-weight: 600;
     color: var(--status-error);
     text-align: left;
@@ -665,7 +667,7 @@ img {
 .btn-logout-item:hover,
 .btn-logout-item:focus-visible {
     background: var(--status-error-bg);
-    padding-left: 21px;
+    padding-left: 24px;
 }
 
 /* Header Cart Button */
@@ -1882,6 +1884,7 @@ img {
     margin-bottom: 4px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     min-height: 46px;

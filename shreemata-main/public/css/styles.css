@@ -226,6 +226,7 @@ main {
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
 }
 
@@ -1394,7 +1395,7 @@ footer {
     h4 { font-size: 16px; }
 
     /* Modal improvements */
-    .modal, .modal-content {
+    .modal-content {
         padding: 20px 16px;
         margin: 16px auto;
         max-width: calc(100vw - 32px);
@@ -1704,3 +1705,143 @@ footer {
         font-size: 18px;
     }
 }
+
+/* -------------------------------------------
+   USER ACCOUNT & DROPDOWN STYLING (LARGE & PROMINENT)
+------------------------------------------- */
+/* Change username text color to crisp black with larger size */
+.user-name, #userName, .nav-user-name, .user-name-text, .dropdown-user-name {
+    color: #111827 !important;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.user-greeting {
+    font-size: 13.5px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.user-avatar-icon {
+    font-size: 20px;
+}
+
+/* User name badge container & chevron arrow */
+.user-name-badge, .user-menu-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: background-color 0.15s ease;
+}
+
+.user-name-badge:hover, .user-menu-trigger:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dropdown-chevron {
+    display: inline-block;
+    font-size: 14px;
+    color: #4b5563;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.user-nav-wrap.open .dropdown-chevron,
+.user-menu-wrap.open .dropdown-chevron {
+    transform: rotate(180deg);
+    color: #111827;
+}
+
+/* Big, professional, highly visible dropdown menu container */
+.user-dropdown-menu, .dropdown-content {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.15), 0 8px 16px -6px rgba(0, 0, 0, 0.08);
+    padding: 10px 0;
+    min-width: 260px;
+    width: 270px;
+    z-index: 1000;
+}
+
+/* Header inside dropdown */
+.dropdown-header {
+    padding: 12px 20px 10px;
+}
+
+.dropdown-greeting-small {
+    font-size: 12px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.dropdown-user-name {
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    color: #111827 !important;
+    margin-top: 2px;
+    display: block;
+}
+
+/* Dropdown divider */
+.dropdown-divider {
+    height: 1px;
+    background-color: #f3f4f6;
+    margin: 8px 0;
+}
+
+/* Big dropdown item styling for clear visibility and effortless clicking */
+.user-dropdown-menu a, 
+.dropdown-item, 
+.dropdown-item-link, 
+.btn-logout-item {
+    color: #374151;
+    padding: 12px 20px;
+    font-size: 15.5px;
+    font-weight: 600;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: background-color 0.15s ease, color 0.15s ease, padding-left 0.15s ease;
+}
+
+.dropdown-item-icon {
+    font-size: 18px;
+    width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.user-dropdown-menu a:hover, 
+.dropdown-item:hover, 
+.dropdown-item-link:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+    padding-left: 24px;
+}
+
+/* Big logout button */
+.btn-logout-item {
+    color: #dc2626;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+}
+
+.btn-logout-item:hover {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    padding-left: 24px;
+}

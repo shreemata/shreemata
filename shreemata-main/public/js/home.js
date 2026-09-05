@@ -25,7 +25,18 @@ document.addEventListener('DOMContentLoaded', () => {
     loadNotifications(); // Load notifications/offers
     loadBundles(); // Load combo offers
     loadClassesAndSubjects(); // Load dynamic classes and subjects
-    loadBooksWithFilters();
+    
+    // Check if coming with a search query from URL (e.g. /?search=...)
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchParam = urlParams.get("search");
+    if (searchParam) {
+        const searchInput = document.getElementById("searchInput");
+        if (searchInput) searchInput.value = searchParam;
+        loadBooksWithFilters({ search: searchParam });
+    } else {
+        loadBooksWithFilters();
+    }
+    
     setupEventListeners();
     setupPaginationControls();
 });
@@ -408,7 +419,19 @@ function updateOfferDots() {
 /* ------------------------------
    LOAD BOOKS WITH FILTERS
 --------------------------------*/
-async function loadBooksWithFilters({ page = 1, limit = 12, category, minPrice, maxPrice, search } = {}) {
+async function loadBooksWithFilters({ page = 1, limit = 1000, category, minPrice, maxPrice, search } = {}) {
+    const loadingSpinner = document.getElementById("loadingSpinner");
+    const booksGrid = document.getElementById("booksGrid");
+
+    if (booksGrid && (!allBooks || allBooks.length === 0)) {
+        booksGrid.style.display = "grid";
+        booksGrid.innerHTML = `
+            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
+            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
+            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
+            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
+        `;
+    }
 
     const qs = new URLSearchParams();
     qs.set("page", page);
@@ -418,25 +441,45 @@ async function loadBooksWithFilters({ page = 1, limit = 12, category, minPrice, 
     if (maxPrice) qs.set("maxPrice", maxPrice);
     if (search) qs.set("search", search);
 
-    const loadingSpinner = document.getElementById("loadingSpinner");
-
     try {
         const res = await fetch(`${API_URL}/books?${qs.toString()}`);
         const data = await res.json();
 
-        loadingSpinner.style.display = "none";
+        if (loadingSpinner) loadingSpinner.style.display = "none";
 
-        if (data.books && data.books.length > 0) {
-            displayBooks(data.books);
-            document.getElementById("booksGrid").style.display = "grid";
+        if (data.books && Array.isArray(data.books)) {
+            allBooks = data.books;
+
+            // Check if there is an active search query from input or URL
+            const searchInput = document.getElementById("searchInput");
+            const currentSearch = search !== undefined ? search : (searchInput ? searchInput.value.trim() : '');
+            const selectedClass = document.getElementById('classFilter') ? document.getElementById('classFilter').value : '';
+            const selectedSubject = document.getElementById('subjectFilter') ? document.getElementById('subjectFilter').value : '';
+
+            if (currentSearch || selectedClass || selectedSubject) {
+                filterAndDisplayBooks(selectedClass, selectedSubject, currentSearch);
+            } else {
+                filteredBooks = [...allBooks];
+                totalBooks = allBooks.length;
+                currentPage = 1;
+                displayPaginatedBooks();
+                updatePaginationUI();
+                updateBooksStats();
+            }
         } else {
-            document.getElementById("booksGrid").style.display = "none";
-            document.getElementById("emptyState").style.display = "block";
+            filteredBooks = [];
+            totalBooks = 0;
+            if (booksGrid) booksGrid.style.display = 'none';
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) emptyState.style.display = 'block';
         }
 
     } catch (err) {
         console.error("Error loading books:", err);
-        loadingSpinner.textContent = "Error loading books.";
+        if (loadingSpinner) loadingSpinner.style.display = "none";
+        if (booksGrid) booksGrid.style.display = 'none';
+        const emptyState = document.getElementById('emptyState');
+        if (emptyState) emptyState.style.display = 'block';
     }
 }
 
@@ -500,17 +543,36 @@ function setupEventListeners() {
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
-    const searchBtn = document.getElementById("searchBtn");
-    const searchInput = document.getElementById("searchInput");
+    const searchInput = document.querySelector('input[type="search"], #searchInput, #search-bar, .search-input');
+    const searchButton = document.querySelector('#searchBtn, #search-btn, .search-btn');
 
-    if (searchBtn) {
-        searchBtn.addEventListener("click", performSearch);
+    if (searchButton) {
+        searchButton.addEventListener("click", (e) => {
+            e.preventDefault();
+            performSearch(true);
+        });
     }
     
     if (searchInput) {
-        searchInput.addEventListener("keyup", (e) => {
-            if (e.key === "Enter") performSearch();
+        // Immediate search on Enter key (keypress / keydown) with smooth scroll
+        searchInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                performSearch(true);
+            }
         });
+
+        searchInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                performSearch(true);
+            }
+        });
+
+        // Instant live search as user types
+        searchInput.addEventListener("input", debounce(() => {
+            performSearch(false);
+        }, 200));
     }
 }
 
@@ -633,12 +695,67 @@ function createBookCard(book) {
 }
 
 /* ------------------------------
-   SEARCH
+   SEARCH & DISPLAY SEARCH RESULTS
 --------------------------------*/
-function performSearch() {
-    const term = document.getElementById("searchInput").value.trim().toLowerCase();
-    if (!term) return loadBooksWithFilters();
-    loadBooksWithFilters({ search: term });
+function displaySearchResults(data, searchTerm = "") {
+    const books = Array.isArray(data) ? data : (data.books || []);
+    console.log("Rendering search results count:", books.length);
+
+    filteredBooks = [...books];
+    totalBooks = filteredBooks.length;
+    currentPage = 1;
+
+    displayPaginatedBooks();
+    updatePaginationUI();
+    updateBooksStats(searchTerm);
+}
+
+async function performSearch(shouldScroll = false) {
+    const searchInput = document.querySelector('input[type="search"], #searchInput, #search-bar, .search-input');
+    const term = searchInput ? searchInput.value.trim() : "";
+    
+    console.log("🔍 Performing search with term:", term);
+    
+    const selectedClass = document.getElementById('classFilter') ? document.getElementById('classFilter').value : '';
+    const selectedSubject = document.getElementById('subjectFilter') ? document.getElementById('subjectFilter').value : '';
+    
+    if (!term) {
+        filterAndDisplayBooks(selectedClass, selectedSubject, "");
+        return;
+    }
+
+    try {
+        // Query backend dedicated search endpoint /api/books/search?q=
+        const response = await fetch(`${API_URL}/books/search?q=${encodeURIComponent(term)}`);
+        const data = await response.json();
+        
+        if (data && (data.success || Array.isArray(data.books))) {
+            let resultBooks = data.books || [];
+            if (selectedClass || selectedSubject) {
+                resultBooks = resultBooks.filter(book => {
+                    const matchesClass = !selectedClass || (book.class && book.class.toString() === selectedClass);
+                    const matchesSubject = !selectedSubject || (book.subject && book.subject.toLowerCase() === selectedSubject.toLowerCase());
+                    return matchesClass && matchesSubject;
+                });
+            }
+            displaySearchResults({ success: true, count: resultBooks.length, books: resultBooks }, term);
+        } else if (allBooks && allBooks.length > 0) {
+            // Fallback to in-memory filter if needed
+            filterAndDisplayBooks(selectedClass, selectedSubject, term);
+        }
+    } catch (err) {
+        console.error("Search error:", err);
+        if (allBooks && allBooks.length > 0) {
+            filterAndDisplayBooks(selectedClass, selectedSubject, term);
+        }
+    }
+    
+    if (shouldScroll && term) {
+        const booksSection = document.getElementById("booksSection") || document.querySelector(".books-section");
+        if (booksSection) {
+            booksSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    }
 }
 
 /* ------------------------------
@@ -981,12 +1098,21 @@ function setupPaginationControls() {
 }
 
 function handleFilters() {
-    const selectedClass = document.getElementById('classFilter').value;
-    const selectedSubject = document.getElementById('subjectFilter').value;
-    filterAndDisplayBooks(selectedClass, selectedSubject);
+    const selectedClass = document.getElementById('classFilter') ? document.getElementById('classFilter').value : '';
+    const selectedSubject = document.getElementById('subjectFilter') ? document.getElementById('subjectFilter').value : '';
+    const searchInput = document.getElementById("searchInput");
+    const searchTerm = searchInput ? searchInput.value.trim() : '';
+    filterAndDisplayBooks(selectedClass, selectedSubject, searchTerm);
 }
 
-function filterAndDisplayBooks(selectedClass = '', selectedSubject = '') {
+function filterAndDisplayBooks(selectedClass = '', selectedSubject = '', searchTerm = '') {
+    if (!searchTerm) {
+        const searchInput = document.getElementById("searchInput");
+        if (searchInput) searchTerm = searchInput.value.trim();
+    }
+    
+    const lowerTerm = searchTerm ? searchTerm.toLowerCase() : '';
+    
     filteredBooks = allBooks.filter(book => {
         const matchesClass = !selectedClass || 
             (book.class && book.class.toString() === selectedClass);
@@ -994,14 +1120,30 @@ function filterAndDisplayBooks(selectedClass = '', selectedSubject = '') {
         const matchesSubject = !selectedSubject || 
             (book.subject && book.subject.toLowerCase() === selectedSubject.toLowerCase());
             
-        return matchesClass && matchesSubject;
+        let matchesSearch = true;
+        if (lowerTerm) {
+            const title = (book.title || '').toLowerCase();
+            const author = (book.author || '').toLowerCase();
+            const subject = (book.subject || '').toLowerCase();
+            const bookClass = (book.class || '').toString().toLowerCase();
+            const desc = (book.description || '').toLowerCase();
+            const cat = (book.category || '').toLowerCase();
+            matchesSearch = title.includes(lowerTerm) || 
+                            author.includes(lowerTerm) || 
+                            subject.includes(lowerTerm) || 
+                            bookClass.includes(lowerTerm) || 
+                            desc.includes(lowerTerm) || 
+                            cat.includes(lowerTerm);
+        }
+        
+        return matchesClass && matchesSubject && matchesSearch;
     });
     
     totalBooks = filteredBooks.length;
     currentPage = 1;
     displayPaginatedBooks();
     updatePaginationUI();
-    updateBooksStats();
+    updateBooksStats(searchTerm);
 }
 
 function displayPaginatedBooks() {
@@ -1150,66 +1292,27 @@ function switchView(view) {
     grid.className = `books-grid ${view === 'list' ? 'list-view' : ''}`;
 }
 
-function updateBooksStats() {
+function updateBooksStats(searchTerm = '') {
     const booksCount = document.getElementById('booksCount');
     if (booksCount) {
-        const selectedClass = document.getElementById('classFilter').value;
-        const selectedSubject = document.getElementById('subjectFilter').value;
+        const selectedClass = document.getElementById('classFilter') ? document.getElementById('classFilter').value : '';
+        const selectedSubject = document.getElementById('subjectFilter') ? document.getElementById('subjectFilter').value : '';
+        if (!searchTerm) {
+            const searchInput = document.getElementById("searchInput");
+            if (searchInput) searchTerm = searchInput.value.trim();
+        }
         
         let statusText = `${totalBooks} books`;
         
-        if (selectedClass || selectedSubject) {
+        if (searchTerm) {
+            statusText = `${totalBooks} book${totalBooks === 1 ? '' : 's'} found for "${searchTerm}"`;
+        } else if (selectedClass || selectedSubject) {
             statusText += ' found';
             if (selectedClass) statusText += ` for Class ${selectedClass}`;
             if (selectedSubject) statusText += ` in ${selectedSubject}`;
         }
         
         booksCount.textContent = statusText;
-    }
-}
-
-// Enhanced loadBooksWithFilters function
-async function loadBooksWithFilters() {
-    const loadingSpinner = document.getElementById("loadingSpinner");
-    const booksGrid = document.getElementById("booksGrid");
-    
-    // Show skeleton placeholders while loading
-    if (booksGrid) {
-        booksGrid.style.display = "grid";
-        booksGrid.innerHTML = `
-            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
-            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
-            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
-            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
-        `;
-    }
-    
-    try {
-        if (loadingSpinner) loadingSpinner.style.display = "none";
-        
-        const response = await fetch(`${API_URL}/books`);
-        const data = await response.json();
-        
-        if (data.books && Array.isArray(data.books)) {
-            allBooks = data.books;
-            filteredBooks = [...allBooks];
-            totalBooks = allBooks.length;
-            
-            console.log('📚 Books loaded:', totalBooks);
-            
-            displayPaginatedBooks();
-            updatePaginationUI();
-            updateBooksStats();
-        } else {
-            document.getElementById('emptyState').style.display = 'block';
-            if (booksGrid) booksGrid.style.display = 'none';
-        }
-    } catch (error) {
-        console.error("Error loading books:", error);
-        document.getElementById('emptyState').style.display = 'block';
-        if (booksGrid) booksGrid.style.display = 'none';
-    } finally {
-        if (loadingSpinner) loadingSpinner.style.display = "none";
     }
 }
 
@@ -1225,3 +1328,11 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
+
+// Global exposures for navigation and inline calls
+window.performSearch = performSearch;
+window.displaySearchResults = displaySearchResults;
+window.filterAndDisplayBooks = filterAndDisplayBooks;
+window.loadBooksWithFilters = loadBooksWithFilters;
+
+
