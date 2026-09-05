@@ -35,16 +35,12 @@ router.get("/withdrawal-settings", authenticateToken, async (req, res) => {
     }
 });
 
-// Setup bank details (one-time only)
+// Setup or update bank details
 router.post("/setup-bank-details", authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
-        
-        if (user.bankDetails.isSetup) {
-            return res.status(400).json({ 
-                error: "Bank details already setup. Contact admin to make changes.",
-                contactAdmin: true
-            });
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
         }
 
         const { accountNumber, accountHolderName, bankName, ifscCode, upiId } = req.body;
@@ -60,36 +56,85 @@ router.post("/setup-bank-details", authenticateToken, async (req, res) => {
             });
         }
 
-        // Setup bank details
+        // Setup/update bank details
         await user.setupBankDetails({
-            accountNumber: accountNumber?.trim(),
+            accountNumber: accountNumber ? accountNumber.trim() : null,
             accountHolderName: accountHolderName.trim(),
-            bankName: bankName?.trim(),
-            ifscCode: ifscCode?.trim().toUpperCase(),
-            upiId: upiId?.trim().toLowerCase()
+            bankName: bankName ? bankName.trim() : null,
+            ifscCode: ifscCode ? ifscCode.trim().toUpperCase() : null,
+            upiId: upiId ? upiId.trim().toLowerCase() : null
         });
 
         // Send confirmation email
-        await sendMail(
-            user.email,
-            "Bank Details Setup Successful",
-            `
-            <h2>Hello ${user.name},</h2>
-            <p>Your bank details have been successfully setup for withdrawals.</p>
-            <p><strong>Security Notice:</strong> Your bank details are now locked for security. If you need to make changes, please contact our admin team.</p>
-            <br>
-            <p>Shree Mata Team</p>
-            `
-        );
+        try {
+            await sendMail(
+                user.email,
+                "Bank Details Updated - Shree Mata",
+                `
+                <h2>Hello ${user.name},</h2>
+                <p>Your bank/UPI details have been successfully saved for withdrawal requests.</p>
+                <p>You can use these details for instant withdrawals or update them whenever needed from your Referral Dashboard or Account page.</p>
+                <br>
+                <p>Shree Mata Team</p>
+                `
+            );
+        } catch (mailErr) {
+            console.warn("Could not send bank setup confirmation email:", mailErr.message);
+        }
 
         res.json({ 
-            message: "Bank details setup successfully",
+            success: true,
+            message: "Bank details saved successfully",
             maskedBankDetails: user.getMaskedBankDetails()
         });
 
     } catch (err) {
         console.error("Error setting up bank details:", err);
         res.status(500).json({ error: err.message || "Server error" });
+    }
+});
+
+// Delete / reset saved bank details
+router.delete("/bank-details", authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        if (typeof user.clearBankDetails === "function") {
+            await user.clearBankDetails();
+        } else {
+            user.bankDetails = {
+                isSetup: false,
+                setupDate: null,
+                accountNumber: null,
+                accountHolderName: null,
+                bankName: null,
+                ifscCode: null,
+                upiId: null,
+                scannerImageUrl: null,
+                scannerImage: null,
+                qrCode: null,
+                qrCodeData: null,
+                isVerified: false,
+                verificationDate: null,
+                lastModifiedBy: "user",
+                dailyLimit: 5000,
+                monthlyLimit: 50000,
+                adminNotes: null
+            };
+            await user.save();
+        }
+
+        res.json({
+            success: true,
+            message: "Saved bank details removed successfully"
+        });
+
+    } catch (err) {
+        console.error("Error deleting bank details:", err);
+        res.status(500).json({ error: err.message || "Failed to delete saved bank details" });
     }
 });
 

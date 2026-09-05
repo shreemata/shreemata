@@ -318,30 +318,62 @@ async function loadWithdrawalData() {
     }
 }
 
+// Switch between 'saved' and 'different' withdrawal detail modes
+function switchWithdrawalMode(mode) {
+    const savedBtn = document.getElementById("useSavedModeBtn");
+    const diffBtn = document.getElementById("enterDifferentModeBtn");
+    const savedPanel = document.getElementById("useSavedDetailsPanel");
+    const diffPanel = document.getElementById("enterDifferentDetailsPanel");
+
+    if (mode === 'different') {
+        if (savedBtn) savedBtn.classList.remove("active");
+        if (diffBtn) diffBtn.classList.add("active");
+        if (savedPanel) savedPanel.style.display = "none";
+        if (diffPanel) diffPanel.style.display = "block";
+        
+        const diffForm = document.getElementById("differentBankDetailsForm");
+        if (diffForm) diffForm.reset();
+    } else {
+        if (savedBtn) savedBtn.classList.add("active");
+        if (diffBtn) diffBtn.classList.remove("active");
+        if (savedPanel) savedPanel.style.display = "block";
+        if (diffPanel) diffPanel.style.display = "none";
+    }
+}
+window.switchWithdrawalMode = switchWithdrawalMode;
+
 // Display masked bank details
 function displayMaskedBankDetails(bankDetails) {
     if (!bankDetails) return;
     
-    let html = '<div style="display: grid; gap: 10px;">';
+    let html = '<div style="display: grid; gap: 8px;">';
     
     if (bankDetails.accountNumber) {
-        html += `<div><strong>🏦 Account:</strong> ${bankDetails.accountNumber}</div>`;
-        html += `<div><strong>🏛️ Bank:</strong> ${bankDetails.bankName}</div>`;
-        html += `<div><strong>🔢 IFSC:</strong> ${bankDetails.ifscCode}</div>`;
+        const bankNameText = bankDetails.bankName ? ` (${bankDetails.bankName})` : '';
+        html += `<div><strong>🏦 Saved Account:</strong> ${bankDetails.accountNumber}${bankNameText}</div>`;
+        if (bankDetails.ifscCode) {
+            html += `<div><strong>🔢 IFSC Code:</strong> ${bankDetails.ifscCode}</div>`;
+        }
     }
     
     if (bankDetails.upiId) {
-        html += `<div><strong>📱 UPI ID:</strong> ${bankDetails.upiId}</div>`;
+        html += `<div><strong>📱 Saved UPI ID:</strong> ${bankDetails.upiId}</div>`;
     }
     
-    html += `<div><strong>👤 Account Holder:</strong> ${bankDetails.accountHolderName}</div>`;
-    html += `<div><strong>📅 Setup Date:</strong> ${new Date(bankDetails.setupDate).toLocaleDateString()}</div>`;
+    if (bankDetails.accountHolderName) {
+        html += `<div><strong>👤 Account Holder:</strong> ${bankDetails.accountHolderName}</div>`;
+    }
+    
+    if (bankDetails.setupDate) {
+        html += `<div><strong>📅 Saved Date:</strong> ${new Date(bankDetails.setupDate).toLocaleDateString()}</div>`;
+    }
     html += '</div>';
     
-    document.getElementById("maskedBankDetails").innerHTML = html;
+    const container = document.getElementById("maskedBankDetails");
+    if (container) container.innerHTML = html;
 }
 
-// Setup bank details (one-time)
+// Setup or update bank details
 async function setupBankDetails(e) {
     e.preventDefault();
     
@@ -351,11 +383,14 @@ async function setupBankDetails(e) {
         return;
     }
 
-    const accountHolderName = document.getElementById("accountHolderName").value.trim();
-    const accountNumber = document.getElementById("accountNumber").value.trim();
-    const ifscCode = document.getElementById("ifscCode").value.trim();
-    const bankName = document.getElementById("bankName").value.trim();
-    const upiId = document.getElementById("upiId").value.trim();
+    const isDiffForm = e.target && e.target.id === "differentBankDetailsForm";
+    const prefix = isDiffForm ? "diff" : "";
+    
+    const accountHolderName = (document.getElementById(isDiffForm ? "diffAccountHolderName" : "accountHolderName")?.value || "").trim();
+    const accountNumber = (document.getElementById(isDiffForm ? "diffAccountNumber" : "accountNumber")?.value || "").trim();
+    const ifscCode = (document.getElementById(isDiffForm ? "diffIfscCode" : "ifscCode")?.value || "").trim();
+    const bankName = (document.getElementById(isDiffForm ? "diffBankName" : "bankName")?.value || "").trim();
+    const upiId = (document.getElementById(isDiffForm ? "diffUpiId" : "upiId")?.value || "").trim();
 
     // Validation
     if (!accountHolderName) {
@@ -369,8 +404,11 @@ async function setupBankDetails(e) {
     }
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Setting up...";
+    const originalBtnText = submitBtn ? submitBtn.textContent : "Save Payment Details";
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Saving...";
+    }
 
     try {
         const res = await fetch(`${window.API_URL}/referral/setup-bank-details`, {
@@ -391,23 +429,137 @@ async function setupBankDetails(e) {
         const data = await res.json();
 
         if (!res.ok) {
-            throw new Error(data.error || "Failed to setup bank details");
+            throw new Error(data.error || "Failed to save bank details");
+        }
+
+        // Update local user object in localStorage if present
+        try {
+            const localUser = JSON.parse(localStorage.getItem("user") || "null");
+            if (localUser) {
+                localUser.bankDetails = {
+                    ...(localUser.bankDetails || {}),
+                    accountHolderName,
+                    accountNumber: accountNumber || null,
+                    ifscCode: ifscCode || null,
+                    bankName: bankName || null,
+                    upiId: upiId || null,
+                    isSetup: true,
+                    setupDate: new Date()
+                };
+                localStorage.setItem("user", JSON.stringify(localUser));
+            }
+        } catch (e) {
+            console.warn("Could not update local storage user object:", e);
         }
 
         // Show success popup
-        alert("✅ Bank Details Setup Successful!\n\n🔒 Your bank details are now securely saved and locked for your protection.\n\n💰 You can now make withdrawal requests using only the amount.\n\n📧 A confirmation email has been sent to you.");
+        alert("✅ Payment Details Saved Successfully!\n\nYour details have been updated. You can proceed with withdrawals using your saved details or change them anytime.");
         
-        // Reload withdrawal data to show withdrawal form
-        loadWithdrawalData();
+        // Return to saved panel
+        switchWithdrawalMode('saved');
+
+        // Reload withdrawal data to show updated details
+        await loadWithdrawalData();
+
+        showWithdrawMessage("✅ Payment details saved successfully", "success");
 
     } catch (err) {
         console.error("Bank setup error:", err);
         showWithdrawMessage("Error: " + err.message, "error");
+        alert("❌ Error: " + err.message);
     } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "🔒 Setup Bank Details (One-Time Only)";
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
+        }
     }
 }
+
+// Delete saved bank details
+async function deleteSavedBankDetails() {
+    const confirmMessage = "This will remove your saved bank/UPI details. You'll need to enter them again the next time you request a withdrawal. This does not affect any pending or past withdrawal requests.\n\nAre you sure you want to delete your saved payment details?";
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+        showWithdrawMessage("Login required", "error");
+        return;
+    }
+
+    const deleteBtn = document.getElementById("deleteSavedBankBtn");
+    if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = "Deleting...";
+    }
+
+    try {
+        const res = await fetch(`${window.API_URL}/referral/bank-details`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || "Failed to delete saved bank details");
+        }
+
+        // Update local user in localStorage if present
+        try {
+            const localUser = JSON.parse(localStorage.getItem("user") || "null");
+            if (localUser && localUser.bankDetails) {
+                localUser.bankDetails.isSetup = false;
+                localUser.bankDetails.accountNumber = null;
+                localUser.bankDetails.accountHolderName = null;
+                localUser.bankDetails.bankName = null;
+                localUser.bankDetails.ifscCode = null;
+                localUser.bankDetails.upiId = null;
+                localUser.bankDetails.scannerImageUrl = null;
+                localUser.bankDetails.scannerImage = null;
+                localUser.bankDetails.qrCode = null;
+                localUser.bankDetails.qrCodeData = null;
+                localStorage.setItem("user", JSON.stringify(localUser));
+            }
+        } catch (e) {
+            console.warn("Could not update local storage user object:", e);
+        }
+
+        // Clear input values in both setup forms
+        const formFields = [
+            "accountHolderName", "accountNumber", "ifscCode", "bankName", "upiId",
+            "diffAccountHolderName", "diffAccountNumber", "diffIfscCode", "diffBankName", "diffUpiId"
+        ];
+        formFields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = "";
+        });
+
+        // Reset mode back to 'saved'
+        switchWithdrawalMode('saved');
+
+        // Reload withdrawal data to switch UI back to first-time setup state
+        await loadWithdrawalData();
+
+        showWithdrawMessage("✅ Saved bank details removed successfully", "success");
+        alert("✅ Saved bank details removed successfully.\n\nYou can now enter fresh bank/UPI details whenever you make your next withdrawal.");
+
+    } catch (err) {
+        console.error("Error deleting bank details:", err);
+        showWithdrawMessage("Error deleting bank details: " + err.message, "error");
+        alert("❌ Error: " + err.message);
+    } finally {
+        if (deleteBtn) {
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = "🗑️ Delete Saved Details";
+        }
+    }
+}
+
+// Global exposure
+window.deleteSavedBankDetails = deleteSavedBankDetails;
 
 // Submit withdrawal request
 async function submitWithdrawal(e) {
@@ -578,10 +730,16 @@ async function requestWithdraw(event) {
 
 // Add event listeners for withdrawal forms
 document.addEventListener("DOMContentLoaded", () => {
-    // Bank details form
+    // Bank details form (first-time setup)
     const bankDetailsForm = document.getElementById("bankDetailsForm");
     if (bankDetailsForm) {
         bankDetailsForm.addEventListener("submit", setupBankDetails);
+    }
+    
+    // Different bank details form (update/overwrite saved details)
+    const differentBankDetailsForm = document.getElementById("differentBankDetailsForm");
+    if (differentBankDetailsForm) {
+        differentBankDetailsForm.addEventListener("submit", setupBankDetails);
     }
     
     // Withdrawal form

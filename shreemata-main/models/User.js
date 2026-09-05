@@ -240,17 +240,39 @@ const userSchema = new mongoose.Schema({
 // Compound index for efficient tree traversal and position queries
 userSchema.index({ treeParent: 1, treePosition: 1 });
 
-// Method to setup bank details (one-time only)
+// Method to setup or update bank details
 userSchema.methods.setupBankDetails = function(bankData) {
-  if (this.bankDetails.isSetup) {
-    throw new Error('Bank details already setup. Contact admin to make changes.');
-  }
-  
   this.bankDetails = {
+    ...(this.bankDetails ? this.bankDetails.toObject ? this.bankDetails.toObject() : this.bankDetails : {}),
     ...bankData,
     isSetup: true,
-    setupDate: new Date(),
+    setupDate: (this.bankDetails && this.bankDetails.setupDate) ? this.bankDetails.setupDate : new Date(),
     lastModifiedBy: 'user'
+  };
+  
+  return this.save();
+};
+
+// Method to clear / reset saved bank details
+userSchema.methods.clearBankDetails = function() {
+  this.bankDetails = {
+    isSetup: false,
+    setupDate: null,
+    accountNumber: null,
+    accountHolderName: null,
+    bankName: null,
+    ifscCode: null,
+    upiId: null,
+    scannerImageUrl: null,
+    scannerImage: null,
+    qrCode: null,
+    qrCodeData: null,
+    isVerified: false,
+    verificationDate: null,
+    lastModifiedBy: 'user',
+    dailyLimit: 5000,
+    monthlyLimit: 50000,
+    adminNotes: null
   };
   
   return this.save();
