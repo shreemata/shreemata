@@ -505,7 +505,8 @@ router.post("/create-order", authenticateToken, async (req, res) => {
 
     console.log("DB order created:", dbOrder._id);
 
-    res.json({ order: razorpayOrder, dbOrder });
+    const activeKey = (process.env.RAZORPAY_KEY_ID || "rzp_live_TYHRMUCCtwZWzQ").trim();
+    res.json({ order: razorpayOrder, dbOrder, key: activeKey });
   } catch (err) {
     console.error("RAZORPAY ORDER CREATION FAILED", {
       message: err.message,
@@ -521,6 +522,11 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       code: err.error?.code || 'ORDER_CREATION_FAILED'
     });
   }
+});
+
+// GET active Razorpay public key ID
+router.get("/key", (req, res) => {
+  res.json({ key: (process.env.RAZORPAY_KEY_ID || "rzp_live_TYHRMUCCtwZWzQ").trim() });
 });
 
 // =====================================================
@@ -543,45 +549,52 @@ router.post("/verify", authenticateToken, async (req, res) => {
       deliveryAddress
     } = req.body;
 
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ error: "Missing required payment verification details" });
+    }
+
     // Signature check
+    const secret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
     const expected = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .createHmac("sha256", secret)
       .update(razorpay_order_id + "|" + razorpay_payment_id)
       .digest("hex");
 
     if (expected !== razorpay_signature) {
-      return res.status(400).json({ error: "Invalid signature" });
+      console.error("❌ Signature mismatch! Expected:", expected, "Received:", razorpay_signature);
+      return res.status(400).json({ error: "Invalid payment signature" });
     }
 
-    // ATOMIC UPDATE: Find order and mark as processing in one operation
-    // This prevents race condition between verify and webhook
-    const order = await Order.findOneAndUpdate(
-      { 
-        razorpay_order_id,
-        rewardApplied: false  // Only update if not already processed
-      },
-      {
-        status: "completed",
-        razorpay_payment_id,
-        items,
-        totalAmount,
-        deliveryAddress: deliveryAddress || {},
-        rewardApplied: true  // Mark immediately to prevent duplicate
-      },
-      { new: true }
-    );
+    // Find order in database
+    let order = await Order.findOne({ razorpay_order_id });
 
     if (!order) {
-      // Either order not found OR already processed
-      const existingOrder = await Order.findOne({ razorpay_order_id });
-      if (existingOrder && existingOrder.rewardApplied) {
-        console.log("⚠️ Verify: Rewards already applied, skipping");
-        return res.json({ message: "Payment already processed", order: existingOrder });
-      }
+      console.error("❌ Order not found for razorpay_order_id:", razorpay_order_id);
       return res.status(404).json({ error: "Order not found" });
     }
 
-    console.log("✅ Verify: Order marked as processed, applying rewards...");
+    // If order was already completed / processed by webhook
+    if (order.status === "completed" || order.rewardApplied) {
+      console.log("⚠️ Verify: Order already marked as completed/rewardApplied, returning success");
+      return res.json({ success: true, message: "Payment already processed", order });
+    }
+
+    // Update order status
+    order.status = "completed";
+    order.razorpay_payment_id = razorpay_payment_id;
+    if (items && Array.isArray(items) && items.length > 0) {
+      order.items = items;
+    }
+    if (totalAmount && !isNaN(totalAmount) && Number(totalAmount) > 0) {
+      order.totalAmount = Number(totalAmount);
+    }
+    if (deliveryAddress && typeof deliveryAddress === 'object' && Object.keys(deliveryAddress).length > 0) {
+      order.deliveryAddress = deliveryAddress;
+    }
+    order.rewardApplied = true;
+    await order.save();
+
+    console.log("✅ Verify: Order marked as completed, applying rewards...");
     console.log("✅ Order details:", {
       id: order._id,
       user_id: order.user_id,

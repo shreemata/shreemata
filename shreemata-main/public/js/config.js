@@ -22,6 +22,7 @@ if (window.API_URL && window.API_URL !== API_URL) {
 }
 
 window.API_URL = API_URL;
+window.RAZORPAY_KEY = window.RAZORPAY_KEY || "rzp_live_TYHRMUCCtwZWzQ";
 
 // Global HTML sanitization helper function
 function escapeHtml(str) {

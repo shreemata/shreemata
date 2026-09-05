@@ -1024,7 +1024,7 @@ async function proceedToPayment() {
         }
 
         // 2️⃣ Razorpay Checkout
-        const RZP_KEY = window.RAZORPAY_KEY || "rzp_live_RqJ96DOclW0PuU";
+        const RZP_KEY = orderData.key || window.RAZORPAY_KEY || "rzp_live_TYHRMUCCtwZWzQ";
 
         const options = {
             key: RZP_KEY,
@@ -1058,7 +1058,7 @@ async function proceedToPayment() {
 
                     const verifyData = await verifyRes.json();
 
-                    if (!verifyRes.ok) {
+                    if (!verifyRes.ok || (!verifyData.success && !verifyData.order)) {
                         alert(verifyData.error || "Payment verification failed");
                         if (buyBtn) {
                             buyBtn.disabled = false;
@@ -1890,7 +1890,7 @@ async function proceedWithRazorpayPaymentWithAddresses() {
         }
 
         // Razorpay Checkout
-        const RZP_KEY = window.RAZORPAY_KEY || "rzp_live_RqJ96DOclW0PuU";
+        const RZP_KEY = orderData.key || window.RAZORPAY_KEY || "rzp_live_TYHRMUCCtwZWzQ";
         
         const options = {
             key: RZP_KEY,
@@ -1911,19 +1911,25 @@ async function proceedWithRazorpayPaymentWithAddresses() {
                         body: JSON.stringify({
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_signature: response.razorpay_signature
+                            razorpay_signature: response.razorpay_signature,
+                            items: items,
+                            totalAmount: totalAmount,
+                            deliveryAddress: deliveryAddress,
+                            deliveryMethod: deliveryMethod,
+                            courierCharge: courierCharge,
+                            totalWeight: weight
                         })
                     });
 
                     const verifyData = await verifyRes.json();
 
-                    if (verifyRes.ok && verifyData.success) {
+                    if (verifyRes.ok && (verifyData.success || verifyData.order)) {
                         const mongoOrderId = (verifyData.order && (verifyData.order._id || verifyData.order.id)) || '';
                         // Show success popup
                         const orderData = {
                             orderId: response.razorpay_payment_id,
                             mongoOrderId: mongoOrderId,
-                            items: 1,
+                            items: quantity,
                             amount: totalAmount,
                             deliveryMethod: deliveryMethod === 'pickup' ? 'Store Pickup' : 'Courier Delivery',
                             paymentMethod: 'Online Payment'
@@ -1935,7 +1941,7 @@ async function proceedWithRazorpayPaymentWithAddresses() {
                     }
                 } catch (err) {
                     console.error("Payment verification error:", err);
-                    alert("Payment verification failed. Please contact support.");
+                    alert("Payment verification failed: " + (err.message || "Please contact support."));
                 }
             },
             prefill: {

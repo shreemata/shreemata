@@ -1631,7 +1631,7 @@ ${stockBadge}
                 const orderData = await orderRes.json();
                 if (!orderRes.ok || !orderData.order) throw new Error(orderData.error || "Failed to create order");
 
-                const RZP_KEY = window.RAZORPAY_KEY || "rzp_live_RqJ96DOclW0PuU";
+                const RZP_KEY = orderData.key || window.RAZORPAY_KEY || "rzp_live_TYHRMUCCtwZWzQ";
                 const options = {
                     key: RZP_KEY,
                     amount: orderData.order.amount,
@@ -1644,10 +1644,19 @@ ${stockBadge}
                             const verifyRes = await fetch(`${API}/payments/verify`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                                body: JSON.stringify({ razorpay_order_id: response.razorpay_order_id, razorpay_payment_id: response.razorpay_payment_id, razorpay_signature: response.razorpay_signature })
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature,
+                                    items: items,
+                                    totalAmount: totalAmount,
+                                    deliveryAddress: deliveryAddress,
+                                    deliveryMethod: deliveryMethod,
+                                    courierCharge: courierCharge
+                                })
                             });
                             const verifyData = await verifyRes.json();
-                            if (verifyRes.ok && verifyData.success) {
+                            if (verifyRes.ok && (verifyData.success || verifyData.order)) {
                                 const mongoOrderId = (verifyData.order && (verifyData.order._id || verifyData.order.id)) || '';
                                 const orderDataPopup = {
                                     orderId: response.razorpay_payment_id,
@@ -1663,7 +1672,7 @@ ${stockBadge}
                             }
                         } catch (err) {
                             console.error("Payment verification error:", err);
-                            alert("Payment verification failed. Please contact support.");
+                            alert("Payment verification failed: " + (err.message || "Please contact support."));
                         }
                     },
                     prefill: { name: user.name, email: user.email, contact: user.phone || "" },
@@ -2129,7 +2138,7 @@ ${stockBadge}
                 const orderData = await orderRes.json();
                 if (!orderRes.ok || !orderData.order) throw new Error(orderData.error || "Failed to create order");
 
-                const RZP_KEY = window.RAZORPAY_KEY || "rzp_live_RqJ96DOclW0PuU";
+                const RZP_KEY = orderData.key || window.RAZORPAY_KEY || "rzp_live_TYHRMUCCtwZWzQ";
                 const options = {
                     key: RZP_KEY, amount: orderData.order.amount, currency: "INR", name: "Shree Mata",
                     description: `Bundle: ${currentBundle.name}`, order_id: orderData.order.id,
@@ -2137,10 +2146,20 @@ ${stockBadge}
                         try {
                             const verifyRes = await fetch(`${API}/payments/verify`, {
                                 method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                                body: JSON.stringify({ razorpay_order_id: response.razorpay_order_id, razorpay_payment_id: response.razorpay_payment_id, razorpay_signature: response.razorpay_signature })
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature,
+                                    items: items,
+                                    totalAmount: totalAmount,
+                                    deliveryAddress: deliveryAddress,
+                                    deliveryMethod: deliveryMethod,
+                                    courierCharge: courierCharge,
+                                    totalWeight: bundleWeight
+                                })
                             });
                             const verifyData = await verifyRes.json();
-                            if (verifyRes.ok && verifyData.success) {
+                            if (verifyRes.ok && (verifyData.success || verifyData.order)) {
                                 const mongoOrderId = (verifyData.order && (verifyData.order._id || verifyData.order.id)) || '';
                                 showSuccessPopup({
                                     orderId: response.razorpay_payment_id,
@@ -2155,7 +2174,7 @@ ${stockBadge}
                             }
                         } catch (err) {
                             console.error("Payment verification error:", err);
-                            alert("Payment verification failed. Please contact support.");
+                            alert("Payment verification failed: " + (err.message || "Please contact support."));
                         }
                     },
                     prefill: {

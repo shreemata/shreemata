@@ -1990,8 +1990,7 @@ async function proceedToPayment() {
         // Some Razorpay SDK fields expect amount in paise - rzpOrder.amount is already in paise
 
         // 2) Open Razorpay checkout
-        // Fallback key - replace with your test key or expose via config
-        const RZP_KEY = window.RAZORPAY_KEY || "rzp_live_RqJ96DOclW0PuU";
+        const RZP_KEY = createData.key || window.RAZORPAY_KEY || "rzp_live_TYHRMUCCtwZWzQ";
 
         const options = {
             key: RZP_KEY,
@@ -2028,7 +2027,7 @@ async function proceedToPayment() {
                     const verifyData = await verifyRes.json();
                     console.log("🔍 Verify response data:", verifyData);
 
-                    if (!verifyRes.ok) {
+                    if (!verifyRes.ok || (!verifyData.success && !verifyData.order)) {
                         const msg = verifyData.error || "Payment verification failed";
                         alert(msg);
                         console.error("❌ Verify failed:", verifyData);
