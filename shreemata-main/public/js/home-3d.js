@@ -29,7 +29,7 @@
             }, 400);
         }
 
-        const timer = setTimeout(dismissIntro, 1100);
+        const timer = setTimeout(dismissIntro, 1200);
 
         intro.addEventListener('click', () => {
             clearTimeout(timer);

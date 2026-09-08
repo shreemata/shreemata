@@ -312,3 +312,41 @@ ul, ol {
         scroll-behavior: auto !important;
     }
 }
+
+/* ── 6. GLOBAL FOOTER UTILITIES ── */
+.footer-contact-info {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.footer-phone-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--sm-font-ui, 'Inter', sans-serif);
+    color: var(--sm-ink, #101820);
+    text-decoration: none;
+    padding: 6px 12px;
+    background: rgba(212, 167, 44, 0.08);
+    border: 1px solid rgba(212, 167, 44, 0.25);
+    border-radius: var(--radius-sm, 6px);
+    transition: all var(--transition-fast, 0.2s ease);
+    width: fit-content;
+    min-height: 38px;
+    box-sizing: border-box;
+}
+
+.footer-phone-link:hover {
+    background: rgba(212, 167, 44, 0.16);
+    border-color: var(--sm-gold, #D4A72C);
+    color: var(--sm-gold-muted, #C99A35);
+    transform: translateY(-1px);
+}
+
+.footer-phone-link .phone-icon {
+    font-size: 14px;
+}
+

@@ -61,6 +61,7 @@
     
     /* Layout Dimensions */
     --container-max: 1400px;
+    --page-gutter: 36px;
     --ease-luxury: cubic-bezier(0.16, 1, 0.3, 1);
     --transition-fast: 180ms ease;
     --transition-smooth: 320ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -113,14 +114,15 @@ img {
 .container {
     max-width: var(--container-max);
     margin: 0 auto;
-    padding: 0 32px;
+    padding: 0 var(--page-gutter);
+    width: 100%;
 }
 
 /* ── 3. REFINED SESSION INTRO ── */
 #cinematicIntro {
     position: fixed;
     inset: 0;
-    background: var(--navy-dark);
+    background: var(--navy-dark, #0A1B2C);
     z-index: 10000;
     display: flex;
     flex-direction: column;
@@ -128,8 +130,8 @@ img {
     justify-content: center;
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.4s ease, visibility 0.4s ease;
-    perspective: 1000px;
+    overflow: hidden;
+    transition: opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.38s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 #cinematicIntro.intro-hide {
@@ -138,89 +140,276 @@ img {
     pointer-events: none;
 }
 
-.intro-scene {
-    width: 180px;
-    height: 140px;
-    position: relative;
-    transform-style: preserve-3d;
+.intro-content {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin-bottom: 24px;
-}
-
-.intro-book {
-    width: 88px;
-    height: 120px;
     position: relative;
-    transform-style: preserve-3d;
-    animation: introBookSettle 1.1s var(--ease-luxury) forwards;
+    z-index: 2;
 }
 
-.intro-cover {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, var(--navy-surface), var(--navy-dark));
-    border: 1.5px solid var(--gold-soft);
-    border-radius: 2px 6px 6px 2px;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(201, 154, 53, 0.25);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
+/* Static Logo Container (No transform on parent) */
+.intro-logo-wrap {
+    width: 110px;
+    height: 110px;
+    display: grid;
+    place-items: center;
+    position: relative;
+    margin: 0 auto 18px;
 }
 
-.intro-beam {
+/* Soft Gold Halo Glow behind Logo */
+.intro-halo {
     position: absolute;
-    width: 140px;
-    height: 140px;
-    background: radial-gradient(circle, rgba(201, 154, 53, 0.35) 0%, transparent 70%);
+    inset: -24px;
+    background: radial-gradient(
+        circle,
+        rgba(212, 167, 44, 0.22) 0%,
+        rgba(212, 167, 44, 0.08) 35%,
+        transparent 70%
+    );
     border-radius: 50%;
-    animation: introBeamPulse 1.2s ease-in-out infinite alternate;
+    filter: blur(12px);
     pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    animation: haloFadeIn 600ms 150ms ease-out forwards;
 }
 
+/* Stable One-Shot Logo Reveal (No repeating transforms or jitter) */
+.intro-logo {
+    width: 100%;
+    max-width: 110px;
+    height: auto;
+    object-fit: contain;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.32));
+    transform: translate3d(0, 8px, 0) scale(0.96);
+    opacity: 0;
+    animation: introLogoIn 600ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+/* Brand Text Reveal (1-time reveal, then completely stable) */
 .intro-brand {
     text-align: center;
-    animation: introTextReveal 0.7s 0.2s ease both;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .intro-title {
-    font-family: var(--font-serif);
+    font-family: var(--font-serif, 'Playfair Display', serif);
     font-size: 28px;
     font-weight: 700;
-    color: var(--bg-white-pure);
-    letter-spacing: 1px;
+    color: var(--bg-white-pure, #FFFFFF);
+    letter-spacing: 1.5px;
+    line-height: 1.2;
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+    animation: introTitleIn 550ms 350ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 .intro-title span {
-    color: var(--gold-soft);
+    color: var(--gold-soft, #E7D39C);
+}
+
+/* Micro Gold Light Sweep */
+.intro-sweep-wrap {
+    width: 120px;
+    height: 1.5px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 8px auto 0;
+    position: relative;
+    overflow: hidden;
+    border-radius: 2px;
+    opacity: 0;
+    animation: introSweepWrapIn 500ms 650ms ease forwards;
+}
+
+.intro-sweep {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(212, 167, 44, 0.3) 20%,
+        rgba(231, 211, 156, 0.95) 50%,
+        rgba(212, 167, 44, 0.3) 80%,
+        transparent 100%
+    );
+    animation: introSweepMove 500ms 750ms ease-out forwards;
 }
 
 .intro-sub {
+    font-family: var(--sm-font-ui, 'Inter', sans-serif);
     font-size: 11.5px;
     font-weight: 600;
     letter-spacing: 3px;
-    color: var(--gold-pale);
+    color: var(--gold-pale, #FAF5E8);
     text-transform: uppercase;
-    margin-top: 5px;
-    opacity: 0.85;
+    margin-top: 8px;
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+    animation: introSubIn 550ms 500ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
-@keyframes introBookSettle {
-    0% { transform: rotateX(20deg) rotateY(-35deg) scale(0.85); opacity: 0; }
-    50% { transform: rotateX(8deg) rotateY(-10deg) scale(1.02); opacity: 1; }
-    100% { transform: rotateX(0deg) rotateY(0deg) scale(1); opacity: 1; }
+/* Decorative Ambient Particles (Drift softly in background) */
+.intro-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
 }
 
-@keyframes introBeamPulse {
-    0% { transform: scale(0.9); opacity: 0.2; }
-    100% { transform: scale(1.2); opacity: 0.6; }
+.intro-dot {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0;
+    animation: introParticleDrift linear infinite;
 }
 
-@keyframes introTextReveal {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
+.dot-1 { width: 2px; height: 2px; background: rgba(212, 167, 44, 0.6); left: 15%; top: 75%; animation-duration: 9s; animation-delay: 0.1s; }
+.dot-2 { width: 3px; height: 3px; background: rgba(255, 255, 255, 0.45); left: 28%; top: 85%; animation-duration: 11s; animation-delay: 0.3s; }
+.dot-3 { width: 2px; height: 2px; background: rgba(212, 167, 44, 0.5); left: 45%; top: 80%; animation-duration: 10s; animation-delay: 0.2s; }
+.dot-4 { width: 1.5px; height: 1.5px; background: rgba(255, 255, 255, 0.4); left: 62%; top: 90%; animation-duration: 12s; animation-delay: 0.4s; }
+.dot-5 { width: 2.5px; height: 2.5px; background: rgba(212, 167, 44, 0.55); left: 78%; top: 78%; animation-duration: 9.5s; animation-delay: 0.1s; }
+.dot-6 { width: 2px; height: 2px; background: rgba(255, 255, 255, 0.5); left: 88%; top: 82%; animation-duration: 10.5s; animation-delay: 0.5s; }
+.dot-7 { width: 1.5px; height: 1.5px; background: rgba(212, 167, 44, 0.45); left: 22%; top: 60%; animation-duration: 11s; animation-delay: 0.6s; }
+.dot-8 { width: 2px; height: 2px; background: rgba(255, 255, 255, 0.4); left: 72%; top: 65%; animation-duration: 12s; animation-delay: 0.2s; }
+.dot-9 { width: 2px; height: 2px; background: rgba(212, 167, 44, 0.5); left: 35%; top: 70%; animation-duration: 10s; animation-delay: 0.7s; }
+.dot-10 { width: 1.5px; height: 1.5px; background: rgba(255, 255, 255, 0.45); left: 52%; top: 68%; animation-duration: 11.5s; animation-delay: 0.3s; }
+
+/* Keyframes - Precise, Jitter-Free Transforms */
+@keyframes introLogoIn {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 8px, 0) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+@keyframes haloFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 0.8;
+    }
+}
+
+@keyframes introTitleIn {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 8px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes introSubIn {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 6px, 0);
+    }
+    to {
+        opacity: 0.92;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes introSweepWrapIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes introSweepMove {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+@keyframes introParticleDrift {
+    0% { transform: translate3d(0, 0, 0); opacity: 0; }
+    15% { opacity: 0.6; }
+    85% { opacity: 0.6; }
+    100% { transform: translate3d(10px, -120px, 0); opacity: 0; }
+}
+
+/* Mobile Breakpoint */
+@media (max-width: 600px) {
+    .intro-logo-wrap {
+        width: 84px;
+        height: 84px;
+        margin-bottom: 14px;
+    }
+
+    .intro-logo {
+        max-width: 84px;
+    }
+
+    .intro-halo {
+        inset: -14px;
+        filter: blur(8px);
+    }
+
+    .intro-title {
+        font-size: 24px;
+    }
+
+    .intro-sub {
+        font-size: 10px;
+        letter-spacing: 2.2px;
+    }
+
+    .intro-sweep-wrap {
+        width: 90px;
+    }
+
+    /* Keep only 4-6 particles on mobile */
+    .dot-7, .dot-8, .dot-9, .dot-10 {
+        display: none;
+    }
+}
+
+/* Accessibility: Prefers Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    #cinematicIntro {
+        display: none !important;
+    }
+    .intro-logo,
+    .intro-halo,
+    .intro-title,
+    .intro-sub,
+    .intro-sweep-wrap,
+    .intro-sweep,
+    .intro-dot {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+    .intro-particles {
+        display: none !important;
+    }
 }
 
 /* ── 4. TOP ANNOUNCEMENT BAR ── */
@@ -467,6 +656,14 @@ img {
     padding: 8px 16px;
     border-radius: var(--radius-sm);
     transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.btn-login .btn-login-icon {
+    display: none;
+}
+
+.btn-login .btn-login-text {
+    display: inline;
 }
 
 .btn-login:hover {
@@ -746,6 +943,7 @@ img {
     z-index: 2000;
     visibility: hidden;
     pointer-events: none;
+    overflow: hidden;
     transition: visibility 0.28s;
 }
 
@@ -2345,6 +2543,42 @@ footer {
     transform: translateX(2px);
 }
 
+.footer-contact-info {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.footer-phone-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--font-sans, 'Inter', sans-serif);
+    color: var(--text-ink, #101820);
+    text-decoration: none;
+    padding: 6px 12px;
+    background: rgba(212, 167, 44, 0.08);
+    border: 1px solid rgba(212, 167, 44, 0.25);
+    border-radius: 6px;
+    transition: all var(--transition-fast, 0.2s ease);
+    width: fit-content;
+    min-height: 38px;
+    box-sizing: border-box;
+}
+
+.footer-phone-link:hover {
+    background: rgba(212, 167, 44, 0.16);
+    border-color: var(--gold-dark, #A47820);
+    color: var(--gold-dark, #A47820);
+    transform: translateY(-1px);
+}
+
+.footer-phone-link .phone-icon {
+    font-size: 14px;
+}
+
 .footer-bottom {
     display: flex;
     align-items: center;
@@ -2607,110 +2841,878 @@ footer {
     }
 }
 
+/* ==========================================================================
+   SHREE MATA — PURPOSE-BUILT MOBILE DESIGN SYSTEM (320px – 768px)
+   Strict isolation: Desktop >= 1025px remains 100% untouched.
+   ========================================================================== */
+
+/* ── 1. TABLET BREAKPOINT (max-width: 1024px) ── */
+@media (max-width: 1024px) {
+    :root {
+        --page-gutter: 24px;
+    }
+}
+
+/* ── 2. MOBILE & PHONE BREAKPOINT (max-width: 768px) ── */
 @media (max-width: 768px) {
-    .header-inner {
-        height: 68px;
+    :root {
+        --page-gutter: 20px;
     }
-    
-    .header-search {
-        display: none;
+
+    /* ── Global Reset for Zero Overflow ── */
+    html, body {
+        max-width: 100vw;
+        overflow-x: clip;
     }
-    
-    .top-bar-left {
-        display: none;
+
+    /* ── Announcement Top Bar ── */
+    .top-bar {
+        padding: 7px var(--page-gutter);
     }
     
     .top-bar-inner {
         justify-content: center;
+        text-align: center;
     }
     
-    .discovery-grid {
-        grid-template-columns: 1fr;
+    .top-bar-left {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 6px;
+        font-size: clamp(11px, 2.9vw, 12px);
+        line-height: 1.35;
+        width: 100%;
+        flex-wrap: wrap;
     }
-    
-    .hero-stage-wrap {
-        min-height: 360px;
-        overflow: hidden;
-        max-width: 100%;
-    }
-    
-    .hero-3d-book-stage {
-        width: min(330px, calc(100vw - 32px));
-        max-width: 100%;
-        height: 310px;
-    }
-    
-    .book-3d-primary {
-        width: 185px;
-        height: 255px;
-    }
-    
-    .book-3d-back-left {
-        width: 145px;
-        height: 205px;
-        left: 5px;
-    }
-    
-    .book-3d-back-right {
-        width: 140px;
-        height: 200px;
-        right: 5px;
-    }
-    
-    .trust-grid-six {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .footer-grid {
-        grid-template-columns: 1fr;
-        gap: 36px;
-    }
-}
 
-@media (max-width: 480px) {
-    .hero-wrapper {
-        padding: 44px 0 64px;
+    .badge-gold-pill {
+        font-size: 9.5px;
+        padding: 2px 7px;
     }
     
-    .hero-heading {
-        font-size: 2.15rem;
+    .top-bar-right {
+        display: none !important;
     }
-    
-    .hero-cta-row {
-        flex-direction: column;
-        width: 100%;
+
+    /* ── Mobile Header: Clean Two-Row Architecture ── */
+    .main-header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border-editorial);
     }
-    
-    .btn-hero-primary,
-    .btn-hero-secondary {
-        width: 100%;
+
+    .header-inner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        height: auto;
+        min-height: auto;
+        padding: 8px 0 10px;
+        row-gap: 8px;
+    }
+
+    /* ROW 1: [Logo] ... [Account] [Cart] [☰] */
+    .brand-logo {
+        order: 1;
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-right: auto;
+    }
+
+    .brand-logo img {
+        width: 36px;
+        height: 36px;
+    }
+
+    .brand-title {
+        font-size: 17px;
+        line-height: 1.15;
+    }
+
+    .brand-sub {
+        font-size: 9px;
+        letter-spacing: 1.2px;
+    }
+
+    .header-actions {
+        order: 2;
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: auto;
+    }
+
+    /* Hide desktop nav links & standalone Orders text from mobile header */
+    .header-nav-links,
+    .header-orders-link {
+        display: none !important;
+    }
+
+    /* Guest Auth on mobile header */
+    .auth-group {
+        gap: 6px;
+    }
+
+    .auth-group .btn-signup {
+        display: none !important;
+    }
+
+    .auth-group .btn-login {
+        min-width: 44px;
+        min-height: 44px;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--bg-warm-ivory);
+        border: 1px solid var(--border-editorial);
+        color: var(--text-ink);
+        box-shadow: 0 1px 3px rgba(16, 24, 32, 0.04);
+        transition: all var(--transition-fast);
+    }
+
+    .auth-group .btn-login .btn-login-text {
+        display: none !important;
+    }
+
+    .auth-group .btn-login .btn-login-icon {
+        display: inline-flex !important;
+        font-size: 17px;
+        line-height: 1;
+    }
+
+    /* Logged-in User Badge on mobile header */
+    .user-name-badge {
+        min-width: 44px;
+        min-height: 44px;
+        width: 44px;
+        height: 44px;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        display: inline-flex !important;
+        align-items: center;
         justify-content: center;
     }
-    
+
+    .user-name-block,
+    .dropdown-chevron {
+        display: none !important;
+    }
+
+    .user-avatar-icon {
+        font-size: 18px !important;
+        margin: 0 !important;
+    }
+
+    /* Cart Button on mobile header */
+    .btn-cart-header {
+        min-width: 44px;
+        min-height: 44px;
+        height: 44px;
+        padding: 0 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        border-radius: 22px;
+        font-size: 16px;
+    }
+
+    .btn-cart-header .cart-text {
+        display: none !important;
+    }
+
+    .cart-count-badge {
+        font-size: 11px;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+    }
+
+    /* Mobile Hamburger Button */
+    .mobile-menu-toggle,
+    #mobileMenuToggle {
+        display: flex !important;
+        min-width: 44px;
+        min-height: 44px;
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+        border-radius: 10px;
+    }
+
+    /* ROW 2: Compact Full-Width Search Bar */
+    .header-search {
+        order: 3;
+        flex: 0 0 100%;
+        width: 100%;
+        max-width: 100% !important;
+        display: block !important;
+        margin-top: 2px;
+    }
+
+    .header-search .search-box {
+        width: 100%;
+        height: 40px;
+        min-height: 40px;
+        padding: 3px 4px 3px 12px;
+        border-radius: 20px;
+        background: var(--bg-warm-ivory);
+        border: 1.5px solid var(--border-editorial);
+    }
+
+    .header-search .search-icon {
+        font-size: 14px;
+        margin-right: 6px;
+        flex-shrink: 0;
+    }
+
+    .header-search .search-input {
+        font-size: 13px;
+        height: 100%;
+        padding: 0 4px;
+    }
+
+    .header-search .search-btn {
+        height: 32px;
+        min-height: 32px;
+        padding: 0 13px;
+        font-size: 12px;
+        border-radius: 16px;
+        flex-shrink: 0;
+    }
+
+    /* ── Hero Mobile Proportions ── */
+    .hero-wrapper {
+        padding: 40px 0 44px;
+    }
+
+    .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 28px;
+        text-align: center;
+    }
+
+    .hero-text-col {
+        align-items: center;
+        text-align: center;
+        gap: 14px;
+    }
+
+    .hero-pill-tag {
+        font-size: 11px;
+        padding: 4px 14px;
+    }
+
+    .hero-heading {
+        font-size: clamp(32px, 9.2vw, 44px);
+        line-height: 1.04;
+        letter-spacing: -0.5px;
+    }
+
+    .hero-subtext {
+        font-size: 14px;
+        line-height: 1.55;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    .hero-cta-row {
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        margin-top: 4px;
+    }
+
+    .btn-hero-primary,
+    .btn-hero-secondary {
+        min-height: 44px;
+        padding: 12px 20px;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Trust Indicators */
+    .hero-guarantee-strip {
+        justify-content: center;
+        gap: 8px 16px;
+        margin-top: 4px;
+        padding-top: 14px;
+        width: 100%;
+    }
+
+    .hero-guarantee-item {
+        font-size: 12.5px;
+        text-align: center;
+    }
+
+    /* 3D Book Stage Visual */
+    .hero-stage-wrap {
+        min-height: 270px;
+        width: 100%;
+        max-width: 100%;
+        overflow: visible;
+        margin-top: 6px;
+    }
+
+    .hero-3d-book-stage {
+        width: min(75vw, 320px);
+        max-width: 100%;
+        height: 260px;
+        margin: 0 auto;
+    }
+
+    .book-3d-primary {
+        width: 160px;
+        height: 220px;
+        left: 50%;
+        transform: translateX(-50%) rotateY(-6deg);
+    }
+
+    .book-3d-back-left {
+        width: 124px;
+        height: 175px;
+        left: calc(50% - 102px);
+        bottom: 45px;
+    }
+
+    .book-3d-back-right {
+        width: 120px;
+        height: 170px;
+        right: calc(50% - 102px);
+        left: auto;
+        bottom: 45px;
+    }
+
+    .book-3d-rear-left {
+        display: none; /* Hide 4th deep background book layer on mobile for performance and safe viewport fit */
+    }
+
+    .hero-edition-badge {
+        position: absolute;
+        right: 4px;
+        bottom: 6px;
+        max-width: calc(100% - 8px);
+        transform: none !important;
+        padding: 7px 12px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    }
+
+    .hero-edition-label {
+        font-size: 9.5px;
+    }
+
+    .hero-edition-title {
+        font-size: 12px;
+    }
+
+    /* ── Quick Navigation (2x2 Grid) ── */
+    .discovery-section {
+        padding: 36px 0 42px;
+    }
+
+    .discovery-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px;
+    }
+
+    .discovery-card {
+        min-height: 72px;
+        padding: 12px 12px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .discovery-icon-box {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        font-size: 22px;
+        border-radius: 8px;
+    }
+
+    .discovery-info h3 {
+        font-size: 13.5px;
+        line-height: 1.25;
+        margin-bottom: 2px;
+    }
+
+    .discovery-info p {
+        font-size: 11px;
+        line-height: 1.3;
+    }
+
+    /* ── Section Typography & Spacing ── */
+    .home-section {
+        padding: 48px 0;
+    }
+
+    .section-header-wrap {
+        margin-bottom: 24px;
+        gap: 14px;
+    }
+
+    .section-kicker {
+        font-size: 11.5px;
+        letter-spacing: 1.2px;
+    }
+
+    .section-title,
+    .home-section .section-title {
+        font-size: clamp(26px, 7vw, 32px);
+        line-height: 1.18;
+    }
+
+    .section-desc,
+    .home-section .section-desc {
+        font-size: 14px;
+        line-height: 1.55;
+        max-width: 100%;
+    }
+
+    .btn-view-all {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 18px;
+        font-size: 13.5px;
+    }
+
+    /* ── Class 10 Campaign Banner ── */
+    .class-feature-banner {
+        grid-template-columns: 1fr;
+        padding: clamp(28px, 6vw, 36px) clamp(16px, 4vw, 24px);
+        gap: 26px;
+        border-radius: var(--radius-lg);
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .class-feature-title {
+        font-size: clamp(24px, 6.2vw, 28px);
+        line-height: 1.2;
+    }
+
+    .class-feature-desc {
+        font-size: 14px;
+        line-height: 1.55;
+    }
+
+    .class-feature-badges {
+        gap: 6px;
+    }
+
+    .class-subject-tag {
+        font-size: 12px;
+        padding: 4px 9px;
+    }
+
+    .class-feature-actions {
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+    }
+
+    .btn-class-primary,
+    .btn-class-secondary {
+        width: 100%;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+
+    .class-feature-visual {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        width: 100%;
+        max-width: 100%;
+        perspective: none;
+        margin-top: 8px;
+    }
+
+    .class-book-thumb {
+        width: 108px;
+        height: 152px;
+        margin: 0 -10px;
+        transform: none;
+        flex-shrink: 0;
+    }
+
+    .class-book-thumb:nth-child(2) {
+        z-index: 2;
+        transform: translateY(-6px) scale(1.04);
+    }
+
+    /* ── Complete Book Sets Showcase ── */
+    .bundle-hero-showcase {
+        grid-template-columns: 1fr;
+        padding: clamp(24px, 5vw, 32px) clamp(16px, 4vw, 22px);
+        gap: 22px;
+    }
+
+    .bundle-3d-visual-wrap {
+        min-height: auto;
+        padding: 16px;
+    }
+
+    .bundle-3d-visual-wrap img {
+        max-height: 200px;
+    }
+
+    .bundle-name-title {
+        font-size: clamp(22px, 6vw, 26px);
+    }
+
+    .bundle-books-list {
+        font-size: 13.5px;
+        line-height: 1.55;
+    }
+
     .bundle-actions-row {
         flex-direction: column;
         width: 100%;
+        gap: 8px;
     }
-    
+
     .btn-bundle-buy,
     .btn-bundle-cart,
     .btn-bundle-view {
         width: 100%;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         text-align: center;
     }
-    
-    .class-feature-banner {
-        padding: 32px 22px;
+
+    /* ── Catalog Toolbar ── */
+    .books-toolbar {
+        padding: 14px 16px;
+        gap: 12px;
+        flex-direction: column;
+        align-items: stretch;
     }
-    
-    .class-feature-actions {
+
+    .filter-group {
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .filter-select {
+        min-height: 44px;
+        flex: 1 1 120px;
+        font-size: 13px;
+    }
+
+    .books-count-status {
+        font-size: 13px;
+    }
+
+    /* ── Trust Section Strip ── */
+    .trust-grid-six {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px 14px;
+    }
+
+    .trust-item-box {
+        gap: 6px;
+    }
+
+    .trust-item-title {
+        font-size: 13.5px;
+    }
+
+    .trust-item-desc {
+        font-size: 11.5px;
+    }
+
+    /* ── Global Footer Mobile ── */
+    .site-footer,
+    .main-footer,
+    .global-footer,
+    footer {
+        padding: 44px 0 28px;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr !important;
+        gap: 30px !important;
+        margin-bottom: 32px;
+    }
+
+    .footer-brand-col {
+        gap: 12px;
+    }
+
+    .footer-brand-title {
+        font-size: 22px;
+    }
+
+    .footer-desc {
+        font-size: 13.5px;
+        max-width: 100%;
+    }
+
+    .footer-contact-info {
+        margin-top: 6px;
+    }
+
+    .footer-phone-link {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14.5px;
+        font-weight: 700;
+        background: var(--bg-white-pure);
+        border: 1.5px solid var(--border-editorial);
+        padding: 10px 18px;
+        border-radius: var(--radius-full);
+        color: var(--navy-deep);
+        box-shadow: 0 1px 3px rgba(16, 24, 32, 0.04);
+    }
+
+    .footer-care-phone {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-ink);
+    }
+
+    .footer-links-list li a {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+        padding-top: 22px;
+    }
+
+    .footer-bottom div {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    /* Interactive controls tap target fallback */
+    button, 
+    a.btn-primary, 
+    a.btn-secondary {
+        min-height: 44px;
+    }
+}
+
+/* ── 3. ADAPTIVE PRODUCT GRID (381px – 640px) ── */
+/* 2 columns when cards remain at least ~170–180px wide with readable titles & 44px actions */
+@media (min-width: 381px) and (max-width: 640px) {
+    .books-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+
+    .book-card {
+        padding: 12px 10px;
+    }
+
+    .book-image-container {
+        height: 165px;
+        margin-bottom: 10px;
+    }
+
+    .book-cover {
+        height: 145px;
+    }
+
+    .book-card h3 {
+        font-size: 13px;
+        min-height: 34px;
+        line-height: 1.3;
+        margin-bottom: 2px;
+    }
+
+    .book-author {
+        font-size: 11px;
+        margin-bottom: 6px;
+    }
+
+    .book-price {
+        font-size: 16px !important;
+        margin-bottom: 8px;
+    }
+
+    .book-actions {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .book-actions .btn-primary,
+    .book-actions .btn-secondary {
+        min-height: 44px;
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12.5px;
+        padding: 10px 8px;
+    }
+}
+
+/* Intermediate tablet product grid */
+@media (min-width: 641px) and (max-width: 768px) {
+    .books-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 18px;
+    }
+
+    .book-actions .btn-primary,
+    .book-actions .btn-secondary {
+        min-height: 44px;
+    }
+}
+
+/* ── 4. SMALL MOBILE VIEWPORT (max-width: 390px) ── */
+@media (max-width: 390px) {
+    :root {
+        --page-gutter: 16px;
+    }
+
+    .hero-cta-row {
         flex-direction: column;
         width: 100%;
     }
-    
-    .btn-class-primary,
-    .btn-class-secondary {
+
+    .btn-hero-primary,
+    .btn-hero-secondary {
         width: 100%;
-        text-align: center;
+    }
+}
+
+/* ── 5. NARROW MOBILE VIEWPORT (max-width: 380px) ── */
+/* When screen cannot comfortably support 2 columns >= 170px, switch cleanly to 1 column */
+@media (max-width: 380px) {
+    .books-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+
+    .book-card {
+        padding: 16px;
+    }
+
+    .book-image-container {
+        height: 220px;
+    }
+
+    .book-cover {
+        height: 190px;
+    }
+
+    .book-card h3 {
+        font-size: 15px;
+        min-height: auto;
+    }
+
+    .book-actions {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .book-actions .btn-primary,
+    .book-actions .btn-secondary {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13.5px;
+    }
+}
+
+/* ── 6. COMPACT PHONE BREAKPOINT (max-width: 360px) ── */
+@media (max-width: 360px) {
+    /* For Class 10 banner, hide 3rd cover and overlap cleanly so remaining 2 stay prominent */
+    .class-book-thumb:nth-child(3) {
+        display: none !important;
+    }
+
+    .class-book-thumb {
+        width: 110px;
+        height: 155px;
+        margin: 0 -8px;
+    }
+
+    .trust-grid-six {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}
+
+/* ── 7. ULTRA-NARROW / 320px VIEWPORT (max-width: 340px) ── */
+@media (max-width: 340px) {
+    :root {
+        --page-gutter: 14px;
+    }
+
+    .brand-title {
+        font-size: 15.5px;
+    }
+
+    .brand-sub {
+        font-size: 8.5px;
+        letter-spacing: 1px;
+    }
+
+    .discovery-card {
+        padding: 10px 8px;
+        gap: 8px;
+    }
+
+    .discovery-icon-box {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        font-size: 18px;
+    }
+
+    .discovery-info h3 {
+        font-size: 12px;
+    }
+
+    .discovery-info p {
+        font-size: 10px;
+    }
+
+    .book-actions {
+        grid-template-columns: 1fr;
     }
 }

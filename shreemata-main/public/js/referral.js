@@ -1,57 +1,86 @@
-// API_URL is already defined in config.js
+/**
+ * SHREE MATA — PREMIUM REFERRAL & REWARDS CONTROLLER
+ * Handles Referral Details, Referral Sharing, Tree Metrics,
+ * Lazy-loaded Referrals Table, Secure Withdrawals, and Modals.
+ */
+
+// Global State & Cache
+let cachedReferralDetails = null;
+let allReferrals = [];
+let currentReferralFilter = 'all';
+let isWithdrawalDataLoaded = false;
+let isWithdrawalHistoryLoaded = false;
+let hasCheckedBankChangeStatus = false;
 
 document.addEventListener("DOMContentLoaded", () => {
     checkAuth();
     loadReferralDetails();
-    loadWithdrawalSettings();
+    initModalsAndEvents();
 });
 
+// ── 1. AUTHENTICATION & HEADER SYNC ──
 function checkAuth() {
     const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user") || "null");
+    const userStr = localStorage.getItem("user");
+    const user = userStr ? JSON.parse(userStr) : null;
 
     if (!token || !user) {
-        alert("Please login to view referral dashboard");
-        window.location.href = "/login.html";
+        showToast("Please log in to view your referral dashboard", "info");
+        setTimeout(() => {
+            window.location.href = "/login.html";
+        }, 800);
         return;
     }
 
-    document.getElementById("userName").textContent = `Hello, ${user.name}`;
+    const userName = document.getElementById("userName");
+    if (userName) userName.textContent = user.name || "Account";
+
+    const sidebarUserName = document.getElementById("sidebarUserName");
+    if (sidebarUserName) sidebarUserName.textContent = user.name || "User";
+
+    const dropdownUserName = document.getElementById("dropdownUserName");
+    if (dropdownUserName) dropdownUserName.textContent = user.name || "User";
 
     if (user.role === "admin") {
         const adminLink = document.getElementById("adminLink");
-        if (adminLink) adminLink.style.display = "block";
+        if (adminLink) adminLink.style.display = "flex";
+        const drawerAdminLink = document.getElementById("drawerAdminLink");
+        if (drawerAdminLink) drawerAdminLink.style.display = "flex";
     }
 
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) {
-        logoutBtn.addEventListener("click", () => {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            window.location.href = "/";
-        });
+        logoutBtn.addEventListener("click", handleLogout);
+    }
+    const drawerLogoutBtn = document.getElementById("drawerLogoutBtn");
+    if (drawerLogoutBtn) {
+        drawerLogoutBtn.addEventListener("click", handleLogout);
     }
 
     updateCartCount();
 }
 
-async function loadWithdrawalSettings() {
-    // This function now calls the new secure withdrawal system
-    loadWithdrawalData();
+function handleLogout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/";
 }
 
 function updateCartCount() {
-    const cart = typeof getCart === 'function' ? getCart() : JSON.parse(localStorage.getItem("cart") || "[]");
-    const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const cartCountEl = document.getElementById("cartCount");
-    if (cartCountEl) cartCountEl.textContent = count;
+    try {
+        const cart = typeof getCart === 'function' ? getCart() : JSON.parse(localStorage.getItem("cart") || "[]");
+        const count = Array.isArray(cart) ? cart.reduce((sum, item) => sum + (item.quantity || 1), 0) : 0;
+        const cartCountEl = document.getElementById("cartCount");
+        if (cartCountEl) cartCountEl.textContent = count;
+    } catch (e) {
+        console.warn("Could not update cart count:", e);
+    }
 }
 
-let allReferrals = [];
-let currentFilter = 'all';
-
+// ── 2. LOAD REFERRAL DETAILS (CORE OVERVIEW) ──
 async function loadReferralDetails() {
     const token = localStorage.getItem("token");
+    if (!token) return;
 
     try {
         const res = await fetch(`${window.API_URL}/referral/details`, {
@@ -59,164 +88,369 @@ async function loadReferralDetails() {
         });
 
         if (!res.ok) {
-            throw new Error("Failed to load referral details");
+            if (res.status === 401) {
+                showToast("Your session has expired. Please sign in again.", "error");
+                return;
+            }
+            throw new Error("Unable to load your referral information.");
         }
 
         const data = await res.json();
+        cachedReferralDetails = data;
 
-        // Update referral code
-        document.getElementById("refCode").textContent = data.referralCode || "Not generated";
-        
-        // Update wallet balance with proper formatting
-        const walletAmount = parseFloat(data.wallet || 0).toFixed(2);
-        document.getElementById("wallet").textContent = walletAmount;
-
-        // Update referral count
-        const referralCount = data.referrals || 0;
-        document.getElementById("referralCount").textContent = referralCount;
-
-        // Generate referral link
-        const link = `${window.location.origin}/signup.html?ref=${data.referralCode}`;
-        document.getElementById("refLink").value = link;
-
-        // Update tree level and children count
-        document.getElementById("treeLevel").textContent = data.treePlacement?.treeLevel || 0;
-        document.getElementById("treeChildrenCount").textContent = data.treePlacement?.treeChildrenCount || 0;
-
-        // Update commission breakdown
-        const commissionBreakdown = data.commissionBreakdown || {};
-        document.getElementById("directCommission").textContent = parseFloat(commissionBreakdown.directCommission || 0).toFixed(2);
-        document.getElementById("treeCommission").textContent = parseFloat(commissionBreakdown.treeCommission || 0).toFixed(2);
-        document.getElementById("directPercentage").textContent = commissionBreakdown.directPercentage || 0;
-        document.getElementById("treePercentage").textContent = commissionBreakdown.treePercentage || 0;
-
-        // Update tree position info
-        document.getElementById("userTreeLevel").textContent = data.treePlacement?.treeLevel || 0;
-        document.getElementById("directTreeChildren").textContent = data.treePlacement?.treeChildrenCount || 0;
-        
-        if (data.treePlacement?.treeParent) {
-            document.getElementById("treeParentInfo").textContent = 
-                `${data.treePlacement.treeParent.name} (${data.treePlacement.treeParent.referralCode})`;
-        } else {
-            document.getElementById("treeParentInfo").textContent = "None (Root Level)";
+        // Populate Referral Code
+        const refCodeEl = document.getElementById("refCode");
+        if (refCodeEl) {
+            refCodeEl.textContent = data.referralCode || "Not Generated";
         }
 
-        // Load referrals
+        // Populate Production-Aware Referral Link (strictly clean domain without localhost in prod)
+        const refLinkEl = document.getElementById("refLink");
+        if (refLinkEl) {
+            const origin = window.location.origin;
+            refLinkEl.value = `${origin}/signup.html?ref=${data.referralCode || ''}`;
+        }
+
+        // Populate Available Balance
+        const walletEl = document.getElementById("wallet");
+        if (walletEl) {
+            const walletAmount = parseFloat(data.wallet || 0).toFixed(2);
+            walletEl.textContent = walletAmount;
+        }
+
+        // Populate Total Referrals
+        const refCountEl = document.getElementById("referralCount");
+        if (refCountEl) {
+            refCountEl.textContent = data.referrals || 0;
+        }
+
+        // Populate Tree Level & Children Count
+        const treeLevelEl = document.getElementById("treeLevel");
+        if (treeLevelEl) {
+            treeLevelEl.textContent = data.treePlacement?.treeLevel || 0;
+        }
+
+        const treeChildrenCountEl = document.getElementById("treeChildrenCount");
+        if (treeChildrenCountEl) {
+            treeChildrenCountEl.textContent = data.treePlacement?.treeChildrenCount || 0;
+        }
+
+        // Populate Commission Breakdown
+        const commissionBreakdown = data.commissionBreakdown || {};
+        const directCommEl = document.getElementById("directCommission");
+        if (directCommEl) {
+            directCommEl.textContent = parseFloat(commissionBreakdown.directCommission || 0).toFixed(2);
+        }
+
+        const treeCommEl = document.getElementById("treeCommission");
+        if (treeCommEl) {
+            treeCommEl.textContent = parseFloat(commissionBreakdown.treeCommission || 0).toFixed(2);
+        }
+
+        const directPctEl = document.getElementById("directPercentage");
+        if (directPctEl) {
+            directPctEl.textContent = commissionBreakdown.directPercentage || 0;
+        }
+
+        const treePctEl = document.getElementById("treePercentage");
+        if (treePctEl) {
+            treePctEl.textContent = commissionBreakdown.treePercentage || 0;
+        }
+
+        // Populate Tree Position Info
+        const userTreeLevelEl = document.getElementById("userTreeLevel");
+        if (userTreeLevelEl) {
+            userTreeLevelEl.textContent = data.treePlacement?.treeLevel || 0;
+        }
+
+        const directTreeChildrenEl = document.getElementById("directTreeChildren");
+        if (directTreeChildrenEl) {
+            directTreeChildrenEl.textContent = data.treePlacement?.treeChildrenCount || 0;
+        }
+
+        const treeParentInfoEl = document.getElementById("treeParentInfo");
+        if (treeParentInfoEl) {
+            if (data.treePlacement?.treeParent) {
+                treeParentInfoEl.textContent = `${data.treePlacement.treeParent.name} (${data.treePlacement.treeParent.referralCode})`;
+            } else {
+                treeParentInfoEl.textContent = "None (Root Level)";
+            }
+        }
+
+        // Populate referrals list from cached data
         loadReferrals(data);
 
     } catch (err) {
         console.error("Error loading referral details:", err);
-        alert("Error loading referral details. Please try again.");
+        showToast("Unable to load referral information. Please refresh.", "error");
     }
 }
 
+// ── 3. REFERRALS LIST & FILTERING ──
 function loadReferrals(data) {
     const loading = document.getElementById("referralsLoading");
     const content = document.getElementById("referralsContent");
     const noReferrals = document.getElementById("noReferrals");
     const tableBody = document.getElementById("referralsTableBody");
 
-    loading.style.display = "none";
-    content.style.display = "block";
+    if (loading) loading.style.display = "none";
+    if (content) content.style.display = "block";
 
-    // Get direct referrals
-    allReferrals = data.directReferrals?.users || [];
+    // Direct referrals from API
+    allReferrals = data?.directReferrals?.users || [];
+
+    const countAllEl = document.getElementById("countAll");
+    const countDirectEl = document.getElementById("countDirect");
+    const countSpilloverEl = document.getElementById("countSpillover");
 
     if (allReferrals.length === 0) {
-        noReferrals.style.display = "block";
-        tableBody.parentElement.parentElement.style.display = "none";
-        document.getElementById("countAll").textContent = "0";
-        document.getElementById("countDirect").textContent = "0";
-        document.getElementById("countSpillover").textContent = "0";
+        if (noReferrals) noReferrals.style.display = "block";
+        if (tableBody && tableBody.parentElement) {
+            tableBody.parentElement.style.display = "none";
+        }
+        if (countAllEl) countAllEl.textContent = "0";
+        if (countDirectEl) countDirectEl.textContent = "0";
+        if (countSpilloverEl) countSpilloverEl.textContent = "0";
         return;
     }
 
-    // Count placement types
+    if (noReferrals) noReferrals.style.display = "none";
+    if (tableBody && tableBody.parentElement) {
+        tableBody.parentElement.style.display = "table";
+    }
+
     const directCount = allReferrals.filter(r => r.placementType === 'direct').length;
     const spilloverCount = allReferrals.filter(r => r.placementType === 'spillover').length;
 
-    document.getElementById("countAll").textContent = allReferrals.length;
-    document.getElementById("countDirect").textContent = directCount;
-    document.getElementById("countSpillover").textContent = spilloverCount;
+    if (countAllEl) countAllEl.textContent = allReferrals.length;
+    if (countDirectEl) countDirectEl.textContent = directCount;
+    if (countSpilloverEl) countSpilloverEl.textContent = spilloverCount;
 
-    // Display referrals
     displayReferrals();
 }
 
 function displayReferrals() {
     const tableBody = document.getElementById("referralsTableBody");
+    if (!tableBody) return;
+
     tableBody.innerHTML = "";
 
-    // Filter referrals based on current filter
-    let filteredReferrals = allReferrals;
-    if (currentFilter !== 'all') {
-        filteredReferrals = allReferrals.filter(r => r.placementType === currentFilter);
+    let filtered = allReferrals;
+    if (currentReferralFilter !== 'all') {
+        filtered = allReferrals.filter(r => r.placementType === currentReferralFilter);
     }
 
-    filteredReferrals.forEach(ref => {
+    if (filtered.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 24px; color: var(--sm-muted);">
+                    No ${currentReferralFilter} referrals found.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    filtered.forEach(ref => {
         const row = document.createElement("tr");
-        row.style.borderBottom = "1px solid #f0f0f0";
-        
-        const placementColor = ref.placementType === 'direct' ? '#667eea' : '#f5576c';
-        const placementText = ref.placementType === 'direct' ? 'Direct' : 'Spillover';
-        const placementIcon = ref.placementType === 'direct' ? '⭐' : '🔄';
-        
-        const joinedDate = new Date(ref.joinedDate).toLocaleDateString();
+        const isDirect = ref.placementType === 'direct';
+        const placementBadgeClass = isDirect ? 'badge-placement direct' : 'badge-placement spillover';
+        const placementIcon = isDirect ? '⭐' : '🔄';
+        const placementText = isDirect ? 'Direct' : 'Spillover';
+        const joinedDate = ref.joinedDate ? new Date(ref.joinedDate).toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+        }) : '—';
 
         row.innerHTML = `
-            <td style="padding: 12px; font-size: 14px; font-weight: 500;">${ref.name}</td>
-            <td style="padding: 12px; font-size: 14px; color: #666;">${ref.email}</td>
-            <td style="padding: 12px; text-align: center;">
-                <span style="background: #667eea; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
-                    L${ref.treeLevel}
-                </span>
+            <td style="font-weight: 600; color: var(--sm-ink);">${escapeHtml(ref.name || 'User')}</td>
+            <td style="color: var(--sm-muted); font-size: 13.5px;">${escapeHtml(ref.email || '—')}</td>
+            <td style="text-align: center;">
+                <span class="badge-level">L${ref.treeLevel ?? 1}</span>
             </td>
-            <td style="padding: 12px; text-align: center;">
-                <span style="background: ${placementColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
+            <td style="text-align: center;">
+                <span class="${placementBadgeClass}">
                     ${placementIcon} ${placementText}
                 </span>
             </td>
-            <td style="padding: 12px; text-align: center; font-size: 13px; color: #666;">${joinedDate}</td>
+            <td style="text-align: center; font-size: 13px; color: var(--sm-muted);">${joinedDate}</td>
         `;
         tableBody.appendChild(row);
     });
 }
 
 function filterReferrals(type) {
-    currentFilter = type;
-    
-    // Update button states
-    document.getElementById("filterAll").classList.remove("active");
-    document.getElementById("filterDirect").classList.remove("active");
-    document.getElementById("filterSpillover").classList.remove("active");
-    
-    if (type === 'all') {
-        document.getElementById("filterAll").classList.add("active");
-    } else if (type === 'direct') {
-        document.getElementById("filterDirect").classList.add("active");
-    } else if (type === 'spillover') {
-        document.getElementById("filterSpillover").classList.add("active");
-    }
-    
+    currentReferralFilter = type;
+
+    const filterAll = document.getElementById("filterAll");
+    const filterDirect = document.getElementById("filterDirect");
+    const filterSpillover = document.getElementById("filterSpillover");
+
+    if (filterAll) filterAll.classList.remove("active");
+    if (filterDirect) filterDirect.classList.remove("active");
+    if (filterSpillover) filterSpillover.classList.remove("active");
+
+    if (type === 'all' && filterAll) filterAll.classList.add("active");
+    else if (type === 'direct' && filterDirect) filterDirect.classList.add("active");
+    else if (type === 'spillover' && filterSpillover) filterSpillover.classList.add("active");
+
     displayReferrals();
 }
+window.filterReferrals = filterReferrals;
+
+// ── 4. COPY & SHARE INTERACTIONS ──
+function copyCode() {
+    const refCodeEl = document.getElementById("refCode");
+    const code = refCodeEl ? refCodeEl.textContent.trim() : "";
+
+    if (!code || code === "LOADING..." || code === "Not Generated") {
+        showToast("Referral code not available yet", "error");
+        return;
+    }
+
+    const copyBtn = document.getElementById("copyCodeBtn");
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(code).then(() => {
+            showCopySuccess(copyBtn, "✓ Copied", "Referral code copied to clipboard!");
+        }).catch(() => {
+            fallbackCopy(code, copyBtn, "✓ Copied", "Referral code copied!");
+        });
+    } else {
+        fallbackCopy(code, copyBtn, "✓ Copied", "Referral code copied!");
+    }
+}
+window.copyCode = copyCode;
 
 function copyLink() {
-    const box = document.getElementById("refLink");
-    box.select();
-    box.setSelectionRange(0, 99999); // For mobile devices
+    const refLinkInput = document.getElementById("refLink");
+    const link = refLinkInput ? refLinkInput.value.trim() : "";
 
+    if (!link) {
+        showToast("Referral link not available yet", "error");
+        return;
+    }
+
+    const copyBtn = document.getElementById("copyLinkBtn");
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(link).then(() => {
+            showCopySuccess(copyBtn, "✓ Link Copied", "Referral link copied to clipboard!");
+        }).catch(() => {
+            fallbackCopy(link, copyBtn, "✓ Link Copied", "Referral link copied!");
+        });
+    } else {
+        fallbackCopy(link, copyBtn, "✓ Link Copied", "Referral link copied!");
+    }
+}
+window.copyLink = copyLink;
+
+function fallbackCopy(text, btnEl, successText, toastMsg) {
     try {
-        navigator.clipboard.writeText(box.value);
-        alert("✅ Referral link copied to clipboard!");
-    } catch (err) {
-        // Fallback for older browsers
-        document.execCommand("copy");
-        alert("✅ Referral link copied!");
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showCopySuccess(btnEl, successText, toastMsg);
+    } catch (e) {
+        console.error("Copy failed:", e);
+        showToast("Could not copy automatically. Please copy manually.", "error");
     }
 }
 
-// Load withdrawal data and determine which section to show
+function showCopySuccess(btnEl, successText, toastMsg) {
+    if (btnEl) {
+        const originalHTML = btnEl.innerHTML;
+        btnEl.classList.add("copied");
+        btnEl.innerHTML = `<span>${successText}</span>`;
+        setTimeout(() => {
+            btnEl.classList.remove("copied");
+            btnEl.innerHTML = originalHTML;
+        }, 2200);
+    }
+    showToast(toastMsg, "success");
+}
+
+function shareViaWhatsApp(event) {
+    if (event) event.preventDefault();
+    const link = document.getElementById("refLink")?.value || "";
+    const code = document.getElementById("refCode")?.textContent || "";
+    const text = encodeURIComponent(
+        `📚 Join Shree Mata with my referral code: *${code}* to get authentic textbooks, combo bundles, and exclusive rewards!\n\nSign up here: ${link}`
+    );
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${text}`;
+    window.open(whatsappUrl, '_blank');
+}
+window.shareViaWhatsApp = shareViaWhatsApp;
+
+function shareViaWebAPI() {
+    const link = document.getElementById("refLink")?.value || "";
+    const code = document.getElementById("refCode")?.textContent || "";
+
+    if (navigator.share) {
+        navigator.share({
+            title: "Join Shree Mata - Educational Textbooks & Rewards",
+            text: `Join Shree Mata using referral code ${code} for authentic Karnataka state syllabus and CBSE curriculum books!`,
+            url: link
+        }).catch(err => {
+            if (err.name !== 'AbortError') {
+                copyLink();
+            }
+        });
+    } else {
+        copyLink();
+    }
+}
+window.shareViaWebAPI = shareViaWebAPI;
+
+// ── 5. SECTION SWITCHING (SIDEBAR & MOBILE TABS) ──
+function switchReferralSection(sectionId, btnEl) {
+    // Update active state on sidebar
+    document.querySelectorAll(".referral-menu button").forEach(btn => btn.classList.remove("active"));
+    // Update active state on mobile tabs
+    document.querySelectorAll(".referral-tab-btn").forEach(btn => btn.classList.remove("active"));
+
+    if (btnEl) {
+        btnEl.classList.add("active");
+    }
+
+    // Sync corresponding button
+    const sectionMap = {
+        'overview': { sidebarIdx: 0, targetId: 'sectionCode' },
+        'code': { sidebarIdx: 1, targetId: 'sectionCode' },
+        'network': { sidebarIdx: 2, targetId: 'sectionNetwork' },
+        'commission': { sidebarIdx: 3, targetId: 'sectionCommission' },
+        'referrals': { sidebarIdx: 4, targetId: 'sectionReferrals' },
+        'withdrawals': { sidebarIdx: 5, targetId: 'sectionWithdrawals' }
+    };
+
+    const target = sectionMap[sectionId];
+    if (target) {
+        const sidebarButtons = document.querySelectorAll(".referral-menu button");
+        if (sidebarButtons[target.sidebarIdx]) {
+            sidebarButtons[target.sidebarIdx].classList.add("active");
+        }
+
+        const targetEl = document.getElementById(target.targetId);
+        if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    // Lazy load withdrawals if needed
+    if (sectionId === 'withdrawals' && !isWithdrawalDataLoaded) {
+        loadWithdrawalData();
+    }
+}
+window.switchReferralSection = switchReferralSection;
+
+// ── 6. SECURE WITHDRAWAL SYSTEM ──
 async function loadWithdrawalData() {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -226,40 +460,38 @@ async function loadWithdrawalData() {
             headers: { "Authorization": "Bearer " + token }
         });
 
-        const data = await res.json();
-        
         if (!res.ok) {
-            throw new Error(data.error || "Failed to load withdrawal settings");
+            throw new Error("Failed to load withdrawal settings");
         }
 
-        // Update wallet balance from API response (not localStorage)
+        const data = await res.json();
+        isWithdrawalDataLoaded = true;
+
+        // Update balance from API response
         const currentBalance = parseFloat(data.walletBalance || 0);
         const walletBalance = document.getElementById("walletBalance");
-        if (walletBalance) walletBalance.textContent = `₹${currentBalance}`;
-        
+        if (walletBalance) walletBalance.textContent = `₹${currentBalance.toFixed(2)}`;
+
         const minWithdrawal = document.getElementById("minWithdrawal");
         if (minWithdrawal) minWithdrawal.textContent = `₹${data.minimumWithdrawalAmount}`;
-        
-        // Update withdrawal information tile
+
         const minWithdrawalInfo = document.getElementById("minWithdrawalInfo");
         if (minWithdrawalInfo) minWithdrawalInfo.textContent = data.minimumWithdrawalAmount;
-        
-        // Update the withdrawal form input minimum value
+
+        // Configure withdrawal amount input
         const withdrawalAmountInput = document.getElementById("withdrawalAmount");
         const withdrawalSubmitBtn = document.querySelector('#withdrawalForm button[type="submit"]');
-        
+
         if (withdrawalAmountInput) {
             withdrawalAmountInput.min = data.minimumWithdrawalAmount;
             withdrawalAmountInput.max = currentBalance;
-            
+
             if (currentBalance <= 0) {
                 withdrawalAmountInput.placeholder = "No balance available for withdrawal";
                 withdrawalAmountInput.disabled = true;
                 if (withdrawalSubmitBtn) {
                     withdrawalSubmitBtn.disabled = true;
                     withdrawalSubmitBtn.textContent = "💰 No Balance Available";
-                    withdrawalSubmitBtn.style.opacity = "0.6";
-                    withdrawalSubmitBtn.style.cursor = "not-allowed";
                 }
             } else if (currentBalance < data.minimumWithdrawalAmount) {
                 withdrawalAmountInput.placeholder = `Minimum ₹${data.minimumWithdrawalAmount} required (Balance: ₹${currentBalance.toFixed(2)})`;
@@ -267,58 +499,50 @@ async function loadWithdrawalData() {
                 if (withdrawalSubmitBtn) {
                     withdrawalSubmitBtn.disabled = true;
                     withdrawalSubmitBtn.textContent = "💰 Insufficient Balance";
-                    withdrawalSubmitBtn.style.opacity = "0.6";
-                    withdrawalSubmitBtn.style.cursor = "not-allowed";
                 }
             } else {
-                withdrawalAmountInput.placeholder = `Enter amount to withdraw (min ₹${data.minimumWithdrawalAmount}, max ₹${currentBalance.toFixed(2)})`;
+                withdrawalAmountInput.placeholder = `Enter amount (min ₹${data.minimumWithdrawalAmount}, max ₹${currentBalance.toFixed(2)})`;
                 withdrawalAmountInput.disabled = false;
                 if (withdrawalSubmitBtn) {
                     withdrawalSubmitBtn.disabled = false;
                     withdrawalSubmitBtn.textContent = "💰 Submit Withdrawal Request";
-                    withdrawalSubmitBtn.style.opacity = "1";
-                    withdrawalSubmitBtn.style.cursor = "pointer";
                 }
             }
         }
 
         if (data.bankDetailsSetup) {
-            // Show withdrawal form section
             document.getElementById("bankSetupSection").style.display = "none";
             document.getElementById("withdrawalFormSection").style.display = "block";
-            
-            // Display masked bank details
+
             displayMaskedBankDetails(data.maskedBankDetails);
-            
-            // Update limits
+
             if (data.maskedBankDetails) {
                 const dailyLimit = document.getElementById("dailyLimit");
                 const monthlyLimit = document.getElementById("monthlyLimit");
-                if (dailyLimit) dailyLimit.textContent = `₹${data.maskedBankDetails.dailyLimit}`;
-                if (monthlyLimit) monthlyLimit.textContent = `₹${data.maskedBankDetails.monthlyLimit}`;
-                
-                // Update withdrawal information tile limits
+                if (dailyLimit) dailyLimit.textContent = `₹${data.maskedBankDetails.dailyLimit || 5000}`;
+                if (monthlyLimit) monthlyLimit.textContent = `₹${data.maskedBankDetails.monthlyLimit || 50000}`;
+
                 const dailyLimitInfo = document.getElementById("dailyLimitInfo");
                 const monthlyLimitInfo = document.getElementById("monthlyLimitInfo");
-                if (dailyLimitInfo) dailyLimitInfo.textContent = data.maskedBankDetails.dailyLimit;
-                if (monthlyLimitInfo) monthlyLimitInfo.textContent = data.maskedBankDetails.monthlyLimit;
+                if (dailyLimitInfo) dailyLimitInfo.textContent = data.maskedBankDetails.dailyLimit || 5000;
+                if (monthlyLimitInfo) monthlyLimitInfo.textContent = data.maskedBankDetails.monthlyLimit || 50000;
             }
-            
-            // Load withdrawal history
-            loadWithdrawalHistory();
+
+            if (!isWithdrawalHistoryLoaded) {
+                loadWithdrawalHistory();
+            }
         } else {
-            // Show bank setup section
             document.getElementById("bankSetupSection").style.display = "block";
             document.getElementById("withdrawalFormSection").style.display = "none";
         }
 
     } catch (err) {
         console.error("Error loading withdrawal data:", err);
-        showWithdrawMessage("Error loading withdrawal data: " + err.message, "error");
+        showWithdrawMessage("Unable to load withdrawal information: " + err.message, "error");
     }
 }
+window.loadWithdrawalData = loadWithdrawalData;
 
-// Switch between 'saved' and 'different' withdrawal detail modes
 function switchWithdrawalMode(mode) {
     const savedBtn = document.getElementById("useSavedModeBtn");
     const diffBtn = document.getElementById("enterDifferentModeBtn");
@@ -330,7 +554,7 @@ function switchWithdrawalMode(mode) {
         if (diffBtn) diffBtn.classList.add("active");
         if (savedPanel) savedPanel.style.display = "none";
         if (diffPanel) diffPanel.style.display = "block";
-        
+
         const diffForm = document.getElementById("differentBankDetailsForm");
         if (diffForm) diffForm.reset();
     } else {
@@ -342,57 +566,53 @@ function switchWithdrawalMode(mode) {
 }
 window.switchWithdrawalMode = switchWithdrawalMode;
 
-// Display masked bank details
 function displayMaskedBankDetails(bankDetails) {
     if (!bankDetails) return;
-    
-    let html = '<div style="display: grid; gap: 8px;">';
-    
+
+    let html = '<div style="display: grid; gap: 6px;">';
+
     if (bankDetails.accountNumber) {
         const bankNameText = bankDetails.bankName ? ` (${bankDetails.bankName})` : '';
-        html += `<div><strong>🏦 Saved Account:</strong> ${bankDetails.accountNumber}${bankNameText}</div>`;
+        html += `<div><strong>🏦 Account:</strong> ${escapeHtml(bankDetails.accountNumber)}${escapeHtml(bankNameText)}</div>`;
         if (bankDetails.ifscCode) {
-            html += `<div><strong>🔢 IFSC Code:</strong> ${bankDetails.ifscCode}</div>`;
+            html += `<div><strong>🔢 IFSC Code:</strong> ${escapeHtml(bankDetails.ifscCode)}</div>`;
         }
     }
-    
+
     if (bankDetails.upiId) {
-        html += `<div><strong>📱 Saved UPI ID:</strong> ${bankDetails.upiId}</div>`;
+        html += `<div><strong>📱 UPI ID:</strong> ${escapeHtml(bankDetails.upiId)}</div>`;
     }
-    
+
     if (bankDetails.accountHolderName) {
-        html += `<div><strong>👤 Account Holder:</strong> ${bankDetails.accountHolderName}</div>`;
+        html += `<div><strong>👤 Holder:</strong> ${escapeHtml(bankDetails.accountHolderName)}</div>`;
     }
-    
+
     if (bankDetails.setupDate) {
-        html += `<div><strong>📅 Saved Date:</strong> ${new Date(bankDetails.setupDate).toLocaleDateString()}</div>`;
+        html += `<div style="font-size: 12px; color: var(--sm-muted);"><strong>📅 Saved on:</strong> ${new Date(bankDetails.setupDate).toLocaleDateString()}</div>`;
     }
     html += '</div>';
-    
+
     const container = document.getElementById("maskedBankDetails");
     if (container) container.innerHTML = html;
 }
 
-// Setup or update bank details
 async function setupBankDetails(e) {
     e.preventDefault();
-    
+
     const token = localStorage.getItem("token");
     if (!token) {
-        showWithdrawMessage("Login required", "error");
+        showToast("Please login to save payment details", "error");
         return;
     }
 
     const isDiffForm = e.target && e.target.id === "differentBankDetailsForm";
-    const prefix = isDiffForm ? "diff" : "";
-    
+
     const accountHolderName = (document.getElementById(isDiffForm ? "diffAccountHolderName" : "accountHolderName")?.value || "").trim();
     const accountNumber = (document.getElementById(isDiffForm ? "diffAccountNumber" : "accountNumber")?.value || "").trim();
     const ifscCode = (document.getElementById(isDiffForm ? "diffIfscCode" : "ifscCode")?.value || "").trim();
     const bankName = (document.getElementById(isDiffForm ? "diffBankName" : "bankName")?.value || "").trim();
     const upiId = (document.getElementById(isDiffForm ? "diffUpiId" : "upiId")?.value || "").trim();
 
-    // Validation
     if (!accountHolderName) {
         showWithdrawMessage("Account holder name is required", "error");
         return;
@@ -404,7 +624,7 @@ async function setupBankDetails(e) {
     }
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalBtnText = submitBtn ? submitBtn.textContent : "Save Payment Details";
+    const originalBtnText = submitBtn ? submitBtn.textContent : "Save Details";
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.textContent = "Saving...";
@@ -432,41 +652,13 @@ async function setupBankDetails(e) {
             throw new Error(data.error || "Failed to save bank details");
         }
 
-        // Update local user object in localStorage if present
-        try {
-            const localUser = JSON.parse(localStorage.getItem("user") || "null");
-            if (localUser) {
-                localUser.bankDetails = {
-                    ...(localUser.bankDetails || {}),
-                    accountHolderName,
-                    accountNumber: accountNumber || null,
-                    ifscCode: ifscCode || null,
-                    bankName: bankName || null,
-                    upiId: upiId || null,
-                    isSetup: true,
-                    setupDate: new Date()
-                };
-                localStorage.setItem("user", JSON.stringify(localUser));
-            }
-        } catch (e) {
-            console.warn("Could not update local storage user object:", e);
-        }
-
-        // Show success popup
-        alert("✅ Payment Details Saved Successfully!\n\nYour details have been updated. You can proceed with withdrawals using your saved details or change them anytime.");
-        
-        // Return to saved panel
+        showToast("Payment details saved successfully!", "success");
         switchWithdrawalMode('saved');
-
-        // Reload withdrawal data to show updated details
         await loadWithdrawalData();
-
-        showWithdrawMessage("✅ Payment details saved successfully", "success");
 
     } catch (err) {
         console.error("Bank setup error:", err);
-        showWithdrawMessage("Error: " + err.message, "error");
-        alert("❌ Error: " + err.message);
+        showWithdrawMessage("Error saving payment details: " + err.message, "error");
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
@@ -475,18 +667,12 @@ async function setupBankDetails(e) {
     }
 }
 
-// Delete saved bank details
 async function deleteSavedBankDetails() {
-    const confirmMessage = "This will remove your saved bank/UPI details. You'll need to enter them again the next time you request a withdrawal. This does not affect any pending or past withdrawal requests.\n\nAre you sure you want to delete your saved payment details?";
-    if (!confirm(confirmMessage)) {
-        return;
-    }
+    const confirmMessage = "This will remove your saved bank/UPI details. You will need to enter them again on your next withdrawal request.\n\nAre you sure you want to proceed?";
+    if (!confirm(confirmMessage)) return;
 
     const token = localStorage.getItem("token");
-    if (!token) {
-        showWithdrawMessage("Login required", "error");
-        return;
-    }
+    if (!token) return;
 
     const deleteBtn = document.getElementById("deleteSavedBankBtn");
     if (deleteBtn) {
@@ -497,9 +683,7 @@ async function deleteSavedBankDetails() {
     try {
         const res = await fetch(`${window.API_URL}/referral/bank-details`, {
             method: "DELETE",
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
+            headers: { "Authorization": `Bearer ${token}` }
         });
 
         const data = await res.json();
@@ -507,27 +691,6 @@ async function deleteSavedBankDetails() {
             throw new Error(data.error || "Failed to delete saved bank details");
         }
 
-        // Update local user in localStorage if present
-        try {
-            const localUser = JSON.parse(localStorage.getItem("user") || "null");
-            if (localUser && localUser.bankDetails) {
-                localUser.bankDetails.isSetup = false;
-                localUser.bankDetails.accountNumber = null;
-                localUser.bankDetails.accountHolderName = null;
-                localUser.bankDetails.bankName = null;
-                localUser.bankDetails.ifscCode = null;
-                localUser.bankDetails.upiId = null;
-                localUser.bankDetails.scannerImageUrl = null;
-                localUser.bankDetails.scannerImage = null;
-                localUser.bankDetails.qrCode = null;
-                localUser.bankDetails.qrCodeData = null;
-                localStorage.setItem("user", JSON.stringify(localUser));
-            }
-        } catch (e) {
-            console.warn("Could not update local storage user object:", e);
-        }
-
-        // Clear input values in both setup forms
         const formFields = [
             "accountHolderName", "accountNumber", "ifscCode", "bankName", "upiId",
             "diffAccountHolderName", "diffAccountNumber", "diffIfscCode", "diffBankName", "diffUpiId"
@@ -537,47 +700,37 @@ async function deleteSavedBankDetails() {
             if (el) el.value = "";
         });
 
-        // Reset mode back to 'saved'
         switchWithdrawalMode('saved');
-
-        // Reload withdrawal data to switch UI back to first-time setup state
         await loadWithdrawalData();
-
-        showWithdrawMessage("✅ Saved bank details removed successfully", "success");
-        alert("✅ Saved bank details removed successfully.\n\nYou can now enter fresh bank/UPI details whenever you make your next withdrawal.");
+        showToast("Saved payment details removed successfully", "success");
 
     } catch (err) {
         console.error("Error deleting bank details:", err);
-        showWithdrawMessage("Error deleting bank details: " + err.message, "error");
-        alert("❌ Error: " + err.message);
+        showToast("Error removing bank details: " + err.message, "error");
     } finally {
         if (deleteBtn) {
             deleteBtn.disabled = false;
-            deleteBtn.textContent = "🗑️ Delete Saved Details";
+            deleteBtn.textContent = "🗑️ Delete";
         }
     }
 }
-
-// Global exposure
 window.deleteSavedBankDetails = deleteSavedBankDetails;
 
-// Submit withdrawal request
 async function submitWithdrawal(e) {
     e.preventDefault();
-    
+
     const token = localStorage.getItem("token");
     if (!token) {
-        showWithdrawMessage("Login required", "error");
+        showToast("Login required to submit withdrawal", "error");
         return;
     }
 
-    const amount = parseFloat(document.getElementById("withdrawalAmount").value);
-    
-    // Get the actual minimum withdrawal amount from the loaded settings
+    const amountInput = document.getElementById("withdrawalAmount");
+    const amount = parseFloat(amountInput?.value || 0);
+
     const minWithdrawalElement = document.getElementById("minWithdrawalInfo");
     const minWithdrawalAmount = minWithdrawalElement ? parseFloat(minWithdrawalElement.textContent) : 100;
-    
-    // Get user's current wallet balance from API (not localStorage)
+
     let availableBalance = 0;
     try {
         const balanceRes = await fetch(`${window.API_URL}/referral/withdrawal-settings`, {
@@ -585,36 +738,34 @@ async function submitWithdrawal(e) {
         });
         const balanceData = await balanceRes.json();
         availableBalance = parseFloat(balanceData.walletBalance || 0);
-        console.log('Current wallet balance from API:', availableBalance);
     } catch (error) {
-        console.error('Error fetching current balance:', error);
-        showWithdrawMessage("Error checking balance. Please try again.", "error");
+        showWithdrawMessage("Unable to verify balance. Please try again.", "error");
         return;
     }
-    
+
     if (!amount || amount <= 0) {
         showWithdrawMessage("Please enter a valid withdrawal amount", "error");
         return;
     }
-    
+
     if (availableBalance <= 0) {
-        showWithdrawMessage("You don't have any balance available for withdrawal", "error");
+        showWithdrawMessage("No balance available for withdrawal", "error");
         return;
     }
-    
+
     if (amount < minWithdrawalAmount) {
         showWithdrawMessage(`Minimum withdrawal amount is ₹${minWithdrawalAmount}`, "error");
         return;
     }
-    
+
     if (amount > availableBalance) {
-        showWithdrawMessage(`Insufficient balance. Your available balance is ₹${availableBalance.toFixed(2)}`, "error");
+        showWithdrawMessage(`Insufficient balance. Available: ₹${availableBalance.toFixed(2)}`, "error");
         return;
     }
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
-    submitBtn.textContent = "Processing...";
+    submitBtn.textContent = "Processing Request...";
 
     try {
         const res = await fetch(`${window.API_URL}/referral/withdraw`, {
@@ -632,74 +783,91 @@ async function submitWithdrawal(e) {
             throw new Error(data.error || "Failed to submit withdrawal request");
         }
 
-        // Show success popup
-        alert(`✅ Withdrawal Request Submitted!\n\nAmount: ₹${amount}\nStatus: Pending Admin Approval\n\n📧 You will receive an email confirmation shortly.\n⏱️ Processing time: 2-3 business days`);
-        
-        // Clear form and reload data
-        document.getElementById("withdrawalAmount").value = "";
-        
-        // Update wallet balance in localStorage
-        const updatedUser = JSON.parse(localStorage.getItem("user") || "{}");
-        updatedUser.wallet = data.remainingBalance;
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-        
-        // Reload withdrawal data and referral details
-        loadWithdrawalData();
-        loadReferralDetails();
+        showToast(`Withdrawal request of ₹${amount} submitted successfully!`, "success");
+        if (amountInput) amountInput.value = "";
+
+        await loadWithdrawalData();
+        await loadReferralDetails();
+        loadWithdrawalHistory();
 
     } catch (err) {
         console.error("Withdrawal error:", err);
         showWithdrawMessage("Error: " + err.message, "error");
     } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "💰 Submit Withdrawal Request";
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "💰 Submit Withdrawal Request";
+        }
     }
 }
 
-// Load withdrawal history
 async function loadWithdrawalHistory() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
     try {
         const res = await fetch(`${window.API_URL}/users/profile`, {
-            headers: { "Authorization": `Bearer ${token}` }
+            headers: { "Authorization": "Bearer " + token }
         });
 
         const data = await res.json();
-        
+        isWithdrawalHistoryLoaded = true;
+
         if (res.ok && data.user && data.user.withdrawals) {
-            const withdrawals = data.user.withdrawals.slice(-5).reverse(); // Last 5 withdrawals
-            
+            const withdrawals = data.user.withdrawals.slice(-5).reverse();
             const historyList = document.getElementById("withdrawalHistoryList");
-            
+            if (!historyList) return;
+
             if (withdrawals.length === 0) {
-                historyList.innerHTML = '<div style="text-align: center; padding: 30px; color: #666; background: #f8f9fa; border-radius: 12px;"><p style="margin: 0; font-size: 16px;">📋 No withdrawal history yet</p><p style="margin: 5px 0 0 0; font-size: 14px;">Your withdrawal requests will appear here</p></div>';
-                return;
-            }
-            
-            historyList.innerHTML = withdrawals.map(w => {
-                const statusColor = w.status === 'approved' ? '#28a745' : 
-                                  w.status === 'pending' ? '#ffc107' : '#dc3545';
-                const statusIcon = w.status === 'approved' ? '✅' : 
-                                 w.status === 'pending' ? '⏳' : '❌';
-                
-                return `
-                    <div style="border: 2px solid #e9ecef; padding: 20px; border-radius: 12px; margin-bottom: 15px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <div style="font-weight: bold; font-size: 20px; color: #333;">₹${w.amount}</div>
-                                <div style="font-size: 13px; color: #666; margin-top: 5px;">📅 ${new Date(w.requestedAt || w.date).toLocaleDateString()}</div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="color: ${statusColor}; font-weight: bold; text-transform: capitalize; font-size: 16px;">
-                                    ${statusIcon} ${w.status}
-                                </div>
-                            </div>
-                        </div>
+                historyList.innerHTML = `
+                    <div class="empty-state-box" style="padding: 24px; background: var(--sm-surface-warm); border-radius: var(--radius-md);">
+                        <div style="font-size: 28px; margin-bottom: 6px;">📋</div>
+                        <div class="empty-state-title" style="font-size: 14.5px;">No withdrawal requests yet</div>
+                        <p class="empty-state-desc" style="font-size: 13px; margin-bottom: 0;">Your recent withdrawal submissions will appear here.</p>
                     </div>
                 `;
-            }).join('');
+                return;
+            }
+
+            historyList.innerHTML = `
+                <div class="ref-table-responsive">
+                    <table class="ref-table">
+                        <thead>
+                            <tr>
+                                <th>Amount</th>
+                                <th>Date Requested</th>
+                                <th style="text-align: center;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${withdrawals.map(w => {
+                                const status = (w.status || 'pending').toLowerCase();
+                                const statusClass = status === 'approved' || status === 'paid' ? 'status-pill approved' :
+                                                    status === 'rejected' ? 'status-pill rejected' : 'status-pill pending';
+                                const statusIcon = status === 'approved' || status === 'paid' ? '✅' :
+                                                   status === 'rejected' ? '❌' : '⏳';
+                                const dateStr = new Date(w.requestedAt || w.date).toLocaleDateString('en-IN', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                });
+
+                                return `
+                                    <tr>
+                                        <td style="font-weight: 700; font-size: 15px; color: var(--sm-ink);">₹${w.amount}</td>
+                                        <td style="color: var(--sm-muted); font-size: 13.5px;">${dateStr}</td>
+                                        <td style="text-align: center;">
+                                            <span class="${statusClass}">
+                                                ${statusIcon} ${status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
         }
 
     } catch (err) {
@@ -707,59 +875,36 @@ async function loadWithdrawalHistory() {
     }
 }
 
-// Show withdrawal message
 function showWithdrawMessage(message, type = "info") {
     const msg = document.getElementById("withdrawMsg");
     if (!msg) return;
-    
+
     msg.textContent = message;
-    msg.className = `message ${type}`;
     msg.style.display = "block";
-    
-    // Auto-hide after 5 seconds
+    msg.style.background = type === 'error' ? 'var(--sm-danger-bg)' : 'var(--sm-success-bg)';
+    msg.style.color = type === 'error' ? 'var(--sm-danger)' : 'var(--sm-success)';
+    msg.style.border = `1px solid ${type === 'error' ? 'var(--sm-danger-border)' : 'var(--sm-success-border)'}`;
+
     setTimeout(() => {
         msg.style.display = "none";
     }, 5000);
 }
 
-// Legacy function for backward compatibility (will be removed)
-async function requestWithdraw(event) {
-    event.preventDefault();
-    showWithdrawMessage("⚠️ Please use the new secure withdrawal system above", "error");
-}
-
-// Add event listeners for withdrawal forms
-document.addEventListener("DOMContentLoaded", () => {
-    // Bank details form (first-time setup)
-    const bankDetailsForm = document.getElementById("bankDetailsForm");
-    if (bankDetailsForm) {
-        bankDetailsForm.addEventListener("submit", setupBankDetails);
-    }
-    
-    // Different bank details form (update/overwrite saved details)
-    const differentBankDetailsForm = document.getElementById("differentBankDetailsForm");
-    if (differentBankDetailsForm) {
-        differentBankDetailsForm.addEventListener("submit", setupBankDetails);
-    }
-    
-    // Withdrawal form
-    const withdrawalForm = document.getElementById("withdrawalForm");
-    if (withdrawalForm) {
-        withdrawalForm.addEventListener("submit", submitWithdrawal);
-    }
-});
-
-// Bank Change Request Functions
+// ── 7. BANK CHANGE REQUEST MODAL & API ──
 function openBankChangePopup() {
-    // First check if there's already a pending request
     checkBankChangeStatus();
-    document.getElementById("bankChangeModal").style.display = "flex";
+    const modal = document.getElementById("bankChangeModal");
+    if (modal) modal.style.display = "flex";
 }
+window.openBankChangePopup = openBankChangePopup;
 
 function closeBankChangePopup() {
-    document.getElementById("bankChangeModal").style.display = "none";
-    document.getElementById("bankChangePopupForm").reset();
+    const modal = document.getElementById("bankChangeModal");
+    if (modal) modal.style.display = "none";
+    const form = document.getElementById("bankChangePopupForm");
+    if (form) form.reset();
 }
+window.closeBankChangePopup = closeBankChangePopup;
 
 async function checkBankChangeStatus() {
     const token = localStorage.getItem("token");
@@ -767,59 +912,42 @@ async function checkBankChangeStatus() {
 
     try {
         const res = await fetch(`${window.API_URL}/referral/bank-change-status`, {
-            headers: { "Authorization": `Bearer ${token}` }
+            headers: { "Authorization": "Bearer " + token }
         });
 
         const data = await res.json();
+        hasCheckedBankChangeStatus = true;
         const statusDiv = document.getElementById("bankChangeStatusDisplay");
         const statusContent = document.getElementById("bankChangeStatusContent");
 
-        if (data.hasRequest) {
+        if (statusDiv && statusContent && data.hasRequest) {
             statusDiv.style.display = "block";
-            
+
             if (data.status === 'pending') {
                 statusContent.innerHTML = `
-                    <div style="color: #856404;">
-                        <p style="margin: 0 0 10px 0;"><strong>Status:</strong> ⏳ Waiting for admin approval</p>
-                        <p style="margin: 0 0 10px 0;"><strong>Submitted:</strong> ${data.requestedAt ? new Date(data.requestedAt).toLocaleString() : 'Recently'}</p>
-                        <p style="margin: 0 0 10px 0;"><strong>Reason:</strong> ${data.reason || 'Not specified'}</p>
-                        <p style="margin: 0; font-size: 14px; font-style: italic;">You cannot submit another request while one is pending.</p>
+                    <div style="color: var(--sm-warning);">
+                        <h4 style="margin: 0 0 6px 0; color: var(--sm-ink);">⏳ Bank Change Request Pending</h4>
+                        <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Submitted:</strong> ${data.requestedAt ? new Date(data.requestedAt).toLocaleString() : 'Recently'}</p>
+                        <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Reason:</strong> ${escapeHtml(data.reason || 'Not specified')}</p>
+                        <small style="color: var(--sm-muted);">You cannot submit another request while one is pending review.</small>
                     </div>
                 `;
-                
-                // Disable the request button
-                const requestBtn = document.querySelector('button[onclick="openBankChangePopup()"]');
-                if (requestBtn) {
-                    requestBtn.disabled = true;
-                    requestBtn.textContent = "⏳ Request Pending";
-                    requestBtn.style.opacity = "0.6";
-                    requestBtn.style.cursor = "not-allowed";
-                }
-                
-                // Close popup if open
-                closeBankChangePopup();
-                return;
-                
             } else if (data.status === 'approved') {
                 statusContent.innerHTML = `
-                    <div style="color: #155724;">
-                        <p style="margin: 0 0 10px 0;"><strong>Status:</strong> ✅ Request Approved</p>
-                        <p style="margin: 0 0 10px 0;"><strong>Approved:</strong> ${new Date(data.processedAt).toLocaleString()}</p>
-                        ${data.adminNotes ? `<p style="margin: 0 0 10px 0;"><strong>Admin Notes:</strong> ${data.adminNotes}</p>` : ''}
-                        <p style="margin: 0; font-size: 14px;">Your bank details have been updated successfully.</p>
+                    <div style="color: var(--sm-success);">
+                        <h4 style="margin: 0 0 6px 0; color: var(--sm-success);">✅ Request Approved</h4>
+                        <p style="margin: 0 0 6px 0; font-size: 13px;">Your payout details have been updated successfully.</p>
                     </div>
                 `;
             } else if (data.status === 'rejected') {
                 statusContent.innerHTML = `
-                    <div style="color: #721c24;">
-                        <p style="margin: 0 0 10px 0;"><strong>Status:</strong> ❌ Request Rejected</p>
-                        <p style="margin: 0 0 10px 0;"><strong>Rejected:</strong> ${new Date(data.processedAt).toLocaleString()}</p>
-                        ${data.adminNotes ? `<p style="margin: 0 0 10px 0;"><strong>Reason:</strong> ${data.adminNotes}</p>` : ''}
-                        <p style="margin: 0; font-size: 14px;">You can submit a new request if needed.</p>
+                    <div style="color: var(--sm-danger);">
+                        <h4 style="margin: 0 0 6px 0; color: var(--sm-danger);">❌ Request Rejected</h4>
+                        <p style="margin: 0; font-size: 13px;">${escapeHtml(data.adminNotes || 'Request could not be processed.')}</p>
                     </div>
                 `;
             }
-        } else {
+        } else if (statusDiv) {
             statusDiv.style.display = "none";
         }
 
@@ -827,50 +955,46 @@ async function checkBankChangeStatus() {
         console.error("Error checking bank change status:", err);
     }
 }
+window.checkBankChangeStatus = checkBankChangeStatus;
 
 async function submitBankChangeRequestPopup(e) {
     e.preventDefault();
-    
-    console.log('🔄 Popup: Bank change form submitted');
-    
+
     const token = localStorage.getItem("token");
     if (!token) {
-        alert("Login required");
+        showToast("Login required", "error");
         return;
     }
 
-    const accountHolderName = document.getElementById("popupAccountHolderName").value.trim();
-    const accountNumber = document.getElementById("popupAccountNumber").value.trim();
-    const ifscCode = document.getElementById("popupIfscCode").value.trim();
-    const bankName = document.getElementById("popupBankName").value.trim();
-    const upiId = document.getElementById("popupUpiId").value.trim();
-    const reason = document.getElementById("popupChangeReason").value.trim();
+    const accountHolderName = (document.getElementById("popupAccountHolderName")?.value || "").trim();
+    const accountNumber = (document.getElementById("popupAccountNumber")?.value || "").trim();
+    const ifscCode = (document.getElementById("popupIfscCode")?.value || "").trim();
+    const bankName = (document.getElementById("popupBankName")?.value || "").trim();
+    const upiId = (document.getElementById("popupUpiId")?.value || "").trim();
+    const reason = (document.getElementById("popupChangeReason")?.value || "").trim();
 
-    console.log('🔄 Popup: Form data:', { accountHolderName, accountNumber, ifscCode, bankName, upiId, reason });
-
-    // Validation
     if (!accountHolderName) {
-        alert("Account holder name is required");
+        showToast("Account holder name is required", "error");
         return;
     }
 
     if (!reason || reason.length < 10) {
-        alert("Please provide a detailed reason for the change (minimum 10 characters)");
+        showToast("Please provide a reason of at least 10 characters", "error");
         return;
     }
 
     if (!upiId && (!accountNumber || !ifscCode || !bankName)) {
-        alert("Please provide either UPI ID or complete bank details (Account Number, IFSC, Bank Name)");
+        showToast("Please provide either complete bank details or UPI ID", "error");
         return;
     }
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Submitting...";
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Submitting...";
+    }
 
     try {
-        console.log('🔄 Popup: Sending request...');
-        
         const res = await fetch(`${window.API_URL}/referral/request-bank-change`, {
             method: "POST",
             headers: {
@@ -887,43 +1011,100 @@ async function submitBankChangeRequestPopup(e) {
             })
         });
 
-        console.log('🔄 Popup: Response status:', res.status);
         const data = await res.json();
-        console.log('🔄 Popup: Response data:', data);
 
         if (!res.ok) {
             throw new Error(data.error || "Failed to submit bank change request");
         }
 
-        // Show success message
-        alert(`✅ Bank Change Request Submitted Successfully!\n\n📋 Your request has been sent to admin for approval.\n⏱️ Processing time: 2-3 business days\n📧 You will receive email updates about your request status.`);
-        
-        // Close popup and refresh status
+        showToast("Bank change request submitted for admin approval", "success");
         closeBankChangePopup();
         checkBankChangeStatus();
-        
-        // Refresh the page data
-        setTimeout(() => {
-            loadWithdrawalData();
-        }, 1000);
 
     } catch (err) {
-        console.error("❌ Popup: Bank change request error:", err);
-        alert("Error: " + err.message);
+        console.error("Bank change request error:", err);
+        showToast("Error: " + err.message, "error");
     } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "📤 Submit Request";
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "📤 Submit Request";
+        }
     }
 }
 
-// Add event listener for bank change form
-document.addEventListener("DOMContentLoaded", () => {
-    // Bank change popup form
+// ── 8. EVENT LISTENERS & MODAL INITIALIZATION ──
+function initModalsAndEvents() {
+    const bankDetailsForm = document.getElementById("bankDetailsForm");
+    if (bankDetailsForm) {
+        bankDetailsForm.addEventListener("submit", setupBankDetails);
+    }
+
+    const differentBankDetailsForm = document.getElementById("differentBankDetailsForm");
+    if (differentBankDetailsForm) {
+        differentBankDetailsForm.addEventListener("submit", setupBankDetails);
+    }
+
+    const withdrawalForm = document.getElementById("withdrawalForm");
+    if (withdrawalForm) {
+        withdrawalForm.addEventListener("submit", submitWithdrawal);
+    }
+
     const bankChangePopupForm = document.getElementById("bankChangePopupForm");
     if (bankChangePopupForm) {
         bankChangePopupForm.addEventListener("submit", submitBankChangeRequestPopup);
     }
-    
-    // Check bank change status on page load
-    checkBankChangeStatus();
-});
+
+    // Modal backdrop click to close
+    const bankModal = document.getElementById("bankChangeModal");
+    if (bankModal) {
+        bankModal.addEventListener("click", (e) => {
+            if (e.target === bankModal) closeBankChangePopup();
+        });
+    }
+
+    // Escape key closes open modals
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            closeBankChangePopup();
+        }
+    });
+}
+
+// ── 9. TOAST NOTIFICATION UTILITY ──
+function showToast(message, type = "info") {
+    let container = document.getElementById("refToastContainer");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "refToastContainer";
+        container.className = "ref-toast-container";
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = "ref-toast";
+
+    const icon = type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️';
+    toast.innerHTML = `<span>${icon}</span> <span>${escapeHtml(message)}</span>`;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => {
+            if (toast.parentElement) toast.parentElement.removeChild(toast);
+        }, 300);
+    }, 3500);
+}
+window.showToast = showToast;
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}

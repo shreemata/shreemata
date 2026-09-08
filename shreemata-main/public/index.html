@@ -24,17 +24,37 @@
 </head>
 <body>
 
-    <!-- 1. CINEMATIC 3D INTRO (1-time session) -->
+    <!-- 1. CINEMATIC INTRO (1-time session) -->
     <div id="cinematicIntro" role="dialog" aria-label="Welcome to Shree Mata">
-        <div class="intro-scene">
-            <div class="intro-beam"></div>
-            <div class="intro-book">
-                <div class="intro-cover">📖</div>
-            </div>
+        <!-- Ambient Decorative Particles -->
+        <div class="intro-particles" aria-hidden="true">
+            <span class="intro-dot dot-1"></span>
+            <span class="intro-dot dot-2"></span>
+            <span class="intro-dot dot-3"></span>
+            <span class="intro-dot dot-4"></span>
+            <span class="intro-dot dot-5"></span>
+            <span class="intro-dot dot-6"></span>
+            <span class="intro-dot dot-7"></span>
+            <span class="intro-dot dot-8"></span>
+            <span class="intro-dot dot-9"></span>
+            <span class="intro-dot dot-10"></span>
         </div>
-        <div class="intro-brand">
-            <div class="intro-title">SHREE <span>MATA</span></div>
-            <div class="intro-sub">Disseminating Knowledge</div>
+
+        <div class="intro-content">
+            <!-- Logo with Soft Gold Halo Glow -->
+            <div class="intro-logo-wrap">
+                <div class="intro-halo" aria-hidden="true"></div>
+                <img src="images/press.png" alt="Shree Mata" class="intro-logo" width="110" height="110">
+            </div>
+
+            <!-- Brand Identity & Micro Sweep -->
+            <div class="intro-brand">
+                <div class="intro-title">SHREE <span>MATA</span></div>
+                <div class="intro-sweep-wrap" aria-hidden="true">
+                    <div class="intro-sweep"></div>
+                </div>
+                <div class="intro-sub">Disseminating Knowledge</div>
+            </div>
         </div>
     </div>
 
@@ -97,7 +117,10 @@
                 <div class="header-actions">
                     <!-- Guest Auth Links -->
                     <div id="authLinks" class="auth-group">
-                        <a href="/login.html" class="btn-login">Log In</a>
+                        <a href="/login.html" class="btn-login" aria-label="Account Login">
+                            <span class="btn-login-icon" aria-hidden="true">👤</span>
+                            <span class="btn-login-text">Log In</span>
+                        </a>
                         <a href="/signup.html" class="btn-signup">Sign Up</a>
                     </div>
 
@@ -137,12 +160,12 @@
                     </div>
 
                     <!-- Orders Link (Quick Access) -->
-                    <a href="/orders.html" class="nav-item-link" style="display: inline-flex; align-items: center; gap: 4px;">Orders</a>
+                    <a href="/orders.html" class="nav-item-link header-orders-link" style="display: inline-flex; align-items: center; gap: 4px;">Orders</a>
 
                     <!-- Shopping Cart Button with Dynamic Badge -->
                     <a href="/cart.html" id="cartLink" class="btn-cart-header" title="Shopping Cart">
                         <span aria-hidden="true">🛒</span>
-                        <span>Cart</span>
+                        <span class="cart-text">Cart</span>
                         <span id="cartCount" class="cart-count-badge">0</span>
                     </a>
 
@@ -484,6 +507,12 @@
                     <p class="footer-desc">
                         Your trusted destination for school textbooks, study guides, and complete grade packages. Disseminating knowledge with authenticity and care.
                     </p>
+                    <div class="footer-contact-info">
+                        <a href="tel:+919845163604" class="footer-phone-link" title="Call Shree Mata">
+                            <span class="phone-icon" aria-hidden="true">📞</span>
+                            <span>+91 98451 63604</span>
+                        </a>
+                    </div>
                 </div>
 
                 <!-- SHOP Column -->
@@ -501,8 +530,9 @@
                 <div>
                     <h4 class="footer-col-title">CUSTOMER CARE</h4>
                     <ul class="footer-links-list">
+                        <li><a href="tel:+919845163604" class="footer-care-phone"><span aria-hidden="true">📞</span> +91 98451 63604</a></li>
                         <li><a href="/orders.html">Track Order</a></li>
-                        <li><a href="/account.html">Contact</a></li>
+                        <li><a href="/account.html">Contact Us</a></li>
                         <li><a href="#trustSection">Shipping</a></li>
                         <li><a href="#trustSection">Returns</a></li>
                     </ul>
