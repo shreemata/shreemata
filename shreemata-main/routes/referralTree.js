@@ -19,8 +19,8 @@ async function buildTreeFromChildren(userId, directReferrerCode, currentDepth = 
     }
 
     const user = await User.findById(userId)
-        .select("name referralCode wallet treeLevel treeChildren referredBy")
-        .populate('treeChildren', 'name referralCode wallet treeLevel treeChildren referredBy');
+        .select("name referralCode wallet treeLevel treeChildren referredBy referrals")
+        .populate('treeChildren', 'name referralCode wallet treeLevel treeChildren referredBy referrals');
 
     if (!user || !user.treeChildren || user.treeChildren.length === 0) {
         return [];
@@ -47,6 +47,7 @@ async function buildTreeFromChildren(userId, directReferrerCode, currentDepth = 
             name: child.name,
             referralCode: child.referralCode,
             wallet: child.wallet || 0,
+            referrals: child.referrals || 0,
             level: child.treeLevel,
             isDirectReferral: isDirectReferral,
             placementType: isDirectReferral ? 'direct' : 'spillover',
@@ -93,7 +94,7 @@ async function buildTree(referralCode) {
 router.get("/tree", authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.id)
-            .select("name referralCode wallet treeLevel treeChildren referredBy treeParent")
+            .select("name referralCode wallet treeLevel treeChildren referredBy treeParent referrals")
             .populate('treeParent', 'name referralCode treeLevel');
 
         if (!user) {
@@ -143,6 +144,7 @@ router.get("/tree", authenticateToken, async (req, res) => {
                 name: user.name,
                 referralCode: user.referralCode,
                 wallet: user.wallet || 0,
+                referrals: user.referrals || 0,
                 level: user.treeLevel,
                 hasReferrer: hasReferrer,
                 joinedWithoutReferrer: !hasReferrer

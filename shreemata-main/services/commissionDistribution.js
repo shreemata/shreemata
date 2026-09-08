@@ -331,14 +331,14 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
     }
     
     // 🌳 CREATE TREE PLACEMENT ON FIRST PURCHASE IF ELIGIBLE
-    if (!purchaser.firstPurchaseDone && (purchaser.treeLevel === 0 || !purchaser.treeParent)) {
+    if (purchaser.treeLevel === 0 || !purchaser.treeParent) {
       console.log(`🌳 Checking tree placement eligibility for ${purchaser.email} on first purchase`);
       
       if (validOrderAmount >= settings.minimumTreePlacementAmount) {
         try {
           await createTreePlacementOnFirstPurchase(purchaser._id, null);
           purchaser.firstPurchaseDone = true;
-          purchaser.firstPurchaseDate = new Date();
+          if (!purchaser.firstPurchaseDate) purchaser.firstPurchaseDate = new Date();
           await purchaser.save();
           
           const updatedPurchaser = await User.findById(purchaserId);
@@ -351,7 +351,7 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
         }
       } else {
         purchaser.firstPurchaseDone = true;
-        purchaser.firstPurchaseDate = new Date();
+        if (!purchaser.firstPurchaseDate) purchaser.firstPurchaseDate = new Date();
         await purchaser.save();
       }
     }

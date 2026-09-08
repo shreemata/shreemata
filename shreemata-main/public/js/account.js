@@ -434,7 +434,7 @@ document.getElementById("editForm")?.addEventListener("submit", async (e) => {
 
         // ✔ Update navbar username
         const navUser = document.getElementById("userName");
-        if (navUser) navUser.textContent = `Hello, ${data.user.name}`;
+        if (navUser) navUser.textContent = data.user.name || 'Account';
 
         alert("Profile updated successfully!");
         showSection("profile");

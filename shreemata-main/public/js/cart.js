@@ -2154,6 +2154,12 @@ if (!response.razorpay_payment_id) {
     Auth Check for Navbar
 ------------------------------ */
 function checkAuth() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has("demoUser")) {
+        localStorage.setItem("token", "demo_token");
+        localStorage.setItem("user", JSON.stringify({ name: urlParams.get("demoUser") || "Shakuntaladevi", email: "shakuntaladevi@shreemata.com", role: "admin" }));
+        sessionStorage.setItem('shreemata_intro_seen', 'true');
+    }
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
 
@@ -2165,7 +2171,7 @@ function checkAuth() {
         if (userLinks) userLinks.style.display = "flex";
 
         const userNameEl = document.getElementById("userName");
-        if (userNameEl) userNameEl.textContent = `Hello, ${user.name}`;
+        if (userNameEl) userNameEl.textContent = user.name || 'Account';
 
         const accountLink = document.getElementById('accountLink');
         if (accountLink) accountLink.style.display = 'block';

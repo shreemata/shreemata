@@ -337,17 +337,28 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
         // If status changed to "completed"
         if (status === "completed" && previousStatus !== "completed") {
 
-            // Mark user's first purchase as done
+            // Mark user's first purchase as done and create tree placement
             try {
                 const User = require("../models/User");
                 const user = await User.findById(order.user_id);
-                if (user && !user.firstPurchaseDone) {
-                    user.firstPurchaseDone = true;
-                    user.firstPurchaseDate = new Date();
-                    await user.save();
-                    console.log(`✅ Admin: Marked first purchase as done for user: ${user.email} at ${user.firstPurchaseDate}`);
+                if (user) {
+                    if (!user.firstPurchaseDone) {
+                        user.firstPurchaseDone = true;
+                        user.firstPurchaseDate = new Date();
+                        await user.save();
+                        console.log(`✅ Admin: Marked first purchase as done for user: ${user.email} at ${user.firstPurchaseDate}`);
+                    }
+                    if (user.treeLevel === 0 || !user.treeParent) {
+                        const { createTreePlacementOnFirstPurchase } = require("../services/treePlacement");
+                        await createTreePlacementOnFirstPurchase(user._id);
+                        console.log(`🌳 Admin: Created tree placement for user: ${user.email}`);
+                    }
                 }
-                
+            } catch (treeErr) {
+                console.error("⚠️ Error in order completion tree placement:", treeErr.message);
+            }
+            
+            try {
                 for (const item of order.items) {
                     try {
                         // Skip stock reduction for digital items

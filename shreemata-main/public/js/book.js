@@ -17,7 +17,7 @@ function checkAuth() {
     if (token && user) {
         document.getElementById("authLinks").style.display = "none";
         document.getElementById("userLinks").style.display = "flex";
-        document.getElementById("userName").textContent = `Hello, ${user.name}`;
+        document.getElementById("userName").textContent = user.name || 'Account';
 
         // Show cart icon for logged in users
         const cartIcon = document.getElementById("cartIcon");

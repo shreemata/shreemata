@@ -23,7 +23,7 @@ function checkAuth() {
         return;
     }
 
-    document.getElementById("userName").textContent = `Hello, ${user.name}`;
+    document.getElementById("userName").textContent = user.name || 'Account';
 
     if (user.role === "admin") {
         const adminLink = document.getElementById("adminLink");

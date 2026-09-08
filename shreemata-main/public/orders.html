@@ -590,7 +590,7 @@
                 return;
             }
 
-            document.getElementById("userName").textContent = `Hello, ${user.name}`;
+            document.getElementById("userName").textContent = user.name || 'Account';
 
             if (user.role === "admin") {
                 document.getElementById("adminLink").style.display = "block";

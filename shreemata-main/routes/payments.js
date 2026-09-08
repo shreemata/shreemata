@@ -6,6 +6,7 @@ const User = require("../models/User");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { sendOrderConfirmationEmail, sendAdminNotification } = require("../utils/emailService");
 const { distributeCommissions } = require("../services/commissionDistribution");
+const { createTreePlacementOnFirstPurchase } = require("../services/treePlacement");
 const { awardPoints } = require("../services/pointsService");
 const Book = require("../models/Book");
 const Bundle = require("../models/Bundle");
@@ -615,17 +616,23 @@ router.post("/verify", authenticateToken, async (req, res) => {
     order.commissionStatus = order.commissionStatus || 'pending';
     await order.save();
 
-    // Mark user's first purchase as done upon successful order completion
+    // Mark user's first purchase as done upon successful order completion and create tree placement
     try {
       const user = await User.findById(order.user_id);
-      if (user && !user.firstPurchaseDone) {
-        user.firstPurchaseDone = true;
-        user.firstPurchaseDate = new Date();
-        await user.save();
-        console.log(`✅ Marked first purchase as done for user: ${user.email} at ${user.firstPurchaseDate}`);
+      if (user) {
+        if (!user.firstPurchaseDone) {
+          user.firstPurchaseDone = true;
+          user.firstPurchaseDate = new Date();
+          await user.save();
+          console.log(`✅ Marked first purchase as done for user: ${user.email} at ${user.firstPurchaseDate}`);
+        }
+        if (user.treeLevel === 0 || !user.treeParent) {
+          await createTreePlacementOnFirstPurchase(user._id);
+          console.log(`🌳 Created tree placement on purchase for user: ${user.email}`);
+        }
       }
     } catch (userErr) {
-      console.error("⚠️ Error marking first purchase for user:", userErr.message);
+      console.error("⚠️ Error marking first purchase or placing in tree for user:", userErr.message);
     }
 
     // AWARD POINTS FOR PURCHASED ITEMS
@@ -967,13 +974,23 @@ router.post("/webhook", async (req, res) => {
         order.commissionStatus = order.commissionStatus || 'pending';
         await order.save();
         
-        // Mark user's first purchase as done
-        const user = await User.findById(order.user_id);
-        if (user && !user.firstPurchaseDone) {
-          user.firstPurchaseDone = true;
-          user.firstPurchaseDate = new Date();
-          await user.save();
-          console.log(`✅ Webhook: Marked first purchase as done for user: ${user.email} at ${user.firstPurchaseDate}`);
+        // Mark user's first purchase as done and create tree placement
+        try {
+          const user = await User.findById(order.user_id);
+          if (user) {
+            if (!user.firstPurchaseDone) {
+              user.firstPurchaseDone = true;
+              user.firstPurchaseDate = new Date();
+              await user.save();
+              console.log(`✅ Webhook: Marked first purchase as done for user: ${user.email} at ${user.firstPurchaseDate}`);
+            }
+            if (user.treeLevel === 0 || !user.treeParent) {
+              await createTreePlacementOnFirstPurchase(user._id);
+              console.log(`🌳 Webhook: Created tree placement for user: ${user.email}`);
+            }
+          }
+        } catch (webhookTreeErr) {
+          console.error("⚠️ Webhook tree placement error:", webhookTreeErr.message);
         }
 
         // AWARD POINTS FOR PURCHASED ITEMS
@@ -1820,13 +1837,23 @@ async function processApprovedChequeOrder(order, adminUser) {
     order.commissionStatus = order.commissionStatus || 'pending';
     await order.save();
     
-    // Mark user's first purchase as done
-    const user = await User.findById(order.user_id);
-    if (user && !user.firstPurchaseDone) {
-      user.firstPurchaseDone = true;
-      user.firstPurchaseDate = new Date();
-      await user.save();
-      console.log(`✅ Marked first purchase as done for user: ${user.email} at ${user.firstPurchaseDate}`);
+    // Mark user's first purchase as done and create tree placement
+    try {
+      const user = await User.findById(order.user_id);
+      if (user) {
+        if (!user.firstPurchaseDone) {
+          user.firstPurchaseDone = true;
+          user.firstPurchaseDate = new Date();
+          await user.save();
+          console.log(`✅ Marked first purchase as done for user: ${user.email} at ${user.firstPurchaseDate}`);
+        }
+        if (user.treeLevel === 0 || !user.treeParent) {
+          await createTreePlacementOnFirstPurchase(user._id);
+          console.log(`🌳 Created tree placement for user: ${user.email}`);
+        }
+      }
+    } catch (checkTreeErr) {
+      console.error("⚠️ Error in check tree placement:", checkTreeErr.message);
     }
 
     // 2. AWARD POINTS

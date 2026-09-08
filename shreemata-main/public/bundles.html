@@ -790,6 +790,7 @@
                     <a href="#" id="logoutBtn">🚪 Logout</a>
                 </span>
                 <a href="account.html" id="accountLink">👤 Account</a>
+                <a href="orders.html" id="ordersLink">📦 Orders</a>
                 <a href="referral.html" id="referralLink" style="display: none;">💰 Referral</a>
                 <a href="cart.html" class="cart-icon" id="cartLink">🛒 Cart (<span id="cartCount">0</span>)</a>
                 <a href="admin.html" id="adminLink" style="display: none;">⚙️ Admin</a>
@@ -1015,7 +1016,7 @@ document.querySelectorAll('.btn-primary, .btn-secondary, .back-btn').forEach(but
         if (token && user) {
             document.getElementById("authLinks").style.display = "none";
             document.getElementById("userLinks").style.display = "flex";
-            document.getElementById("userName").textContent = `Hello, ${user.name}`;
+            document.getElementById("userName").textContent = user.name || 'Account';
             document.getElementById("accountLink").style.display = "block";
             document.getElementById("referralLink").style.display = "block";
 
