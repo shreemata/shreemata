@@ -21,6 +21,59 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/home-3d.css">
+    <style>
+        @keyframes brandEntrance {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .brand-slogan-hero {
+            font-family: 'Inter', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.4;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: #102A43;
+            margin-top: 10px;
+            margin-bottom: 6px;
+            animation: brandEntrance 600ms ease-out forwards;
+        }
+        @media (max-width: 1024px) {
+            .brand-slogan-hero { font-size: 17px; }
+        }
+        @media (max-width: 768px) {
+            .brand-slogan-hero { font-size: 16px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .brand-slogan-hero {
+                animation: none;
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .footer-brand-slogan-line {
+            font-family: 'Inter', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.4;
+            letter-spacing: 0.03em;
+            color: #e2b842;
+            margin-top: 4px;
+        }
+        @media (max-width: 1024px) {
+            .footer-brand-slogan-line { font-size: 17px; }
+        }
+        @media (max-width: 768px) {
+            .footer-brand-slogan-line { font-size: 16px; }
+        }
+    </style>
 </head>
 <body>
 
@@ -188,9 +241,13 @@
                     <!-- Left Hero Content Column -->
                     <div class="hero-text-col">
                         <span class="hero-pill-tag">CURATED EDUCATIONAL BOOKSTORE</span>
+                        <div class="brand-slogan-hero">
+                            EMPOWER US. <span style="color: #D4A72C;">WE EMPOWER YOU.</span>
+                        </div>
                         <h1 id="heroHeading" class="hero-heading">
-                            Books for today. <br>
-                            <span class="serif-italic">Knowledge</span> for <span class="gold-accent">tomorrow.</span>
+                            Today's <br>
+                            <span class="serif-italic gold-accent">Knowledge</span> <br>
+                            is Tomorrow's Future.
                         </h1>
                         <p class="hero-subtext">
                             Discover textbooks, study materials and complete book sets, thoughtfully brought together for students and learners.
@@ -501,8 +558,12 @@
                         <img src="images/press.png" alt="Shree Mata Logo" width="42" height="42" style="background: white; padding: 2px; border-radius: 4px;">
                         <span class="footer-brand-title">Shree Mata</span>
                     </a>
+                    <div style="margin-top: 4px; margin-bottom: 8px;">
+                        <div style="font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #D4A72C; letter-spacing: 0.04em;">Disseminating Knowledge</div>
+                        <div class="footer-brand-slogan-line">Empower Us. <span style="color: #D4A72C;">We Empower You.</span></div>
+                    </div>
                     <p class="footer-desc">
-                        Your trusted destination for school textbooks, study guides, and complete grade packages. Disseminating knowledge with authenticity and care.
+                        Your trusted destination for school textbooks, study guides, and complete grade packages with authenticity and care.
                     </p>
                     <div class="footer-contact-info">
                         <a href="tel:+919845163604" class="footer-phone-link" title="Call Shree Mata">

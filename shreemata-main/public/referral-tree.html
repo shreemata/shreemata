@@ -36,6 +36,23 @@ body {
     color: var(--text-main);
 }
 
+.tree-brand-line {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #1e293b;
+    margin-top: 4px;
+}
+@media (max-width: 1024px) {
+    .tree-brand-line { font-size: 17px; }
+}
+@media (max-width: 768px) {
+    .tree-brand-line { font-size: 16px; }
+}
+
 /* Smooth fade-in for the whole page */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
@@ -383,9 +400,6 @@ body {
 .tree-children.hidden {
     display: none;
 }
-.tree-level.collapsed > .tree-node::after {
-    /* Optional: visual indicator that it's collapsed */
-}
 
 /* Entrance Animation for Nodes */
 @keyframes fadeInScale {
@@ -446,7 +460,12 @@ body {
 <div class="container">
     <div class="tree-card">
         <div class="tree-header">
-            <h2>Referral Network</h2>
+            <div>
+                <h2 style="margin-bottom: 2px;">Referral Network</h2>
+                <div class="tree-brand-line">
+                    EMPOWER US. <span style="color: #D4A72C;">WE EMPOWER YOU.</span>
+                </div>
+            </div>
             <div class="tree-controls">
                 <input id="searchInput" class="tree-search" placeholder="🔍 Search by name..." autocomplete="off">
                 <button id="zoomOutBtn" class="btn-icon" title="Zoom Out">−</button>
