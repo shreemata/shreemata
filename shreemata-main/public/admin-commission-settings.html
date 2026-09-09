@@ -650,6 +650,15 @@
                     </div>
 
                     <div class="setting-card">
+                        <h3>🎁 Referral Registration Reward</h3>
+                        <div class="form-group">
+                            <label>Fixed Reward Amount (₹) <span style="font-size: 12px; font-weight: normal; color: #64748b;">(Flat bonus on user signup)</span></label>
+                            <input type="number" id="referralRegistrationReward" step="0.5" min="0" value="2">
+                            <small style="color: #666;">Credited to valid referrer's wallet when a new user registers with their referral code</small>
+                        </div>
+                    </div>
+
+                    <div class="setting-card">
                         <h3>👥 Referral Commission</h3>
                         <div class="form-group">
                             <label>Percentage (%) <span style="font-size: 12px; font-weight: normal; color: #64748b;">(of Order Profit)</span></label>
@@ -1259,6 +1268,7 @@
                 });
 
                 const settings = {
+                    referralRegistrationReward: parseFloat(document.getElementById("referralRegistrationReward").value) || 0,
                     directCommissionPercent: parseFloat(document.getElementById("directCommission").value),
                     referralCommissionPercent: parseFloat(document.getElementById("referralCommission").value),
                     adminCommissionPercent: parseFloat(document.getElementById("adminCommission").value) || 0,
@@ -1386,6 +1396,7 @@
 
                 console.log('📡 Settings loaded from server:', currentSettings);
                 
+                document.getElementById("referralRegistrationReward").value = currentSettings.referralRegistrationReward !== undefined ? currentSettings.referralRegistrationReward : 2;
                 document.getElementById("directCommission").value = currentSettings.directCommissionPercent;
                 document.getElementById("referralCommission").value = currentSettings.referralCommissionPercent !== undefined ? currentSettings.referralCommissionPercent : 2;
                 document.getElementById("adminCommission").value = currentSettings.adminCommissionPercent !== undefined ? currentSettings.adminCommissionPercent : 0;

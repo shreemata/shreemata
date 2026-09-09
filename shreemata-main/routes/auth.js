@@ -459,12 +459,58 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    // Update tree parent's children array and increment referrer's referral count
+    // Update tree parent's children array, increment referrer's referral count, and credit ₹2 registration reward
     if (referredBy && directReferrer) {
-      // Increment direct referrer's referral count
-      directReferrer.referrals += 1;
+      // 1. Increment direct referrer's referral count
+      directReferrer.referrals = (directReferrer.referrals || 0) + 1;
+
+      // 2. Fetch configured referral registration reward (default ₹2.00)
+      let rewardAmount = 2.00;
+      try {
+        const CommissionSettings = require('../models/CommissionSettings');
+        const settings = await CommissionSettings.getSettings();
+        if (settings && typeof settings.referralRegistrationReward === 'number') {
+          rewardAmount = settings.referralRegistrationReward;
+        }
+      } catch (settingsErr) {
+        console.error('Error reading registration reward setting, defaulting to 2.00:', settingsErr);
+      }
+
+      // 3. Credit ₹2.00 reward to referrer's wallet & create transaction ledger if not already credited
+      if (rewardAmount > 0) {
+        const WalletTransaction = require('../models/WalletTransaction');
+        const existingReward = await WalletTransaction.findOne({
+          category: 'referral_registration_reward',
+          referredUserId: newUser._id
+        });
+
+        if (!existingReward) {
+          const updatedWallet = Number(((directReferrer.wallet || 0) + rewardAmount).toFixed(2));
+          directReferrer.wallet = updatedWallet;
+
+          try {
+            await WalletTransaction.create({
+              userId: directReferrer._id,
+              amount: rewardAmount,
+              type: 'credit',
+              category: 'referral_registration_reward',
+              description: `Referral registration reward for ${newUser.name || 'new user'}`,
+              referredUserId: newUser._id,
+              balanceAfter: updatedWallet
+            });
+            console.log(`🎁 Credited ₹${rewardAmount} referral registration reward to ${directReferrer.email} for referring ${newUser.email}`);
+          } catch (wtxErr) {
+            if (wtxErr.code === 11000) {
+              console.warn(`⚠️ Duplicate referral registration reward caught for user ${newUser._id}`);
+            } else {
+              console.error('Failed to create WalletTransaction for registration reward:', wtxErr);
+            }
+          }
+        }
+      }
+
       await directReferrer.save();
-      console.log(`Referral count incremented for ${directReferrer.email}: ${directReferrer.referrals}`);
+      console.log(`Referral count incremented for ${directReferrer.email}: ${directReferrer.referrals}, Wallet: ₹${directReferrer.wallet}`);
     }
 
     const token = jwt.sign(

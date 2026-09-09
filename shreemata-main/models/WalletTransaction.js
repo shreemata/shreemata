@@ -29,13 +29,20 @@ const walletTransactionSchema = new mongoose.Schema({
       'vip_master_card_withdrawal', // VIP Master Card withdrawal
       'refund',                // Order refund
       'adjustment',            // Manual admin adjustment
-      'test_simulation'        // Test simulated payouts
+      'test_simulation',       // Test simulated payouts
+      'referral_registration_reward' // Registration reward for introducing new user
     ],
     required: true
   },
   description: {
     type: String,
     required: true
+  },
+  referredUserId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+    index: true
   },
   orderId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -57,5 +64,16 @@ const walletTransactionSchema = new mongoose.Schema({
 walletTransactionSchema.index({ userId: 1, createdAt: -1 });
 walletTransactionSchema.index({ orderId: 1 });
 walletTransactionSchema.index({ userId: 1, category: 1 });
+walletTransactionSchema.index(
+  { category: 1, referredUserId: 1 },
+  { 
+    unique: true, 
+    sparse: true, 
+    partialFilterExpression: { 
+      category: 'referral_registration_reward', 
+      referredUserId: { $ne: null } 
+    } 
+  }
+);
 
 module.exports = mongoose.model("WalletTransaction", walletTransactionSchema);

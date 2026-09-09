@@ -88,6 +88,7 @@ router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) 
       developmentFundPercent,
       minimumWithdrawalAmount,
       minimumTreePlacementAmount,
+      referralRegistrationReward,
       baseShippingCharge,
       shippingRatePerKg,
       freeShippingThreshold,
@@ -112,6 +113,9 @@ router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) 
     let settings = await CommissionSettings.getSettings();
     
     // Update fields if provided
+    if (referralRegistrationReward !== undefined) {
+      settings.referralRegistrationReward = referralRegistrationReward;
+    }
     if (directCommissionPercent !== undefined) {
       settings.directCommissionPercent = directCommissionPercent;
     }
@@ -422,10 +426,14 @@ router.get("/commission/transactions", authenticateToken, async (req, res) => {
       });
     }
 
-    // Add debit and refund ledger records from WalletTransaction (excluding admin-deleted)
+    // Add debit, refund, and registration reward ledger records from WalletTransaction (excluding admin-deleted)
     const walletRecords = await WalletTransaction.find({ 
       userId, 
-      $or: [{ type: 'debit' }, { category: 'refund' }]
+      $or: [
+        { type: 'debit' }, 
+        { category: 'refund' }, 
+        { category: 'referral_registration_reward' }
+      ]
     }).sort({ createdAt: -1 });
 
     for (const wtx of walletRecords) {
@@ -439,6 +447,8 @@ router.get("/commission/transactions", authenticateToken, async (req, res) => {
         txType = 'vip_master_card_withdrawal';
       } else if (wtx.category === 'refund') {
         txType = 'refund';
+      } else if (wtx.category === 'referral_registration_reward') {
+        txType = 'referral_registration_reward';
       }
 
       allTransactions.push({
@@ -447,7 +457,7 @@ router.get("/commission/transactions", authenticateToken, async (req, res) => {
         sourceType: 'wallet_transaction',
         type: txType,
         amount: wtx.amount,
-        description: wtx.description || (txType === 'refund' ? 'Withdrawal Refund' : 'Withdrawal'),
+        description: wtx.description || (txType === 'refund' ? 'Withdrawal Refund' : (txType === 'referral_registration_reward' ? 'Referral Registration Reward' : 'Withdrawal')),
         status: 'completed',
         createdAt: wtx.createdAt,
         balanceAfter: wtx.balanceAfter

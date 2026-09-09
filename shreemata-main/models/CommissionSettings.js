@@ -23,6 +23,13 @@ const commissionSettingsSchema = new mongoose.Schema({
     min: 0,
     max: 100
   },
+
+  // Fixed referral registration reward amount (default ₹2)
+  referralRegistrationReward: {
+    type: Number,
+    default: 2,
+    min: 0
+  },
   
   // Admin Commission Share percentage (default 0%)
   adminCommissionPercent: {
@@ -190,6 +197,7 @@ commissionSettingsSchema.statics.getSettings = async function() {
       settingsId: 'default',
       directCommissionPercent: 3,
       referralCommissionPercent: 2,
+      referralRegistrationReward: 2,
       adminCommissionPercent: 0,
       treeCommissionPoolPercent: 4,
       trustFundPercent: 1,

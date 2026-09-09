@@ -1072,6 +1072,8 @@ function getTxTypeMeta(type) {
             return { display: '👑 VIP Master Card Withdrawal', color: '#d4af37', sign: '-' };
         case 'refund':
             return { display: '💰 Refund: Rejected Withdrawal', color: '#10b981', sign: '+' };
+        case 'referral_registration_reward':
+            return { display: '🎁 Referral Registration Reward', color: '#10b981', sign: '+' };
         default:
             return { display: type || 'Transaction', color: '#6c757d', sign: '+' };
     }
