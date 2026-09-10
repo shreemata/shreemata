@@ -5,6 +5,7 @@ const Order = require("../models/Order");
 const User = require("../models/User");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { sendOrderConfirmationEmail, sendAdminNotification } = require("../utils/emailService");
+const { buildOrderProfitSnapshot, calculateOrderProfitTotal } = require("../services/orderProfit");
 const { distributeCommissions } = require("../services/commissionDistribution");
 const { createTreePlacementOnFirstPurchase } = require("../services/treePlacement");
 const { awardPoints } = require("../services/pointsService");
@@ -352,8 +353,8 @@ router.post("/create-order", authenticateToken, async (req, res) => {
         phone: deliveryAddress.phone || ""
       } : null;
 
-      // Prepare items array properly
-      const orderItems = items.map(item => ({
+      // Prepare items array properly with profit snapshot
+      const rawOrderItems = items.map(item => ({
         id: item.id,
         title: item.title,
         author: item.author,
@@ -364,6 +365,9 @@ router.post("/create-order", authenticateToken, async (req, res) => {
         isDigital: Boolean(item.isDigital),
         digitalPrice: item.isDigital ? Number(item.price) : null
       }));
+
+      const orderItems = await buildOrderProfitSnapshot(rawOrderItems);
+      const calculatedProfitTotal = calculateOrderProfitTotal(orderItems);
 
       // Prepare offer data if applicable
       const offerData = appliedOffer ? {
@@ -381,6 +385,8 @@ router.post("/create-order", authenticateToken, async (req, res) => {
         user_id: req.user.id,
         items: orderItems,
         totalAmount: amount,
+        orderProfitTotal: calculatedProfitTotal,
+        profitAmount: calculatedProfitTotal,
         courierCharge: isDigitalOnly ? 0 : (courierCharge || 0),
         totalWeight: isDigitalOnly ? 0 : (totalWeight || 0),
         deliveryMethod: isDigitalOnly ? 'digital' : (deliveryMethod || 'home'),
@@ -460,8 +466,8 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       phone: deliveryAddress.phone || ""
     } : null;
 
-    // Prepare items array properly
-    const orderItems = items.map(item => ({
+    // Prepare items array properly with profit snapshot
+    const rawOrderItems = items.map(item => ({
       id: item.id,
       title: item.title,
       author: item.author,
@@ -473,7 +479,10 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       digitalPrice: item.isDigital ? Number(item.price) : null
     }));
 
-    console.log("Prepared order items:", orderItems);
+    const orderItems = await buildOrderProfitSnapshot(rawOrderItems);
+    const calculatedProfitTotal = calculateOrderProfitTotal(orderItems);
+
+    console.log("Prepared order items with profit snapshot:", orderItems);
 
     // Prepare offer data if applicable
     const offerData = appliedOffer ? {
@@ -494,6 +503,8 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       user_id: req.user.id,
       items: orderItems,
       totalAmount: amount,
+      orderProfitTotal: calculatedProfitTotal,
+      profitAmount: calculatedProfitTotal,
       courierCharge: isDigitalOnly ? 0 : (courierCharge || 0), // No courier charge for digital-only
       totalWeight: isDigitalOnly ? 0 : (totalWeight || 0), // No weight for digital-only
       deliveryMethod: isDigitalOnly ? 'digital' : (deliveryMethod || 'home'), // Digital delivery method
@@ -671,94 +682,9 @@ router.post("/verify", authenticateToken, async (req, res) => {
 
     // AWARD CASHBACK FOR PURCHASED ITEMS
     try {
-      console.log("💰 ===== CASHBACK PROCESSING STARTED =====");
-      console.log("💰 Processing cashback for order:", order._id);
-      console.log("💰 Order items:", order.items.map(item => ({ id: item.id, title: item.title, type: item.type, quantity: item.quantity })));
-      console.log("💰 Database connection status:", require('mongoose').connection.readyState); // 1 = connected
-      
-      let totalCashback = 0;
-      
-      for (const item of order.items) {
-        let itemCashback = 0;
-        
-        console.log(`💰 Processing cashback for item: ${item.title} (${item.type})`);
-        
-        if (item.type === 'book') {
-          const book = await Book.findById(item.id);
-          console.log(`💰 Book found:`, book ? {
-            id: book._id,
-            title: book.title,
-            price: book.price,
-            cashbackAmount: book.cashbackAmount,
-            cashbackPercentage: book.cashbackPercentage
-          } : 'NOT FOUND');
-          
-          if (book) {
-            const bookCashback = book.getCashbackAmount();
-            itemCashback = bookCashback * item.quantity;
-            console.log(`💰 Book cashback calculation: ₹${bookCashback} × ${item.quantity} = ₹${itemCashback}`);
-          }
-        } else if (item.type === 'bundle') {
-          const bundle = await Bundle.findById(item.id);
-          console.log(`💰 Bundle found:`, bundle ? {
-            id: bundle._id,
-            title: bundle.title,
-            bundlePrice: bundle.bundlePrice,
-            cashbackAmount: bundle.cashbackAmount,
-            cashbackPercentage: bundle.cashbackPercentage
-          } : 'NOT FOUND');
-          
-          if (bundle) {
-            const bundleCashback = bundle.getCashbackAmount();
-            itemCashback = bundleCashback * item.quantity;
-            console.log(`💰 Bundle cashback calculation: ₹${bundleCashback} × ${item.quantity} = ₹${itemCashback}`);
-          }
-        }
-        
-        if (itemCashback > 0) {
-          totalCashback += itemCashback;
-          console.log("Cashback for " + item.title + ": " + itemCashback.toFixed(2));
-        } else {
-          console.log("No cashback for " + item.title);
-        }
-      }
-      
-      console.log("Total cashback calculated: " + totalCashback.toFixed(2));
-      
-      if (totalCashback > 0) {
-        // Add cashback to user's wallet
-        console.log("Attempting to add cashback to user wallet...");
-        const user = await User.findById(order.user_id);
-        console.log("User lookup result:", user ? {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          currentWallet: user.wallet || 0
-        } : 'USER NOT FOUND');
-        
-        if (user) {
-          const previousBalance = user.wallet || 0;
-          user.wallet = previousBalance + totalCashback;
-          
-          console.log("Saving user with new wallet balance...");
-          const saveResult = await user.save();
-          console.log("User save result:", saveResult ? 'SUCCESS' : 'FAILED');
-          
-          console.log("Added " + totalCashback.toFixed(2) + " cashback to user wallet");
-          console.log("User wallet balance: " + previousBalance.toFixed(2) + " -> " + user.wallet.toFixed(2));
-          
-          // Verify the save by re-fetching the user
-          const verifyUser = await User.findById(order.user_id);
-          console.log("Verification - User wallet after save:", verifyUser ? verifyUser.wallet : 'USER NOT FOUND');
-          
-        } else {
-          console.log("User not found for cashback: " + order.user_id);
-        }
-      } else {
-        console.log("No cashback to add (total: " + totalCashback.toFixed(2) + ")");
-      }
-      
-      console.log("===== CASHBACK PROCESSING COMPLETED =====");
+    // LEGACY STANDALONE BOOK CASHBACK DISABLED
+    // Buyer Cashback is now exclusively managed via central profit distribution in commissionDistribution.js
+    console.log("💰 Legacy standalone product cashback disabled. Buyer Cashback managed via central profit commission engine.");
     } catch (cashbackError) {
       console.error("===== CASHBACK PROCESSING ERROR =====");
       console.error("Cashback processing error:", cashbackError);

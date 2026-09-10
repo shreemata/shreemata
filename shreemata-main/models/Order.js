@@ -12,10 +12,15 @@ const orderSchema = new mongoose.Schema({
         price: { type: Number, required: true },
         quantity: { type: Number, default: 1 },
         coverImage: { type: String, default: "" },
-        type: { type: String, default: "book" }
+        type: { type: String, default: "book" },
+        profitTypeSnapshot: { type: String, default: "fixed" },
+        profitValueSnapshot: { type: Number, default: 0 },
+        unitProfitSnapshot: { type: Number, default: 0 },
+        lineProfitSnapshot: { type: Number, default: 0 }
     }],
 
     totalAmount: Number,
+    orderProfitTotal: { type: Number, default: 0 },
 
     // Courier Charges
     courierCharge: { type: Number, default: 0 },

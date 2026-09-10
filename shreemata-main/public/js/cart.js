@@ -2848,7 +2848,7 @@ async function loadCartPreviousAddresses() {
         btn.disabled = false;
 
         if (uniqueAddresses.length === 0) {
-            alert("No previous addresses found. Please enter your address manually.");
+            alert("No saved delivery address yet. Add your address below to continue.");
             return;
         }
 
@@ -3045,7 +3045,15 @@ function createPreviousAddressesSection(addresses) {
             <h4 style="margin: 0; color: #495057; font-size: 16px; font-weight: 600;">Use Previous Address</h4>
         </div>
         <div id="previousAddressesList" style="display: grid; gap: 10px;">
-            ${addresses.map(addr => `
+            ${(!addresses || addresses.length === 0) ? `
+                <div style="background: #FFFDF9; padding: 16px 20px; border-radius: 8px; border: 1px solid #F0E6D2; display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 22px;">📍</span>
+                    <div>
+                        <div style="font-size: 14px; font-weight: 700; color: #102A43; margin-bottom: 2px;">No saved delivery address yet.</div>
+                        <div style="font-size: 13px; color: #64748b;">Add your address below to continue.</div>
+                    </div>
+                </div>
+            ` : addresses.map(addr => `
                 <div class="previous-address-item" data-address-id="${addr.id}" style="
                     background: white;
                     padding: 15px;

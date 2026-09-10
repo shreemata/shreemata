@@ -718,14 +718,51 @@ router.put("/admin/update-delivery/:orderId", authenticateToken, isAdmin, async 
 /**
  * PREVIEW ORDER COMMISSIONS (Admin Only)
  */
+const { buildOrderProfitSnapshot, calculateOrderProfitTotal } = require("../services/orderProfit");
+
+// Helper to sanitize order output for non-admin customer responses
+function sanitizeOrderForCustomer(order, req) {
+    if (!order) return order;
+    if (req && req.user && req.user.role === 'admin') return order;
+
+    const obj = typeof order.toObject === 'function' ? order.toObject() : { ...order };
+    delete obj.profitAmount;
+    delete obj.orderProfitTotal;
+
+    if (Array.isArray(obj.items)) {
+        obj.items = obj.items.map(item => {
+            const itemObj = typeof item.toObject === 'function' ? item.toObject() : { ...item };
+            delete itemObj.profitTypeSnapshot;
+            delete itemObj.profitValueSnapshot;
+            delete itemObj.unitProfitSnapshot;
+            delete itemObj.lineProfitSnapshot;
+            return itemObj;
+        });
+    }
+
+    return obj;
+}
+
 const { previewCommissions, distributeCommissions } = require("../services/commissionDistribution");
 
 router.post(["/admin/:id/preview-commissions", "/:id/preview-commissions"], authenticateToken, isAdmin, async (req, res) => {
     try {
         const orderId = req.params.id;
-        const profitAmount = Number(req.body.profitAmount);
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        let profitAmount = typeof order.orderProfitTotal === 'number' && order.orderProfitTotal >= 0
+            ? order.orderProfitTotal
+            : Number(req.body.profitAmount);
+
         if (isNaN(profitAmount) || profitAmount < 0) {
-            return res.status(400).json({ error: "Profit amount must be a non-negative number" });
+            // Build snapshot if missing
+            order.items = await buildOrderProfitSnapshot(order.items);
+            order.orderProfitTotal = calculateOrderProfitTotal(order.items);
+            await order.save();
+            profitAmount = order.orderProfitTotal;
         }
 
         const preview = await previewCommissions(orderId, profitAmount);
@@ -741,15 +778,11 @@ router.post(["/admin/:id/preview-commissions", "/:id/preview-commissions"], auth
 
 /**
  * APPROVE & DISTRIBUTE COMMISSIONS (Admin Only)
+ * Uses Authoritative order.orderProfitTotal Snapshot
  */
 router.post(["/admin/:id/distribute-commissions", "/:id/distribute-commissions"], authenticateToken, isAdmin, async (req, res) => {
     try {
         const orderId = req.params.id;
-        const profitAmount = Number(req.body.profitAmount);
-        if (isNaN(profitAmount) || profitAmount < 0) {
-            return res.status(400).json({ error: "Profit amount must be a non-negative number" });
-        }
-
         const order = await Order.findById(orderId);
         if (!order) {
             return res.status(404).json({ error: "Order not found" });
@@ -759,7 +792,16 @@ router.post(["/admin/:id/distribute-commissions", "/:id/distribute-commissions"]
             return res.status(400).json({ error: "Commissions have already been distributed for this order." });
         }
 
-        // Call the distributeCommissions service with profitAmount
+        // Authoritative Write-Once Snapshot Check
+        if (typeof order.orderProfitTotal !== 'number' || !order.items.some(i => typeof i.unitProfitSnapshot === 'number')) {
+            order.items = await buildOrderProfitSnapshot(order.items);
+            order.orderProfitTotal = calculateOrderProfitTotal(order.items);
+            await order.save();
+        }
+
+        const profitAmount = order.orderProfitTotal;
+
+        // Call the distributeCommissions service with authoritative profitAmount
         const transaction = await distributeCommissions(
             order._id,
             order.user_id,
@@ -773,7 +815,7 @@ router.post(["/admin/:id/distribute-commissions", "/:id/distribute-commissions"]
         order.rewardApplied = true;
         await order.save();
 
-        console.log(`✅ Admin approved commissions for order ${orderId} with profit ₹${profitAmount}`);
+        console.log(`✅ Admin approved commissions for order ${orderId} using authoritative snapshot profit ₹${profitAmount}`);
 
         res.json({
             success: true,
@@ -781,6 +823,7 @@ router.post(["/admin/:id/distribute-commissions", "/:id/distribute-commissions"]
             order: {
                 _id: order._id,
                 profitAmount: order.profitAmount,
+                orderProfitTotal: order.orderProfitTotal,
                 commissionStatus: order.commissionStatus
             },
             transaction

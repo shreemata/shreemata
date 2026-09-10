@@ -3,6 +3,274 @@ const API = window.API_URL;
 let isEditMode = false;
 let editingBookId = null;
 
+// Book Image Upload State
+let selectedCoverFile = null;
+let existingCoverImage = null;
+let existingCoverRemoved = false;
+
+let selectedPreviewFiles = [];
+let existingPreviewImages = [];
+let existingPreviewImagesRemoved = [];
+let pendingDeleteAction = null;
+
+function formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function getFilenameFromUrl(url) {
+    if (!url) return '';
+    try {
+        const parts = url.split('/');
+        const lastPart = parts[parts.length - 1];
+        return lastPart.split('?')[0];
+    } catch (e) {
+        return url;
+    }
+}
+
+function openImageConfirmModal(imgUrl, message, onConfirm) {
+    const modal = document.getElementById('imageDeleteConfirmModal');
+    const msgEl = document.getElementById('imageModalMessage');
+    const imgEl = document.getElementById('modalImagePreviewTarget');
+
+    if (msgEl) msgEl.textContent = message || "Remove this image from the book?";
+    if (imgEl) {
+        if (imgUrl) {
+            imgEl.src = imgUrl;
+            imgEl.style.display = 'block';
+        } else {
+            imgEl.style.display = 'none';
+        }
+    }
+
+    pendingDeleteAction = onConfirm;
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeImageConfirmModal() {
+    const modal = document.getElementById('imageDeleteConfirmModal');
+    if (modal) modal.style.display = 'none';
+    pendingDeleteAction = null;
+}
+
+function renderCoverImagePreview() {
+    const container = document.getElementById('coverImagePreviewContainer');
+    const coverInput = document.getElementById('coverImage');
+    if (!container) return;
+
+    if (selectedCoverFile) {
+        const objectUrl = URL.createObjectURL(selectedCoverFile);
+        container.style.display = 'block';
+        container.innerHTML = `
+            <div class="cover-preview-card">
+                <div class="preview-thumbnail-wrapper">
+                    <img src="${objectUrl}" alt="Cover preview" />
+                </div>
+                <div class="preview-file-info">
+                    <span class="preview-file-name" title="${selectedCoverFile.name}">${selectedCoverFile.name}</span>
+                    <span class="preview-file-size">${formatFileSize(selectedCoverFile.size)}</span>
+                </div>
+                <button type="button" class="btn-remove-image-pill" id="removeCoverFileBtn" title="Remove selected image">
+                    &times; Remove
+                </button>
+            </div>
+        `;
+        document.getElementById('removeCoverFileBtn')?.addEventListener('click', () => {
+            selectedCoverFile = null;
+            if (coverInput) coverInput.value = '';
+            renderCoverImagePreview();
+        });
+    } else if (isEditMode && existingCoverImage && !existingCoverRemoved) {
+        container.style.display = 'block';
+        container.innerHTML = `
+            <div class="cover-preview-card existing-cover">
+                <div class="preview-thumbnail-wrapper">
+                    <img src="${existingCoverImage}" alt="Current Cover" />
+                </div>
+                <div class="preview-file-info">
+                    <span class="preview-file-name" title="${getFilenameFromUrl(existingCoverImage)}">${getFilenameFromUrl(existingCoverImage)}</span>
+                    <span class="preview-badge-saved">Saved Cover</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn-change-image-pill" id="changeCoverBtn" title="Change cover image">Change Image</button>
+                    <button type="button" class="btn-remove-image-pill" id="removeExistingCoverBtn" title="Remove cover image">&times; Remove</button>
+                </div>
+            </div>
+        `;
+        document.getElementById('changeCoverBtn')?.addEventListener('click', () => {
+            if (coverInput) coverInput.click();
+        });
+        document.getElementById('removeExistingCoverBtn')?.addEventListener('click', () => {
+            openImageConfirmModal(existingCoverImage, "Remove this cover image from the book?", () => {
+                existingCoverRemoved = true;
+                renderCoverImagePreview();
+            });
+        });
+    } else if (existingCoverRemoved) {
+        container.style.display = 'block';
+        container.innerHTML = `
+            <div class="cover-preview-card" style="background: #fef2f2; border-color: #fecaca;">
+                <div class="preview-file-info">
+                    <span class="preview-file-name" style="color: #dc2626;">Cover image marked for removal</span>
+                    <span class="preview-file-size">Please upload a new cover image or restore existing.</span>
+                </div>
+                <button type="button" class="btn-change-image-pill" id="restoreCoverBtn">Restore</button>
+            </div>
+        `;
+        document.getElementById('restoreCoverBtn')?.addEventListener('click', () => {
+            existingCoverRemoved = false;
+            renderCoverImagePreview();
+        });
+    } else {
+        container.style.display = 'none';
+        container.innerHTML = '';
+    }
+}
+
+function updatePreviewDataTransfer() {
+    const previewInput = document.getElementById('previewImages');
+    if (!previewInput) return;
+    try {
+        const dt = new DataTransfer();
+        selectedPreviewFiles.forEach(file => dt.items.add(file));
+        previewInput.files = dt.files;
+    } catch (e) {
+        console.warn('DataTransfer update failed:', e);
+    }
+}
+
+function renderPreviewImagesGrid() {
+    const container = document.getElementById('previewImagesGridContainer');
+    const badge = document.getElementById('previewImagesCount');
+    if (!container) return;
+
+    const activeExisting = existingPreviewImages.filter(url => !existingPreviewImagesRemoved.includes(url));
+    const totalCount = activeExisting.length + selectedPreviewFiles.length;
+
+    if (badge) {
+        badge.textContent = `${totalCount} / 4`;
+    }
+
+    if (totalCount === 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    container.style.display = 'grid';
+    container.innerHTML = '';
+
+    // Render active existing saved preview images
+    activeExisting.forEach(url => {
+        const item = document.createElement('div');
+        item.className = 'preview-grid-item';
+        item.innerHTML = `
+            <img src="${url}" class="preview-grid-thumb" alt="Saved Preview" />
+            <div class="preview-grid-details">
+                <span class="preview-grid-name" title="${getFilenameFromUrl(url)}">${getFilenameFromUrl(url)}</span>
+                <span class="preview-badge-saved">Saved</span>
+            </div>
+            <button type="button" class="btn-remove-grid-item" title="Remove preview image">&times;</button>
+        `;
+        item.querySelector('.btn-remove-grid-item').addEventListener('click', () => {
+            openImageConfirmModal(url, "Remove this preview image from the book?", () => {
+                existingPreviewImagesRemoved.push(url);
+                renderPreviewImagesGrid();
+            });
+        });
+        container.appendChild(item);
+    });
+
+    // Render newly selected preview files
+    selectedPreviewFiles.forEach((file, index) => {
+        const objectUrl = URL.createObjectURL(file);
+        const item = document.createElement('div');
+        item.className = 'preview-grid-item';
+        item.innerHTML = `
+            <img src="${objectUrl}" class="preview-grid-thumb" alt="Selected Preview" />
+            <div class="preview-grid-details">
+                <span class="preview-grid-name" title="${file.name}">${file.name}</span>
+                <span class="preview-grid-size">${formatFileSize(file.size)}</span>
+            </div>
+            <button type="button" class="btn-remove-grid-item" title="Remove selected image">&times;</button>
+        `;
+        item.querySelector('.btn-remove-grid-item').addEventListener('click', () => {
+            selectedPreviewFiles.splice(index, 1);
+            updatePreviewDataTransfer();
+            renderPreviewImagesGrid();
+        });
+        container.appendChild(item);
+    });
+}
+
+function setupImageUploadEventListeners() {
+    const coverInput = document.getElementById('coverImage');
+    const previewInput = document.getElementById('previewImages');
+
+    if (coverInput) {
+        coverInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                alert('Please select a valid image file');
+                coverInput.value = '';
+                return;
+            }
+
+            selectedCoverFile = file;
+            renderCoverImagePreview();
+        });
+    }
+
+    if (previewInput) {
+        previewInput.addEventListener('change', (e) => {
+            const newFiles = Array.from(e.target.files);
+            if (newFiles.length === 0) return;
+
+            const validFiles = newFiles.filter(f => f.type.startsWith('image/'));
+            if (validFiles.length < newFiles.length) {
+                alert('Some selected files were ignored because they are not valid images.');
+            }
+
+            const activeExisting = existingPreviewImages.filter(url => !existingPreviewImagesRemoved.includes(url));
+            const currentTotal = activeExisting.length + selectedPreviewFiles.length;
+            const availableSlots = 4 - currentTotal;
+
+            if (availableSlots <= 0) {
+                alert('Maximum 4 preview images allowed. Please remove an existing image first.');
+                updatePreviewDataTransfer();
+                return;
+            }
+
+            let filesToAdd = validFiles;
+            if (validFiles.length > availableSlots) {
+                alert(`You can only add ${availableSlots} more preview image(s). Only the first ${availableSlots} file(s) were added.`);
+                filesToAdd = validFiles.slice(0, availableSlots);
+            }
+
+            selectedPreviewFiles = [...selectedPreviewFiles, ...filesToAdd];
+            updatePreviewDataTransfer();
+            renderPreviewImagesGrid();
+        });
+    }
+
+    // Modal buttons
+    document.getElementById('confirmImageDeleteBtn')?.addEventListener('click', () => {
+        if (typeof pendingDeleteAction === 'function') {
+            pendingDeleteAction();
+        }
+        closeImageConfirmModal();
+    });
+
+    document.getElementById('cancelImageDeleteBtn')?.addEventListener('click', closeImageConfirmModal);
+    document.getElementById('closeImageModalBtn')?.addEventListener('click', closeImageConfirmModal);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🔍 Admin.js loaded - API URL:', API);
     console.log('🔍 window.API_URL:', window.API_URL);
@@ -134,14 +402,7 @@ function setupEventListeners() {
         console.warn('Admin: cancelBtn element not found');
     }
 
-    if (previewImages) {
-        previewImages.addEventListener('change', (e) => {
-            // No limit on preview images - removed the 4 image limit
-            console.log(`📷 Selected ${e.target.files.length} preview images`);
-        });
-    } else {
-        console.warn('Admin: previewImages element not found');
-    }
+    setupImageUploadEventListeners();
 
     // Stock tracking toggle
     if (trackStock) {
@@ -438,8 +699,11 @@ async function editBook(bookId) {
         if (priceEl) priceEl.value = book.price;
         if (weightEl) weightEl.value = book.weight || 0.5;
         if (rewardPointsEl) rewardPointsEl.value = book.rewardPoints || 0;
-        if (cashbackAmountEl) cashbackAmountEl.value = book.cashbackAmount || 0;
-        if (cashbackPercentageEl) cashbackPercentageEl.value = book.cashbackPercentage || 0;
+        const profitTypeEl = document.getElementById('adminProfitType');
+        const profitValueEl = document.getElementById('adminProfitValue');
+        if (profitTypeEl) profitTypeEl.value = book.profitType || 'fixed';
+        if (profitValueEl) profitValueEl.value = book.profitValue !== undefined ? book.profitValue : 0;
+        if (typeof updateProfitPreview === 'function') updateProfitPreview();
         if (descriptionEl) descriptionEl.value = book.description;
         if (bookClassEl) bookClassEl.value = book.class || '';
         if (subjectEl) subjectEl.value = book.subject || '';
@@ -467,6 +731,23 @@ async function editBook(bookId) {
             stockFieldsEl.style.display = trackStockEl.checked ? 'flex' : 'none';
             console.log('📦 Stock fields visibility:', trackStockEl.checked ? 'visible' : 'hidden');
         }
+
+        // Populate image state for Edit mode
+        existingCoverImage = book.cover_image || null;
+        existingCoverRemoved = false;
+        selectedCoverFile = null;
+
+        existingPreviewImages = Array.isArray(book.preview_images) ? [...book.preview_images] : [];
+        existingPreviewImagesRemoved = [];
+        selectedPreviewFiles = [];
+
+        const coverImageInput = document.getElementById('coverImage');
+        const previewImagesInput = document.getElementById('previewImages');
+        if (coverImageInput) coverImageInput.value = '';
+        if (previewImagesInput) previewImagesInput.value = '';
+
+        renderCoverImagePreview();
+        renderPreviewImagesGrid();
 
         document.getElementById('addBookForm').style.display = "block";
         document.getElementById('toggleFormBtn').textContent = "Hide Form";
@@ -604,12 +885,21 @@ async function handleFormSubmit(e) {
         if (!coverImageEl) throw new Error('Cover image field not found');
         if (!previewImagesEl) throw new Error('Preview images field not found');
         
-        const coverFile = coverImageEl.files[0];
-        const previewFiles = previewImagesEl.files;
+        const coverFile = selectedCoverFile || coverImageEl.files[0];
+        const previewFiles = selectedPreviewFiles.length > 0 ? selectedPreviewFiles : Array.from(previewImagesEl.files);
 
         // Check if cover image is required
         if (!coverFile && !isEditMode) {
-            alert('Cover image is required');
+            showAdminNotification('Cover image is required', true);
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
+        }
+
+        if (isEditMode && existingCoverRemoved && !selectedCoverFile) {
+            showAdminNotification('Cover image is required. Please upload a new cover image or restore the existing one.', true);
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
             return;
         }
 
@@ -736,8 +1026,11 @@ async function handleFormSubmit(e) {
             }
             formData.append('weight', weight);
             formData.append('rewardPoints', rewardPoints);
-            formData.append('cashbackAmount', cashbackAmount);
-            formData.append('cashbackPercentage', cashbackPercentage);
+            const profitTypeEl = document.getElementById('adminProfitType');
+            const profitValueEl = document.getElementById('adminProfitValue');
+            if (profitTypeEl) formData.append('profitType', profitTypeEl.value);
+            if (profitValueEl) formData.append('profitValue', profitValueEl.value || '0');
+            formData.append('profitConfigured', 'true');
 
             // Add stock management fields
             const trackStockEl = document.getElementById('trackStock');
@@ -756,6 +1049,10 @@ async function handleFormSubmit(e) {
             if (stockQuantityEl) formData.append('stockQuantity', stockQuantityEl.value || 0);
             if (lowStockThresholdEl) formData.append('lowStockThreshold', lowStockThresholdEl.value || 5);
             if (stockStatusEl) formData.append('stockStatus', stockStatusEl.value || 'in_stock');
+
+            const retainedPreviewImages = existingPreviewImages.filter(url => !existingPreviewImagesRemoved.includes(url));
+            formData.append('existingCoverRemoved', existingCoverRemoved ? 'true' : 'false');
+            formData.append('retainedPreviewImages', JSON.stringify(retainedPreviewImages));
 
             if (compressedCoverFile) {
                 console.log('📎 Adding compressed cover image:', compressedCoverFile.name, compressedCoverFile.size, 'bytes');
@@ -810,9 +1107,9 @@ async function handleFormSubmit(e) {
             }
         } else if (!isEditMode) {
             // No images and not edit mode
-            alert('Please upload a cover image');
+            showAdminNotification('Please upload a cover image', true);
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Add Book';
+            submitBtn.textContent = originalText;
             return;
         } else {
             // Edit mode without new images
@@ -881,37 +1178,7 @@ async function handleFormSubmit(e) {
         if (res.ok) {
             console.log('✅ Book update successful:', data);
             
-            // Handle PDF upload separately if provided
-            if (digitalPDFFile && data.book && data.book._id) {
-                try {
-                    submitBtn.textContent = 'Uploading PDF...';
-                    console.log('📄 Uploading PDF file separately...');
-                    
-                    const pdfFormData = new FormData();
-                    pdfFormData.append('pdfFile', digitalPDFFile);
-                    
-                    const pdfRes = await fetch(`${API}/books/${data.book._id}/upload-pdf`, {
-                        method: 'POST',
-                        headers: { "Authorization": `Bearer ${token}` },
-                        body: pdfFormData
-                    });
-                    
-                    if (!pdfRes.ok) {
-                        const pdfError = await pdfRes.json();
-                        console.error('PDF upload failed:', pdfError);
-                        alert(`Book saved successfully, but PDF upload failed: ${pdfError.error || 'Unknown error'}`);
-                    } else {
-                        console.log('✅ PDF uploaded successfully');
-                        alert('Book and PDF uploaded successfully!');
-                    }
-                } catch (pdfErr) {
-                    console.error('PDF upload error:', pdfErr);
-                    alert(`Book saved successfully, but PDF upload failed: ${pdfErr.message}`);
-                }
-            } else {
-                alert(data.message);
-            }
-            
+            showAdminNotification(data.message || 'Book saved successfully!', false);
             resetForm();
             
             // Force reload books to show updated stock status
@@ -925,14 +1192,38 @@ async function handleFormSubmit(e) {
             // Refresh filters to include new class/subject
             loadClassesAndSubjectsForFilters();
         } else {
-            alert(`Error: ${data.error || 'Failed to save book'}\n${data.details || ''}`);
+            const displayError = data.details || data.error || 'Failed to save book';
+            console.error('❌ Form submission error from server:', displayError);
+            showAdminNotification(displayError, true);
         }
     } catch (err) {
         console.error('Error submitting form:', err);
-        alert(`Error: ${err.message}`);
+        showAdminNotification(err.message || 'Image upload failed. Please try again.', true);
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
+    }
+}
+
+/* ADMIN ON-PAGE NOTIFICATION HELPER */
+function showAdminNotification(message, isError = true) {
+    const errorEl = document.getElementById('formErrorMessage');
+    const successEl = document.getElementById('formSuccessMessage');
+    
+    if (isError) {
+        if (successEl) successEl.style.display = 'none';
+        if (errorEl) {
+            errorEl.innerHTML = `⚠️ <strong>Upload Error:</strong> ${message}`;
+            errorEl.style.display = 'block';
+            errorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    } else {
+        if (errorEl) errorEl.style.display = 'none';
+        if (successEl) {
+            successEl.innerHTML = `✅ ${message}`;
+            successEl.style.display = 'block';
+            successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 }
 
@@ -940,7 +1231,16 @@ async function handleFormSubmit(e) {
 function resetForm() {
     isEditMode = false;
     editingBookId = null;
+    selectedCoverFile = null;
+    existingCoverImage = null;
+    existingCoverRemoved = false;
+    selectedPreviewFiles = [];
+    existingPreviewImages = [];
+    existingPreviewImagesRemoved = [];
+
     document.getElementById('bookForm').reset();
+    renderCoverImagePreview();
+    renderPreviewImagesGrid();
     
     // Reset stock fields to defaults
     const trackStockEl = document.getElementById('trackStock');
@@ -1211,4 +1511,60 @@ document.addEventListener('DOMContentLoaded', () => {
             closeDigitalContentModal();
         }
     });
+
+    // Profit preview live event listeners
+    const priceEl = document.getElementById('price');
+    const profitTypeEl = document.getElementById('adminProfitType');
+    const profitValueEl = document.getElementById('adminProfitValue');
+
+    if (priceEl) priceEl.addEventListener('input', updateProfitPreview);
+    if (profitTypeEl) profitTypeEl.addEventListener('change', updateProfitPreview);
+    if (profitValueEl) profitValueEl.addEventListener('input', updateProfitPreview);
 });
+
+function updateProfitPreview() {
+    const priceEl = document.getElementById('price');
+    const profitTypeEl = document.getElementById('adminProfitType');
+    const profitValueEl = document.getElementById('adminProfitValue');
+    const labelEl = document.getElementById('adminProfitValueLabel');
+    
+    if (!priceEl || !profitTypeEl || !profitValueEl) return;
+
+    const price = Math.max(0, parseFloat(priceEl.value) || 0);
+    const profitType = profitTypeEl.value;
+    const rawVal = Math.max(0, parseFloat(profitValueEl.value) || 0);
+
+    if (labelEl) {
+        labelEl.textContent = profitType === 'percentage' ? 'Profit Percentage (%)' : 'Book Profit (₹)';
+    }
+
+    let unitProfit = 0;
+    if (profitType === 'fixed') {
+        unitProfit = Math.min(rawVal, price);
+    } else {
+        unitProfit = Math.min(price, (price * rawVal) / 100);
+    }
+
+    const buyerCashback = unitProfit * 0.03;
+    const directReferral = unitProfit * 0.02;
+    const treePool = unitProfit * 0.04;
+    const trustFund = unitProfit * 0.01;
+    const totalDist = buyerCashback + directReferral + treePool + trustFund;
+    const remaining = Math.max(0, unitProfit - totalDist);
+
+    const baseEl = document.getElementById('previewProfitBase');
+    const buyerEl = document.getElementById('previewBuyerCashback');
+    const directEl = document.getElementById('previewDirectReferral');
+    const treeEl = document.getElementById('previewTreePool');
+    const trustEl = document.getElementById('previewTrustFund');
+    const totalEl = document.getElementById('previewTotalDistribution');
+    const remEl = document.getElementById('previewRemainingProfit');
+
+    if (baseEl) baseEl.textContent = `₹${unitProfit.toFixed(2)}`;
+    if (buyerEl) buyerEl.textContent = `₹${buyerCashback.toFixed(2)}`;
+    if (directEl) directEl.textContent = `₹${directReferral.toFixed(2)}`;
+    if (treeEl) treeEl.textContent = `₹${treePool.toFixed(2)}`;
+    if (trustEl) trustEl.textContent = `₹${trustFund.toFixed(2)}`;
+    if (totalEl) totalEl.textContent = `₹${totalDist.toFixed(2)}`;
+    if (remEl) remEl.textContent = `₹${remaining.toFixed(2)}`;
+}

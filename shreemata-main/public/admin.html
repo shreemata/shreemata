@@ -714,6 +714,293 @@
                 width: 100%;
             }
         }
+
+        /* Image Upload Previews & Cards */
+        .image-preview-container {
+            margin-top: 10px;
+        }
+
+        .cover-preview-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #ffffff;
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: var(--radius-md, 10px);
+            padding: 10px 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+
+        .cover-preview-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .preview-thumbnail-wrapper {
+            position: relative;
+            width: 48px;
+            height: 64px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #f1f5f9;
+            flex-shrink: 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .preview-thumbnail-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-file-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .preview-file-name {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--text-main, #0f172a);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .preview-file-size {
+            font-size: 12px;
+            color: var(--text-muted, #64748b);
+        }
+
+        .preview-badge-saved {
+            display: inline-block;
+            padding: 2px 6px;
+            background-color: #e0f2fe;
+            color: #0369a1;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 4px;
+            width: fit-content;
+        }
+
+        .btn-remove-image-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .btn-remove-image-pill:hover {
+            background: #dc2626;
+            color: #ffffff;
+            border-color: #dc2626;
+        }
+
+        .btn-change-image-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #f8fafc;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .btn-change-image-pill:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        /* Preview Images Grid */
+        .preview-images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .preview-grid-item {
+            position: relative;
+            background: #ffffff;
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: var(--radius-md, 10px);
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+
+        .preview-grid-item:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        }
+
+        .preview-grid-thumb {
+            width: 100%;
+            height: 90px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #f1f5f9;
+            border: 1px solid #f1f5f9;
+        }
+
+        .preview-grid-details {
+            width: 100%;
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        .preview-grid-name {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--text-main, #0f172a);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
+        .preview-grid-size {
+            font-size: 10.5px;
+            color: var(--text-muted, #64748b);
+            display: block;
+        }
+
+        .btn-remove-grid-item {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.75);
+            color: #ffffff;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            backdrop-filter: blur(2px);
+        }
+
+        .btn-remove-grid-item:hover {
+            background: #ef4444;
+            transform: scale(1.1);
+        }
+
+        .preview-count-badge {
+            display: inline-block;
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        /* Confirmation Modal */
+        .admin-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: modalFadeIn 0.15s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .admin-modal-card {
+            background: #ffffff;
+            border-radius: 14px;
+            width: 90%;
+            max-width: 400px;
+            padding: 20px 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e2e8f0;
+        }
+
+        .admin-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .admin-modal-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .admin-modal-close {
+            background: none;
+            border: none;
+            font-size: 1.4rem;
+            cursor: pointer;
+            color: #64748b;
+            line-height: 1;
+        }
+
+        .admin-modal-close:hover {
+            color: #0f172a;
+        }
+
+        .admin-modal-body {
+            margin-bottom: 20px;
+            color: #334155;
+            font-size: 0.95rem;
+        }
+
+        .modal-image-thumb-preview {
+            width: 70px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            margin: 10px auto 0 auto;
+            display: block;
+        }
+
+        .admin-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
     </style>
 </head>
 
@@ -830,21 +1117,47 @@
                                 </div>
                             </div>
 
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="rewardPoints">Reward Points</label>
-                                    <input type="number" id="rewardPoints" name="rewardPoints" min="0" value="0" placeholder="0">
-                                    <small>Points awarded to buyer upon completed purchase</small>
+                            <!-- Internal Profit & Commission Section (Admin Only) -->
+                            <div class="form-section" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                                <h3 style="margin-top: 0; color: #1e293b;">💰 INTERNAL PROFIT & COMMISSION</h3>
+                                <small style="display: block; margin-bottom: 12px; color: #64748b;">
+                                    Private internal amount used as the base for commissions and rewards. Customers cannot see this value.
+                                </small>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="adminProfitType">Profit Method</label>
+                                        <select id="adminProfitType" name="profitType">
+                                            <option value="fixed">Fixed Amount (₹)</option>
+                                            <option value="percentage">Percentage (%)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label id="adminProfitValueLabel" for="adminProfitValue">Book Profit (₹)</label>
+                                        <input type="number" id="adminProfitValue" name="profitValue" step="0.01" min="0" value="0" placeholder="0.00">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="rewardPoints">Reward Points</label>
+                                        <input type="number" id="rewardPoints" name="rewardPoints" min="0" value="0" placeholder="0">
+                                        <small>Points awarded to buyer upon completed purchase</small>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="cashbackAmount">Fixed Cashback Amount (₹)</label>
-                                    <input type="number" id="cashbackAmount" name="cashbackAmount" step="0.01" min="0" value="0" placeholder="0.00">
-                                    <small>Fixed cash reward (takes priority over percentage if > 0)</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="cashbackPercentage">Cashback Percentage (%)</label>
-                                    <input type="number" id="cashbackPercentage" name="cashbackPercentage" step="0.1" min="0" max="100" value="0" placeholder="0.0">
-                                    <small>Percentage of price credited back (when fixed is 0)</small>
+
+                                <!-- Live Preview Box -->
+                                <div id="adminProfitPreviewBox" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-top: 10px;">
+                                    <div style="font-weight: 600; color: #0f172a; margin-bottom: 6px;">Internal Commission Base Preview</div>
+                                    <div style="font-size: 1.1em; color: #16a34a; font-weight: bold; margin-bottom: 8px;">
+                                        Base Profit: <span id="previewProfitBase">₹0.00</span>
+                                    </div>
+                                    <div style="font-size: 0.85em; color: #475569; line-height: 1.6;">
+                                        <div>• Buyer Cashback (3%): <span id="previewBuyerCashback">₹0.00</span></div>
+                                        <div>• Direct Referral (2%): <span id="previewDirectReferral">₹0.00</span></div>
+                                        <div>• Tree Pool (4%): <span id="previewTreePool">₹0.00</span></div>
+                                        <div>• Trust Fund (1%): <span id="previewTrustFund">₹0.00</span></div>
+                                        <div style="border-top: 1px dashed #cbd5e1; margin-top: 4px; padding-top: 4px; font-weight: 600; color: #1e293b;">
+                                            Estimated Distribution: <span id="previewTotalDistribution">₹0.00</span> | Remaining Profit: <span id="previewRemainingProfit">₹0.00</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -895,11 +1208,16 @@
                                     <label for="coverImage">Cover Image</label>
                                     <input type="file" id="coverImage" name="coverImage" accept="image/*">
                                     <small>Upload main cover picture for product card</small>
+                                    <div id="coverImagePreviewContainer" class="image-preview-container" style="display: none;"></div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="previewImages">Preview Images</label>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                        <label for="previewImages" style="margin-bottom: 0;">Preview Images</label>
+                                        <span id="previewImagesCount" class="preview-count-badge">0 / 4</span>
+                                    </div>
                                     <input type="file" id="previewImages" name="previewImages[]" accept="image/*" multiple>
                                     <small>Upload preview sample pages (max 4 images recommended)</small>
+                                    <div id="previewImagesGridContainer" class="preview-images-grid" style="display: none;"></div>
                                 </div>
                             </div>
 
@@ -990,6 +1308,24 @@
             <p>&copy; 2026 Shree Mata. All rights reserved.</p>
         </div>
     </footer>
+
+    <!-- Confirmation Modal for Image Deletion -->
+    <div id="imageDeleteConfirmModal" class="admin-modal-overlay" style="display: none;">
+        <div class="admin-modal-card">
+            <div class="admin-modal-header">
+                <h3>Remove Image</h3>
+                <button type="button" class="admin-modal-close" id="closeImageModalBtn">&times;</button>
+            </div>
+            <div class="admin-modal-body">
+                <p id="imageModalMessage">Remove this image from the book?</p>
+                <img id="modalImagePreviewTarget" class="modal-image-thumb-preview" src="" alt="Image to remove" style="display: none;" />
+            </div>
+            <div class="admin-modal-actions">
+                <button type="button" class="btn btn-secondary" id="cancelImageDeleteBtn">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmImageDeleteBtn" style="background-color: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer;">Remove Image</button>
+            </div>
+        </div>
+    </div>
 
     <script src="js/config.js"></script>
     <script src="js/imageCompressor.js"></script>

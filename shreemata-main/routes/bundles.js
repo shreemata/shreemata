@@ -67,6 +67,38 @@ async function uploadToCloudinary(buffer, filename) {
   });
 }
 
+const jwt = require('jsonwebtoken');
+
+function isAdminRequest(req) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return false;
+    const token = authHeader.split(' ')[1];
+    if (!token) return false;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return decoded && decoded.role === 'admin';
+  } catch (e) {
+    return false;
+  }
+}
+
+function sanitizeBundleForPublic(bundle, req) {
+  if (!bundle) return bundle;
+  if (isAdminRequest(req)) return bundle;
+
+  const obj = typeof bundle.toObject === 'function' ? bundle.toObject() : { ...bundle };
+  delete obj.profitType;
+  delete obj.profitValue;
+  delete obj.profitConfigured;
+  delete obj.costPrice;
+  delete obj.margin;
+  delete obj.commissionBase;
+  delete obj.unitProfitSnapshot;
+  delete obj.lineProfitSnapshot;
+  delete obj.orderProfitTotal;
+  return obj;
+}
+
 // =====================================================
 // PUBLIC ROUTES
 // =====================================================
@@ -87,7 +119,8 @@ router.get("/", async (req, res) => {
         .populate("books", "title author cover_image price weight")
         .sort({ createdAt: -1 });
 
-        res.json({ bundles });
+        const sanitized = bundles.map(b => sanitizeBundleForPublic(b, req));
+        res.json({ bundles: sanitized });
     } catch (err) {
         console.error("Fetch bundles error:", err);
         res.status(500).json({ error: "Error fetching bundles" });
@@ -106,7 +139,7 @@ router.get("/:id", async (req, res) => {
             return res.status(404).json({ error: "Bundle not found" });
         }
 
-        res.json({ bundle });
+        res.json({ bundle: sanitizeBundleForPublic(bundle, req) });
     } catch (err) {
         console.error("Fetch bundle error:", err);
         res.status(500).json({ error: "Error fetching bundle" });
@@ -168,12 +201,29 @@ router.post("/admin/upload-image", authenticateToken, isAdmin, upload.single('im
  */
 router.post("/admin/create", authenticateToken, isAdmin, async (req, res) => {
     try {
-        const { name, description, bookIds, bundlePrice, courierCharge, image, validUntil, rewardPoints, cashbackAmount, cashbackPercentage } = req.body;
+        const { name, description, bookIds, bundlePrice, courierCharge, image, validUntil, rewardPoints, cashbackAmount, cashbackPercentage, profitType, profitValue, profitConfigured } = req.body;
 
         if (!name || !bookIds || bookIds.length < 1) {
             return res.status(400).json({ 
                 error: "Bundle must have a name and at least 1 book" 
             });
+        }
+
+        const numBundlePrice = Number(bundlePrice);
+        let parsedProfitType = profitType === 'percentage' ? 'percentage' : 'fixed';
+        let parsedProfitValue = profitValue !== undefined ? Number(profitValue) : 0;
+        let isProfitConfigured = profitConfigured === true || profitConfigured === 'true' || profitValue !== undefined;
+
+        if (isProfitConfigured) {
+          if (isNaN(parsedProfitValue) || parsedProfitValue < 0) {
+            return res.status(400).json({ error: "Profit value must be a non-negative number" });
+          }
+          if (parsedProfitType === 'fixed' && parsedProfitValue > numBundlePrice) {
+            return res.status(400).json({ error: "Bundle profit cannot exceed the eligible selling price." });
+          }
+          if (parsedProfitType === 'percentage' && parsedProfitValue > 100) {
+            return res.status(400).json({ error: "Profit percentage must be between 0 and 100." });
+          }
         }
 
         // Fetch books to calculate original price and weight
@@ -213,7 +263,10 @@ router.post("/admin/create", authenticateToken, isAdmin, async (req, res) => {
             validUntil: validUntil || null,
             rewardPoints: rewardPoints || 0,
             cashbackAmount: cashbackAmount || 0,
-            cashbackPercentage: cashbackPercentage || 0
+            cashbackPercentage: cashbackPercentage || 0,
+            profitType: parsedProfitType,
+            profitValue: parsedProfitValue,
+            profitConfigured: isProfitConfigured
         });
 
         const populatedBundle = await Bundle.findById(bundle._id)
@@ -251,7 +304,7 @@ router.get("/admin/all", authenticateToken, isAdmin, async (req, res) => {
  */
 router.put("/admin/update/:id", authenticateToken, isAdmin, async (req, res) => {
     try {
-        const { name, description, bookIds, bundlePrice, courierCharge, image, validUntil, isActive, rewardPoints, cashbackAmount, cashbackPercentage } = req.body;
+        const { name, description, bookIds, bundlePrice, courierCharge, image, validUntil, isActive, rewardPoints, cashbackAmount, cashbackPercentage, profitType, profitValue, profitConfigured } = req.body;
 
         const bundle = await Bundle.findById(req.params.id);
         if (!bundle) {
@@ -268,6 +321,27 @@ router.put("/admin/update/:id", authenticateToken, isAdmin, async (req, res) => 
         if (rewardPoints !== undefined) bundle.rewardPoints = rewardPoints;
         if (cashbackAmount !== undefined) bundle.cashbackAmount = cashbackAmount;
         if (cashbackPercentage !== undefined) bundle.cashbackPercentage = cashbackPercentage;
+
+        // Handle profit fields update & validation
+        if (profitType !== undefined || profitValue !== undefined || profitConfigured !== undefined) {
+          const targetPrice = bundlePrice !== undefined ? Number(bundlePrice) : Number(bundle.bundlePrice);
+          const targetProfitType = profitType !== undefined ? profitType : bundle.profitType;
+          const targetProfitValue = profitValue !== undefined ? Number(profitValue) : Number(bundle.profitValue || 0);
+
+          if (isNaN(targetProfitValue) || targetProfitValue < 0) {
+            return res.status(400).json({ error: "Profit value must be a non-negative number" });
+          }
+          if (targetProfitType === 'fixed' && targetProfitValue > targetPrice) {
+            return res.status(400).json({ error: "Bundle profit cannot exceed the eligible selling price." });
+          }
+          if (targetProfitType === 'percentage' && targetProfitValue > 100) {
+            return res.status(400).json({ error: "Profit percentage must be between 0 and 100." });
+          }
+
+          bundle.profitType = targetProfitType === 'percentage' ? 'percentage' : 'fixed';
+          bundle.profitValue = targetProfitValue;
+          bundle.profitConfigured = profitConfigured !== undefined ? (profitConfigured === true || profitConfigured === 'true') : true;
+        }
 
         // If books changed, recalculate original price and weight
         if (bookIds && bookIds.length >= 1) {

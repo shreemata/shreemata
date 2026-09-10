@@ -59,8 +59,35 @@ const bookSchema = new mongoose.Schema({
   trackStock: {
     type: Boolean,
     default: true
+  },
+
+  // Private Admin Profit Configuration
+  profitType: {
+    type: String,
+    enum: ['fixed', 'percentage'],
+    default: 'fixed'
+  },
+  profitValue: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  profitConfigured: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
+
+// Helper to get unit profit based on actual selling price
+bookSchema.methods.getUnitProfit = function(sellingPrice) {
+  if (!this.profitConfigured) return 0;
+  const price = Math.max(0, Number(sellingPrice !== undefined ? sellingPrice : this.price) || 0);
+  if (this.profitType === 'percentage') {
+    const val = (price * (this.profitValue || 0)) / 100;
+    return Number(Math.min(price, Math.max(0, val)).toFixed(2));
+  }
+  return Number(Math.min(price, Math.max(0, this.profitValue || 0)).toFixed(2));
+};
 
 // Method to calculate actual cashback amount
 bookSchema.methods.getCashbackAmount = function() {

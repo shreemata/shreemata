@@ -88,7 +88,6 @@ router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) 
       developmentFundPercent,
       minimumWithdrawalAmount,
       minimumTreePlacementAmount,
-      referralRegistrationReward,
       baseShippingCharge,
       shippingRatePerKg,
       freeShippingThreshold,
@@ -111,6 +110,38 @@ router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) 
     });
     
     let settings = await CommissionSettings.getSettings();
+
+    // Server-side validation of percentages
+    const percentagesToValidate = [
+      { name: 'Buyer Cashback', val: directCommissionPercent },
+      { name: 'Direct Referral Commission', val: referralCommissionPercent },
+      { name: 'Admin Share', val: adminCommissionPercent !== undefined ? adminCommissionPercent : adminCommissionPercentage },
+      { name: 'Tree Commission Pool', val: treeCommissionPoolPercent },
+      { name: 'Trust Fund', val: trustFundPercent },
+      { name: 'Development Fund', val: developmentFundPercent }
+    ];
+
+    for (const p of percentagesToValidate) {
+      if (p.val !== undefined) {
+        const num = Number(p.val);
+        if (isNaN(num) || !isFinite(num) || num < 0 || num > 100) {
+          return res.status(400).json({ error: `Invalid percentage for ${p.name}. Must be a valid number between 0 and 100.` });
+        }
+      }
+    }
+
+    // Calculate target total after proposed updates
+    const targetDirect = directCommissionPercent !== undefined ? Number(directCommissionPercent) : (settings.directCommissionPercent || 0);
+    const targetReferral = referralCommissionPercent !== undefined ? Number(referralCommissionPercent) : (settings.referralCommissionPercent || 0);
+    const targetAdmin = (adminCommissionPercent !== undefined ? Number(adminCommissionPercent) : (adminCommissionPercentage !== undefined ? Number(adminCommissionPercentage) : (settings.adminCommissionPercent || 0)));
+    const targetTree = treeCommissionPoolPercent !== undefined ? Number(treeCommissionPoolPercent) : (settings.treeCommissionPoolPercent || 0);
+    const targetTrust = trustFundPercent !== undefined ? Number(trustFundPercent) : (settings.trustFundPercent || 0);
+    const targetDev = developmentFundPercent !== undefined ? Number(developmentFundPercent) : (settings.developmentFundPercent || 0);
+
+    const proposedTotal = Number((targetDirect + targetReferral + targetAdmin + targetTree + targetTrust + targetDev).toFixed(4));
+    if (proposedTotal > 100.0001) {
+      return res.status(400).json({ error: `Total profit allocation (${proposedTotal}%) cannot exceed 100% of internal profit.` });
+    }
     
     // Update fields if provided
     if (referralRegistrationReward !== undefined) {

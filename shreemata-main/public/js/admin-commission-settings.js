@@ -39,7 +39,7 @@ if (typeof module !== 'undefined' && module.exports) {
 document.addEventListener('DOMContentLoaded', () => {
     const btnSimulate = document.getElementById('btnSimulatePayout');
     if (btnSimulate) {
-        btnSimulate.addEventListener('click', async () => {
+        btnSimulate.addEventListener('click', () => {
             const profitInputVal = parseFloat(document.getElementById('testProfitInput').value) || 0;
             if (profitInputVal <= 0) {
                 if (typeof showAlert === 'function') {
@@ -50,43 +50,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            try {
-                btnSimulate.disabled = true;
-                const originalText = btnSimulate.textContent;
-                btnSimulate.textContent = '🧪 Simulating...';
-                
-                const tokenVal = localStorage.getItem("token") || (typeof token !== 'undefined' ? token : '');
-                const apiUrlVal = typeof API_URL !== 'undefined' ? API_URL : '';
-                
-                const response = await fetch(`${apiUrlVal}/admin/simulate-commission-payout`, {
-                    method: 'POST',
-                    headers: {
-                        "Authorization": `Bearer ${tokenVal}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ profitInput: profitInputVal })
-                });
-                
-                const responseData = await response.json();
-                if (!response.ok) {
-                    throw new Error(responseData.error || "Failed to simulate payout");
-                }
-                
-                if (typeof showAlert === 'function') {
-                    showAlert(`✅ Simulated payout successful! Credited ₹${responseData.totalAmount.toFixed(2)} to Admin wallet. New balance: ₹${responseData.newBalance.toFixed(2)}`, "success");
-                } else {
-                    alert(`Simulated payout successful! Credited ₹${responseData.totalAmount.toFixed(2)} to Admin wallet.`);
-                }
-            } catch (error) {
-                console.error("❌ Error simulating payout:", error);
-                if (typeof showAlert === 'function') {
-                    showAlert(`❌ Error: ${error.message}`, "error");
-                } else {
-                    alert(`Error: ${error.message}`);
-                }
-            } finally {
-                btnSimulate.disabled = false;
-                btnSimulate.textContent = '🧪 Simulate Dummy Payout to Admin';
+            const direct = parseFloat(document.getElementById('directCommission')?.value) || 0;
+            const referral = parseFloat(document.getElementById('referralCommission')?.value) || 0;
+            const admin = parseFloat(document.getElementById('adminCommission')?.value) || 0;
+            const trust = parseFloat(document.getElementById('trustFund')?.value) || 0;
+            const tree = parseFloat(document.getElementById('treePool')?.value) || 0;
+            const totalPercent = parseFloat((direct + referral + admin + trust + tree).toFixed(4));
+            const totalAmount = profitInputVal * (totalPercent / 100);
+
+            const msg = `🧪 Read-Only Payout Simulation Preview:\n\n` +
+                        `• Base Profit Input: ₹${profitInputVal.toFixed(2)}\n` +
+                        `• Buyer Cashback (${direct}%): ₹${(profitInputVal * direct / 100).toFixed(2)}\n` +
+                        `• Direct Referral (${referral}%): ₹${(profitInputVal * referral / 100).toFixed(2)}\n` +
+                        `• Tree Pool (${tree}%): ₹${(profitInputVal * tree / 100).toFixed(2)}\n` +
+                        `• Trust Fund (${trust}%): ₹${(profitInputVal * trust / 100).toFixed(2)}\n` +
+                        `• Admin Share (${admin}%): ₹${(profitInputVal * admin / 100).toFixed(2)}\n` +
+                        `----------------------------------------\n` +
+                        `Total Allocated (${totalPercent}%): ₹${totalAmount.toFixed(2)}\n\n` +
+                        `ℹ️ Note: This is a read-only preview. No wallets or database records were modified.`;
+
+            if (typeof showAlert === 'function') {
+                showAlert(`🧪 Read-Only Simulation Preview: Total Allocation ₹${totalAmount.toFixed(2)} (${totalPercent}%). No wallet balances were modified.`, "success");
+            } else {
+                alert(msg);
             }
         });
     }

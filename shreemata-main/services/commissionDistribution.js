@@ -311,7 +311,18 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
   }
 
   const validOrderAmount = typeof orderAmount === 'number' && orderAmount >= 0 ? orderAmount : 0;
-  const numericProfit = Math.max(0, Number(profitAmount) || 0);
+  
+  // Look up order document to get authoritative orderProfitTotal
+  const orderDoc = await Order.findById(orderId);
+  let numericProfit = 0;
+
+  if (orderDoc && typeof orderDoc.orderProfitTotal === 'number' && orderDoc.orderProfitTotal >= 0) {
+    numericProfit = orderDoc.orderProfitTotal;
+  } else if (orderDoc && typeof orderDoc.profitAmount === 'number' && orderDoc.profitAmount >= 0) {
+    numericProfit = orderDoc.profitAmount;
+  } else {
+    numericProfit = Math.max(0, Number(profitAmount) || 0);
+  }
 
   // Check if commission has already been processed for this order
   const existingTransaction = await CommissionTransaction.findOne({ orderId });
@@ -320,7 +331,7 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
     return existingTransaction;
   }
 
-  console.log(`💰 Processing commission distribution for order ${orderId}: Order Amount ₹${validOrderAmount}, Profit Amount ₹${numericProfit}`);
+  console.log(`💰 Processing commission distribution for order ${orderId}: Order Amount ₹${validOrderAmount}, Authoritative Profit Base ₹${numericProfit}`);
   
   try {
     const settings = await CommissionSettings.getSettings();

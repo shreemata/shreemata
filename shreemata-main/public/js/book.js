@@ -1564,7 +1564,7 @@ async function loadPreviousAddresses() {
         btn.disabled = false;
 
         if (uniqueAddresses.length === 0) {
-            alert("No previous addresses found. Please enter your address manually.");
+            alert("No saved delivery address yet. Add your address below to continue.");
             return;
         }
 
@@ -1721,7 +1721,7 @@ async function loadPreviousBillingAddresses() {
         btn.disabled = false;
 
         if (uniqueAddresses.length === 0) {
-            alert("No previous addresses found. Please enter your address manually.");
+            alert("No saved delivery address yet. Add your address below to continue.");
             return;
         }
 
