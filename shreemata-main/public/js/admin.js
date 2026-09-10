@@ -271,12 +271,40 @@ function setupImageUploadEventListeners() {
     document.getElementById('closeImageModalBtn')?.addEventListener('click', closeImageConfirmModal);
 }
 
+let activeCommissionSettings = null;
+
+async function fetchActiveCommissionSettings() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        const res = await fetch(`${API}/admin/commission-settings`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            activeCommissionSettings = data.settings || null;
+            console.log('✅ Active commission settings loaded for preview:', activeCommissionSettings);
+            if (typeof updateProfitPreview === 'function') updateProfitPreview();
+            return activeCommissionSettings;
+        } else {
+            console.warn('⚠️ Could not load active commission settings (status ' + res.status + ')');
+        }
+    } catch (err) {
+        console.error('❌ Error loading active commission settings:', err);
+    }
+    if (typeof updateProfitPreview === 'function') updateProfitPreview();
+    return null;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🔍 Admin.js loaded - API URL:', API);
     console.log('🔍 window.API_URL:', window.API_URL);
     console.log('🔍 window.location.origin:', window.location.origin);
     
     checkAdminAuth();
+    fetchActiveCommissionSettings();
     loadClassesAndSubjectsForFilters();
     loadBooks();
     setupEventListeners();
@@ -1517,9 +1545,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const profitTypeEl = document.getElementById('adminProfitType');
     const profitValueEl = document.getElementById('adminProfitValue');
 
-    if (priceEl) priceEl.addEventListener('input', updateProfitPreview);
-    if (profitTypeEl) profitTypeEl.addEventListener('change', updateProfitPreview);
-    if (profitValueEl) profitValueEl.addEventListener('input', updateProfitPreview);
+    ['input', 'change', 'keyup', 'paste'].forEach(evtName => {
+        if (priceEl) priceEl.addEventListener(evtName, updateProfitPreview);
+        if (profitTypeEl) profitTypeEl.addEventListener(evtName, updateProfitPreview);
+        if (profitValueEl) profitValueEl.addEventListener(evtName, updateProfitPreview);
+    });
 });
 
 function updateProfitPreview() {
@@ -1528,43 +1558,109 @@ function updateProfitPreview() {
     const profitValueEl = document.getElementById('adminProfitValue');
     const labelEl = document.getElementById('adminProfitValueLabel');
     
+    const baseEl = document.getElementById('previewProfitBase');
+    const buyerPercentEl = document.getElementById('previewBuyerPercent');
+    const buyerEl = document.getElementById('previewBuyerCashback');
+    const referralPercentEl = document.getElementById('previewReferralPercent');
+    const directEl = document.getElementById('previewDirectReferral');
+    const treePercentEl = document.getElementById('previewTreePercent');
+    const treeEl = document.getElementById('previewTreePool');
+    const trustPercentEl = document.getElementById('previewTrustPercent');
+    const trustEl = document.getElementById('previewTrustFund');
+    const adminPercentEl = document.getElementById('previewAdminPercent');
+    const adminEl = document.getElementById('previewAdminShare');
+    const totalEl = document.getElementById('previewTotalDistribution');
+    const remEl = document.getElementById('previewRemainingProfit');
+    const noteEl = document.getElementById('previewStatusNote');
+
     if (!priceEl || !profitTypeEl || !profitValueEl) return;
 
     const price = Math.max(0, parseFloat(priceEl.value) || 0);
-    const profitType = profitTypeEl.value;
+    const profitType = profitTypeEl.value || 'fixed';
     const rawVal = Math.max(0, parseFloat(profitValueEl.value) || 0);
 
     if (labelEl) {
         labelEl.textContent = profitType === 'percentage' ? 'Profit Percentage (%)' : 'Book Profit (₹)';
     }
 
-    let unitProfit = 0;
-    if (profitType === 'fixed') {
-        unitProfit = Math.min(rawVal, price);
-    } else {
-        unitProfit = Math.min(price, (price * rawVal) / 100);
+    if (!activeCommissionSettings) {
+        if (baseEl) baseEl.textContent = 'Unable to load commission settings.';
+        if (noteEl) {
+            noteEl.textContent = '⚠️ Unable to load active commission settings from backend.';
+            noteEl.style.display = 'block';
+        }
+        if (buyerEl) buyerEl.textContent = '₹0.00';
+        if (directEl) directEl.textContent = '₹0.00';
+        if (treeEl) treeEl.textContent = '₹0.00';
+        if (trustEl) trustEl.textContent = '₹0.00';
+        if (adminEl) adminEl.textContent = '₹0.00';
+        if (totalEl) totalEl.textContent = '₹0.00';
+        if (remEl) remEl.textContent = '₹0.00';
+        return;
     }
 
-    const buyerCashback = unitProfit * 0.03;
-    const directReferral = unitProfit * 0.02;
-    const treePool = unitProfit * 0.04;
-    const trustFund = unitProfit * 0.01;
-    const totalDist = buyerCashback + directReferral + treePool + trustFund;
+    let unitProfit = 0;
+    let statusMessage = '';
+
+    if (profitType === 'fixed') {
+        if (price > 0) {
+            unitProfit = Math.min(rawVal, price);
+            if (rawVal > price) {
+                statusMessage = `Book Profit capped at selling price (₹${price.toFixed(2)})`;
+            }
+        } else {
+            unitProfit = rawVal;
+            if (rawVal > 0) {
+                statusMessage = 'Enter the selling price to validate the internal profit.';
+            }
+        }
+    } else {
+        if (price > 0) {
+            unitProfit = (price * rawVal) / 100;
+            if (unitProfit > price) unitProfit = price;
+        } else {
+            unitProfit = 0;
+            if (rawVal > 0) {
+                statusMessage = 'Enter the selling price to calculate the internal profit.';
+            }
+        }
+    }
+
+    const buyerPercent = activeCommissionSettings.directCommissionPercent !== undefined ? activeCommissionSettings.directCommissionPercent : 30;
+    const referralPercent = activeCommissionSettings.referralCommissionPercent !== undefined ? activeCommissionSettings.referralCommissionPercent : 20;
+    const treePercent = activeCommissionSettings.treeCommissionPoolPercent !== undefined ? activeCommissionSettings.treeCommissionPoolPercent : 40;
+    const trustPercent = activeCommissionSettings.trustFundPercent !== undefined ? activeCommissionSettings.trustFundPercent : 10;
+    const adminPercent = activeCommissionSettings.adminCommissionPercent !== undefined ? activeCommissionSettings.adminCommissionPercent : 0;
+
+    const buyerCashback = unitProfit * (buyerPercent / 100);
+    const directReferral = unitProfit * (referralPercent / 100);
+    const treePool = unitProfit * (treePercent / 100);
+    const trustFund = unitProfit * (trustPercent / 100);
+    const adminShare = unitProfit * (adminPercent / 100);
+
+    const totalDist = buyerCashback + directReferral + treePool + trustFund + adminShare;
     const remaining = Math.max(0, unitProfit - totalDist);
 
-    const baseEl = document.getElementById('previewProfitBase');
-    const buyerEl = document.getElementById('previewBuyerCashback');
-    const directEl = document.getElementById('previewDirectReferral');
-    const treeEl = document.getElementById('previewTreePool');
-    const trustEl = document.getElementById('previewTrustFund');
-    const totalEl = document.getElementById('previewTotalDistribution');
-    const remEl = document.getElementById('previewRemainingProfit');
-
     if (baseEl) baseEl.textContent = `₹${unitProfit.toFixed(2)}`;
+    if (buyerPercentEl) buyerPercentEl.textContent = buyerPercent;
     if (buyerEl) buyerEl.textContent = `₹${buyerCashback.toFixed(2)}`;
+    if (referralPercentEl) referralPercentEl.textContent = referralPercent;
     if (directEl) directEl.textContent = `₹${directReferral.toFixed(2)}`;
+    if (treePercentEl) treePercentEl.textContent = treePercent;
     if (treeEl) treeEl.textContent = `₹${treePool.toFixed(2)}`;
+    if (trustPercentEl) trustPercentEl.textContent = trustPercent;
     if (trustEl) trustEl.textContent = `₹${trustFund.toFixed(2)}`;
+    if (adminPercentEl) adminPercentEl.textContent = adminPercent;
+    if (adminEl) adminEl.textContent = `₹${adminShare.toFixed(2)}`;
     if (totalEl) totalEl.textContent = `₹${totalDist.toFixed(2)}`;
     if (remEl) remEl.textContent = `₹${remaining.toFixed(2)}`;
+
+    if (noteEl) {
+        if (statusMessage) {
+            noteEl.textContent = statusMessage;
+            noteEl.style.display = 'block';
+        } else {
+            noteEl.style.display = 'none';
+        }
+    }
 }
