@@ -50,7 +50,7 @@
                 <span>Store pickup & doorstep courier delivery available across Karnataka</span>
             </div>
             <div class="top-bar-right">
-                <a href="/orders.html" class="top-bar-link">📦 Track Your Order</a>
+                <a href="/track-order.html" class="top-bar-link">📦 Track Your Order</a>
                 <a href="/#trustSection" class="top-bar-link">🛡️ Genuine Curriculum Books</a>
             </div>
         </div>
@@ -792,7 +792,7 @@
                     <h4 class="footer-col-title">CUSTOMER CARE</h4>
                     <ul class="footer-links-list">
                         <li><a href="tel:+919845163604" class="footer-care-phone"><span aria-hidden="true">📞</span> +91 98451 63604</a></li>
-                        <li><a href="/orders.html">Track Order</a></li>
+                        <li><a href="/track-order.html">Track Your Order</a></li>
                         <li><a href="/account.html">My Account</a></li>
                         <li><a href="/#trustSection">Shipping & Pickup</a></li>
                         <li><a href="/#trustSection">Terms & Returns</a></li>
@@ -836,29 +836,38 @@
                 <button type="button" id="drawerCloseBtn" class="drawer-close-btn" aria-label="Close menu">&times;</button>
             </div>
             <nav class="drawer-nav">
-                <a href="/" class="drawer-nav-item">🏠 Home</a>
-                <a href="/#booksSection" class="drawer-nav-item">📚 Textbooks</a>
-                <a href="/#bundlesSection" class="drawer-nav-item">📦 Complete Book Sets</a>
-                <a href="/#classSection" class="drawer-nav-item">🎓 Class 10</a>
-                <a href="/#subjectSection" class="drawer-nav-item">🏷️ Categories</a>
-                <a href="/#notificationsSection" class="drawer-nav-item">🎁 Special Offers</a>
-                <div class="drawer-divider"></div>
-                <div id="drawerUserAuth" style="display: none;">
-                    <div class="drawer-user-info">
-                        <span class="drawer-user-avatar">👤</span>
-                        <span id="drawerUserName" class="drawer-user-name">User</span>
-                    </div>
-                    <a href="/account.html" class="drawer-nav-item">👤 My Account</a>
-                    <a href="/orders.html" class="drawer-nav-item">📦 My Orders</a>
-                    <a href="/referral.html" class="drawer-nav-item">💰 Referral & Rewards</a>
-                    <a href="/admin.html" id="drawerAdminLink" class="drawer-nav-item" style="display: none;">⚙️ Admin Dashboard</a>
-                    <button type="button" id="drawerLogoutBtn" class="drawer-nav-item drawer-logout-btn">🚪 Logout</button>
-                </div>
-                <div id="drawerGuestAuth">
-                    <a href="/login.html" class="drawer-nav-item">🔐 Log In</a>
-                    <a href="/signup.html" class="drawer-nav-item">📝 Create Account</a>
-                </div>
+                <a href="/#booksSection" class="drawer-link">📚 All Books</a>
+                <a href="/bundles.html" class="drawer-link">🎁 Complete Book Sets</a>
+                <a href="/#classSection" class="drawer-link">🎓 Class 10 Curriculum</a>
+                <a href="/#subjectSection" class="drawer-link">🏷️ Categories & Subjects</a>
+                <a href="/#notificationsSection" class="drawer-link">🎉 Offers & Deals</a>
+                <a href="/track-order.html" class="drawer-link">📦 Track Your Order</a>
+                <a href="/cart.html" class="drawer-link">🛒 Shopping Cart</a>
             </nav>
+            <div id="drawerAuthSection" class="drawer-auth">
+                <!-- Guest View -->
+                <div id="drawerGuestAuth" class="drawer-auth-buttons">
+                    <a href="/login.html" class="btn-secondary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">Log In</a>
+                    <a href="/signup.html" class="btn-primary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center;">Sign Up</a>
+                </div>
+                <!-- Logged In View -->
+                <div id="drawerUserAuth" class="drawer-user-menu" style="display: none;">
+                    <div class="drawer-user-info" style="display: flex; align-items: center; gap: 10px; padding: 8px 0 14px; border-bottom: 1px solid var(--sm-border-light, #e2e8f0); margin-bottom: 10px;">
+                        <span class="user-avatar-icon" style="font-size: 20px;">👤</span>
+                        <div>
+                            <span style="font-size: 11px; color: var(--sm-muted, #64748b); text-transform: uppercase; display: block;">Signed in as</span>
+                            <span id="drawerUserName" style="font-size: 14.5px; font-weight: 700; color: var(--sm-ink, #101820);">User</span>
+                        </div>
+                    </div>
+                    <div class="drawer-user-links" style="display: flex; flex-direction: column; gap: 4px;">
+                        <a href="/account.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">👤 My Account</a>
+                        <a href="/orders.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">📦 My Orders</a>
+                        <a href="/referral.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">💰 Referral & Rewards</a>
+                        <a href="/admin.html" id="drawerAdminLink" class="drawer-link" style="min-height: 44px; padding: 10px 12px; display: none;">⚙️ Admin Dashboard</a>
+                        <button type="button" id="drawerLogoutBtn" class="btn-logout-item" style="min-height: 44px; padding: 10px 12px; margin-top: 4px;">🚪 Logout</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -2,718 +2,1518 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Track Dispatch Status - Shree Mata</title>
-    <meta name="description" content="Check the live dispatch and delivery status of your Shree Mata order invoice.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#101820">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Track Your Order - Shree Mata</title>
+    <meta name="description" content="Track your Shree Mata book order, delivery timeline, and courier dispatch status in real time.">
+    <link rel="icon" href="images/press.png" type="image/png">
+    
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Core Stylesheets -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/home-3d.css">
+    <link rel="stylesheet" href="css/customer-layout.css">
+
     <style>
-        :root {
-            --primary: #667eea;
-            --primary-dark: #5066d6;
-            --secondary: #764ba2;
-            --success: #10b981;
-            --success-bg: #ecfdf5;
-            --success-border: #a7f3d0;
-            --warning: #f59e0b;
-            --warning-bg: #fffbeb;
-            --warning-border: #fde68a;
-            --danger: #ef4444;
-            --danger-bg: #fef2f2;
-            --danger-border: #fecaca;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
-            --card-bg: rgba(255, 255, 255, 0.96);
-            --border-color: #e5e7eb;
+        /* ── TRACK ORDER PAGE STYLES ── */
+        .track-page-wrap {
+            min-height: 80vh;
+            background: var(--bg-warm-ivory, #f8f6f0);
+            padding: 40px 0 80px;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #4a2d7a 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px 16px;
-            color: var(--text-dark);
-        }
-
-        .track-container {
-            width: 100%;
-            max-width: 480px;
-            margin: 0 auto;
-        }
-
-        .brand-header {
+        /* Hero Section */
+        .track-hero {
             text-align: center;
-            margin-bottom: 24px;
-            color: #ffffff;
+            max-width: 680px;
+            margin: 0 auto 36px;
+            padding: 0 16px;
         }
 
-        .brand-logo {
+        .track-hero-kicker {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            width: 64px;
-            height: 64px;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border-radius: 18px;
-            font-size: 32px;
-            margin-bottom: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .brand-title {
-            font-family: 'Outfit', sans-serif;
-            font-size: 26px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            margin-bottom: 4px;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .brand-subtitle {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.85);
-            font-weight: 400;
-        }
-
-        .card {
-            background: var(--card-bg);
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #845f06;
+            background: rgba(212, 167, 44, 0.14);
+            border: 1px solid rgba(212, 167, 44, 0.35);
+            padding: 4px 14px;
             border-radius: 20px;
-            padding: 28px 24px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(12px);
-            transition: all 0.3s ease;
-            box-sizing: border-box;
-            max-width: 100%;
+            margin-bottom: 12px;
         }
 
-        @media (max-width: 480px) {
-            .card {
-                padding: 24px 18px;
-                border-radius: 16px;
-            }
+        .track-hero-title {
+            font-family: var(--font-serif, 'Playfair Display', serif);
+            font-size: clamp(1.8rem, 3vw + 0.5rem, 2.6rem);
+            font-weight: 800;
+            color: var(--text-ink, #101820);
+            margin: 0 0 10px 0;
+            line-height: 1.2;
         }
 
-        .form-group {
-            margin-bottom: 20px;
+        .track-hero-subtitle {
+            font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+            color: var(--text-secondary, #64748b);
+            margin: 0;
+            line-height: 1.5;
         }
 
-        .form-label {
-            display: block;
+        /* Tracking Main Container */
+        .track-content-card {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        /* Search Form Card */
+        .track-search-card {
+            background: var(--bg-white-pure, #ffffff);
+            border: 1px solid var(--border-editorial, #e5e0d8);
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 8px 30px rgba(16, 24, 32, 0.06);
+            margin-bottom: 28px;
+        }
+
+        .track-form-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .track-input-label {
             font-size: 14px;
             font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 8px;
+            color: var(--text-ink, #101820);
+            margin-bottom: 4px;
+            display: block;
         }
 
-        .input-wrapper {
+        .track-input-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .track-input-box {
+            flex: 1;
             position: relative;
+            display: flex;
+            align-items: center;
         }
 
-        .input-icon {
+        .track-input-icon {
             position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
+            left: 16px;
             font-size: 18px;
-            color: var(--text-muted);
+            color: var(--text-secondary, #64748b);
             pointer-events: none;
         }
 
-        .form-control {
+        .track-input-field {
             width: 100%;
-            padding: 14px 14px 14px 44px;
-            font-size: 15px;
+            height: 52px;
+            padding: 0 16px 0 48px;
+            font-size: 15.5px;
             font-family: inherit;
             font-weight: 600;
-            color: var(--text-dark);
-            background: #f9fafb;
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
+            color: var(--text-ink, #101820);
+            background: var(--bg-warm-ivory, #f8f6f0);
+            border: 1.5px solid #ded8cc;
+            border-radius: 14px;
             outline: none;
             transition: all 0.2s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
-        .form-control::placeholder {
-            text-transform: none;
-            font-weight: 400;
-            color: #9ca3af;
-            letter-spacing: normal;
-        }
-
-        .form-control:focus {
+        .track-input-field:focus {
             background: #ffffff;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+            border-color: var(--gold-primary, #d4a72c);
+            box-shadow: 0 0 0 4px rgba(212, 167, 44, 0.16);
         }
 
-        .btn-submit {
-            width: 100%;
-            padding: 15px;
-            font-size: 16px;
-            font-weight: 700;
-            font-family: 'Outfit', sans-serif;
-            color: #ffffff;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
-            transition: all 0.25s ease;
-            display: flex;
+        .btn-track-submit {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            height: 52px;
+            padding: 0 28px;
+            background: linear-gradient(135deg, #101820 0%, #1e293b 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 14px;
+            font-family: inherit;
+            font-size: 15.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(16, 24, 32, 0.2);
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
-        .btn-submit:hover:not(:disabled) {
+        .btn-track-submit:hover:not(:disabled) {
+            background: linear-gradient(135deg, #d4a72c 0%, #b88a1b 100%);
+            color: #101820;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.55);
+            box-shadow: 0 6px 18px rgba(212, 167, 44, 0.35);
         }
 
-        .btn-submit:active:not(:disabled) {
-            transform: translateY(0);
-        }
-
-        .btn-submit:disabled {
-            opacity: 0.7;
+        .btn-track-submit:disabled {
+            opacity: 0.65;
             cursor: not-allowed;
         }
 
-        /* Status Result Section */
-        .result-section {
-            margin-top: 24px;
+        /* Empty State */
+        .track-empty-state {
+            background: var(--bg-white-pure, #ffffff);
+            border: 1px dashed #dcd5c7;
+            border-radius: 20px;
+            padding: 48px 24px;
+            text-align: center;
+            color: var(--text-secondary, #64748b);
+        }
+
+        .track-empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .track-empty-title {
+            font-family: var(--font-serif, 'Playfair Display', serif);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-ink, #101820);
+            margin: 0 0 6px 0;
+        }
+
+        .track-empty-desc {
+            font-size: 0.95rem;
+            color: var(--text-secondary, #64748b);
+            margin: 0;
+        }
+
+        /* Loading State */
+        .track-loading-box {
+            background: var(--bg-white-pure, #ffffff);
+            border: 1px solid var(--border-editorial, #e5e0d8);
+            border-radius: 20px;
+            padding: 48px 24px;
+            text-align: center;
             display: none;
-            animation: fadeIn 0.35s ease-out forwards;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .track-spinner {
+            width: 36px;
+            height: 36px;
+            border: 3.5px solid rgba(212, 167, 44, 0.25);
+            border-radius: 50%;
+            border-top-color: var(--gold-primary, #d4a72c);
+            animation: trackSpin 0.8s linear infinite;
+            margin: 0 auto 16px;
         }
 
-        /* Dispatched Box */
-        .status-box-dispatched {
-            background: var(--success-bg);
-            border: 2px solid var(--success-border);
+        @keyframes trackSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error Box */
+        .track-error-box {
+            background: #fef2f2;
+            border: 1.5px solid #fecaca;
             border-radius: 16px;
             padding: 24px 20px;
-            text-align: center;
-            color: #065f46;
-        }
-
-        .status-badge-dispatched {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #10b981;
-            color: #ffffff;
-            padding: 10px 22px;
-            border-radius: 9999px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 20px;
-            font-weight: 800;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
-            margin-bottom: 14px;
-        }
-
-        .status-box-dispatched .status-desc {
-            font-size: 14px;
-            color: #047857;
-            line-height: 1.5;
-            font-weight: 500;
-        }
-
-        .status-box-dispatched .invoice-tag {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 4px 12px;
-            background: rgba(16, 185, 129, 0.15);
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 700;
-            color: #065f46;
-            letter-spacing: 0.5px;
-        }
-
-        /* Courier Box in Dispatched State */
-        .courier-box {
-            background: #ffffff;
-            border: 1px solid var(--success-border);
-            border-radius: 14px;
-            padding: 18px 16px;
-            margin-top: 16px;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
-            text-align: center;
-        }
-
-        .courier-info-line {
-            font-size: 14.5px;
-            color: #065f46;
-            margin-bottom: 12px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-
-        .courier-number {
-            color: #047857;
-            font-family: 'Outfit', sans-serif;
-            font-size: 17px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-        }
-
-        .btn-copy-tracking {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            background: #f0fdf4;
-            border: 1px solid var(--success-border);
-            border-radius: 8px;
-            padding: 5px 8px;
-            cursor: pointer;
-            vertical-align: middle;
-            transition: all 0.2s ease;
-            color: #047857;
-            font-size: 14px;
-            line-height: 1;
-        }
-
-        .btn-copy-tracking:hover {
-            background: #dcfce7;
-            border-color: #86efac;
-            transform: scale(1.05);
-        }
-
-        .btn-copy-tracking:active {
-            transform: scale(0.95);
-        }
-
-        .copy-feedback {
-            display: none;
-            position: absolute;
-            bottom: calc(100% + 6px);
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1f2937;
-            color: #ffffff;
-            font-size: 11px;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            padding: 3px 8px;
-            border-radius: 6px;
-            white-space: nowrap;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            pointer-events: none;
-            animation: fadeIn 0.15s ease-out;
-        }
-
-        .copy-feedback::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border-width: 4px;
-            border-style: solid;
-            border-color: #1f2937 transparent transparent transparent;
-        }
-
-        .btn-track-courier {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 12px 20px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: #ffffff;
-            text-decoration: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 700;
-            font-family: 'Outfit', sans-serif;
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-            transition: all 0.25s ease;
-        }
-
-        .btn-track-courier:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
-        }
-
-        /* Pending Box */
-        .status-box-pending {
-            background: var(--warning-bg);
-            border: 2px solid var(--warning-border);
-            border-radius: 16px;
-            padding: 24px 20px;
-            text-align: center;
-            color: #92400e;
-        }
-
-        .status-badge-pending {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #f59e0b;
-            color: #ffffff;
-            padding: 10px 22px;
-            border-radius: 9999px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 20px;
-            font-weight: 800;
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
-            margin-bottom: 14px;
-        }
-
-        .status-box-pending .status-desc {
-            font-size: 14px;
-            color: #78350f;
-            line-height: 1.5;
-            margin-bottom: 12px;
-            font-weight: 500;
-        }
-
-        .contact-box {
-            background: #ffffff;
-            border: 1px dashed #d97706;
-            border-radius: 10px;
-            padding: 12px 16px;
-            margin-top: 12px;
-            font-size: 14px;
-            color: #92400e;
-        }
-
-        .contact-phone {
-            display: inline-block;
-            font-weight: 800;
-            font-size: 17px;
-            color: #b45309;
-            text-decoration: none;
-            margin-top: 4px;
-            font-family: 'Outfit', sans-serif;
-        }
-
-        .contact-phone:hover {
-            text-decoration: underline;
-        }
-
-        /* Error / Not Found Box */
-        .status-box-error {
-            background: var(--danger-bg);
-            border: 2px solid var(--danger-border);
-            border-radius: 16px;
-            padding: 22px 18px;
             text-align: center;
             color: #991b1b;
+            margin-bottom: 24px;
+            display: none;
         }
 
-        .status-box-error .error-icon {
+        .track-error-icon {
             font-size: 32px;
             margin-bottom: 8px;
         }
 
-        .status-box-error .error-msg {
-            font-size: 14px;
-            font-weight: 600;
-            line-height: 1.5;
-            color: #b91c1c;
+        .track-error-title {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 4px;
         }
 
-        /* Loading Spinner */
-        .spinner {
-            display: inline-block;
+        .track-error-desc {
+            font-size: 14px;
+            color: #b91c1c;
+            margin-bottom: 12px;
+        }
+
+        .track-error-help {
+            font-size: 13.5px;
+            color: #7f1d1d;
+        }
+
+        .track-error-help a {
+            color: #991b1b;
+            font-weight: 700;
+            text-decoration: underline;
+        }
+
+        /* Result Display Card */
+        .track-result-card {
+            background: var(--bg-white-pure, #ffffff);
+            border: 1px solid var(--border-editorial, #e5e0d8);
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 10px 35px rgba(16, 24, 32, 0.07);
+            display: none;
+            animation: trackFadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes trackFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Result Header */
+        .track-header-meta {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border-editorial, #e5e0d8);
+            margin-bottom: 28px;
+        }
+
+        .track-order-num-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .track-order-num {
+            font-family: var(--font-serif, 'Playfair Display', serif);
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: var(--text-ink, #101820);
+        }
+
+        .btn-copy-id {
+            background: var(--bg-warm-ivory, #f8f6f0);
+            border: 1px solid #ded8cc;
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary, #64748b);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .btn-copy-id:hover {
+            background: #ffffff;
+            border-color: var(--gold-primary, #d4a72c);
+            color: var(--text-ink, #101820);
+        }
+
+        .track-order-date {
+            font-size: 13.5px;
+            color: var(--text-secondary, #64748b);
+            margin: 0;
+        }
+
+        .track-badges-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .track-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .pill-pending { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        .pill-processing { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+        .pill-packed { background: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+        .pill-shipped { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .pill-delivered { background: #dcfce7; color: #14532d; border: 1px solid #86efac; }
+        .pill-cancelled { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+        .track-payment-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12.5px;
+            font-weight: 600;
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Timeline Section */
+        .track-timeline-wrap {
+            margin-bottom: 32px;
+        }
+
+        .track-timeline-title {
+            font-family: var(--font-serif, 'Playfair Display', serif);
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-ink, #101820);
+            margin: 0 0 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .track-timeline {
+            position: relative;
+            padding-left: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .track-timeline::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            bottom: 10px;
+            left: 9px;
+            width: 2px;
+            background: #e2e8f0;
+        }
+
+        .timeline-step {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .timeline-node {
+            position: absolute;
+            left: -28px;
+            top: 2px;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.35);
             border-radius: 50%;
-            border-top-color: #ffffff;
-            animation: spin 0.8s linear infinite;
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #64748b;
+            z-index: 1;
+            transition: all 0.2s ease;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .footer-links {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.75);
-        }
-
-        .footer-links a {
+        .timeline-step.completed .timeline-node {
+            background: #101820;
+            border-color: #101820;
             color: #ffffff;
-            text-decoration: none;
-            font-weight: 600;
-            margin: 0 8px;
         }
 
-        .footer-links a:hover {
-            text-decoration: underline;
+        .timeline-step.current .timeline-node {
+            background: #d4a72c;
+            border-color: #d4a72c;
+            color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(212, 167, 44, 0.25);
+        }
+
+        .timeline-step.cancelled .timeline-node {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: #ffffff;
+        }
+
+        .timeline-step-label {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-ink, #101820);
+        }
+
+        .timeline-step.future .timeline-step-label {
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .timeline-step-desc {
+            font-size: 13px;
+            color: var(--text-secondary, #64748b);
+            margin: 0;
+        }
+
+        /* Courier & Delivery Info Box */
+        .track-delivery-box {
+            background: var(--bg-warm-ivory, #f8f6f0);
+            border: 1px solid #ded8cc;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .track-delivery-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .track-delivery-key {
+            color: var(--text-secondary, #64748b);
+            font-weight: 500;
+        }
+
+        .track-delivery-val {
+            color: var(--text-ink, #101820);
+            font-weight: 700;
+        }
+
+        .courier-track-action {
+            margin-top: 6px;
+            padding-top: 12px;
+            border-top: 1px dashed #dcd5c7;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .btn-courier-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff !important;
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+            transition: all 0.2s ease;
+        }
+
+        .btn-courier-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+        }
+
+        /* Items Section */
+        .track-items-wrap {
+            margin-bottom: 28px;
+        }
+
+        .track-items-title {
+            font-family: var(--font-serif, 'Playfair Display', serif);
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-ink, #101820);
+            margin: 0 0 16px 0;
+        }
+
+        .track-items-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .track-item-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg-warm-ivory, #f8f6f0);
+            border: 1px solid #ded8cc;
+            border-radius: 12px;
+            padding: 12px 16px;
+        }
+
+        .track-item-thumb {
+            width: 48px;
+            height: 64px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #ffffff;
+            border: 1px solid #ded8cc;
+            flex-shrink: 0;
+        }
+
+        .track-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .track-item-name {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: var(--text-ink, #101820);
+            margin: 0 0 2px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .track-item-meta {
+            font-size: 13px;
+            color: var(--text-secondary, #64748b);
+            margin: 0;
+        }
+
+        .track-item-price {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-ink, #101820);
+            white-space: nowrap;
+        }
+
+        /* Order Total Box */
+        .track-total-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: #101820;
+            color: #ffffff;
+            border-radius: 14px;
+            margin-bottom: 28px;
+        }
+
+        .track-total-label {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .track-total-amount {
+            font-family: var(--font-serif, 'Playfair Display', serif);
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #f0c96b;
+        }
+
+        /* Action Buttons */
+        .track-actions-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-action-outline {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 22px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-ink, #101820);
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            min-height: 46px;
+        }
+
+        .btn-action-outline:hover {
+            border-color: #101820;
+            background: #f8fafc;
+            color: #101820;
+        }
+
+        .btn-action-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff !important;
+            background: linear-gradient(135deg, #101820 0%, #1e293b 100%);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(16, 24, 32, 0.15);
+            min-height: 46px;
+        }
+
+        .btn-action-primary:hover {
+            background: linear-gradient(135deg, #d4a72c 0%, #b88a1b 100%);
+            color: #101820 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(212, 167, 44, 0.3);
+        }
+
+        /* Logged In Recent Orders Card */
+        .recent-orders-card {
+            background: var(--bg-white-pure, #ffffff);
+            border: 1px solid var(--border-editorial, #e5e0d8);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 6px 24px rgba(16, 24, 32, 0.05);
+            margin-top: 28px;
+            display: none;
+        }
+
+        .recent-orders-title {
+            font-family: var(--font-serif, 'Playfair Display', serif);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-ink, #101820);
+            margin: 0 0 16px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .recent-orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .recent-order-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: var(--bg-warm-ivory, #f8f6f0);
+            border: 1px solid #ded8cc;
+            border-radius: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .recent-order-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .recent-order-id {
+            font-weight: 700;
+            font-size: 14.5px;
+            color: var(--text-ink, #101820);
+        }
+
+        .recent-order-sub {
+            font-size: 12.5px;
+            color: var(--text-secondary, #64748b);
+        }
+
+        .btn-quick-track {
+            background: #101820;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-quick-track:hover {
+            background: var(--gold-primary, #d4a72c);
+            color: #101820;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .track-page-wrap {
+                padding: 24px 0 60px;
+            }
+
+            .track-search-card {
+                padding: 20px 16px;
+                border-radius: 16px;
+            }
+
+            .track-input-row {
+                flex-direction: column;
+            }
+
+            .btn-track-submit {
+                width: 100%;
+            }
+
+            .track-result-card {
+                padding: 20px 16px;
+                border-radius: 16px;
+            }
+
+            .track-actions-row {
+                flex-direction: column;
+            }
+
+            .btn-action-outline, .btn-action-primary {
+                width: 100%;
+            }
+
+            .recent-orders-card {
+                padding: 20px 16px;
+                border-radius: 16px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="track-container">
-        <!-- Header -->
-        <header class="brand-header">
-            <div class="brand-logo">📚</div>
-            <h1 class="brand-title">Shree Mata</h1>
-            <p class="brand-subtitle">Order & Invoice Dispatch Tracking</p>
-        </header>
 
-        <!-- Main Card -->
-        <main class="card">
-            <form id="trackForm" onsubmit="handleTrackSubmit(event)">
-                <div class="form-group">
-                    <label for="invoiceInput" class="form-label">Enter Bill / Invoice Number</label>
-                    <div class="input-wrapper">
-                        <span class="input-icon">🧾</span>
-                        <input 
-                            type="text" 
-                            id="invoiceInput" 
-                            class="form-control" 
-                            placeholder="e.g. SM202608260005" 
-                            autocomplete="off"
-                            autocorrect="off"
-                            autocapitalize="characters"
-                            spellcheck="false"
-                            required
-                        >
+    <!-- 1. UNIVERSAL GLOBAL HEADER -->
+    <header class="main-header" id="globalNavbar">
+        <div class="header-inner">
+            <button type="button" id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="Open navigation menu">☰</button>
+
+            <a href="/" class="brand-logo" aria-label="Shree Mata Home">
+                <img src="images/press.png" alt="Shree Mata" width="44" height="44">
+                <div class="brand-text">
+                    <span class="brand-title">Shree Mata</span>
+                    <span class="brand-sub">Quality Textbooks & Combo Sets</span>
+                </div>
+            </a>
+
+            <div class="header-nav-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/#booksSection" class="nav-link">Books</a>
+                <a href="/bundles.html" class="nav-link">Book Combos</a>
+                <a href="/track-order.html" class="nav-link active">Track Your Order</a>
+                <a href="/referral.html" class="nav-link">Referral</a>
+            </div>
+
+            <div class="header-search">
+                <form class="search-box" onsubmit="event.preventDefault(); handleGlobalSearch();">
+                    <input type="search" id="searchInput" placeholder="Search books, standard, combo sets..." aria-label="Search catalog">
+                    <button type="submit" id="searchBtn" class="search-btn" aria-label="Submit search">Search</button>
+                </form>
+            </div>
+
+            <div class="header-actions">
+                <div id="authLinks" class="auth-buttons">
+                    <a href="/login.html" class="btn-login" style="text-decoration: none;">Log In</a>
+                </div>
+
+                <div id="userLinks" class="user-nav-wrap" style="display: none;">
+                    <button type="button" id="userMenuBtn" class="user-name-badge" aria-expanded="false">
+                        <span class="user-avatar-icon">👤</span>
+                        <span id="userName">Account</span>
+                        <span class="dropdown-arrow">▼</span>
+                    </button>
+                    <div id="userDropdownMenu" class="user-dropdown-menu hidden" role="menu">
+                        <div class="dropdown-user-header">
+                            <div class="dropdown-user-avatar">👤</div>
+                            <div class="dropdown-user-details">
+                                <span id="dropdownUserName" class="dropdown-user-name">Customer</span>
+                                <span id="dropdownUserEmail" class="dropdown-user-email"></span>
+                            </div>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="/account.html" class="dropdown-item" id="accountLink">👤 My Profile</a>
+                        <a href="/orders.html" class="dropdown-item" id="ordersLink">📦 My Orders</a>
+                        <a href="/account.html?section=wallet" class="dropdown-item">💰 Wallet & Cashback</a>
+                        <a href="/referral.html" class="dropdown-item" id="referralLink">🤝 Referral & Rewards</a>
+                        <a href="/account.html?section=membership" class="dropdown-item">🌟 Membership Status</a>
+                        <a href="/account.html?section=vip" class="dropdown-item">👑 VIP Master Card</a>
+                        <a href="/admin.html" class="dropdown-item admin-item" id="adminLink" style="display: none;">⚙️ Admin Portal</a>
+                        <div class="dropdown-divider"></div>
+                        <button type="button" id="logoutBtn" class="dropdown-item logout-item">🚪 Log Out</button>
                     </div>
                 </div>
 
-                <button type="submit" id="submitBtn" class="btn-submit">
-                    <span id="btnIcon">🔍</span>
-                    <span id="btnText">Check Status</span>
-                </button>
-            </form>
+                <a href="/cart.html" id="cartLink" class="cart-btn" aria-label="View shopping cart">
+                    <span>🛒</span>
+                    <span id="cartCount" class="cart-badge">0</span>
+                </a>
+            </div>
+        </div>
+    </header>
 
-            <!-- Dynamic Result Section -->
-            <section id="resultSection" class="result-section" aria-live="polite">
-                <!-- Dispatched State -->
-                <div id="dispatchedBox" class="status-box-dispatched" style="display: none;">
-                    <div class="status-badge-dispatched">
-                        <span>✅</span>
-                        <span>Dispatched</span>
-                    </div>
-                    <p class="status-desc">Your order has been packed and handed over for shipment/delivery.</p>
-                    <div>
-                        <span class="invoice-tag" id="dispatchedInvoiceTag"></span>
-                    </div>
+    <!-- 2. TRACK ORDER MAIN CONTENT -->
+    <main class="track-page-wrap">
+        <!-- Hero Section -->
+        <section class="track-hero">
+            <span class="track-hero-kicker">📍 Live Status & Tracking</span>
+            <h1 class="track-hero-title">Know exactly where your order is.</h1>
+            <p class="track-hero-subtitle">Enter your order details or bill number to view the latest status of your Shree Mata purchase.</p>
+        </section>
 
-                    <!-- Courier Tracking Info (shown when courierNumber is set) -->
-                    <div id="courierDetailsBox" class="courier-box" style="display: none;">
-                        <div class="courier-info-line">
-                            <span>Courier Tracking No:</span>
-                            <strong id="courierNumberDisplay" class="courier-number"></strong>
-                            <button 
-                                type="button" 
-                                id="copyCourierBtn" 
-                                class="btn-copy-tracking" 
-                                onclick="copyTrackingNumber()" 
-                                title="Copy tracking number"
-                                aria-label="Copy tracking number"
+        <!-- Content Area -->
+        <div class="track-content-card">
+            <!-- Search Card -->
+            <div class="track-search-card">
+                <form id="trackOrderForm" onsubmit="handleTrackFormSubmit(event)" class="track-form-grid">
+                    <label for="trackInput" class="track-input-label">Order Number or Bill / Invoice Number</label>
+                    <div class="track-input-row">
+                        <div class="track-input-box">
+                            <span class="track-input-icon">🧾</span>
+                            <input 
+                                type="text" 
+                                id="trackInput" 
+                                class="track-input-field" 
+                                placeholder="e.g. 6aa3ee80... or SM202608260005"
+                                autocomplete="off"
+                                autocorrect="off"
+                                autocapitalize="characters"
+                                spellcheck="false"
+                                required
                             >
-                                <span id="copyIcon">📋</span>
-                                <span id="copyFeedback" class="copy-feedback">Copied!</span>
+                        </div>
+                        <button type="submit" id="trackSubmitBtn" class="btn-track-submit">
+                            <span id="trackBtnIcon">🔍</span>
+                            <span id="trackBtnText">Track Order</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Error Box -->
+            <div id="trackErrorBox" class="track-error-box" role="alert">
+                <div class="track-error-icon">🔍</div>
+                <div class="track-error-title" id="trackErrorTitle">Order Not Found</div>
+                <div class="track-error-desc" id="trackErrorDesc">We couldn't find an order with those details. Please check your order or invoice number.</div>
+                <div class="track-error-help">Need assistance? Contact us at <a href="tel:+919845163604">+91 98451 63604</a> or <a href="tel:9886086278">9886086278</a></div>
+            </div>
+
+            <!-- Loading Box -->
+            <div id="trackLoadingBox" class="track-loading-box" aria-live="polite">
+                <div class="track-spinner"></div>
+                <h3 style="font-family: var(--font-serif); font-size: 1.2rem; margin: 0 0 4px 0;">Finding your order...</h3>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0;">Connecting to Shree Mata fulfillment center</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="trackEmptyState" class="track-empty-state">
+                <span class="track-empty-icon">📦</span>
+                <h3 class="track-empty-title">Your order journey will appear here.</h3>
+                <p class="track-empty-desc">Enter your order number or invoice number above to check the latest live dispatch status.</p>
+            </div>
+
+            <!-- Result Card -->
+            <div id="trackResultCard" class="track-result-card" aria-live="polite">
+                <!-- Meta Header -->
+                <div class="track-header-meta">
+                    <div>
+                        <div class="track-order-num-wrap">
+                            <span class="track-order-num" id="resOrderNum">Order #SM10024</span>
+                            <button type="button" class="btn-copy-id" id="copyIdBtn" onclick="copyOrderId()" title="Copy Order Number">
+                                <span id="copyIdIcon">📋 Copy</span>
                             </button>
                         </div>
-                        <a href="https://www.tpcindia.com/" target="_blank" rel="noopener noreferrer" class="btn-track-courier">
-                            <span>🚀</span>
-                            <span>Track on Courier Website</span>
+                        <p class="track-order-date" id="resOrderDate">Placed on: Aug 26, 2026</p>
+                    </div>
+                    <div class="track-badges-wrap">
+                        <span class="track-status-pill pill-processing" id="resStatusBadge">Processing</span>
+                        <span class="track-payment-pill" id="resPaymentBadge">💳 Paid (Online)</span>
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="track-timeline-wrap">
+                    <h3 class="track-timeline-title">
+                        <span>⏱️ Order Progress Timeline</span>
+                    </h3>
+                    <div class="track-timeline" id="resTimelineList">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+
+                <!-- Delivery Information Box -->
+                <div class="track-delivery-box" id="resDeliveryBox">
+                    <div class="track-delivery-row">
+                        <span class="track-delivery-key">Delivery Method:</span>
+                        <span class="track-delivery-val" id="resDeliveryMethod">Doorstep Delivery</span>
+                    </div>
+                    <div class="track-delivery-row" id="resAddressRow" style="display: none;">
+                        <span class="track-delivery-key">Shipping Address:</span>
+                        <span class="track-delivery-val" id="resAddressVal" style="max-width: 480px; text-align: right;">-</span>
+                    </div>
+                    <div class="courier-track-action" id="resCourierRow" style="display: none;">
+                        <div>
+                            <span class="track-delivery-key" style="display: block; font-size: 12.5px;">Courier Tracking Number:</span>
+                            <strong class="track-delivery-val" id="resCourierNum" style="font-size: 16px;">-</strong>
+                        </div>
+                        <a href="https://www.tpcindia.com/" target="_blank" rel="noopener noreferrer" id="resCourierBtn" class="btn-courier-link">
+                            <span>🚀 Track with Courier</span>
                         </a>
                     </div>
                 </div>
 
-                <!-- Pending State -->
-                <div id="pendingBox" class="status-box-pending" style="display: none;">
-                    <div class="status-badge-pending">
-                        <span>⏳</span>
-                        <span>Pending</span>
-                    </div>
-                    <p class="status-desc">Your order is currently being processed and prepared for dispatch.</p>
-                    <div>
-                        <span class="invoice-tag" id="pendingInvoiceTag" style="background: rgba(245, 158, 11, 0.15); color: #78350f;"></span>
-                    </div>
-                    <div class="contact-box">
-                        <div>For more information, contact:</div>
-                        <a href="tel:9886086278" class="contact-phone">📞 9886086278</a>
+                <!-- Items List -->
+                <div class="track-items-wrap">
+                    <h3 class="track-items-title">Purchased Items</h3>
+                    <div class="track-items-list" id="resItemsList">
+                        <!-- Populated dynamically -->
                     </div>
                 </div>
 
-                <!-- Not Found State -->
-                <div id="errorBox" class="status-box-error" style="display: none;">
-                    <div class="error-icon">🔍</div>
-                    <div class="error-msg" id="errorMsgText">Invoice number not found. Please check and try again.</div>
+                <!-- Order Total -->
+                <div class="track-total-box">
+                    <span class="track-total-label">Total Amount Paid</span>
+                    <span class="track-total-amount" id="resTotalAmount">₹0.00</span>
                 </div>
-            </section>
-        </main>
 
-        <!-- Footer -->
-        <footer class="footer-links">
-            <p>© Shree Mata. All rights reserved.</p>
-            <p style="margin-top: 6px;">
-                <a href="/">Home</a> • 
-                <a href="/cart.html">Cart</a> • 
-                <a href="/account.html">My Account</a> • 
-                <a href="tel:+919845163604" style="font-weight: 600;">📞 +91 98451 63604</a>
-            </p>
-        </footer>
-    </div>
+                <!-- Action Buttons -->
+                <div class="track-actions-row">
+                    <a href="/orders.html" class="btn-action-outline">📦 View My Orders</a>
+                    <a href="/#booksSection" class="btn-action-primary">📚 Continue Shopping</a>
+                    <a href="tel:+919845163604" class="btn-action-outline">📞 Contact Support</a>
+                </div>
+            </div>
 
+            <!-- Logged-in Recent Orders Card -->
+            <div id="recentOrdersCard" class="recent-orders-card">
+                <div class="recent-orders-title">
+                    <span>Recent Orders</span>
+                    <a href="/orders.html" style="font-size: 13.5px; font-weight: 600; color: var(--gold-primary); text-decoration: none;">View All →</a>
+                </div>
+                <div class="recent-orders-list" id="recentOrdersList">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 3. UNIVERSAL FOOTER -->
+    <footer class="main-footer" style="background: #101820; color: #e2e8f0; padding: 60px 0 24px; border-top: 1px solid rgba(255,255,255,0.08);">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 36px; margin-bottom: 40px;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+                        <img src="images/press.png" alt="Shree Mata" width="36" height="36">
+                        <span style="font-family: var(--font-serif); font-size: 20px; font-weight: 700; color: #ffffff;">Shree Mata</span>
+                    </div>
+                    <p style="font-size: 13.5px; color: #94a3b8; line-height: 1.6;">
+                        Karnataka's trusted academic publishing partner. Standard-wise syllabi, comprehensive workbooks, and value combos delivered to your doorstep.
+                    </p>
+                </div>
+                <div>
+                    <h4 style="font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 16px;">Quick Links</h4>
+                    <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; font-size: 14px;">
+                        <li><a href="/" style="color: #94a3b8; text-decoration: none;">Home Catalog</a></li>
+                        <li><a href="/#booksSection" style="color: #94a3b8; text-decoration: none;">Class 1-10 Books</a></li>
+                        <li><a href="/bundles.html" style="color: #94a3b8; text-decoration: none;">All-in-One Combos</a></li>
+                        <li><a href="/track-order.html" style="color: #ffffff; text-decoration: none; font-weight: 600;">Track Your Order</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 16px;">Customer Account</h4>
+                    <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; font-size: 14px;">
+                        <li><a href="/account.html" style="color: #94a3b8; text-decoration: none;">My Account Profile</a></li>
+                        <li><a href="/orders.html" style="color: #94a3b8; text-decoration: none;">Order History</a></li>
+                        <li><a href="/referral.html" style="color: #94a3b8; text-decoration: none;">Referral Network</a></li>
+                        <li><a href="/cart.html" style="color: #94a3b8; text-decoration: none;">Shopping Cart</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 16px;">Store & Support</h4>
+                    <p style="font-size: 13.5px; color: #94a3b8; line-height: 1.6; margin-bottom: 8px;">
+                        📍 Hubli, Karnataka, India
+                    </p>
+                    <p style="font-size: 13.5px; color: #94a3b8; line-height: 1.6; margin-bottom: 4px;">
+                        📞 Helpline: <a href="tel:+919845163604" style="color: #f0c96b; text-decoration: none; font-weight: 700;">+91 98451 63604</a>
+                    </p>
+                    <p style="font-size: 13.5px; color: #94a3b8; line-height: 1.6;">
+                        📦 Dispatch Support: <a href="tel:9886086278" style="color: #f0c96b; text-decoration: none; font-weight: 700;">9886086278</a>
+                    </p>
+                </div>
+            </div>
+            <div style="padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.06); text-align: center; font-size: 13px; color: #64748b;">
+                © 2026 Shree Mata Press & Publications. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- 4. CORE SCRIPTS -->
+    <script src="js/config.js"></script>
+    <script src="js/cartUtils.js"></script>
+    <script src="js/global.js"></script>
+    <script src="js/global-nav.js"></script>
+
+    <!-- 5. TRACK ORDER LOGIC -->
     <script>
-        // Check URL search parameters on page load (e.g. ?invoice=SM... or ?id=SM...)
+        let currentTrackedOrder = null;
+
         document.addEventListener('DOMContentLoaded', () => {
+            // Check for URL query params (e.g. ?order=SM... or ?invoice=SM... or ?id=...)
             const urlParams = new URLSearchParams(window.location.search);
-            const invoiceParam = urlParams.get('invoice') || urlParams.get('id') || urlParams.get('bill');
-            if (invoiceParam) {
-                const input = document.getElementById('invoiceInput');
-                input.value = invoiceParam.trim();
-                checkInvoiceStatus(invoiceParam.trim());
+            const queryVal = urlParams.get('order') || urlParams.get('id') || urlParams.get('invoice') || urlParams.get('bill');
+            
+            if (queryVal) {
+                const input = document.getElementById('trackInput');
+                if (input) input.value = queryVal.trim();
+                executeOrderTracking(queryVal.trim());
             }
+
+            // If logged in, fetch and show recent orders for 1-click tracking
+            loadLoggedInRecentOrders();
         });
 
-        async function handleTrackSubmit(e) {
+        async function handleTrackFormSubmit(e) {
             e.preventDefault();
-            const input = document.getElementById('invoiceInput');
-            const invoiceNumber = input.value.trim();
-            if (!invoiceNumber) return;
-            await checkInvoiceStatus(invoiceNumber);
+            const input = document.getElementById('trackInput');
+            const term = input ? input.value.trim() : '';
+            if (!term) return;
+            await executeOrderTracking(term);
         }
 
-        async function checkInvoiceStatus(invoiceNumber) {
-            const submitBtn = document.getElementById('submitBtn');
-            const btnIcon = document.getElementById('btnIcon');
-            const btnText = document.getElementById('btnText');
-            const resultSection = document.getElementById('resultSection');
-            const dispatchedBox = document.getElementById('dispatchedBox');
-            const pendingBox = document.getElementById('pendingBox');
-            const errorBox = document.getElementById('errorBox');
-            const errorMsgText = document.getElementById('errorMsgText');
+        async function executeOrderTracking(queryTerm) {
+            const submitBtn = document.getElementById('trackSubmitBtn');
+            const btnIcon = document.getElementById('trackBtnIcon');
+            const btnText = document.getElementById('trackBtnText');
+            
+            const emptyState = document.getElementById('trackEmptyState');
+            const loadingBox = document.getElementById('trackLoadingBox');
+            const errorBox = document.getElementById('trackErrorBox');
+            const resultCard = document.getElementById('trackResultCard');
 
-            // Reset previous displays
-            resultSection.style.display = 'none';
-            dispatchedBox.style.display = 'none';
-            pendingBox.style.display = 'none';
-            errorBox.style.display = 'none';
+            // Reset UI States
+            if (emptyState) emptyState.style.display = 'none';
+            if (errorBox) errorBox.style.display = 'none';
+            if (resultCard) resultCard.style.display = 'none';
+            if (loadingBox) loadingBox.style.display = 'block';
 
-            // Loading state
-            submitBtn.disabled = true;
-            btnIcon.innerHTML = '<span class="spinner"></span>';
-            btnText.textContent = 'Checking...';
+            if (submitBtn) submitBtn.disabled = true;
+            if (btnIcon) btnIcon.innerHTML = '<span class="track-spinner" style="width:16px;height:16px;border-width:2px;margin:0;"></span>';
+            if (btnText) btnText.textContent = 'Finding...';
 
             try {
-                const response = await fetch(`/api/invoices/track/${encodeURIComponent(invoiceNumber)}`);
-                const data = await response.json();
+                let foundOrderData = null;
+                let isInvoiceData = false;
 
-                resultSection.style.display = 'block';
-
-                if (response.ok && data && data.invoiceNumber) {
-                    const status = (data.dispatchStatus || 'pending').toLowerCase();
-                    
-                    if (status === 'dispatched') {
-                        document.getElementById('dispatchedInvoiceTag').textContent = `Bill No: ${data.invoiceNumber}`;
-                        const courierBox = document.getElementById('courierDetailsBox');
-                        const courierDisplay = document.getElementById('courierNumberDisplay');
-                        if (data.courierNumber && data.courierNumber.trim()) {
-                            courierDisplay.textContent = data.courierNumber.trim();
-                            courierBox.style.display = 'block';
-                        } else {
-                            courierBox.style.display = 'none';
+                // 1. Try order tracking endpoint
+                try {
+                    const res = await fetch(`/api/orders/track/${encodeURIComponent(queryTerm)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.order) {
+                            foundOrderData = data.order;
                         }
-                        dispatchedBox.style.display = 'block';
-                    } else {
-                        document.getElementById('pendingInvoiceTag').textContent = `Bill No: ${data.invoiceNumber}`;
-                        pendingBox.style.display = 'block';
+                    }
+                } catch (e) {
+                    console.log('Order endpoint check failed, checking invoices:', e);
+                }
+
+                // 2. If not found in orders, check public invoices endpoint
+                if (!foundOrderData) {
+                    try {
+                        const invRes = await fetch(`/api/invoices/track/${encodeURIComponent(queryTerm)}`);
+                        if (invRes.ok) {
+                            const invData = await invRes.json();
+                            if (invData && invData.invoiceNumber) {
+                                foundOrderData = invData;
+                                isInvoiceData = true;
+                            }
+                        }
+                    } catch (e) {
+                        console.log('Invoice endpoint check failed:', e);
+                    }
+                }
+
+                if (loadingBox) loadingBox.style.display = 'none';
+
+                if (foundOrderData) {
+                    currentTrackedOrder = foundOrderData;
+                    renderTrackingResult(foundOrderData, isInvoiceData);
+                    if (resultCard) {
+                        resultCard.style.display = 'block';
+                        resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 } else {
-                    errorMsgText.textContent = 'Invoice number not found. Please check and try again.';
-                    errorBox.style.display = 'block';
+                    showTrackingError("We couldn't find an order or invoice with those details. Please check your number and try again.");
                 }
-            } catch (error) {
-                resultSection.style.display = 'block';
-                errorMsgText.textContent = 'Unable to check status at the moment. Please try again.';
-                errorBox.style.display = 'block';
+
+            } catch (err) {
+                console.error("Tracking error:", err);
+                if (loadingBox) loadingBox.style.display = 'none';
+                showTrackingError("We're having trouble checking your order right now. Please try again.");
             } finally {
-                submitBtn.disabled = false;
-                btnIcon.textContent = '🔍';
-                btnText.textContent = 'Check Status';
+                if (submitBtn) submitBtn.disabled = false;
+                if (btnIcon) btnIcon.textContent = '🔍';
+                if (btnText) btnText.textContent = 'Track Order';
             }
         }
 
-        let copyTimeout = null;
-        async function copyTrackingNumber() {
-            const courierDisplay = document.getElementById('courierNumberDisplay');
-            const trackingNum = courierDisplay ? courierDisplay.textContent.trim() : '';
-            if (!trackingNum) return;
+        function showTrackingError(message) {
+            const errorBox = document.getElementById('trackErrorBox');
+            const errorDesc = document.getElementById('trackErrorDesc');
+            if (errorDesc) errorDesc.textContent = message;
+            if (errorBox) errorBox.style.display = 'block';
+        }
 
-            let copied = false;
+        function renderTrackingResult(data, isInvoiceOnly = false) {
+            const resOrderNum = document.getElementById('resOrderNum');
+            const resOrderDate = document.getElementById('resOrderDate');
+            const resStatusBadge = document.getElementById('resStatusBadge');
+            const resPaymentBadge = document.getElementById('resPaymentBadge');
+            const resTimelineList = document.getElementById('resTimelineList');
+            const resDeliveryMethod = document.getElementById('resDeliveryMethod');
+            const resAddressRow = document.getElementById('resAddressRow');
+            const resAddressVal = document.getElementById('resAddressVal');
+            const resCourierRow = document.getElementById('resCourierRow');
+            const resCourierNum = document.getElementById('resCourierNum');
+            const resCourierBtn = document.getElementById('resCourierBtn');
+            const resItemsList = document.getElementById('resItemsList');
+            const resTotalAmount = document.getElementById('resTotalAmount');
+
+            if (isInvoiceOnly) {
+                // Invoice Dispatch Data
+                const invNum = data.invoiceNumber || 'Invoice';
+                if (resOrderNum) resOrderNum.textContent = `Bill #${invNum}`;
+                if (resOrderDate) resOrderDate.textContent = `Invoice Status Record`;
+                
+                const isDispatched = (data.dispatchStatus || '').toLowerCase() === 'dispatched';
+                if (resStatusBadge) {
+                    resStatusBadge.className = `track-status-pill ${isDispatched ? 'pill-shipped' : 'pill-pending'}`;
+                    resStatusBadge.textContent = isDispatched ? '📦 Dispatched' : '⏳ Pending Dispatch';
+                }
+                if (resPaymentBadge) {
+                    resPaymentBadge.textContent = '🧾 Official Invoice';
+                }
+
+                // Timeline for Invoice
+                if (resTimelineList) {
+                    resTimelineList.innerHTML = `
+                        <div class="timeline-step completed">
+                            <span class="timeline-node">✓</span>
+                            <span class="timeline-step-label">Invoice Generated</span>
+                            <p class="timeline-step-desc">Invoice #${invNum} recorded in fulfillment system.</p>
+                        </div>
+                        <div class="timeline-step ${isDispatched ? 'completed' : 'current'}">
+                            <span class="timeline-node">${isDispatched ? '✓' : '●'}</span>
+                            <span class="timeline-step-label">Fulfillment & Packing</span>
+                            <p class="timeline-step-desc">${isDispatched ? 'Books sorted and packed for delivery.' : 'Order items are currently being packed at the warehouse.'}</p>
+                        </div>
+                        <div class="timeline-step ${isDispatched ? 'current' : 'future'}">
+                            <span class="timeline-node">${isDispatched ? '●' : '○'}</span>
+                            <span class="timeline-step-label">Courier Dispatch / Handover</span>
+                            <p class="timeline-step-desc">${isDispatched ? 'Handed over to delivery transport partner.' : 'Awaiting courier pickup.'}</p>
+                        </div>
+                    `;
+                }
+
+                // Delivery box
+                if (resDeliveryMethod) resDeliveryMethod.textContent = 'Courier / Transport Delivery';
+                if (resAddressRow) resAddressRow.style.display = 'none';
+
+                if (data.courierNumber && data.courierNumber.trim()) {
+                    if (resCourierRow) resCourierRow.style.display = 'flex';
+                    if (resCourierNum) resCourierNum.textContent = data.courierNumber.trim();
+                } else {
+                    if (resCourierRow) resCourierRow.style.display = 'none';
+                }
+
+                if (resItemsList) {
+                    resItemsList.innerHTML = `
+                        <div class="track-item-card">
+                            <span style="font-size: 28px;">📚</span>
+                            <div class="track-item-info">
+                                <h4 class="track-item-name">Invoice Products (Detailed on Bill)</h4>
+                                <p class="track-item-meta">Refer to official printed invoice #${invNum}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (resTotalAmount) resTotalAmount.textContent = 'Verified on Bill';
+                return;
+            }
+
+            // Full Order Object Data
+            const orderIdStr = data._id ? String(data._id).toUpperCase() : 'ORDER';
+            if (resOrderNum) resOrderNum.textContent = `Order #${orderIdStr.slice(-8)}`;
+            
+            // Format date
+            const createdDate = data.createdAt ? new Date(data.createdAt) : new Date();
+            const dateFormatted = createdDate.toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            if (resOrderDate) resOrderDate.textContent = `Placed on: ${dateFormatted}`;
+
+            // Status Badge
+            const status = (data.status || 'pending').toLowerCase();
+            const deliveryStatus = (data.deliveryStatus || 'pending').toLowerCase();
+            const isPickup = data.deliveryMethod === 'pickup';
+
+            let statusLabel = 'Confirmed';
+            let statusPillClass = 'pill-processing';
+
+            if (status === 'cancelled') {
+                statusLabel = 'Cancelled';
+                statusPillClass = 'pill-cancelled';
+            } else if (deliveryStatus === 'delivered') {
+                statusLabel = isPickup ? 'Picked Up' : 'Delivered';
+                statusPillClass = 'pill-delivered';
+            } else if (deliveryStatus === 'shipped') {
+                statusLabel = isPickup ? 'Ready for Pickup' : 'Shipped';
+                statusPillClass = 'pill-shipped';
+            } else if (deliveryStatus === 'processing' || status === 'completed') {
+                statusLabel = 'Processing & Packed';
+                statusPillClass = 'pill-processing';
+            } else if (status === 'pending_payment_verification') {
+                statusLabel = 'Payment Verification';
+                statusPillClass = 'pill-pending';
+            }
+
+            if (resStatusBadge) {
+                resStatusBadge.className = `track-status-pill ${statusPillClass}`;
+                resStatusBadge.textContent = statusLabel;
+            }
+
+            // Payment Badge
+            const paymentType = (data.paymentType || 'online').toUpperCase();
+            const isPaid = status === 'completed' || status === 'paid' || (data.paymentDetails && data.paymentDetails.status === 'verified');
+            if (resPaymentBadge) {
+                resPaymentBadge.textContent = isPaid ? `💳 Paid (${paymentType})` : `⏳ ${paymentType} (Pending)`;
+            }
+
+            // Build Visual Timeline
+            if (resTimelineList) {
+                if (status === 'cancelled') {
+                    resTimelineList.innerHTML = `
+                        <div class="timeline-step completed">
+                            <span class="timeline-node">✓</span>
+                            <span class="timeline-step-label">Order Submitted</span>
+                            <p class="timeline-step-desc">Order #${orderIdStr.slice(-8)} was created.</p>
+                        </div>
+                        <div class="timeline-step cancelled">
+                            <span class="timeline-node">✕</span>
+                            <span class="timeline-step-label">Order Cancelled</span>
+                            <p class="timeline-step-desc">This order has been cancelled.</p>
+                        </div>
+                    `;
+                } else if (isPickup) {
+                    // Store Pickup Flow
+                    const isStep1Done = true;
+                    const isStep2Done = isPaid;
+                    const isStep3Done = deliveryStatus === 'processing' || deliveryStatus === 'shipped' || deliveryStatus === 'delivered';
+                    const isStep4Done = deliveryStatus === 'shipped' || deliveryStatus === 'delivered';
+                    const isStep5Done = deliveryStatus === 'delivered';
+
+                    resTimelineList.innerHTML = `
+                        <div class="timeline-step ${isStep1Done ? 'completed' : 'current'}">
+                            <span class="timeline-node">${isStep1Done ? '✓' : '●'}</span>
+                            <span class="timeline-step-label">Order Confirmed</span>
+                            <p class="timeline-step-desc">Order registered successfully.</p>
+                        </div>
+                        <div class="timeline-step ${isStep2Done ? 'completed' : 'current'}">
+                            <span class="timeline-node">${isStep2Done ? '✓' : '●'}</span>
+                            <span class="timeline-step-label">Payment Verified</span>
+                            <p class="timeline-step-desc">${isStep2Done ? 'Payment received & receipt issued.' : 'Awaiting payment confirmation.'}</p>
+                        </div>
+                        <div class="timeline-step ${isStep3Done ? 'completed' : (isStep2Done ? 'current' : 'future')}">
+                            <span class="timeline-node">${isStep3Done ? '✓' : (isStep2Done ? '●' : '○')}</span>
+                            <span class="timeline-step-label">Preparing Order</span>
+                            <p class="timeline-step-desc">Books collected and packed for store pickup.</p>
+                        </div>
+                        <div class="timeline-step ${isStep4Done ? 'completed' : (isStep3Done ? 'current' : 'future')}">
+                            <span class="timeline-node">${isStep4Done ? '✓' : (isStep3Done ? '●' : '○')}</span>
+                            <span class="timeline-step-label">Ready for Store Pickup</span>
+                            <p class="timeline-step-desc">${isStep4Done ? 'Ready at Hubli store counter.' : 'Will notify once ready.'}</p>
+                        </div>
+                        <div class="timeline-step ${isStep5Done ? 'completed' : (isStep4Done ? 'current' : 'future')}">
+                            <span class="timeline-node">${isStep5Done ? '✓' : (isStep4Done ? '●' : '○')}</span>
+                            <span class="timeline-step-label">Picked Up</span>
+                            <p class="timeline-step-desc">${isStep5Done ? 'Collected by customer.' : 'Awaiting pickup.'}</p>
+                        </div>
+                    `;
+                } else {
+                    // Courier / Home Delivery Flow
+                    const isStep1Done = true;
+                    const isStep2Done = isPaid;
+                    const isStep3Done = deliveryStatus === 'processing' || deliveryStatus === 'shipped' || deliveryStatus === 'delivered';
+                    const isStep4Done = deliveryStatus === 'shipped' || deliveryStatus === 'delivered';
+                    const isStep5Done = deliveryStatus === 'delivered';
+
+                    resTimelineList.innerHTML = `
+                        <div class="timeline-step ${isStep1Done ? 'completed' : 'current'}">
+                            <span class="timeline-node">${isStep1Done ? '✓' : '●'}</span>
+                            <span class="timeline-step-label">Order Confirmed</span>
+                            <p class="timeline-step-desc">Order placed and confirmed in system.</p>
+                        </div>
+                        <div class="timeline-step ${isStep2Done ? 'completed' : 'current'}">
+                            <span class="timeline-node">${isStep2Done ? '✓' : '●'}</span>
+                            <span class="timeline-step-label">Payment Verified</span>
+                            <p class="timeline-step-desc">${isStep2Done ? 'Payment confirmed.' : 'Awaiting payment verification.'}</p>
+                        </div>
+                        <div class="timeline-step ${isStep3Done ? 'completed' : (isStep2Done ? 'current' : 'future')}">
+                            <span class="timeline-node">${isStep3Done ? '✓' : (isStep2Done ? '●' : '○')}</span>
+                            <span class="timeline-step-label">Processing & Packed</span>
+                            <p class="timeline-step-desc">${isStep3Done ? 'Books inspected and packaged.' : 'Items being packaged at fulfillment warehouse.'}</p>
+                        </div>
+                        <div class="timeline-step ${isStep4Done ? 'completed' : (isStep3Done ? 'current' : 'future')}">
+                            <span class="timeline-node">${isStep4Done ? '✓' : (isStep3Done ? '●' : '○')}</span>
+                            <span class="timeline-step-label">Dispatched / In Transit</span>
+                            <p class="timeline-step-desc">${isStep4Done ? 'Handed over to courier partner.' : 'Courier pickup scheduled.'}</p>
+                        </div>
+                        <div class="timeline-step ${isStep5Done ? 'completed' : (isStep4Done ? 'current' : 'future')}">
+                            <span class="timeline-node">${isStep5Done ? '✓' : (isStep4Done ? '●' : '○')}</span>
+                            <span class="timeline-step-label">Delivered</span>
+                            <p class="timeline-step-desc">${isStep5Done ? 'Order delivered successfully!' : 'Will be delivered to your doorstep.'}</p>
+                        </div>
+                    `;
+                }
+            }
+
+            // Delivery Details
+            if (resDeliveryMethod) {
+                resDeliveryMethod.textContent = isPickup ? 'Store Pickup (Hubli Branch)' : 'Doorstep Courier Delivery';
+            }
+
+            // Address
+            if (data.deliveryAddress && !isPickup) {
+                const addr = data.deliveryAddress;
+                const addrParts = [addr.street, addr.taluk, addr.district, addr.state, addr.pincode ? `PIN: ${addr.pincode}` : '']
+                    .filter(Boolean)
+                    .join(', ');
+                
+                if (addrParts && resAddressVal && resAddressRow) {
+                    resAddressVal.textContent = addrParts;
+                    resAddressRow.style.display = 'flex';
+                } else if (resAddressRow) {
+                    resAddressRow.style.display = 'none';
+                }
+            } else if (resAddressRow) {
+                resAddressRow.style.display = 'none';
+            }
+
+            // Courier info
+            const tracking = data.trackingInfo || {};
+            const trackingId = tracking.trackingId || data.courierNumber || '';
+            const trackingUrl = tracking.trackingUrl || tracking.trackingWebsite || 'https://www.tpcindia.com/';
+
+            if (trackingId && resCourierRow && resCourierNum) {
+                resCourierNum.textContent = trackingId;
+                if (resCourierBtn) resCourierBtn.href = trackingUrl;
+                resCourierRow.style.display = 'flex';
+            } else if (resCourierRow) {
+                resCourierRow.style.display = 'none';
+            }
+
+            // Items List
+            if (resItemsList && Array.isArray(data.items)) {
+                resItemsList.innerHTML = data.items.map(item => {
+                    const cover = item.coverImage || 'images/press.png';
+                    const qty = item.quantity || 1;
+                    const price = parseFloat(item.price) || 0;
+                    const lineTotal = price * qty;
+                    return `
+                        <div class="track-item-card">
+                            <img src="${cover}" alt="${item.title || 'Book'}" class="track-item-thumb" onerror="this.src='images/press.png'">
+                            <div class="track-item-info">
+                                <h4 class="track-item-name">${item.title || 'Book Item'}</h4>
+                                <p class="track-item-meta">Qty: ${qty} × ₹${price.toFixed(2)}</p>
+                            </div>
+                            <div class="track-item-price">₹${lineTotal.toFixed(2)}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Total Amount
+            const total = parseFloat(data.totalAmount) || 0;
+            if (resTotalAmount) resTotalAmount.textContent = `₹${total.toFixed(2)}`;
+        }
+
+        async function copyOrderId() {
+            if (!currentTrackedOrder) return;
+            const idToCopy = currentTrackedOrder._id ? String(currentTrackedOrder._id) : (currentTrackedOrder.invoiceNumber || '');
+            if (!idToCopy) return;
+
             try {
                 if (navigator.clipboard) {
-                    await navigator.clipboard.writeText(trackingNum);
-                    copied = true;
+                    await navigator.clipboard.writeText(idToCopy);
                 }
             } catch (err) {
-                // Clipboard API error, attempt fallback below
+                const ta = document.createElement('textarea');
+                ta.value = idToCopy;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
             }
 
-            if (!copied) {
-                try {
-                    const textArea = document.createElement('textarea');
-                    textArea.value = trackingNum;
-                    textArea.style.position = 'fixed';
-                    textArea.style.left = '-999999px';
-                    textArea.style.top = '-999999px';
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    copied = document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                } catch (fallbackErr) {
-                    copied = false;
+            const copyBtn = document.getElementById('copyIdIcon');
+            if (copyBtn) {
+                copyBtn.textContent = '✅ Copied!';
+                setTimeout(() => { copyBtn.textContent = '📋 Copy'; }, 1500);
+            }
+        }
+
+        async function loadLoggedInRecentOrders() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const recentCard = document.getElementById('recentOrdersCard');
+            const recentList = document.getElementById('recentOrdersList');
+            if (!recentCard || !recentList) return;
+
+            try {
+                const res = await fetch(`${API_URL}/orders`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (res.ok && data.orders && data.orders.length > 0) {
+                    const topOrders = data.orders.slice(0, 3);
+                    recentList.innerHTML = topOrders.map(order => {
+                        const oid = String(order._id);
+                        const shortId = oid.slice(-8).toUpperCase();
+                        const amount = parseFloat(order.totalAmount || 0).toFixed(2);
+                        const status = order.status || 'pending';
+                        return `
+                            <div class="recent-order-item">
+                                <div class="recent-order-info">
+                                    <span class="recent-order-id">Order #${shortId}</span>
+                                    <span class="recent-order-sub">₹${amount} • Status: ${status}</span>
+                                </div>
+                                <button type="button" class="btn-quick-track" onclick="quickTrackOrder('${oid}')">Track →</button>
+                            </div>
+                        `;
+                    }).join('');
+                    recentCard.style.display = 'block';
                 }
+            } catch (err) {
+                console.log('Error loading logged in recent orders:', err);
             }
+        }
 
-            if (copied) {
-                const icon = document.getElementById('copyIcon');
-                const feedback = document.getElementById('copyFeedback');
-                if (icon) icon.textContent = '✅';
-                if (feedback) feedback.style.display = 'block';
-
-                clearTimeout(copyTimeout);
-                copyTimeout = setTimeout(() => {
-                    if (icon) icon.textContent = '📋';
-                    if (feedback) feedback.style.display = 'none';
-                }, 1500);
-            }
+        function quickTrackOrder(orderId) {
+            const input = document.getElementById('trackInput');
+            if (input) input.value = orderId;
+            executeOrderTracking(orderId);
         }
     </script>
 </body>

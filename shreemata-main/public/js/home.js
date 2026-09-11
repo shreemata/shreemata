@@ -1105,6 +1105,41 @@ function handleFilters() {
     filterAndDisplayBooks(selectedClass, selectedSubject, searchTerm);
 }
 
+window.filterAndDisplayBooks = filterAndDisplayBooks;
+
+window.filterByClass = function (classValue, el) {
+    document.querySelectorAll('.discovery-class-btn, .class-chip-pill').forEach(c => c.classList.remove('active'));
+    if (el && el.classList) {
+        el.classList.add('active');
+    } else if (classValue) {
+        const btn = document.querySelector(`.discovery-class-btn[data-class="${classValue}"]`);
+        if (btn) btn.classList.add('active');
+    }
+
+    const classFilter = document.getElementById('classFilter');
+    if (classFilter) {
+        let exists = Array.from(classFilter.options).some(opt => opt.value === String(classValue));
+        if (!exists && classValue) {
+            const opt = document.createElement('option');
+            opt.value = classValue;
+            opt.textContent = `Class ${classValue}`;
+            classFilter.appendChild(opt);
+        }
+        classFilter.value = classValue;
+    }
+
+    const subjectFilter = document.getElementById('subjectFilter');
+    const selectedSubject = subjectFilter ? subjectFilter.value : '';
+    const searchInput = document.getElementById("searchInput");
+    const searchTerm = searchInput ? searchInput.value.trim() : '';
+    filterAndDisplayBooks(String(classValue), selectedSubject, searchTerm);
+
+    const booksSection = document.getElementById('booksSection');
+    if (booksSection) {
+        booksSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+};
+
 function filterAndDisplayBooks(selectedClass = '', selectedSubject = '', searchTerm = '') {
     if (!searchTerm) {
         const searchInput = document.getElementById("searchInput");

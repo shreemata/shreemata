@@ -119,7 +119,7 @@
                 <span>Store pickup & doorstep courier delivery available across Karnataka</span>
             </div>
             <div class="top-bar-right">
-                <a href="/orders.html" class="top-bar-link">📦 Track Your Order</a>
+                <a href="/track-order.html" class="top-bar-link">📦 Track Your Order</a>
                 <a href="#trustSection" class="top-bar-link">🛡️ Genuine Curriculum Books</a>
             </div>
         </div>
@@ -334,7 +334,7 @@
         </section>
 
         <!-- 5. QUICK CATEGORY DISCOVERY ("What are you looking for?") -->
-        <section class="discovery-section" aria-labelledby="discoveryHeading">
+        <section class="discovery-section" id="discoverySection" aria-labelledby="discoveryHeading">
             <div class="container">
                 <div class="section-header-wrap" style="margin-bottom: 24px;">
                     <div class="section-title-wrap">
@@ -342,33 +342,75 @@
                         <h2 id="discoveryHeading" class="section-title" style="font-size: clamp(1.6rem, 2vw + 0.5rem, 2.2rem);">What are you looking for?</h2>
                     </div>
                 </div>
-                <div class="discovery-grid">
-                    <div class="discovery-card" onclick="document.getElementById('booksSection').scrollIntoView({behavior: 'smooth'})">
-                        <div class="discovery-icon-box">📚</div>
-                        <div class="discovery-info">
-                            <h3>Individual Books</h3>
-                            <p>Browse textbooks & guides</p>
-                        </div>
+
+                <!-- 1. SHOP BY CLASS -->
+                <div class="discovery-subsection discovery-class-block">
+                    <div class="discovery-subhead-wrap">
+                        <h3 class="discovery-subhead">🎓 Shop by Class</h3>
+                        <p class="discovery-subtext">Find books for your class</p>
                     </div>
-                    <div class="discovery-card" onclick="document.getElementById('bundlesSection').scrollIntoView({behavior: 'smooth'})">
-                        <div class="discovery-icon-box">📦</div>
-                        <div class="discovery-info">
-                            <h3>Complete Book Sets</h3>
-                            <p>Save more with grade combos</p>
-                        </div>
+                    <div class="discovery-class-grid">
+                        <button type="button" class="discovery-class-btn" data-class="1" onclick="filterByClass('1', this)" aria-label="Shop books for Class 1">
+                            <span class="discovery-class-icon">📖</span>
+                            <span class="discovery-class-title">Class 1</span>
+                        </button>
+                        <button type="button" class="discovery-class-btn" data-class="2" onclick="filterByClass('2', this)" aria-label="Shop books for Class 2">
+                            <span class="discovery-class-icon">📖</span>
+                            <span class="discovery-class-title">Class 2</span>
+                        </button>
+                        <button type="button" class="discovery-class-btn" data-class="3" onclick="filterByClass('3', this)" aria-label="Shop books for Class 3">
+                            <span class="discovery-class-icon">📖</span>
+                            <span class="discovery-class-title">Class 3</span>
+                        </button>
+                        <button type="button" class="discovery-class-btn" data-class="4" onclick="filterByClass('4', this)" aria-label="Shop books for Class 4">
+                            <span class="discovery-class-icon">📖</span>
+                            <span class="discovery-class-title">Class 4</span>
+                        </button>
+                        <button type="button" class="discovery-class-btn" data-class="5" onclick="filterByClass('5', this)" aria-label="Shop books for Class 5">
+                            <span class="discovery-class-icon">📖</span>
+                            <span class="discovery-class-title">Class 5</span>
+                        </button>
+                        <button type="button" class="discovery-class-btn" data-class="6" onclick="filterByClass('6', this)" aria-label="Shop books for Class 6">
+                            <span class="discovery-class-icon">📖</span>
+                            <span class="discovery-class-title">Class 6</span>
+                        </button>
+                        <button type="button" class="discovery-class-btn" data-class="7" onclick="filterByClass('7', this)" aria-label="Shop books for Class 7">
+                            <span class="discovery-class-icon">📖</span>
+                            <span class="discovery-class-title">Class 7</span>
+                        </button>
+                        <button type="button" class="discovery-class-btn" data-class="8" onclick="filterByClass('8', this)" aria-label="Shop books for Class 8">
+                            <span class="discovery-class-icon">📖</span>
+                            <span class="discovery-class-title">Class 8</span>
+                        </button>
+                        <button type="button" class="discovery-class-btn" data-class="9" onclick="filterByClass('9', this)" aria-label="Shop books for Class 9">
+                            <span class="discovery-class-icon">📖</span>
+                            <span class="discovery-class-title">Class 9</span>
+                        </button>
+                        <button type="button" class="discovery-class-btn" data-class="10" onclick="filterByClass('10', this)" aria-label="Shop books for Class 10">
+                            <span class="discovery-class-icon">📖</span>
+                            <span class="discovery-class-title">Class 10</span>
+                        </button>
                     </div>
-                    <div class="discovery-card" onclick="document.getElementById('classSection').scrollIntoView({behavior: 'smooth'})">
-                        <div class="discovery-icon-box">🎓</div>
-                        <div class="discovery-info">
-                            <h3>Shop by Class</h3>
-                            <p>Grade-specific syllabus</p>
-                        </div>
+                </div>
+
+                <!-- 2. SHOP BY COMBO -->
+                <div class="discovery-subsection discovery-combo-block">
+                    <div class="discovery-subhead-wrap">
+                        <h3 class="discovery-subhead">📦 Shop by Combo</h3>
+                        <p class="discovery-subtext">Complete book sets for your class</p>
                     </div>
-                    <div class="discovery-card" onclick="document.getElementById('subjectSection').scrollIntoView({behavior: 'smooth'})">
-                        <div class="discovery-icon-box">📖</div>
-                        <div class="discovery-info">
-                            <h3>Shop by Subject</h3>
-                            <p>Math, Science, Languages</p>
+                    <div class="discovery-combo-card">
+                        <div class="discovery-combo-content">
+                            <span class="discovery-combo-badge">Combo Deals</span>
+                            <h4 class="discovery-combo-title">Complete Book Sets</h4>
+                            <p class="discovery-combo-desc">Get all required books together in one convenient combo.</p>
+                            <a href="bundles.html" class="discovery-combo-btn" id="viewBookCombosBtn">
+                                <span>View Book Combos</span>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                            </a>
+                        </div>
+                        <div class="discovery-combo-visual" aria-hidden="true">
+                            <div class="discovery-combo-icon-bubble">📦</div>
                         </div>
                     </div>
                 </div>
@@ -603,7 +645,7 @@
                     <h4 class="footer-col-title">CUSTOMER CARE</h4>
                     <ul class="footer-links-list">
                         <li><a href="tel:+919845163604" class="footer-care-phone"><span aria-hidden="true">📞</span> +91 98451 63604</a></li>
-                        <li><a href="/orders.html">Track Order</a></li>
+                        <li><a href="/track-order.html">Track Your Order</a></li>
                         <li><a href="/account.html">Contact Us</a></li>
                         <li><a href="#trustSection">Shipping</a></li>
                         <li><a href="#trustSection">Returns</a></li>
@@ -726,12 +768,12 @@
                 <button type="button" id="drawerCloseBtn" class="drawer-close-btn" aria-label="Close menu">&times;</button>
             </div>
             <nav class="drawer-nav">
-                <a href="#booksSection" class="drawer-link">📚 All Books</a>
-                <a href="#bundlesSection" class="drawer-link">🎁 Complete Book Sets</a>
-                <a href="#classSection" class="drawer-link">🎓 Class 10 Curriculum</a>
-                <a href="#subjectSection" class="drawer-link">🏷️ Categories & Subjects</a>
-                <a href="#notificationsSection" class="drawer-link">🎉 Offers & Deals</a>
-                <a href="/orders.html" class="drawer-link">📦 Track Orders</a>
+                <a href="/#booksSection" class="drawer-link">📚 All Books</a>
+                <a href="/bundles.html" class="drawer-link">🎁 Complete Book Sets</a>
+                <a href="/#classSection" class="drawer-link">🎓 Class 10 Curriculum</a>
+                <a href="/#subjectSection" class="drawer-link">🏷️ Categories & Subjects</a>
+                <a href="/#notificationsSection" class="drawer-link">🎉 Offers & Deals</a>
+                <a href="/track-order.html" class="drawer-link">📦 Track Your Order</a>
                 <a href="/cart.html" class="drawer-link">🛒 Shopping Cart</a>
             </nav>
             <div id="drawerAuthSection" class="drawer-auth">

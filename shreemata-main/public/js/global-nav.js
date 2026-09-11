@@ -225,16 +225,13 @@
                         <button type="button" id="drawerCloseBtn" class="drawer-close-btn" aria-label="Close menu">&times;</button>
                     </div>
                     <nav class="drawer-nav">
-                        <a href="/" class="drawer-link">🏠 Home</a>
-                        <a href="/#booksSection" class="drawer-link">📚 Books</a>
-                        <a href="/bundles.html" class="drawer-link">🎁 Bundles & Sets</a>
-                        <a href="/account.html" class="drawer-link">👤 My Account</a>
-                        <a href="/orders.html" class="drawer-link">📦 My Orders</a>
-                        <a href="/referral.html" class="drawer-link">💰 Referral Network</a>
-                        <a href="/account.html?section=membership" class="drawer-link">🌟 Membership</a>
-                        <a href="/account.html?section=vip" class="drawer-link">👑 VIP Master Card</a>
-                        <a href="/cart.html" class="drawer-link">🛒 Cart</a>
-                        <a href="/account.html?section=store" class="drawer-link">🏪 Contact & Store</a>
+                        <a href="/#booksSection" class="drawer-link">📚 All Books</a>
+                        <a href="/bundles.html" class="drawer-link">🎁 Complete Book Sets</a>
+                        <a href="/#classSection" class="drawer-link">🎓 Class 10 Curriculum</a>
+                        <a href="/#subjectSection" class="drawer-link">🏷️ Categories & Subjects</a>
+                        <a href="/#notificationsSection" class="drawer-link">🎉 Offers & Deals</a>
+                        <a href="/track-order.html" class="drawer-link">📦 Track Your Order</a>
+                        <a href="/cart.html" class="drawer-link">🛒 Shopping Cart</a>
                     </nav>
                     <div id="drawerAuthSection" class="drawer-auth">
                         <div id="drawerGuestAuth" class="drawer-auth-buttons">
@@ -250,6 +247,9 @@
                                 </div>
                             </div>
                             <div class="drawer-user-links" style="display: flex; flex-direction: column; gap: 4px;">
+                                <a href="/account.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">👤 My Account</a>
+                                <a href="/orders.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">📦 My Orders</a>
+                                <a href="/referral.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">💰 Referral & Rewards</a>
                                 <a href="/admin.html" id="drawerAdminLink" class="drawer-link" style="min-height: 44px; padding: 10px 12px; display: none; color: #0284c7;">⚙️ Admin Dashboard</a>
                                 <button type="button" id="drawerLogoutBtn" class="btn-logout-item" style="min-height: 44px; padding: 10px 12px; margin-top: 4px; border: none; background: transparent; color: #dc2626; font-size: 14.5px; font-weight: 600; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px;">🚪 Logout</button>
                             </div>
@@ -287,7 +287,7 @@
         if (!drawer) return;
 
         function openDrawer(e) {
-            if (e) e.preventDefault();
+            if (e && e.preventDefault) e.preventDefault();
             drawer.classList.add("open");
             drawer.classList.add("is-open");
             drawer.setAttribute("aria-hidden", "false");
@@ -295,21 +295,29 @@
             document.body.style.overflow = "hidden";
         }
 
-        function closeDrawer(e) {
-            if (e && e.preventDefault) e.preventDefault();
+        function closeDrawer() {
             drawer.classList.remove("open");
             drawer.classList.remove("is-open");
             drawer.setAttribute("aria-hidden", "true");
             if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "false");
             document.body.style.overflow = "";
         }
+        window.closeMobileNavDrawer = closeDrawer;
 
         if (toggleBtn) {
             toggleBtn.removeEventListener("click", openDrawer);
             toggleBtn.addEventListener("click", openDrawer);
         }
-        if (backdrop) backdrop.addEventListener("click", closeDrawer);
-        if (closeBtn) closeBtn.addEventListener("click", closeDrawer);
+
+        if (backdrop) {
+            backdrop.removeEventListener("click", closeDrawer);
+            backdrop.addEventListener("click", closeDrawer);
+        }
+
+        if (closeBtn) {
+            closeBtn.removeEventListener("click", closeDrawer);
+            closeBtn.addEventListener("click", closeDrawer);
+        }
 
         document.addEventListener("keydown", (e) => {
             if (e.key === "Escape" && (drawer.classList.contains("open") || drawer.classList.contains("is-open"))) {
@@ -318,10 +326,62 @@
             }
         });
 
-        // Close mobile drawer when clicking any link or action button inside
-        drawer.querySelectorAll("a, button:not(#drawerCloseBtn)").forEach(item => {
-            item.addEventListener("click", closeDrawer);
-        });
+        // Event delegation on the drawer container for all links & buttons
+        drawer.removeEventListener("click", handleDrawerClick);
+        drawer.addEventListener("click", handleDrawerClick);
+
+        function handleDrawerClick(e) {
+            if (e.target === backdrop) {
+                closeDrawer();
+                return;
+            }
+
+            if (e.target.closest("#drawerCloseBtn")) {
+                closeDrawer();
+                return;
+            }
+
+            const target = e.target.closest("a, button");
+            if (!target) return;
+
+            // Handle Logout
+            if (target.id === "drawerLogoutBtn" || target.classList.contains("btn-logout-item") || target.classList.contains("drawer-logout-btn")) {
+                e.preventDefault();
+                closeDrawer();
+                handleGlobalLogout(e);
+                return;
+            }
+
+            // For normal navigation anchors:
+            const href = target.getAttribute("href");
+            if (!href) return;
+
+            const isHomePage = window.location.pathname === "/" || window.location.pathname.endsWith("index.html") || window.location.pathname === "";
+
+            // If on home page and clicking a hash link
+            if (isHomePage && (href.startsWith("#") || href.startsWith("/#"))) {
+                e.preventDefault();
+                const hash = href.startsWith("/#") ? href.substring(1) : href;
+                const targetId = hash.replace("#", "");
+                closeDrawer();
+
+                if (targetId === "classSection" && typeof window.filterByClass === "function") {
+                    window.filterByClass("10");
+                } else {
+                    setTimeout(() => {
+                        const el = document.getElementById(targetId);
+                        if (el) {
+                            el.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }
+                    }, 120);
+                }
+                return;
+            }
+
+            // For external or regular page links (e.g. /account.html, /orders.html, /bundles.html, /login.html, etc.):
+            // Close drawer so scroll is unlocked, allow browser to navigate naturally.
+            closeDrawer();
+        }
     }
 
     // ── 7. ATTACH EVENT LISTENERS ──

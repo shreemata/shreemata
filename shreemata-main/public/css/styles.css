@@ -2334,8 +2334,6 @@ img, video, canvas, svg {
         font-size: 12px !important;
         cursor: pointer !important;
         flex-shrink: 0 !important;
-    }
-        cursor: pointer !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -2447,6 +2445,10 @@ img, video, canvas, svg {
     color: #1e293b;
     text-decoration: none;
     min-height: 44px;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
     transition: background 0.15s ease;
 }
 

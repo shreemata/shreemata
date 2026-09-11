@@ -295,6 +295,51 @@ router.get("/", authenticateToken, async (req, res) => {
 });
 
 /**
+ * PUBLIC ORDER TRACKING ROUTE (SAFE FOR CUSTOMERS)
+ */
+router.get("/track/:orderId", async (req, res) => {
+    try {
+        const rawId = (req.params.orderId || '').trim();
+        if (!rawId) {
+            return res.status(400).json({ error: "Order ID or Number is required" });
+        }
+
+        let order = null;
+
+        // 1. Try finding by MongoDB ObjectId
+        if (mongoose.Types.ObjectId.isValid(rawId)) {
+            order = await Order.findById(rawId)
+                .populate("user_id", "name email phone")
+                .lean();
+        }
+
+        // 2. Try finding by razorpay_order_id or payment reference
+        if (!order) {
+            order = await Order.findOne({
+                $or: [
+                    { razorpay_order_id: rawId },
+                    { 'paymentDetails.utrNumber': rawId },
+                    { 'paymentDetails.checkNumber': rawId },
+                    { 'paymentDetails.transferNumber': rawId }
+                ]
+            })
+            .populate("user_id", "name email phone")
+            .lean();
+        }
+
+        if (!order) {
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        const sanitized = sanitizeOrderForCustomer(order, req);
+        res.json({ success: true, order: sanitized });
+    } catch (err) {
+        console.error("Error in GET /orders/track/:orderId:", err);
+        res.status(500).json({ error: "Server error tracking order" });
+    }
+});
+
+/**
  * ADMIN — GET ALL ORDERS
  */
 router.get("/admin/all", authenticateToken, isAdmin, async (req, res) => {
