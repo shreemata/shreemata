@@ -727,6 +727,8 @@ async function editBook(bookId) {
         if (priceEl) priceEl.value = book.price;
         if (weightEl) weightEl.value = book.weight || 0.5;
         if (rewardPointsEl) rewardPointsEl.value = book.rewardPoints || 0;
+        if (cashbackAmountEl) cashbackAmountEl.value = book.cashbackAmount || 0;
+        if (cashbackPercentageEl) cashbackPercentageEl.value = book.cashbackPercentage || 0;
         const profitTypeEl = document.getElementById('adminProfitType');
         const profitValueEl = document.getElementById('adminProfitValue');
         if (profitTypeEl) profitTypeEl.value = book.profitType || 'fixed';
@@ -889,18 +891,16 @@ async function handleFormSubmit(e) {
         
         console.log('Weight element:', weightEl ? '✅' : '❌');
         console.log('RewardPoints element:', rewardPointsEl ? '✅' : '❌');
-        console.log('CashbackAmount element:', cashbackAmountEl ? '✅' : '❌');
-        console.log('CashbackPercentage element:', cashbackPercentageEl ? '✅' : '❌');
+        console.log('CashbackAmount element:', cashbackAmountEl ? '✅ (Legacy)' : 'ℹ️ (Deprecated)');
+        console.log('CashbackPercentage element:', cashbackPercentageEl ? '✅ (Legacy)' : 'ℹ️ (Deprecated)');
         
         if (!weightEl) throw new Error('Weight field not found');
         if (!rewardPointsEl) throw new Error('Reward points field not found');
-        if (!cashbackAmountEl) throw new Error('Cashback amount field not found');
-        if (!cashbackPercentageEl) throw new Error('Cashback percentage field not found');
         
         const weight = weightEl.value;
         const rewardPoints = rewardPointsEl.value;
-        const cashbackAmount = cashbackAmountEl.value;
-        const cashbackPercentage = cashbackPercentageEl.value;
+        const cashbackAmount = cashbackAmountEl ? cashbackAmountEl.value : 0;
+        const cashbackPercentage = cashbackPercentageEl ? cashbackPercentageEl.value : 0;
 
         const coverImageEl = document.getElementById('coverImage');
         const previewImagesEl = document.getElementById('previewImages');
@@ -1544,11 +1544,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const priceEl = document.getElementById('price');
     const profitTypeEl = document.getElementById('adminProfitType');
     const profitValueEl = document.getElementById('adminProfitValue');
+    const cashbackAmountEl = document.getElementById('cashbackAmount');
+    const cashbackPercentageEl = document.getElementById('cashbackPercentage');
+
+    if (cashbackAmountEl && cashbackPercentageEl) {
+        cashbackAmountEl.addEventListener('input', () => {
+            const val = parseFloat(cashbackAmountEl.value) || 0;
+            if (val > 0) {
+                cashbackPercentageEl.value = '0';
+            }
+            updateProfitPreview();
+        });
+
+        cashbackPercentageEl.addEventListener('input', () => {
+            const val = parseFloat(cashbackPercentageEl.value) || 0;
+            if (val > 0) {
+                cashbackAmountEl.value = '0';
+            }
+            updateProfitPreview();
+        });
+    }
 
     ['input', 'change', 'keyup', 'paste'].forEach(evtName => {
         if (priceEl) priceEl.addEventListener(evtName, updateProfitPreview);
         if (profitTypeEl) profitTypeEl.addEventListener(evtName, updateProfitPreview);
         if (profitValueEl) profitValueEl.addEventListener(evtName, updateProfitPreview);
+        if (cashbackAmountEl) cashbackAmountEl.addEventListener(evtName, updateProfitPreview);
+        if (cashbackPercentageEl) cashbackPercentageEl.addEventListener(evtName, updateProfitPreview);
     });
 });
 
@@ -1632,7 +1654,25 @@ function updateProfitPreview() {
     const trustPercent = activeCommissionSettings.trustFundPercent !== undefined ? activeCommissionSettings.trustFundPercent : 10;
     const adminPercent = activeCommissionSettings.adminCommissionPercent !== undefined ? activeCommissionSettings.adminCommissionPercent : 0;
 
-    const buyerCashback = unitProfit * (buyerPercent / 100);
+    const cashbackAmountEl = document.getElementById('cashbackAmount');
+    const cashbackPercentageEl = document.getElementById('cashbackPercentage');
+    const cbAmount = Math.max(0, parseFloat(cashbackAmountEl?.value) || 0);
+    const cbPercent = Math.max(0, parseFloat(cashbackPercentageEl?.value) || 0);
+
+    let buyerCashback = 0;
+    let buyerLabelText = '';
+
+    if (cbAmount > 0) {
+        buyerCashback = cbAmount;
+        buyerLabelText = `Buyer Cashback (Manual Override):`;
+    } else if (cbPercent > 0) {
+        buyerCashback = (price * cbPercent) / 100;
+        buyerLabelText = `Buyer Cashback (${cbPercent}% Manual Override):`;
+    } else {
+        buyerCashback = unitProfit * (buyerPercent / 100);
+        buyerLabelText = `Buyer Cashback (${buyerPercent}% Automatic):`;
+    }
+
     const directReferral = unitProfit * (referralPercent / 100);
     const treePool = unitProfit * (treePercent / 100);
     const trustFund = unitProfit * (trustPercent / 100);
@@ -1640,6 +1680,13 @@ function updateProfitPreview() {
 
     const totalDist = buyerCashback + directReferral + treePool + trustFund + adminShare;
     const remaining = Math.max(0, unitProfit - totalDist);
+
+    if (totalDist > unitProfit && unitProfit > 0) {
+        statusMessage = `⚠️ Total distribution (₹${totalDist.toFixed(2)}) exceeds base profit (₹${unitProfit.toFixed(2)}).`;
+    }
+
+    const buyerLabelEl = document.getElementById('previewBuyerLabel');
+    if (buyerLabelEl) buyerLabelEl.textContent = buyerLabelText;
 
     if (baseEl) baseEl.textContent = `₹${unitProfit.toFixed(2)}`;
     if (buyerPercentEl) buyerPercentEl.textContent = buyerPercent;

@@ -31,7 +31,7 @@ router.get("/users", authenticateToken, isAdmin, async (req, res) => {
     const skip = (page - 1) * limit;
     
     const users = await User.find(query)
-      .select('name email role referralCode wallet suspended suspendedAt suspendedReason directCommissionEarned treeCommissionEarned referrals treeLevel createdAt masterCard')
+      .select('name email role referralCode wallet suspended suspendedAt suspendedReason directCommissionEarned treeCommissionEarned referrals treeLevel createdAt masterCard isMember memberActivatedAt membershipSubtotal')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));

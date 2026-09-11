@@ -99,6 +99,11 @@ async function buildOrderProfitSnapshot(items = []) {
     itemCopy.unitProfitSnapshot = profitData.unitProfitSnapshot;
     itemCopy.lineProfitSnapshot = Number((profitData.unitProfitSnapshot * quantity).toFixed(2));
 
+    if (productDoc) {
+      if (typeof itemCopy.cashbackAmount !== 'number') itemCopy.cashbackAmount = productDoc.cashbackAmount || 0;
+      if (typeof itemCopy.cashbackPercentage !== 'number') itemCopy.cashbackPercentage = productDoc.cashbackPercentage || 0;
+    }
+
     snapshotItems.push(itemCopy);
   }
 

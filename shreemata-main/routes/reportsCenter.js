@@ -925,6 +925,7 @@ router.get('/users', authenticateToken, isAdmin, async (req, res) => {
         'Referred By Email',
         'Wallet Balance (Rs)',
         'Points Balance',
+        'Member',
         'First Purchase Done',
         'Registered Date'
       ];
@@ -940,6 +941,7 @@ router.get('/users', authenticateToken, isAdmin, async (req, res) => {
         u.referredBy?.email || '',
         (u.wallet || 0).toFixed(2),
         u.pointsWallet || 0,
+        u.isMember ? 'YES' : 'NO',
         u.firstPurchaseDone ? 'Yes' : 'No',
         formatDateTime(u.createdAt)
       ]);

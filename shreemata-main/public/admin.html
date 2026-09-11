@@ -1143,6 +1143,23 @@
                                     </div>
                                 </div>
 
+                                <!-- Optional Cashback Section -->
+                                <div style="margin-top: 12px; margin-bottom: 12px; padding: 12px; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 6px;">
+                                    <div style="font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 8px;">OPTIONAL CASHBACK</div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="cashbackAmount">Cashback Amount (₹) <span style="font-size: 0.8em; color: #64748b; font-weight: normal;">— Optional</span></label>
+                                            <input type="number" id="cashbackAmount" name="cashbackAmount" step="0.01" min="0" value="0" placeholder="0">
+                                            <small style="color: #64748b; display: block; margin-top: 4px;">Optional manual buyer cashback. Leave at 0 to use automatic profit-based cashback.</small>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="cashbackPercentage">Cashback Percentage (%) <span style="font-size: 0.8em; color: #64748b; font-weight: normal;">— Optional</span></label>
+                                            <input type="number" id="cashbackPercentage" name="cashbackPercentage" step="0.01" min="0" max="100" value="0" placeholder="0">
+                                            <small style="color: #64748b; display: block; margin-top: 4px;">Optional manual buyer cashback percentage. Leave at 0 to use automatic profit-based cashback.</small>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Live Preview Box -->
                                 <div id="adminProfitPreviewBox" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-top: 10px;">
                                     <div style="font-weight: 600; color: #0f172a; margin-bottom: 6px;">Internal Commission Base Preview</div>
@@ -1150,7 +1167,7 @@
                                         Base Profit: <span id="previewProfitBase">₹0.00</span>
                                     </div>
                                     <div style="font-size: 0.85em; color: #475569; line-height: 1.6;">
-                                        <div>• Buyer Cashback (<span id="previewBuyerPercent">30</span>%): <span id="previewBuyerCashback">₹0.00</span></div>
+                                        <div>• <span id="previewBuyerLabel">Buyer Cashback (<span id="previewBuyerPercent">30</span>% Automatic):</span> <span id="previewBuyerCashback">₹0.00</span></div>
                                         <div>• Direct Referral (<span id="previewReferralPercent">20</span>%): <span id="previewDirectReferral">₹0.00</span></div>
                                         <div>• Tree Pool (<span id="previewTreePercent">40</span>%): <span id="previewTreePool">₹0.00</span></div>
                                         <div>• Trust Fund (<span id="previewTrustPercent">10</span>%): <span id="previewTrustFund">₹0.00</span></div>

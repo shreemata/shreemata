@@ -16,7 +16,9 @@ const orderSchema = new mongoose.Schema({
         profitTypeSnapshot: { type: String, default: "fixed" },
         profitValueSnapshot: { type: Number, default: 0 },
         unitProfitSnapshot: { type: Number, default: 0 },
-        lineProfitSnapshot: { type: Number, default: 0 }
+        lineProfitSnapshot: { type: Number, default: 0 },
+        cashbackAmount: { type: Number, default: 0 },
+        cashbackPercentage: { type: Number, default: 0 }
     }],
 
     totalAmount: Number,

@@ -337,6 +337,14 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
         // If status changed to "completed"
         if (status === "completed" && previousStatus !== "completed") {
 
+            // Check and activate membership if product subtotal >= ₹100
+            try {
+                const { checkAndActivateMembership } = require("../services/membershipService");
+                await checkAndActivateMembership(order);
+            } catch (memErr) {
+                console.error("⚠️ Error checking/activating membership:", memErr.message);
+            }
+
             // Mark user's first purchase as done and create tree placement
             try {
                 const User = require("../models/User");

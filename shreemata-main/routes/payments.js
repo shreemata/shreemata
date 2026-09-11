@@ -9,6 +9,7 @@ const { buildOrderProfitSnapshot, calculateOrderProfitTotal } = require("../serv
 const { distributeCommissions } = require("../services/commissionDistribution");
 const { createTreePlacementOnFirstPurchase } = require("../services/treePlacement");
 const { awardPoints } = require("../services/pointsService");
+const { checkAndActivateMembership } = require("../services/membershipService");
 const Book = require("../models/Book");
 const Bundle = require("../models/Bundle");
 const { autoGenerateInvoiceForOrder } = require("./invoices");
@@ -627,6 +628,13 @@ router.post("/verify", authenticateToken, async (req, res) => {
     order.commissionStatus = order.commissionStatus || 'pending';
     await order.save();
 
+    // Check and activate membership if product subtotal >= ₹100
+    try {
+      await checkAndActivateMembership(order);
+    } catch (memErr) {
+      console.error("⚠️ Error checking/activating membership:", memErr.message);
+    }
+
     // Mark user's first purchase as done upon successful order completion and create tree placement
     try {
       const user = await User.findById(order.user_id);
@@ -900,6 +908,13 @@ router.post("/webhook", async (req, res) => {
         order.commissionStatus = order.commissionStatus || 'pending';
         await order.save();
         
+        // Check and activate membership if product subtotal >= ₹100
+        try {
+          await checkAndActivateMembership(order);
+        } catch (memErr) {
+          console.error("⚠️ Error checking/activating membership:", memErr.message);
+        }
+
         // Mark user's first purchase as done and create tree placement
         try {
           const user = await User.findById(order.user_id);
@@ -1763,6 +1778,13 @@ async function processApprovedChequeOrder(order, adminUser) {
     order.commissionStatus = order.commissionStatus || 'pending';
     await order.save();
     
+    // Check and activate membership if product subtotal >= ₹100
+    try {
+      await checkAndActivateMembership(order);
+    } catch (memErr) {
+      console.error("⚠️ Error checking/activating membership:", memErr.message);
+    }
+
     // Mark user's first purchase as done and create tree placement
     try {
       const user = await User.findById(order.user_id);

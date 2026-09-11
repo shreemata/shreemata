@@ -372,6 +372,19 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
       }
     }
 
+    let numCashbackAmount = cashbackAmount !== undefined ? Number(cashbackAmount) : 0;
+    let numCashbackPercentage = cashbackPercentage !== undefined ? Number(cashbackPercentage) : 0;
+
+    if (isNaN(numCashbackAmount) || numCashbackAmount < 0) {
+      return res.status(400).json({ error: "Cashback amount must be a non-negative number" });
+    }
+    if (isNaN(numCashbackPercentage) || numCashbackPercentage < 0 || numCashbackPercentage > 100) {
+      return res.status(400).json({ error: "Cashback percentage must be between 0 and 100" });
+    }
+    if (numCashbackAmount > 0 && numCashbackPercentage > 0) {
+      return res.status(400).json({ error: "Cannot specify both Cashback Amount and Cashback Percentage simultaneously" });
+    }
+
     let coverImage = cover_image;
     let previewImages = preview_images || [];
     const newlyUploadedPublicIds = [];
@@ -530,8 +543,22 @@ router.put("/:id", authenticateToken, isAdmin, (req, res, next) => {
     book.subject = req.body.subject !== undefined ? req.body.subject : book.subject;
     book.weight = req.body.weight !== undefined ? req.body.weight : book.weight;
     book.rewardPoints = req.body.rewardPoints !== undefined ? req.body.rewardPoints : book.rewardPoints;
-    book.cashbackAmount = req.body.cashbackAmount !== undefined ? req.body.cashbackAmount : book.cashbackAmount;
-    book.cashbackPercentage = req.body.cashbackPercentage !== undefined ? req.body.cashbackPercentage : book.cashbackPercentage;
+
+    const targetCashbackAmount = req.body.cashbackAmount !== undefined ? Number(req.body.cashbackAmount) : Number(book.cashbackAmount || 0);
+    const targetCashbackPercentage = req.body.cashbackPercentage !== undefined ? Number(req.body.cashbackPercentage) : Number(book.cashbackPercentage || 0);
+
+    if (isNaN(targetCashbackAmount) || targetCashbackAmount < 0) {
+      return res.status(400).json({ error: "Cashback amount must be a non-negative number" });
+    }
+    if (isNaN(targetCashbackPercentage) || targetCashbackPercentage < 0 || targetCashbackPercentage > 100) {
+      return res.status(400).json({ error: "Cashback percentage must be between 0 and 100" });
+    }
+    if (targetCashbackAmount > 0 && targetCashbackPercentage > 0) {
+      return res.status(400).json({ error: "Cannot specify both Cashback Amount and Cashback Percentage simultaneously" });
+    }
+
+    book.cashbackAmount = targetCashbackAmount;
+    book.cashbackPercentage = targetCashbackPercentage;
 
     // Handle profit fields update & validation
     if (req.body.profitType !== undefined || req.body.profitValue !== undefined || req.body.profitConfigured !== undefined) {

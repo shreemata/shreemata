@@ -42,6 +42,12 @@ const userSchema = new mongoose.Schema({
   firstPurchaseDone: { type: Boolean, default: false }, // Locks referral after 1st purchase
   firstPurchaseDate: { type: Date, default: null },     // When first purchase was made
 
+  // Membership System (Activated when product subtotal >= ₹100 in a single order)
+  isMember: { type: Boolean, default: false, index: true },
+  memberActivatedAt: { type: Date, default: null },
+  membershipOrder: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null },
+  membershipSubtotal: { type: Number, default: 0 },
+
   // Security Questions for Password Reset
   securityQuestions: {
     question1: {

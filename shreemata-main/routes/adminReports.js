@@ -344,6 +344,8 @@ router.get('/users', authenticateToken, isAdmin, async (req, res) => {
         "Email": u.email || '-',
         "Phone": u.phone || '-',
         "Member Role": (u.role || 'user').toUpperCase(),
+        "Member": u.isMember ? 'YES' : 'NO',
+        "Member Activated At": u.memberActivatedAt ? formatDateTime(u.memberActivatedAt) : '-',
         "Membership Tier": vipTier,
         "VIP Card No": vipCardNo,
         "Referral Code": u.referralCode || '-',
