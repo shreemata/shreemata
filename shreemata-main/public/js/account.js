@@ -156,6 +156,38 @@ function renderProfileFromData(data) {
     if (pName) pName.textContent = user.name;
     if (pEmail) pEmail.textContent = user.email || "—";
 
+    // Render Membership Status
+    const membershipBadge = document.getElementById("membershipBadge");
+    const membershipDetailsContent = document.getElementById("membershipDetailsContent");
+    if (membershipBadge && membershipDetailsContent) {
+        if (user.isMember) {
+            membershipBadge.textContent = "Member: YES";
+            membershipBadge.style.background = "#DEF7EC";
+            membershipBadge.style.color = "#03543F";
+            const memberSinceDate = user.memberActivatedAt 
+                ? new Date(user.memberActivatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                : "Active";
+            membershipDetailsContent.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <div><strong style="color: #1E293B;">Member Since:</strong> <span style="color: #0F766E; font-weight: 600;">${escapeHtml(memberSinceDate)}</span></div>
+                    <p style="margin: 0; color: #475569;">🎉 You are an active verified Shree Mata Member with full access to direct referral cashback, community rewards, and tree pool earnings.</p>
+                </div>
+            `;
+        } else {
+            membershipBadge.textContent = "Member: NO";
+            membershipBadge.style.background = "#FEF3C7";
+            membershipBadge.style.color = "#92400E";
+            membershipDetailsContent.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <p style="margin: 0; color: #334155;"><strong>How to Activate:</strong> Purchase ₹100 or more of eligible books/products in a single order to automatically unlock lifetime membership.</p>
+                    <div style="font-size: 13px; background: #F8FAFC; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #EAB308; color: #64748B;">
+                        📌 <strong>Qualification Rule:</strong> Single order product subtotal ≥ ₹100 (excluding courier/delivery charges).
+                    </div>
+                </div>
+            `;
+        }
+    }
+
     // Render MasterCard if assigned
     const masterCardContainer = document.getElementById("masterCardContainer");
     if (user.masterCard && user.masterCard.isAssigned) {

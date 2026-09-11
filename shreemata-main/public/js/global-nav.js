@@ -205,7 +205,78 @@
     }
 
     // ── 6. MOBILE DRAWER NAVIGATION ──
+    function ensureMobileDrawerDOM() {
+        let drawer = document.getElementById("mobileNavDrawer");
+        if (!drawer) {
+            drawer = document.createElement("div");
+            drawer.id = "mobileNavDrawer";
+            drawer.className = "mobile-nav-drawer";
+            drawer.setAttribute("aria-hidden", "true");
+            drawer.innerHTML = `
+                <div id="drawerBackdrop" class="drawer-backdrop"></div>
+                <div class="drawer-content">
+                    <div class="drawer-header">
+                        <a href="/" class="brand-logo" aria-label="Shree Mata">
+                            <img src="/images/press.png" onerror="this.src='/images/logo.png'" alt="Shree Mata" width="36" height="36">
+                            <span class="brand-title" style="font-size: 18px; font-weight: 700; color: #101820;">Shree Mata</span>
+                        </a>
+                        <button type="button" id="drawerCloseBtn" class="drawer-close-btn" aria-label="Close menu">&times;</button>
+                    </div>
+                    <nav class="drawer-nav">
+                        <a href="/" class="drawer-link">🏠 Home</a>
+                        <a href="/#booksSection" class="drawer-link">📚 Books</a>
+                        <a href="/bundles.html" class="drawer-link">🎁 Bundles & Sets</a>
+                        <a href="/account.html" class="drawer-link">👤 My Account</a>
+                        <a href="/orders.html" class="drawer-link">📦 My Orders</a>
+                        <a href="/referral.html" class="drawer-link">💰 Referral Network</a>
+                        <a href="/account.html?section=membership" class="drawer-link">🌟 Membership</a>
+                        <a href="/account.html?section=vip" class="drawer-link">👑 VIP Master Card</a>
+                        <a href="/cart.html" class="drawer-link">🛒 Cart</a>
+                        <a href="/account.html?section=store" class="drawer-link">🏪 Contact & Store</a>
+                    </nav>
+                    <div id="drawerAuthSection" class="drawer-auth">
+                        <div id="drawerGuestAuth" class="drawer-auth-buttons">
+                            <a href="/login.html" class="btn-secondary" style="min-height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; text-decoration: none; border-radius: 8px; border: 1px solid #cbd5e1; color: #1e293b; font-weight: 600;">Log In</a>
+                            <a href="/signup.html" class="btn-primary" style="min-height: 44px; display: flex; align-items: center; justify-content: center; text-decoration: none; border-radius: 8px; background: #101820; color: #ffffff; font-weight: 600;">Sign Up</a>
+                        </div>
+                        <div id="drawerUserAuth" class="drawer-user-menu" style="display: none;">
+                            <div class="drawer-user-info" style="display: flex; align-items: center; gap: 10px; padding: 8px 0 14px; border-bottom: 1px solid #e2e8f0; margin-bottom: 10px;">
+                                <span class="user-avatar-icon" style="font-size: 20px;">👤</span>
+                                <div>
+                                    <span style="font-size: 11px; color: #64748b; text-transform: uppercase; display: block;">Signed in as</span>
+                                    <span id="drawerUserName" style="font-size: 14.5px; font-weight: 700; color: #101820;">User</span>
+                                </div>
+                            </div>
+                            <div class="drawer-user-links" style="display: flex; flex-direction: column; gap: 4px;">
+                                <a href="/admin.html" id="drawerAdminLink" class="drawer-link" style="min-height: 44px; padding: 10px 12px; display: none; color: #0284c7;">⚙️ Admin Dashboard</a>
+                                <button type="button" id="drawerLogoutBtn" class="btn-logout-item" style="min-height: 44px; padding: 10px 12px; margin-top: 4px; border: none; background: transparent; color: #dc2626; font-size: 14.5px; font-weight: 600; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px;">🚪 Logout</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(drawer);
+        }
+
+        // Also ensure a toggle button exists in header if missing
+        let toggleBtn = document.getElementById("mobileMenuToggle");
+        if (!toggleBtn) {
+            const headerActions = document.querySelector(".header-actions, .nav-links, .navbar-content");
+            if (headerActions) {
+                toggleBtn = document.createElement("button");
+                toggleBtn.id = "mobileMenuToggle";
+                toggleBtn.type = "button";
+                toggleBtn.className = "mobile-menu-toggle";
+                toggleBtn.setAttribute("aria-label", "Open Navigation Menu");
+                toggleBtn.innerHTML = "☰";
+                headerActions.appendChild(toggleBtn);
+            }
+        }
+    }
+
     function initMobileDrawer() {
+        ensureMobileDrawerDOM();
+
         const toggleBtn = document.getElementById("mobileMenuToggle");
         const drawer = document.getElementById("mobileNavDrawer");
         const backdrop = document.getElementById("drawerBackdrop");
@@ -231,7 +302,10 @@
             document.body.style.overflow = "";
         }
 
-        if (toggleBtn) toggleBtn.addEventListener("click", openDrawer);
+        if (toggleBtn) {
+            toggleBtn.removeEventListener("click", openDrawer);
+            toggleBtn.addEventListener("click", openDrawer);
+        }
         if (backdrop) backdrop.addEventListener("click", closeDrawer);
         if (closeBtn) closeBtn.addEventListener("click", closeDrawer);
 
