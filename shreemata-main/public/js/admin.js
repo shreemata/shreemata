@@ -539,7 +539,9 @@ async function loadBooks(filters = {}) {
         console.log('Loading books with filters:', filters);
         console.log('API URL:', `${API}/books?${qs}`);
 
-        const res = await fetch(`${API}/books?${qs}`);
+        const token = localStorage.getItem('token');
+        const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+        const res = await fetch(`${API}/books?${qs}`, { headers });
         
         if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);
@@ -685,7 +687,9 @@ async function editBook(bookId) {
     console.log('📝 ID length:', bookId ? bookId.length : 'null');
     
     try {
-        const res = await fetch(`${API}/books/${bookId}`);
+        const token = localStorage.getItem('token');
+        const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+        const res = await fetch(`${API}/books/${bookId}`, { headers });
         console.log('📝 Fetch book response status:', res.status);
         
         if (!res.ok) {
@@ -722,19 +726,19 @@ async function editBook(bookId) {
         const stockStatusEl = document.getElementById('stockStatus');
         const stockFieldsEl = document.getElementById('stockFields');
         
-        if (titleEl) titleEl.value = book.title;
-        if (authorEl) authorEl.value = book.author;
-        if (priceEl) priceEl.value = book.price;
-        if (weightEl) weightEl.value = book.weight || 0.5;
-        if (rewardPointsEl) rewardPointsEl.value = book.rewardPoints || 0;
-        if (cashbackAmountEl) cashbackAmountEl.value = book.cashbackAmount || 0;
-        if (cashbackPercentageEl) cashbackPercentageEl.value = book.cashbackPercentage || 0;
+        if (titleEl) titleEl.value = book.title || '';
+        if (authorEl) authorEl.value = book.author || '';
+        if (priceEl) priceEl.value = book.price !== undefined ? book.price : '';
+        if (weightEl) weightEl.value = book.weight !== undefined ? book.weight : 0.5;
+        if (rewardPointsEl) rewardPointsEl.value = book.rewardPoints !== undefined ? book.rewardPoints : 0;
+        if (cashbackAmountEl) cashbackAmountEl.value = book.cashbackAmount !== undefined ? book.cashbackAmount : 0;
+        if (cashbackPercentageEl) cashbackPercentageEl.value = book.cashbackPercentage !== undefined ? book.cashbackPercentage : 0;
         const profitTypeEl = document.getElementById('adminProfitType');
         const profitValueEl = document.getElementById('adminProfitValue');
         if (profitTypeEl) profitTypeEl.value = book.profitType || 'fixed';
         if (profitValueEl) profitValueEl.value = book.profitValue !== undefined ? book.profitValue : 0;
         if (typeof updateProfitPreview === 'function') updateProfitPreview();
-        if (descriptionEl) descriptionEl.value = book.description;
+        if (descriptionEl) descriptionEl.value = book.description || '';
         if (bookClassEl) bookClassEl.value = book.class || '';
         if (subjectEl) subjectEl.value = book.subject || '';
 
@@ -888,19 +892,26 @@ async function handleFormSubmit(e) {
         const rewardPointsEl = document.getElementById('rewardPoints');
         const cashbackAmountEl = document.getElementById('cashbackAmount');
         const cashbackPercentageEl = document.getElementById('cashbackPercentage');
+        const profitTypeEl = document.getElementById('adminProfitType');
+        const profitValueEl = document.getElementById('adminProfitValue');
         
         console.log('Weight element:', weightEl ? '✅' : '❌');
         console.log('RewardPoints element:', rewardPointsEl ? '✅' : '❌');
-        console.log('CashbackAmount element:', cashbackAmountEl ? '✅ (Legacy)' : 'ℹ️ (Deprecated)');
-        console.log('CashbackPercentage element:', cashbackPercentageEl ? '✅ (Legacy)' : 'ℹ️ (Deprecated)');
+        console.log('CashbackAmount element:', cashbackAmountEl ? '✅' : '❌');
+        console.log('CashbackPercentage element:', cashbackPercentageEl ? '✅' : '❌');
+        console.log('ProfitType element:', profitTypeEl ? '✅' : '❌');
+        console.log('ProfitValue element:', profitValueEl ? '✅' : '❌');
         
         if (!weightEl) throw new Error('Weight field not found');
         if (!rewardPointsEl) throw new Error('Reward points field not found');
         
-        const weight = weightEl.value;
-        const rewardPoints = rewardPointsEl.value;
-        const cashbackAmount = cashbackAmountEl ? cashbackAmountEl.value : 0;
-        const cashbackPercentage = cashbackPercentageEl ? cashbackPercentageEl.value : 0;
+        const weight = weightEl ? (parseFloat(weightEl.value) || 0.5) : 0.5;
+        const rewardPoints = rewardPointsEl ? (parseInt(rewardPointsEl.value) || 0) : 0;
+        const cashbackAmount = cashbackAmountEl ? (parseFloat(cashbackAmountEl.value) || 0) : 0;
+        const cashbackPercentage = cashbackPercentageEl ? (parseFloat(cashbackPercentageEl.value) || 0) : 0;
+        const profitType = profitTypeEl ? profitTypeEl.value : 'fixed';
+        const profitValue = profitValueEl ? (parseFloat(profitValueEl.value) || 0) : 0;
+        const profitConfigured = true;
 
         const coverImageEl = document.getElementById('coverImage');
         const previewImagesEl = document.getElementById('previewImages');
@@ -964,7 +975,7 @@ async function handleFormSubmit(e) {
             const bookData = {
                 title,
                 author,
-                price,
+                price: parseFloat(price) || 0,
                 description,
                 class: bookClass,
                 subject,
@@ -972,6 +983,9 @@ async function handleFormSubmit(e) {
                 rewardPoints,
                 cashbackAmount,
                 cashbackPercentage,
+                profitType,
+                profitValue,
+                profitConfigured,
                 cover_image: coverImageUrl,
                 preview_images: previewImageUrls,
                 // Add stock fields
@@ -1047,17 +1061,12 @@ async function handleFormSubmit(e) {
             formData.append('description', description);
             formData.append('class', bookClass);
             formData.append('subject', subject);
-            
-            console.log('FormData contents:');
-            for (let [key, value] of formData.entries()) {
-                console.log(key, value);
-            }
             formData.append('weight', weight);
             formData.append('rewardPoints', rewardPoints);
-            const profitTypeEl = document.getElementById('adminProfitType');
-            const profitValueEl = document.getElementById('adminProfitValue');
-            if (profitTypeEl) formData.append('profitType', profitTypeEl.value);
-            if (profitValueEl) formData.append('profitValue', profitValueEl.value || '0');
+            formData.append('cashbackAmount', cashbackAmount);
+            formData.append('cashbackPercentage', cashbackPercentage);
+            formData.append('profitType', profitType);
+            formData.append('profitValue', profitValue);
             formData.append('profitConfigured', 'true');
 
             // Add stock management fields
@@ -1152,7 +1161,7 @@ async function handleFormSubmit(e) {
             const bookData = {
                 title,
                 author,
-                price,
+                price: parseFloat(price) || 0,
                 description,
                 class: bookClass,
                 subject,
@@ -1160,6 +1169,9 @@ async function handleFormSubmit(e) {
                 rewardPoints,
                 cashbackAmount,
                 cashbackPercentage,
+                profitType,
+                profitValue,
+                profitConfigured,
                 // Add stock fields to JSON submission
                 trackStock: trackStockEl ? trackStockEl.checked : true,
                 stockQuantity: stockQuantityEl ? parseInt(stockQuantityEl.value) || 0 : 10,
@@ -1167,14 +1179,14 @@ async function handleFormSubmit(e) {
                 stockStatus: stockStatusEl ? stockStatusEl.value || 'in_stock' : 'in_stock'
             };
             
-        // Validate form data size before submission
-        const formDataSize = new Blob([JSON.stringify(bookData)]).size;
-        console.log(`📊 Form data size: ${formDataSize} bytes`);
-        
-        if (formDataSize > 10 * 1024 * 1024) { // 10MB limit
-            alert('Form data is too large. Please reduce the amount of data and try again.');
-            return;
-        }
+            // Validate form data size before submission
+            const formDataSize = new Blob([JSON.stringify(bookData)]).size;
+            console.log(`📊 Form data size: ${formDataSize} bytes`);
+            
+            if (formDataSize > 10 * 1024 * 1024) { // 10MB limit
+                alert('Form data is too large. Please reduce the amount of data and try again.');
+                return;
+            }
 
             res = await fetch(url, {
                 method,
@@ -1282,6 +1294,20 @@ function resetForm() {
     if (lowStockThresholdEl) lowStockThresholdEl.value = 5;
     if (stockStatusEl) stockStatusEl.value = 'in_stock';
     if (stockFieldsEl) stockFieldsEl.style.display = 'flex';
+
+    // Reset profit & cashback fields
+    const profitTypeEl = document.getElementById('adminProfitType');
+    const profitValueEl = document.getElementById('adminProfitValue');
+    const rewardPointsEl = document.getElementById('rewardPoints');
+    const cashbackAmountEl = document.getElementById('cashbackAmount');
+    const cashbackPercentageEl = document.getElementById('cashbackPercentage');
+
+    if (profitTypeEl) profitTypeEl.value = 'fixed';
+    if (profitValueEl) profitValueEl.value = 0;
+    if (rewardPointsEl) rewardPointsEl.value = 0;
+    if (cashbackAmountEl) cashbackAmountEl.value = 0;
+    if (cashbackPercentageEl) cashbackPercentageEl.value = 0;
+    if (typeof updateProfitPreview === 'function') updateProfitPreview();
     
     document.getElementById('submitBtn').textContent = "Add Book";
 }

@@ -534,36 +534,38 @@ router.put("/:id", authenticateToken, isAdmin, (req, res, next) => {
     }
 
     console.log('📝 Updating book fields...');
-    book.title = req.body.title || book.title;
-    book.author = req.body.author || book.author;
-    book.price = req.body.price || book.price;
-    book.description = req.body.description || book.description;
-    book.category = req.body.category || book.category;
-    book.class = req.body.class !== undefined ? req.body.class : book.class;
-    book.subject = req.body.subject !== undefined ? req.body.subject : book.subject;
-    book.weight = req.body.weight !== undefined ? req.body.weight : book.weight;
-    book.rewardPoints = req.body.rewardPoints !== undefined ? req.body.rewardPoints : book.rewardPoints;
+    if (req.body.title !== undefined) book.title = req.body.title;
+    if (req.body.author !== undefined) book.author = req.body.author;
+    if (req.body.price !== undefined) book.price = Number(req.body.price);
+    if (req.body.description !== undefined) book.description = req.body.description;
+    if (req.body.category !== undefined) book.category = req.body.category;
+    if (req.body.class !== undefined) book.class = req.body.class;
+    if (req.body.subject !== undefined) book.subject = req.body.subject;
+    if (req.body.weight !== undefined) book.weight = Number(req.body.weight);
+    if (req.body.rewardPoints !== undefined) book.rewardPoints = Math.max(0, parseInt(req.body.rewardPoints, 10) || 0);
 
-    const targetCashbackAmount = req.body.cashbackAmount !== undefined ? Number(req.body.cashbackAmount) : Number(book.cashbackAmount || 0);
-    const targetCashbackPercentage = req.body.cashbackPercentage !== undefined ? Number(req.body.cashbackPercentage) : Number(book.cashbackPercentage || 0);
+    if (req.body.cashbackAmount !== undefined || req.body.cashbackPercentage !== undefined) {
+      const targetCashbackAmount = req.body.cashbackAmount !== undefined ? Number(req.body.cashbackAmount) : Number(book.cashbackAmount || 0);
+      const targetCashbackPercentage = req.body.cashbackPercentage !== undefined ? Number(req.body.cashbackPercentage) : Number(book.cashbackPercentage || 0);
 
-    if (isNaN(targetCashbackAmount) || targetCashbackAmount < 0) {
-      return res.status(400).json({ error: "Cashback amount must be a non-negative number" });
-    }
-    if (isNaN(targetCashbackPercentage) || targetCashbackPercentage < 0 || targetCashbackPercentage > 100) {
-      return res.status(400).json({ error: "Cashback percentage must be between 0 and 100" });
-    }
-    if (targetCashbackAmount > 0 && targetCashbackPercentage > 0) {
-      return res.status(400).json({ error: "Cannot specify both Cashback Amount and Cashback Percentage simultaneously" });
-    }
+      if (isNaN(targetCashbackAmount) || targetCashbackAmount < 0) {
+        return res.status(400).json({ error: "Cashback amount must be a non-negative number" });
+      }
+      if (isNaN(targetCashbackPercentage) || targetCashbackPercentage < 0 || targetCashbackPercentage > 100) {
+        return res.status(400).json({ error: "Cashback percentage must be between 0 and 100" });
+      }
+      if (targetCashbackAmount > 0 && targetCashbackPercentage > 0) {
+        return res.status(400).json({ error: "Cannot specify both Cashback Amount and Cashback Percentage simultaneously" });
+      }
 
-    book.cashbackAmount = targetCashbackAmount;
-    book.cashbackPercentage = targetCashbackPercentage;
+      book.cashbackAmount = targetCashbackAmount;
+      book.cashbackPercentage = targetCashbackPercentage;
+    }
 
     // Handle profit fields update & validation
     if (req.body.profitType !== undefined || req.body.profitValue !== undefined || req.body.profitConfigured !== undefined) {
       const targetPrice = req.body.price !== undefined ? Number(req.body.price) : Number(book.price);
-      const targetProfitType = req.body.profitType !== undefined ? req.body.profitType : book.profitType;
+      const targetProfitType = req.body.profitType !== undefined ? req.body.profitType : (book.profitType || 'fixed');
       const targetProfitValue = req.body.profitValue !== undefined ? Number(req.body.profitValue) : Number(book.profitValue || 0);
 
       if (isNaN(targetProfitValue) || targetProfitValue < 0) {
