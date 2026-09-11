@@ -140,6 +140,7 @@
         <div class="container">
             
             <!-- Page Hero -->
+            <!-- Page Hero -->
             <div class="account-page-header">
                 <div class="account-breadcrumb">
                     <a href="/">Home</a>
@@ -148,9 +149,78 @@
                 </div>
                 <h1 class="account-page-title">My Account</h1>
                 <p class="account-page-subtitle">Manage your profile, delivery details, orders, wallet and rewards.</p>
+
+                <!-- Mobile-Only Account Menu Toggle Button (<= 768px) -->
+                <button type="button" id="mobileAccountMenuBtn" class="btn-mobile-account-menu" aria-label="Open Account Navigation Menu" aria-expanded="false" aria-controls="mobileAccountSidebar" onclick="openMobileAccountSidebar()">
+                    <div class="account-menu-left">
+                        <span class="account-menu-icon" aria-hidden="true">☰</span>
+                        <span class="account-menu-label">Account Menu</span>
+                    </div>
+                    <span class="account-menu-active-badge" id="mobileCurrentTabBadge">Profile Overview</span>
+                </button>
             </div>
 
-            <!-- Two-Column Layout Grid -->
+            <!-- Mobile Off-Canvas Account Sidebar & Backdrop -->
+            <div id="mobileAccountBackdrop" class="mobile-account-backdrop" onclick="closeMobileAccountSidebar()" aria-hidden="true"></div>
+            <aside id="mobileAccountSidebar" class="mobile-account-offcanvas" aria-label="Mobile Account Navigation" aria-hidden="true">
+                <div class="mobile-account-header">
+                    <div class="mobile-account-brand">
+                        <img src="/images/press.png" onerror="this.src='/images/logo.png'" alt="Shree Mata" width="34" height="34">
+                        <div>
+                            <div class="mobile-account-title">My Account</div>
+                            <div class="mobile-account-user" id="mobileSidebarUserName">Shree Mata User</div>
+                        </div>
+                    </div>
+                    <button type="button" id="mobileAccountCloseBtn" class="mobile-account-close" onclick="closeMobileAccountSidebar()" aria-label="Close Account Menu">&times;</button>
+                </div>
+
+                <div class="mobile-account-user-card">
+                    <div class="account-user-avatar-circle" aria-hidden="true">👤</div>
+                    <div class="account-user-meta">
+                        <span class="account-user-greeting">Signed in as</span>
+                        <div class="account-user-name-display" id="mobileSidebarUserEmail">User</div>
+                    </div>
+                </div>
+
+                <nav class="mobile-account-nav" id="mobileAccountNav">
+                    <button type="button" class="mobile-nav-item active" data-section="profile" onclick="handleMobileNavClick('profile')">
+                        <span class="menu-icon">👤</span> <span>Profile Overview</span>
+                    </button>
+                    <button type="button" class="mobile-nav-item" data-section="edit" onclick="handleMobileNavClick('edit')">
+                        <span class="menu-icon">✏️</span> <span>Edit Profile</span>
+                    </button>
+                    <button type="button" class="mobile-nav-item" data-section="address" onclick="handleMobileNavClick('address')">
+                        <span class="menu-icon">🏠</span> <span>Delivery Address</span>
+                    </button>
+                    <button type="button" class="mobile-nav-item" data-section="store" onclick="handleMobileNavClick('store')">
+                        <span class="menu-icon">🏪</span> <span>Store Details</span>
+                    </button>
+                    <button type="button" class="mobile-nav-item" data-section="orders" onclick="handleMobileNavClick('orders')">
+                        <span class="menu-icon">📦</span> <span>Order History</span>
+                    </button>
+                    <button type="button" class="mobile-nav-item" data-section="wallet" onclick="handleMobileNavClick('wallet')">
+                        <span class="menu-icon">💰</span> <span>Wallet & Cashback</span>
+                    </button>
+                    <button type="button" class="mobile-nav-item" data-section="points" onclick="handleMobileNavClick('points')">
+                        <span class="menu-icon">🎁</span> <span>Points & Rewards</span>
+                    </button>
+                    <a href="/referral.html" class="mobile-nav-item" data-section="referral">
+                        <span class="menu-icon">👥</span> <span>Referral & Rewards</span>
+                    </a>
+                    <button type="button" class="mobile-nav-item" data-section="membership" onclick="handleMobileNavClick('membership')">
+                        <span class="menu-icon">🎖️</span> <span>Membership</span>
+                    </button>
+                    <button type="button" class="mobile-nav-item" data-section="vip" onclick="handleMobileNavClick('vip')">
+                        <span class="menu-icon">👑</span> <span>VIP Master Card</span>
+                    </button>
+                    <div class="mobile-account-divider"></div>
+                    <button type="button" class="mobile-nav-item logout-item" onclick="logout()">
+                        <span class="menu-icon">🚪</span> <span>Logout</span>
+                    </button>
+                </nav>
+            </aside>
+
+            <!-- Two-Column Layout Grid (Desktop) -->
             <div class="account-layout-grid">
 
                 <!-- Left Sidebar Navigation -->

@@ -68,11 +68,15 @@ document.addEventListener("DOMContentLoaded", () => {
         const sbUser = document.getElementById("sidebarUserName");
         const pName = document.getElementById("profileDisplayName");
         const pEmail = document.getElementById("profileDisplayEmail");
+        const mobSbUser = document.getElementById("mobileSidebarUserName");
+        const mobSbEmail = document.getElementById("mobileSidebarUserEmail");
         if (accNameEl) accNameEl.textContent = user.name;
         if (accEmailEl) accEmailEl.textContent = user.email || "";
         if (sbUser) sbUser.textContent = user.name;
         if (pName) pName.textContent = user.name;
         if (pEmail) pEmail.textContent = user.email || "—";
+        if (mobSbUser) mobSbUser.textContent = user.name;
+        if (mobSbEmail) mobSbEmail.textContent = user.email || user.phone || "Member";
     }
 
     // Load initial critical profile data
@@ -81,6 +85,16 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("logoutBtn")?.addEventListener("click", logout);
     document.getElementById("addressForm")?.addEventListener("submit", saveAddress);
     
+    // Global key listener for Escape key to close mobile account sidebar
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" || e.key === "Esc") {
+            const mobSidebar = document.getElementById("mobileAccountSidebar");
+            if (mobSidebar && mobSidebar.classList.contains("open")) {
+                closeMobileAccountSidebar();
+            }
+        }
+    });
+
     // Check for URL parameters to show specific section
     const urlParams = new URLSearchParams(window.location.search);
     const section = urlParams.get('section');
@@ -155,6 +169,11 @@ function renderProfileFromData(data) {
     if (sbUser) sbUser.textContent = user.name;
     if (pName) pName.textContent = user.name;
     if (pEmail) pEmail.textContent = user.email || "—";
+    
+    const mobSbUser = document.getElementById("mobileSidebarUserName");
+    const mobSbEmail = document.getElementById("mobileSidebarUserEmail");
+    if (mobSbUser) mobSbUser.textContent = user.name;
+    if (mobSbEmail) mobSbEmail.textContent = user.email || user.phone || "Member";
 
     // Render Membership Status
     const membershipBadge = document.getElementById("membershipBadge");
@@ -255,12 +274,10 @@ function showSection(section) {
         loadOrders();
     }
     
-    // Update active button states
+    // Update active button states on desktop sidebar
     const menuButtons = document.querySelectorAll('.account-menu button');
     menuButtons.forEach(button => {
         button.classList.remove('active');
-        
-        // Check if this button corresponds to the active section
         const buttonText = button.textContent.toLowerCase();
         if (
             (section === 'profile' && buttonText.includes('profile') && !buttonText.includes('edit')) ||
@@ -274,7 +291,117 @@ function showSection(section) {
             button.classList.add('active');
         }
     });
+
+    // Update active button states on mobile off-canvas sidebar & mobile badge
+    updateMobileActiveNav(section);
 }
+
+/* -----------------------------------------
+   MOBILE ACCOUNT OFF-CANVAS SIDEBAR CONTROLS
+----------------------------------------- */
+function openMobileAccountSidebar() {
+    const sidebar = document.getElementById("mobileAccountSidebar");
+    const backdrop = document.getElementById("mobileAccountBackdrop");
+    const triggerBtn = document.getElementById("mobileAccountMenuBtn");
+
+    if (sidebar) {
+        sidebar.classList.add("open");
+        sidebar.setAttribute("aria-hidden", "false");
+    }
+    if (backdrop) {
+        backdrop.classList.add("open");
+        backdrop.setAttribute("aria-hidden", "false");
+    }
+    if (triggerBtn) {
+        triggerBtn.setAttribute("aria-expanded", "true");
+    }
+    document.body.style.overflow = "hidden";
+}
+
+function closeMobileAccountSidebar() {
+    const sidebar = document.getElementById("mobileAccountSidebar");
+    const backdrop = document.getElementById("mobileAccountBackdrop");
+    const triggerBtn = document.getElementById("mobileAccountMenuBtn");
+
+    if (sidebar) {
+        sidebar.classList.remove("open");
+        sidebar.setAttribute("aria-hidden", "true");
+    }
+    if (backdrop) {
+        backdrop.classList.remove("open");
+        backdrop.setAttribute("aria-hidden", "true");
+    }
+    if (triggerBtn) {
+        triggerBtn.setAttribute("aria-expanded", "false");
+    }
+    document.body.style.overflow = "";
+}
+
+function updateMobileActiveNav(section) {
+    const mobileNavItems = document.querySelectorAll('#mobileAccountNav .mobile-nav-item');
+    mobileNavItems.forEach(item => {
+        const itemSec = item.getAttribute('data-section');
+        if (itemSec === section) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+
+    // Update badge text on the mobile toggle button
+    const badgeEl = document.getElementById("mobileCurrentTabBadge");
+    if (badgeEl) {
+        const sectionLabels = {
+            'profile': 'Profile Overview',
+            'edit': 'Edit Profile',
+            'address': 'Delivery Address',
+            'store': 'Store Details',
+            'orders': 'Order History',
+            'wallet': 'Wallet & Cashback',
+            'points': 'Points & Rewards',
+            'membership': 'Membership',
+            'vip': 'VIP Master Card',
+            'referral': 'Referral Network'
+        };
+        badgeEl.textContent = sectionLabels[section] || 'My Account';
+    }
+}
+
+function handleMobileNavClick(section) {
+    closeMobileAccountSidebar();
+    
+    if (section === 'membership') {
+        showSection('profile');
+        setTimeout(() => {
+            const el = document.getElementById('membershipStatusCard');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 120);
+        updateMobileActiveNav('membership');
+        return;
+    }
+    
+    if (section === 'vip') {
+        showSection('profile');
+        setTimeout(() => {
+            const el = document.getElementById('masterCardContainer');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 120);
+        updateMobileActiveNav('vip');
+        return;
+    }
+
+    showSection(section);
+}
+
+// Expose handlers globally
+window.openMobileAccountSidebar = openMobileAccountSidebar;
+window.closeMobileAccountSidebar = closeMobileAccountSidebar;
+window.handleMobileNavClick = handleMobileNavClick;
+window.updateMobileActiveNav = updateMobileActiveNav;
 
 /* -----------------------------------------
    LOAD ORDERS (SAFE & CACHED)

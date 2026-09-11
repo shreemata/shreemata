@@ -2443,7 +2443,7 @@ img, video, canvas, svg {
 }
 
 /* ── 10. RESPONSIVE ACCOUNT & VIP MASTER CARD ── */
-@media (max-width: 900px) {
+@media (max-width: 1024px) and (min-width: 769px) {
     .account-layout-grid {
         display: flex !important;
         flex-direction: column !important;
@@ -2454,20 +2454,21 @@ img, video, canvas, svg {
         width: 100% !important;
         max-width: 100% !important;
     }
+}
 
-    .account-menu {
-        display: grid !important;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
-        gap: 8px !important;
+@media (max-width: 768px) {
+    .account-sidebar {
+        display: none !important;
     }
 
-    .account-menu button, .account-menu a {
-        min-height: 44px !important;
-        padding: 8px 12px !important;
-        font-size: 13px !important;
-        border-radius: 8px !important;
-        justify-content: center !important;
-        text-align: center !important;
+    .account-layout-grid {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .btn-mobile-account-menu {
+        display: flex !important;
     }
 }
 

@@ -1207,14 +1207,259 @@
     margin-top: 20px;
 }
 
+/* ── 13. MOBILE ACCOUNT OFF-CANVAS SIDEBAR STYLES ── */
+.btn-mobile-account-menu {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 16px;
+    margin-top: 14px;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #102A43 0%, #0B1D30 100%);
+    color: #FFFFFF;
+    border: 1.5px solid rgba(212, 167, 44, 0.45);
+    border-radius: var(--radius-md, 12px);
+    font-family: var(--sm-font-ui, 'Inter', sans-serif);
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(16, 42, 67, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.btn-mobile-account-menu:hover,
+.btn-mobile-account-menu:focus-visible {
+    border-color: var(--sm-gold, #D4A72C);
+    background: linear-gradient(135deg, #173859 0%, #0F253E 100%);
+    box-shadow: 0 6px 18px rgba(212, 167, 44, 0.25);
+}
+
+.btn-mobile-account-menu .account-menu-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-mobile-account-menu .account-menu-icon {
+    font-size: 18px;
+    color: var(--sm-gold, #D4A72C);
+    display: inline-block;
+}
+
+.btn-mobile-account-menu .account-menu-label {
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.02em;
+}
+
+.btn-mobile-account-menu .account-menu-active-badge {
+    font-size: 12px;
+    font-weight: 700;
+    background: rgba(212, 167, 44, 0.18);
+    color: #FACC15;
+    border: 1px solid rgba(212, 167, 44, 0.4);
+    padding: 4px 10px;
+    border-radius: 9999px;
+    white-space: nowrap;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Mobile Account Off-Canvas Backdrop */
+.mobile-account-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1040;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s ease;
+    pointer-events: none;
+}
+
+.mobile-account-backdrop.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* Mobile Account Off-Canvas Left Sidebar */
+.mobile-account-offcanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(82vw, 320px);
+    height: 100dvh;
+    max-height: 100vh;
+    background: linear-gradient(180deg, #FAF7F1 0%, #FFFFFF 100%);
+    border-right: 1px solid var(--sm-border, #E7E1D6);
+    box-shadow: 10px 0 35px rgba(15, 23, 42, 0.25);
+    z-index: 1050;
+    transform: translateX(-100%);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+    padding: 0;
+}
+
+.mobile-account-offcanvas.open {
+    transform: translateX(0);
+}
+
+.mobile-account-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    background: linear-gradient(135deg, #102A43 0%, #0B1D30 100%);
+    border-bottom: 2px solid var(--sm-gold, #D4A72C);
+    color: #FFFFFF;
+    flex-shrink: 0;
+}
+
+.mobile-account-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mobile-account-title {
+    font-family: var(--font-serif, 'Playfair Display', serif);
+    font-size: 16px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.2;
+}
+
+.mobile-account-user {
+    font-size: 12px;
+    color: var(--sm-gold, #D4A72C);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 170px;
+}
+
+.mobile-account-close {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #FFFFFF;
+    font-size: 24px;
+    line-height: 1;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.mobile-account-close:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05);
+}
+
+.mobile-account-user-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: #FAF7F1;
+    border-bottom: 1px solid var(--sm-border-light, #F0EAE0);
+    flex-shrink: 0;
+}
+
+.mobile-account-nav {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 14px 30px;
+    gap: 4px;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.mobile-nav-item {
+    width: 100%;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md, 10px);
+    font-family: var(--sm-font-ui, 'Inter', sans-serif);
+    font-size: 14.5px;
+    font-weight: 500;
+    color: #334155;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    box-sizing: border-box;
+}
+
+.mobile-nav-item .menu-icon {
+    font-size: 18px;
+    width: 22px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.mobile-nav-item:hover {
+    background: rgba(16, 42, 67, 0.05);
+    color: #0F172A;
+}
+
+.mobile-nav-item.active {
+    background: linear-gradient(135deg, #102A43 0%, #0B1D30 100%);
+    color: #FFFFFF;
+    font-weight: 700;
+    border: 1px solid var(--sm-gold, #D4A72C);
+    box-shadow: 0 3px 10px rgba(16, 42, 67, 0.18);
+}
+
+.mobile-nav-item.active .menu-icon {
+    color: var(--sm-gold, #D4A72C);
+}
+
+.mobile-nav-item.logout-item {
+    color: #DC2626;
+    margin-top: 8px;
+}
+
+.mobile-nav-item.logout-item:hover {
+    background: #FEF2F2;
+    color: #B91C1C;
+}
+
+.mobile-account-divider {
+    height: 1px;
+    background: var(--sm-border-light, #E2E8F0);
+    margin: 8px 4px;
+}
+
 /* ── 14. RESPONSIVE BREAKPOINTS ── */
-@media (max-width: 1024px) {
+@media (max-width: 1024px) and (min-width: 769px) {
     .account-layout-grid {
         grid-template-columns: 1fr;
         gap: 18px;
     }
 
-    /* Convert sidebar into a sticky horizontal scrollable tab strip */
     .account-sidebar {
         position: sticky;
         top: 68px;
@@ -1260,25 +1505,11 @@
         box-shadow: 0 2px 8px rgba(16, 42, 67, 0.15);
     }
 
-    .account-menu button .menu-icon,
-    .account-menu a.account-menu-link .menu-icon {
-        color: var(--sm-gold, #D4A72C);
-    }
-
     .account-menu button.active {
         background: linear-gradient(135deg, var(--sm-gold, #D4A72C) 0%, #C49520 100%);
         color: #101820;
         border: 1px solid #E5BA3D;
-        border-left: 1px solid #E5BA3D;
         box-shadow: 0 3px 12px rgba(212, 167, 44, 0.35);
-    }
-
-    .account-menu button.active .menu-icon {
-        color: #101820;
-    }
-
-    .account-menu-divider {
-        display: none;
     }
 }
 
@@ -1287,54 +1518,103 @@
         padding: 16px 0 60px;
     }
 
+    /* Show mobile account trigger & hide desktop sidebar */
+    .btn-mobile-account-menu {
+        display: flex !important;
+    }
+
     .account-sidebar {
-        top: 56px;
+        display: none !important;
+    }
+
+    .account-layout-grid {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        gap: 0 !important;
+    }
+
+    .account-content-area {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
     }
 
     .account-page-title {
-        font-size: 28px;
+        font-size: 26px;
+    }
+
+    .account-page-subtitle {
+        font-size: 14px;
     }
 
     .account-section {
-        padding: 20px 16px;
-        border-radius: var(--radius-md, 12px);
+        padding: 18px 14px !important;
+        margin-bottom: 20px !important;
+        border-radius: var(--radius-md, 12px) !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .profile-info-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
     }
 
     .profile-overview-card {
-        flex-direction: column;
-        text-align: center;
+        padding: 16px !important;
     }
 
     .profile-overview-user {
-        flex-direction: column;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+        gap: 12px !important;
+    }
+
+    .address-display-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr !important;
+        gap: 28px !important;
     }
 
     .form-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
     }
 
     .withdrawal-form,
     .convert-input-row,
     .modal-actions {
-        flex-direction: column;
+        flex-direction: column !important;
     }
 
     .acc-order-header,
     .acc-order-footer {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: column !important;
+        align-items: flex-start !important;
     }
     .acc-order-item {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: column !important;
+        align-items: flex-start !important;
     }
 
     .tx-row-item {
-        padding: 14px 12px;
+        padding: 14px 12px !important;
     }
 
     .tx-details-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 360px) {
+    .mobile-account-offcanvas {
+        width: calc(100vw - 32px) !important;
     }
 }
 
