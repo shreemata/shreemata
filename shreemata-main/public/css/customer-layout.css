@@ -857,15 +857,8 @@ footer {
 
 @media (max-width: 768px) {
     .header-inner {
-        height: 68px;
-    }
-    
-    .header-search {
-        display: none;
-    }
-    
-    .top-bar-left {
-        display: none;
+        height: auto;
+        min-height: auto;
     }
     
     .top-bar-inner {
@@ -881,9 +874,5 @@ footer {
 @media (max-width: 480px) {
     .container {
         padding: 0 16px;
-    }
-    
-    .btn-login {
-        display: none;
     }
 }

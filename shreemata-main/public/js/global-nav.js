@@ -45,6 +45,7 @@
             const userLinks = document.getElementById("userLinks");
             const userName = document.getElementById("userName");
             const dropdownUserName = document.getElementById("dropdownUserName");
+            const dropdownUserEmail = document.getElementById("dropdownUserEmail");
             const accountLink = document.getElementById("accountLink");
             const ordersLink = document.getElementById("ordersLink");
             const referralLink = document.getElementById("referralLink");
@@ -65,6 +66,7 @@
                 const displayName = user.name || "Account";
                 if (userName) userName.textContent = displayName;
                 if (dropdownUserName) dropdownUserName.textContent = displayName;
+                if (dropdownUserEmail) dropdownUserEmail.textContent = user.email || user.phone || "";
 
                 if (accountLink) accountLink.style.display = "flex";
                 if (ordersLink) ordersLink.style.display = "flex";
@@ -261,15 +263,15 @@
         // Also ensure a toggle button exists in header if missing
         let toggleBtn = document.getElementById("mobileMenuToggle");
         if (!toggleBtn) {
-            const headerActions = document.querySelector(".header-actions, .nav-links, .navbar-content");
-            if (headerActions) {
+            const headerInner = document.querySelector(".header-inner, .navbar-content, header .container, header");
+            if (headerInner) {
                 toggleBtn = document.createElement("button");
                 toggleBtn.id = "mobileMenuToggle";
                 toggleBtn.type = "button";
                 toggleBtn.className = "mobile-menu-toggle";
                 toggleBtn.setAttribute("aria-label", "Open Navigation Menu");
                 toggleBtn.innerHTML = "☰";
-                headerActions.appendChild(toggleBtn);
+                headerInner.insertBefore(toggleBtn, headerInner.firstChild);
             }
         }
     }
