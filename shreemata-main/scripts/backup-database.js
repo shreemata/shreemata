@@ -333,6 +333,65 @@ async function recordBackupToDb(record) {
     }
 }
 
+function parseMongodumpStats(output, targetDbName) {
+    if (!output || typeof output !== 'string') {
+        return {
+            ok: false,
+            collectionCount: 0,
+            documentCount: 0,
+            collections: {},
+            error: 'Empty or invalid mongodump output'
+        };
+    }
+
+    const collections = {};
+    const normalizedTargetDb = targetDbName ? targetDbName.trim().toLowerCase() : null;
+
+    // Matches standard mongodump output lines:
+    // e.g., "2026-09-12T08:51:53.234+0000 done dumping shreemata.users (5 documents)"
+    // e.g., "done dumping shreemata.orders (25 documents)"
+    // e.g., "done dumping users (5 documents)"
+    const dumpRegex = /done dumping\s+(?:([a-zA-Z0-9_-]+)\.)?([a-zA-Z0-9_-]+)\s+\((\d+)\s+documents?\)/gi;
+    let match;
+    while ((match = dumpRegex.exec(output)) !== null) {
+        const dbName = match[1];
+        const colName = match[2];
+        const count = parseInt(match[3], 10);
+
+        // Filter out system collections
+        if (colName.startsWith('system.')) continue;
+
+        // If targetDbName is specified and a db prefix is present, ignore unrelated databases
+        if (normalizedTargetDb && dbName && dbName.toLowerCase() !== normalizedTargetDb) {
+            continue;
+        }
+
+        // Store count (overwrites if duplicate line exists to prevent double counting)
+        collections[colName] = count;
+    }
+
+    const collectionNames = Object.keys(collections);
+    const collectionCount = collectionNames.length;
+    const documentCount = collectionNames.reduce((sum, col) => sum + collections[col], 0);
+
+    if (collectionCount === 0) {
+        return {
+            ok: false,
+            collectionCount: 0,
+            documentCount: 0,
+            collections: {},
+            error: 'No collection dump statistics found in mongodump output'
+        };
+    }
+
+    return {
+        ok: true,
+        collectionCount,
+        documentCount,
+        collections
+    };
+}
+
 function checkMongodumpAvailable() {
     try {
         childProcess.execSync(`${MONGODUMP_BIN} --version`, { stdio: 'ignore', timeout: 3000 });
@@ -484,6 +543,7 @@ async function runBackup(options = {}) {
         // STAGE 2: DUMP TO .partial STAGING FILE
         const dailyPath = path.join(BACKUP_ROOT, 'daily', filename);
         const partialPath = `${dailyPath}.partial`;
+        let mongodumpOutput = '';
 
         console.log(`[DATABASE BACKUP] Staging mongodump to ${path.basename(partialPath)}...`);
 
@@ -499,9 +559,12 @@ async function runBackup(options = {}) {
                     stdio: ['ignore', 'pipe', 'pipe']
                 });
 
-                let stderrData = '';
+                proc.stdout.on('data', (chunk) => {
+                    mongodumpOutput += chunk.toString();
+                });
+
                 proc.stderr.on('data', (chunk) => {
-                    stderrData += chunk.toString();
+                    mongodumpOutput += chunk.toString();
                 });
 
                 proc.on('error', (err) => {
@@ -512,7 +575,7 @@ async function runBackup(options = {}) {
                     if (code === 0) {
                         resolve();
                     } else {
-                        reject(new Error(`mongodump exited with code ${code}: ${stderrData}`));
+                        reject(new Error(`mongodump exited with code ${code}: ${mongodumpOutput}`));
                     }
                 });
             });
@@ -570,47 +633,38 @@ async function runBackup(options = {}) {
             return resultRecord;
         }
 
-        // STAGE 4.5: GENERATE BACKUP-TIME MANIFEST
+        // STAGE 4.5: GENERATE IMMUTABLE BACKUP-TIME MANIFEST (100% Derived from mongodump Output Stream)
         const manifestPath = `${dailyPath}.manifest.json`;
-        let backupManifest = null;
-        try {
-            let manifestDbConn = null;
-            const collectionsMap = {};
-            let totalDocs = 0;
-            try {
-                manifestDbConn = await mongoose.createConnection(MONGO_URI, { serverSelectionTimeoutMS: 5000 }).asPromise();
-                const colList = await manifestDbConn.db.listCollections().toArray();
-                for (const col of colList) {
-                    if (col.name.startsWith('system.')) continue;
-                    const cCount = await manifestDbConn.db.collection(col.name).countDocuments();
-                    collectionsMap[col.name] = cCount;
-                    totalDocs += cCount;
-                }
-            } finally {
-                if (manifestDbConn) {
-                    try { await manifestDbConn.close(); } catch (e) {}
-                }
-            }
+        const targetDbName = parseDatabaseName(MONGO_URI);
+        const dumpStats = parseMongodumpStats(mongodumpOutput, targetDbName);
 
-            backupManifest = {
-                version: '1.0',
-                filename,
-                createdAt: startedAt.toISOString(),
-                databaseName: parseDatabaseName(MONGO_URI),
-                archiveSha256: resultRecord.checksumSha256,
-                collectionCount: Object.keys(collectionsMap).length,
-                documentCount: totalDocs,
-                collections: collectionsMap
-            };
-
-            resultRecord.collectionsCount = backupManifest.collectionCount;
-            resultRecord.documentsCount = backupManifest.documentCount;
-
-            fs.writeFileSync(manifestPath, JSON.stringify(backupManifest, null, 2), 'utf8');
-            console.log(`[DATABASE BACKUP] Created backup manifest: ${filename}.manifest.json (${backupManifest.collectionCount} collections, ${totalDocs} documents)`);
-        } catch (manifestErr) {
-            console.warn(`⚠️ Warning generating backup manifest:`, sanitizeError(manifestErr));
+        if (!dumpStats.ok) {
+            resultRecord.status = 'FAILED';
+            resultRecord.failureStage = 'VERIFY';
+            resultRecord.localStatus = 'FAILED';
+            resultRecord.errorMessage = `CRITICAL MANIFEST ERROR: Failed to parse mongodump output statistics: ${dumpStats.error}`;
+            console.error(`❌ [DATABASE BACKUP FAILED] Stage: VERIFY - ${resultRecord.errorMessage}`);
+            try { if (fs.existsSync(dailyPath)) fs.unlinkSync(dailyPath); } catch (e) {}
+            try { if (fs.existsSync(`${dailyPath}.sha256`)) fs.unlinkSync(`${dailyPath}.sha256`); } catch (e) {}
+            return resultRecord;
         }
+
+        const backupManifest = {
+            version: '1.0',
+            filename,
+            createdAt: startedAt.toISOString(),
+            databaseName: targetDbName,
+            archiveSha256: resultRecord.checksumSha256,
+            collectionCount: dumpStats.collectionCount,
+            documentCount: dumpStats.documentCount,
+            collections: dumpStats.collections
+        };
+
+        resultRecord.collectionsCount = dumpStats.collectionCount;
+        resultRecord.documentsCount = dumpStats.documentCount;
+
+        fs.writeFileSync(manifestPath, JSON.stringify(backupManifest, null, 2), 'utf8');
+        console.log(`[DATABASE BACKUP] Created immutable backup manifest: ${filename}.manifest.json (${dumpStats.collectionCount} collections, ${dumpStats.documentCount} documents)`);
 
         // STAGE 5: RETENTION PROMOTION (Single-Dump Architecture)
         try {
@@ -760,6 +814,7 @@ module.exports = {
     sanitizeError,
     computeFileSha256,
     checkMongodumpAvailable,
+    parseMongodumpStats,
     uploadFileToS3,
     verifyS3ObjectHead,
     parseDatabaseName,
