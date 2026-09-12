@@ -17,3 +17,9 @@ Thumbs.db
 
 
 .env
+
+# Database Backups & Dumps
+backups/
+*.archive.gz
+*.mongodb.gz
+*.sha256

@@ -9,7 +9,9 @@
     "migrate:dry-run": "node migrations/runMigration.js --dry-run",
     "migrate:users": "node migrations/migrateUsers.js",
     "migrate:orders": "node migrations/migrateOrders.js",
-    "migrate:orders:dry-run": "node migrations/migrateOrders.js --dry-run"
+    "migrate:orders:dry-run": "node migrations/migrateOrders.js --dry-run",
+    "backup:db": "node scripts/backup-database.js",
+    "restore:test": "node scripts/restore-test.js"
   },
   "version": "1.0.0",
   "description": "",

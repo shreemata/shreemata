@@ -526,7 +526,8 @@ router.get('/operations', authenticateToken, isAdmin, async (req, res) => {
         pendingVerificationCount: pendingPaymentsList.length,
         failedCount: orderStatusCountsAgg.find(s => s._id === 'failed')?.count || 0
       },
-      sevenDaysSales: last7DaysData
+      sevenDaysSales: last7DaysData,
+      databaseBackup: await getBackupHealthData()
     };
 
     return res.status(200).json({
@@ -542,5 +543,95 @@ router.get('/operations', authenticateToken, isAdmin, async (req, res) => {
     });
   }
 });
+
+// Helper: Get Read-Only Database Backup Health
+async function getBackupHealthData() {
+  const fs = require('fs');
+  const path = require('path');
+  const BackupRecord = require('../models/BackupRecord');
+
+  let latestSuccess = null;
+  let latestTested = null;
+
+  try {
+    latestSuccess = await BackupRecord.findOne({ status: { $in: ['SUCCESS', 'WARNING'] } }).sort({ completedAt: -1 }).lean();
+    latestTested = await BackupRecord.findOne({ restoreTested: true }).sort({ restoreTestedAt: -1 }).lean();
+  } catch (e) {
+    // Database query fallback
+  }
+
+  // Filesystem fallback if DB record is not yet synced
+  if (!latestSuccess) {
+    try {
+      const jsonlPath = path.join(__dirname, '../backups/logs/backup-history.jsonl');
+      if (fs.existsSync(jsonlPath)) {
+        const lines = fs.readFileSync(jsonlPath, 'utf8').trim().split('\n').filter(Boolean);
+        for (let i = lines.length - 1; i >= 0; i--) {
+          try {
+            const entry = JSON.parse(lines[i]);
+            if (entry.status === 'SUCCESS' || entry.status === 'WARNING') {
+              latestSuccess = entry;
+              break;
+            }
+          } catch (err) {}
+        }
+      }
+    } catch (fsErr) {}
+  }
+
+  if (!latestSuccess) {
+    return {
+      status: 'NOT_CONFIGURED',
+      statusLabel: 'Backup Monitoring Not Configured',
+      lastBackupDate: null,
+      lastBackupFormatted: 'No Backups Recorded',
+      ageHours: null,
+      sizeBytes: 0,
+      sizeFormatted: '0 MB',
+      offServerStatus: 'Not Configured',
+      lastRestoreTestDate: null,
+      lastRestoreTestFormatted: 'Not Tested',
+      alertLevel: 'NOT_CONFIGURED'
+    };
+  }
+
+  const completedAt = new Date(latestSuccess.completedAt || latestSuccess.startedAt);
+  const now = new Date();
+  const ageHours = Math.max(0, Math.floor((now - completedAt) / (1000 * 60 * 60)));
+
+  let alertLevel = 'HEALTHY';
+  let statusLabel = 'HEALTHY';
+
+  if (ageHours > 48 || latestSuccess.status === 'FAILED') {
+    alertLevel = 'CRITICAL';
+    statusLabel = 'CRITICAL';
+  } else if (ageHours > 26 || latestSuccess.status === 'WARNING') {
+    alertLevel = 'WARNING';
+    statusLabel = 'WARNING';
+  }
+
+  let offServerLabel = 'Healthy';
+  if (latestSuccess.remoteStatus === 'NOT_CONFIGURED') {
+    offServerLabel = 'Not Configured';
+  } else if (latestSuccess.remoteStatus === 'FAILED') {
+    offServerLabel = 'Failed';
+  }
+
+  const sizeMb = (Number(latestSuccess.sizeBytes || 0) / (1024 * 1024)).toFixed(1);
+
+  return {
+    status: alertLevel,
+    statusLabel,
+    lastBackupDate: completedAt,
+    lastBackupFormatted: completedAt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' • ' + completedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+    ageHours,
+    sizeBytes: latestSuccess.sizeBytes || 0,
+    sizeFormatted: `${sizeMb} MB`,
+    offServerStatus: offServerLabel,
+    lastRestoreTestDate: latestTested ? (latestTested.restoreTestedAt || latestTested.updatedAt) : null,
+    lastRestoreTestFormatted: latestTested ? new Date(latestTested.restoreTestedAt || latestTested.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not Tested',
+    alertLevel
+  };
+}
 
 module.exports = router;

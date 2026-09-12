@@ -442,6 +442,42 @@
                 </div>
             </section>
 
+            <!-- 11. READ-ONLY DATABASE BACKUP & RECOVERY HEALTH -->
+            <section class="dashboard-section" style="margin-top: 24px;" aria-label="Database Backup Health">
+                <div class="section-title-row">
+                    <h2 class="section-heading">
+                        <span>🛡️ Production Database Backup</span>
+                    </h2>
+                    <span id="backupHealthBadge" class="status-badge" style="background: rgba(21, 128, 61, 0.12); color: #15803d; font-size: 11px; padding: 4px 10px; border-radius: 6px; font-weight: 800; letter-spacing: 0.5px;">HEALTHY</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 12px;">
+                    <div class="financial-metric-box">
+                        <div class="financial-metric-label">Last Successful Backup</div>
+                        <div class="financial-metric-value" id="backupLastSuccessDate" style="font-size: 14px; font-weight: 700; color: var(--sm-navy);">--</div>
+                    </div>
+                    <div class="financial-metric-box">
+                        <div class="financial-metric-label">Backup Age</div>
+                        <div class="financial-metric-value" id="backupAgeHours" style="font-size: 15px; font-weight: 700;">--</div>
+                    </div>
+                    <div class="financial-metric-box">
+                        <div class="financial-metric-label">Last Backup Size</div>
+                        <div class="financial-metric-value" id="backupLastSize" style="font-size: 15px; font-weight: 700;">--</div>
+                    </div>
+                    <div class="financial-metric-box">
+                        <div class="financial-metric-label">Off-Server Copy (S3)</div>
+                        <div class="financial-metric-value" id="backupOffServerStatus" style="font-size: 15px; font-weight: 700;">--</div>
+                    </div>
+                    <div class="financial-metric-box">
+                        <div class="financial-metric-label">Last Restore Test</div>
+                        <div class="financial-metric-value" id="backupLastRestoreTest" style="font-size: 14px; font-weight: 700;">--</div>
+                    </div>
+                </div>
+                <div style="margin-top: 12px; font-size: 12px; color: var(--sm-text-muted); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                    <span>Automated daily scheduled backup at 02:00 AM server time.</span>
+                    <span style="font-style: italic;">Note: Restoration is an isolated CLI procedure. No web restoration buttons exist for security.</span>
+                </div>
+            </section>
+
         </div>
     </main>
 

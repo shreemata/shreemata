@@ -187,11 +187,41 @@
 
         // 11. 7-Day Sales Trend Chart
         renderSevenDaysSalesChart(d.sevenDaysSales || []);
+
+        // 12. Read-Only Database Backup Health
+        renderDatabaseBackup(d.databaseBackup || {});
     }
 
     function setText(id, text) {
         const el = document.getElementById(id);
         if (el) el.textContent = text;
+    }
+
+    // Render Database Backup Health
+    function renderDatabaseBackup(b) {
+        const badge = document.getElementById('backupHealthBadge');
+        if (badge) {
+            badge.textContent = b.statusLabel || 'HEALTHY';
+            if (b.alertLevel === 'HEALTHY') {
+                badge.style.background = 'rgba(21, 128, 61, 0.12)';
+                badge.style.color = '#15803d';
+            } else if (b.alertLevel === 'WARNING') {
+                badge.style.background = 'rgba(217, 119, 6, 0.14)';
+                badge.style.color = '#d97706';
+            } else if (b.alertLevel === 'CRITICAL') {
+                badge.style.background = 'rgba(220, 38, 38, 0.14)';
+                badge.style.color = '#dc2626';
+            } else {
+                badge.style.background = 'rgba(100, 116, 139, 0.14)';
+                badge.style.color = '#64748b';
+            }
+        }
+
+        setText('backupLastSuccessDate', b.lastBackupFormatted || '--');
+        setText('backupAgeHours', b.ageHours !== null && b.ageHours !== undefined ? `${b.ageHours} hours ago` : '--');
+        setText('backupLastSize', b.sizeFormatted || '--');
+        setText('backupOffServerStatus', b.offServerStatus || '--');
+        setText('backupLastRestoreTest', b.lastRestoreTestFormatted || 'Not Tested');
     }
 
     // Render Action Required Items
