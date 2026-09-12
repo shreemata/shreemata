@@ -80,8 +80,18 @@ const BackupRecordSchema = new mongoose.Schema({
     default: false,
     index: true
   },
+  restoreTestStatus: {
+    type: String,
+    enum: ['PASS', 'FAIL', 'NOT_RUN'],
+    default: 'NOT_RUN',
+    index: true
+  },
   restoreTestedAt: {
     type: Date,
+    default: null
+  },
+  restoreTestError: {
+    type: String,
     default: null
   },
   collectionsCount: {

@@ -7,15 +7,19 @@
  * 1. REQUIRES separate RESTORE_TEST_MONGO_URI. Never uses production URI.
  * 2. Assert target != production DB.
  * 3. Assert target DB exactly equals configured RESTORE_TEST_DB_NAME (default: shreemata_restore_test).
- * 4. Verifies SHA-256 checksum.
- * 5. Validates collections and in-depth financial integrity:
- *    - Users & Orders
- *    - WalletTransaction & CommissionTransaction
- *    - Referral tree links (treeParent, treeLevel, referredBy)
- *    - VIP tier, balance, totalWithdrawn
- *    - Membership status & activation
- *    - Order item profit snapshots
- * 6. Guaranteed cleanup: drops the isolated test DB upon completion or error (unless --keep-test-db is supplied).
+ * 4. Pre-cleans test database prior to restore to eliminate stale empty collections.
+ * 5. Captures production collection snapshot counts before restore.
+ * 6. Validates SHA-256 checksum of archive.
+ * 7. Enforces exact document count matches across ALL collections.
+ * 8. Rejects zero-document restores immediately.
+ * 9. Performs deep representative record comparison:
+ *    - Users (wallet, isMember, referredBy, treeParent, treeLevel)
+ *    - Orders (totalAmount, orderProfitTotal, payment status, item profit snapshots)
+ *    - WalletTransaction & CommissionTransaction (amounts, user IDs, types)
+ *    - VIP Master Cards (tier, balance, totalWithdrawn)
+ *    - Membership (status, activation timestamp)
+ * 10. Updates BackupRecord in production with restoreTestStatus ('PASS' / 'FAIL') and timestamp.
+ * 11. Guaranteed cleanup: drops the isolated test DB upon completion (unless --keep-test-db is supplied).
  */
 
 'use strict';
@@ -60,7 +64,7 @@ async function runRestoreTest(options = {}) {
     console.log('[RESTORE TEST] Initializing Isolated Restore Verification...');
     console.log('==================================================');
 
-    // 1. SAFETY ASSERTIONS
+    // 1. STRICT SAFETY ASSERTIONS
     if (!RESTORE_TEST_MONGO_URI) {
         throw new Error('STOP: RESTORE_TEST_MONGO_URI environment variable is missing. Restore testing is prohibited on production URI.');
     }
@@ -88,7 +92,68 @@ async function runRestoreTest(options = {}) {
         throw new Error(`CRITICAL ABORT: Test database '${testDbName}' must include '_test' or '_restore_test' suffix for safety.`);
     }
 
-    // 2. LOCATE BACKUP ARCHIVE
+    // 2. CLEAN TEST DATABASE BEFORE RESTORE (Section 5)
+    console.log(`[RESTORE TEST] Pre-cleaning test database '${testDbName}' before restore...`);
+    try {
+        const preCleanConn = await mongoose.createConnection(RESTORE_TEST_MONGO_URI, { serverSelectionTimeoutMS: 5000 }).asPromise();
+        await preCleanConn.db.dropDatabase();
+        await preCleanConn.close();
+        console.log(`✅ [RESTORE TEST] Pre-clean complete: '${testDbName}' dropped cleanly.`);
+    } catch (cleanErr) {
+        console.warn(`⚠️ Warning during pre-clean of test DB:`, sanitizeError(cleanErr));
+    }
+
+    // 3. CAPTURE PRODUCTION SNAPSHOT COUNTS & SAMPLES BEFORE RESTORE (Section 6)
+    console.log(`[RESTORE TEST] Capturing production database snapshot counts...`);
+    const prodSnapshot = {};
+    let prodSampleUser = null;
+    let prodSampleOrder = null;
+    let prodSampleWallet = null;
+    let prodSampleCommission = null;
+    let prodSampleVip = null;
+    let prodSampleMember = null;
+    let totalProdDocuments = 0;
+
+    let prodConn = null;
+    try {
+        prodConn = await mongoose.createConnection(PROD_MONGO_URI, { serverSelectionTimeoutMS: 5000 }).asPromise();
+        const prodCollections = await prodConn.db.listCollections().toArray();
+
+        for (const col of prodCollections) {
+            if (col.name.startsWith('system.')) continue;
+            const count = await prodConn.db.collection(col.name).countDocuments();
+            prodSnapshot[col.name] = count;
+            totalProdDocuments += count;
+        }
+
+        console.log(`[RESTORE TEST] Production snapshot captured: ${Object.keys(prodSnapshot).length} collections, ${totalProdDocuments} total documents.`);
+
+        // Fetch representative production samples for deep comparison
+        if (prodSnapshot['users'] > 0) {
+            prodSampleUser = await prodConn.db.collection('users').findOne({ treeParent: { $ne: null } }) 
+                          || await prodConn.db.collection('users').findOne({});
+            prodSampleMember = await prodConn.db.collection('users').findOne({ isMember: true });
+        }
+        if (prodSnapshot['orders'] > 0) {
+            prodSampleOrder = await prodConn.db.collection('orders').findOne({ 'items.0': { $exists: true } })
+                           || await prodConn.db.collection('orders').findOne({});
+        }
+        if (prodSnapshot['wallettransactions'] > 0) {
+            prodSampleWallet = await prodConn.db.collection('wallettransactions').findOne({});
+        }
+        if (prodSnapshot['commissiontransactions'] > 0) {
+            prodSampleCommission = await prodConn.db.collection('commissiontransactions').findOne({});
+        }
+        if (prodSnapshot['vipmastercards'] > 0) {
+            prodSampleVip = await prodConn.db.collection('vipmastercards').findOne({});
+        }
+    } finally {
+        if (prodConn) {
+            try { await prodConn.close(); } catch (e) {}
+        }
+    }
+
+    // 4. LOCATE BACKUP ARCHIVE
     let targetArchive = null;
     if (customArchive) {
         if (!fs.existsSync(customArchive)) {
@@ -105,84 +170,225 @@ async function runRestoreTest(options = {}) {
     console.log(`[RESTORE TEST] Target Archive: ${targetArchive.filename}`);
     console.log(`[RESTORE TEST] Test Database: ${testDbName}`);
 
-    // 3. EXECUTE SAFE RESTORE INTO ISOLATED TEST DB
-    await runRestore({
-        file: targetArchive.fullPath,
-        target: testDbName,
-        uri: RESTORE_TEST_MONGO_URI,
-        nsFrom: `${prodDbName}.*`,
-        nonInteractive: true
-    });
-
-    // 4. IN-DEPTH DATA INTEGRITY VERIFICATION
-    console.log('\n[RESTORE TEST] Connecting to test database for integrity audit...');
-    let testConn = null;
-
     const auditResults = {
+        archive: targetArchive.filename,
         collectionsChecked: 0,
+        totalProdDocuments,
+        totalRestoredDocuments: 0,
         usersCount: 0,
         ordersCount: 0,
         booksCount: 0,
         walletTransactionsCount: 0,
         commissionTransactionsCount: 0,
         vipCardsCount: 0,
-        financialIntegrity: false,
+        userIntegrity: false,
         treeIntegrity: false,
+        orderIntegrity: false,
+        financialIntegrity: false,
+        vipIntegrity: false,
         membershipIntegrity: false
     };
 
+    let testConn = null;
+
     try {
-        testConn = await mongoose.createConnection(RESTORE_TEST_MONGO_URI).asPromise();
-        const collections = await testConn.db.listCollections().toArray();
-        auditResults.collectionsChecked = collections.length;
-        console.log(`[RESTORE TEST] Found ${collections.length} restored collections in test database.`);
+        // 5. EXECUTE RESTORE INTO ISOLATED TEST DB
+        await runRestore({
+            file: targetArchive.fullPath,
+            target: testDbName,
+            uri: RESTORE_TEST_MONGO_URI,
+            nsFrom: `${prodDbName}.*`,
+            nonInteractive: true
+        });
 
-        // Users audit
-        const User = testConn.model('User', require('../models/User').schema);
-        auditResults.usersCount = await User.countDocuments();
-        console.log(`[RESTORE TEST] Restored Users count: ${auditResults.usersCount}`);
+        // 6. CONNECT TO TEST DATABASE FOR RIGOROUS AUDIT
+        console.log('\n[RESTORE TEST] Connecting to restored test database for integrity audit...');
+        testConn = await mongoose.createConnection(RESTORE_TEST_MONGO_URI, { serverSelectionTimeoutMS: 5000 }).asPromise();
+        const restoredCollections = await testConn.db.listCollections().toArray();
+        const restoredColMap = {};
 
-        // Books audit
-        const Book = testConn.model('Book', require('../models/Book').schema);
-        auditResults.booksCount = await Book.countDocuments();
-        console.log(`[RESTORE TEST] Restored Books count: ${auditResults.booksCount}`);
-
-        // Orders audit & item profit snapshots
-        const Order = testConn.model('Order', require('../models/Order').schema);
-        auditResults.ordersCount = await Order.countDocuments();
-        const sampleOrder = await Order.findOne({ 'items.0': { $exists: true } });
-        if (sampleOrder) {
-            console.log(`[RESTORE TEST] Sample Order #${sampleOrder._id} verified with ${sampleOrder.items.length} items (Total: ₹${sampleOrder.totalAmount || 0}).`);
+        for (const col of restoredCollections) {
+            if (col.name.startsWith('system.')) continue;
+            const count = await testConn.db.collection(col.name).countDocuments();
+            restoredColMap[col.name] = count;
+            auditResults.totalRestoredDocuments += count;
         }
 
-        // Wallet & Commission audit
-        const WalletTransaction = testConn.model('WalletTransaction', require('../models/WalletTransaction').schema);
-        const CommissionTransaction = testConn.model('CommissionTransaction', require('../models/CommissionTransaction').schema);
-        auditResults.walletTransactionsCount = await WalletTransaction.countDocuments();
-        auditResults.commissionTransactionsCount = await CommissionTransaction.countDocuments();
-        console.log(`[RESTORE TEST] Restored Wallet Transactions: ${auditResults.walletTransactionsCount}`);
-        console.log(`[RESTORE TEST] Restored Commission Transactions: ${auditResults.commissionTransactionsCount}`);
+        auditResults.collectionsChecked = Object.keys(restoredColMap).length;
+        console.log(`[RESTORE TEST] Restored Collections: ${auditResults.collectionsChecked}, Total Restored Documents: ${auditResults.totalRestoredDocuments}`);
 
-        // Referral Tree & Parent links
-        const treeUser = await User.findOne({ treeParent: { $ne: null } });
-        if (treeUser) {
-            console.log(`[RESTORE TEST] Referral Tree link verified: User ${treeUser._id} has treeParent ${treeUser.treeParent} (level ${treeUser.treeLevel})`);
+        // 7. COMPARE RESTORED COUNTS AGAINST PRODUCTION SNAPSHOT (Section 7)
+        console.log('\n--- COLLECTION COUNT VERIFICATION ---');
+        for (const [colName, prodCount] of Object.entries(prodSnapshot)) {
+            const restoredCount = restoredColMap[colName] || 0;
+            const countPass = prodCount === restoredCount;
+            console.log(`  - [${countPass ? 'PASS' : 'FAIL'}] Collection '${colName}': Production=${prodCount} | Restored=${restoredCount}`);
+
+            if (prodCount > 0 && restoredCount === 0) {
+                throw new Error(`CRITICAL ZERO-DOCUMENT RESTORE: Collection '${colName}' has ${prodCount} production records but 0 restored records!`);
+            }
+
+            if (prodCount !== restoredCount) {
+                throw new Error(`DOCUMENT COUNT MISMATCH: Collection '${colName}' expected ${prodCount} documents, but restored ${restoredCount}!`);
+            }
+        }
+
+        auditResults.usersCount = restoredColMap['users'] || 0;
+        auditResults.ordersCount = restoredColMap['orders'] || 0;
+        auditResults.booksCount = restoredColMap['books'] || 0;
+        auditResults.walletTransactionsCount = restoredColMap['wallettransactions'] || 0;
+        auditResults.commissionTransactionsCount = restoredColMap['commissiontransactions'] || 0;
+        auditResults.vipCardsCount = restoredColMap['vipmastercards'] || 0;
+
+        // 8. DEEP REPRESENTATIVE RECORD AUDITS (Section 9)
+        console.log('\n--- REPRESENTATIVE RECORD AUDITS ---');
+
+        // A. Users Audit & Referral Tree Integrity
+        if (prodSampleUser) {
+            const restoredUser = await testConn.db.collection('users').findOne({ _id: prodSampleUser._id });
+            if (!restoredUser) {
+                throw new Error(`Representative User '${prodSampleUser._id}' not found in restored database!`);
+            }
+            if (Number(restoredUser.wallet || 0) !== Number(prodSampleUser.wallet || 0)) {
+                throw new Error(`User wallet mismatch for user ${prodSampleUser._id}: expected ₹${prodSampleUser.wallet}, got ₹${restoredUser.wallet}`);
+            }
+            if (Boolean(restoredUser.isMember) !== Boolean(prodSampleUser.isMember)) {
+                throw new Error(`User isMember mismatch for user ${prodSampleUser._id}`);
+            }
+            if (String(restoredUser.treeParent || '') !== String(prodSampleUser.treeParent || '')) {
+                throw new Error(`User treeParent link mismatch for user ${prodSampleUser._id}: expected ${prodSampleUser.treeParent}, got ${restoredUser.treeParent}`);
+            }
+            if (Number(restoredUser.treeLevel || 0) !== Number(prodSampleUser.treeLevel || 0)) {
+                throw new Error(`User treeLevel mismatch for user ${prodSampleUser._id}`);
+            }
+            auditResults.userIntegrity = true;
             auditResults.treeIntegrity = true;
+            console.log(`  - [PASS] Representative User & Referral Tree link verified (_id: ${prodSampleUser._id})`);
         } else {
+            auditResults.userIntegrity = true;
             auditResults.treeIntegrity = true;
         }
 
-        // VIP Cards & Withdrawals
-        const VipMasterCard = testConn.model('VipMasterCard', require('../models/VipMasterCard').schema);
-        auditResults.vipCardsCount = await VipMasterCard.countDocuments();
-        console.log(`[RESTORE TEST] Restored VIP Master Cards: ${auditResults.vipCardsCount}`);
+        // B. Orders Audit & Item Profit Snapshots
+        if (prodSampleOrder) {
+            const restoredOrder = await testConn.db.collection('orders').findOne({ _id: prodSampleOrder._id });
+            if (!restoredOrder) {
+                throw new Error(`Representative Order '${prodSampleOrder._id}' not found in restored database!`);
+            }
+            if (Number(restoredOrder.totalAmount || 0) !== Number(prodSampleOrder.totalAmount || 0)) {
+                throw new Error(`Order totalAmount mismatch: expected ${prodSampleOrder.totalAmount}, got ${restoredOrder.totalAmount}`);
+            }
+            if (Number(restoredOrder.orderProfitTotal || 0) !== Number(prodSampleOrder.orderProfitTotal || 0)) {
+                throw new Error(`Order profit total mismatch: expected ${prodSampleOrder.orderProfitTotal}, got ${restoredOrder.orderProfitTotal}`);
+            }
+            auditResults.orderIntegrity = true;
+            console.log(`  - [PASS] Representative Order & Profit Snapshots verified (_id: ${prodSampleOrder._id})`);
+        } else {
+            auditResults.orderIntegrity = true;
+        }
 
+        // C. Wallet & Commission Transactions Audit
+        if (prodSampleWallet) {
+            const restoredWallet = await testConn.db.collection('wallettransactions').findOne({ _id: prodSampleWallet._id });
+            if (!restoredWallet) {
+                throw new Error(`Representative WalletTransaction '${prodSampleWallet._id}' not found in restored database!`);
+            }
+            if (Number(restoredWallet.amount || 0) !== Number(prodSampleWallet.amount || 0)) {
+                throw new Error(`WalletTransaction amount mismatch: expected ${prodSampleWallet.amount}, got ${restoredWallet.amount}`);
+            }
+        }
+        if (prodSampleCommission) {
+            const restoredCommission = await testConn.db.collection('commissiontransactions').findOne({ _id: prodSampleCommission._id });
+            if (!restoredCommission) {
+                throw new Error(`Representative CommissionTransaction '${prodSampleCommission._id}' not found in restored database!`);
+            }
+            if (Number(restoredCommission.amount || 0) !== Number(prodSampleCommission.amount || 0)) {
+                throw new Error(`CommissionTransaction amount mismatch: expected ${prodSampleCommission.amount}, got ${restoredCommission.amount}`);
+            }
+        }
         auditResults.financialIntegrity = true;
-        auditResults.membershipIntegrity = true;
+        console.log(`  - [PASS] Financial Ledger & Commission Transactions verified`);
 
-        console.log('\n✅ [RESTORE TEST] ALL INTEGRITY CHECKS PASSED: 100% DATA FIDELITY.');
+        // D. VIP Master Cards Audit
+        if (prodSampleVip) {
+            const restoredVip = await testConn.db.collection('vipmastercards').findOne({ _id: prodSampleVip._id });
+            if (!restoredVip) {
+                throw new Error(`Representative VipMasterCard '${prodSampleVip._id}' not found in restored database!`);
+            }
+            if (restoredVip.tier !== prodSampleVip.tier || Number(restoredVip.balance || 0) !== Number(prodSampleVip.balance || 0)) {
+                throw new Error(`VipMasterCard tier/balance mismatch: expected tier=${prodSampleVip.tier} bal=${prodSampleVip.balance}, got tier=${restoredVip.tier} bal=${restoredVip.balance}`);
+            }
+            auditResults.vipIntegrity = true;
+            console.log(`  - [PASS] VIP Master Card tier & balance verified (_id: ${prodSampleVip._id})`);
+        } else {
+            auditResults.vipIntegrity = true;
+        }
+
+        // E. Membership Audit
+        if (prodSampleMember) {
+            const restoredMember = await testConn.db.collection('users').findOne({ _id: prodSampleMember._id });
+            if (!restoredMember || !restoredMember.isMember) {
+                throw new Error(`Membership state mismatch for member user ${prodSampleMember._id}`);
+            }
+            auditResults.membershipIntegrity = true;
+            console.log(`  - [PASS] Membership state verified for user ${prodSampleMember._id}`);
+        } else {
+            auditResults.membershipIntegrity = true;
+        }
+
+        console.log('\n==================================================');
+        console.log('✅ [RESTORE TEST] ALL INTEGRITY CHECKS PASSED: 100% DATA FIDELITY.');
+        console.log('==================================================\n');
+
+        // 9. UPDATE BACKUP RECORD STATUS: SUCCESS (Section 10)
+        try {
+            const prodUpdateConn = await mongoose.createConnection(PROD_MONGO_URI, { serverSelectionTimeoutMS: 5000 }).asPromise();
+            const BackupRecord = prodUpdateConn.model('BackupRecord', require('../models/BackupRecord').schema);
+            await BackupRecord.updateMany(
+                { filename: targetArchive.filename },
+                {
+                    $set: {
+                        restoreTested: true,
+                        restoreTestStatus: 'PASS',
+                        restoreTestedAt: new Date(),
+                        restoreTestError: null
+                    }
+                }
+            );
+            await prodUpdateConn.close();
+            console.log(`[RESTORE TEST] BackupRecord in production updated with restoreTestStatus = 'PASS'.`);
+        } catch (e) {
+            console.warn('⚠️ Warning: Could not update BackupRecord in production DB:', sanitizeError(e));
+        }
+
+        return auditResults;
+
+    } catch (err) {
+        console.error('\n❌ [RESTORE TEST FAILED]:', sanitizeError(err));
+
+        // Update BackupRecord status: FAIL
+        try {
+            const prodUpdateConn = await mongoose.createConnection(PROD_MONGO_URI, { serverSelectionTimeoutMS: 5000 }).asPromise();
+            const BackupRecord = prodUpdateConn.model('BackupRecord', require('../models/BackupRecord').schema);
+            await BackupRecord.updateMany(
+                { filename: targetArchive.filename },
+                {
+                    $set: {
+                        restoreTested: false,
+                        restoreTestStatus: 'FAIL',
+                        restoreTestedAt: new Date(),
+                        restoreTestError: sanitizeError(err)
+                    }
+                }
+            );
+            await prodUpdateConn.close();
+            console.log(`[RESTORE TEST] BackupRecord in production updated with restoreTestStatus = 'FAIL'.`);
+        } catch (e) {}
+
+        throw err;
+
     } finally {
-        // 5. GUARANTEED CLEANUP OF ISOLATED TEST DB
+        // 10. GUARANTEED CLEANUP OF ISOLATED TEST DB (Section 13)
         if (testConn) {
             if (!keepTestDb) {
                 console.log(`[RESTORE TEST] Dropping isolated test database '${testDbName}'...`);
@@ -198,25 +404,6 @@ async function runRestoreTest(options = {}) {
             try { await testConn.close(); } catch (e) {}
         }
     }
-
-    // 6. UPDATE BACKUP RECORD STATUS
-    try {
-        const prodConn = await mongoose.createConnection(PROD_MONGO_URI).asPromise();
-        const BackupRecord = prodConn.model('BackupRecord', require('../models/BackupRecord').schema);
-        await BackupRecord.updateMany(
-            { filename: targetArchive.filename },
-            { $set: { restoreTested: true, restoreTestedAt: new Date() } }
-        );
-        await prodConn.close();
-    } catch (e) {
-        console.warn('⚠️ Warning: Could not update BackupRecord in production DB:', sanitizeError(e));
-    }
-
-    console.log('==================================================');
-    console.log('[RESTORE TEST] SUMMARY: VERIFICATION COMPLETED SUCCESSFULLY');
-    console.log('==================================================\n');
-
-    return auditResults;
 }
 
 if (require.main === module) {
@@ -237,5 +424,6 @@ if (require.main === module) {
 
 module.exports = {
     runRestoreTest,
+    findLatestDailyBackup,
     RESTORE_TEST_DB_NAME
 };

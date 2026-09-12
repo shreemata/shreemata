@@ -6,10 +6,12 @@
  * STRICT SAFETY RULES:
  * 1. Default target MUST NOT be production.
  * 2. Requires explicit --file and --target parameters.
- * 3. Triple-lock production restore protection with typed confirmation.
+ * 3. Triple-lock production restore protection with typed confirmation on interactive TTY only.
  * 4. Automatic SHA-256 integrity validation before execution.
- * 5. Namespace remapping (--nsFrom / --nsTo) support.
+ * 5. Namespace remapping (--nsFrom / --nsTo) support with database-less connection URI.
  * 6. NO HTTP endpoint is allowed to invoke this utility.
+ * 7. Non-interactive production restore is strictly blocked.
+ * 8. Captures mongorestore stream output and verifies non-zero documents restored.
  */
 
 'use strict';
@@ -17,7 +19,7 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-const { spawn, execSync } = require('child_process');
+const childProcess = require('child_process');
 const crypto = require('crypto');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
@@ -26,9 +28,74 @@ const { maskUri, sanitizeError, computeFileSha256, parseDatabaseName } = require
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 const MONGORESTORE_BIN = process.env.MONGORESTORE_PATH || 'mongorestore';
 
+/**
+ * Builds a database-less URI for mongorestore to allow namespace remapping (--nsFrom / --nsTo)
+ * Preserves host, port, username, password, query parameters (authSource, replicaSet, ssl, etc.)
+ * Removes ONLY the database pathname.
+ */
+function buildDeploymentRestoreUri(uri) {
+    if (!uri) return uri;
+    try {
+        const qIndex = uri.indexOf('?');
+        const queryString = qIndex !== -1 ? uri.substring(qIndex) : '';
+        const baseUri = qIndex !== -1 ? uri.substring(0, qIndex) : uri;
+
+        const protocolMatch = baseUri.match(/^mongodb(\+srv)?:\/\//i);
+        if (!protocolMatch) return uri;
+        const protocol = protocolMatch[0];
+        const rest = baseUri.substring(protocol.length);
+
+        let authPart = '';
+        let hostsAndDb = rest;
+        const atIndex = rest.lastIndexOf('@');
+        if (atIndex !== -1) {
+            authPart = rest.substring(0, atIndex + 1);
+            hostsAndDb = rest.substring(atIndex + 1);
+        }
+
+        const slashIndex = hostsAndDb.indexOf('/');
+        let hostPart = hostsAndDb;
+        if (slashIndex !== -1) {
+            hostPart = hostsAndDb.substring(0, slashIndex);
+        }
+
+        return `${protocol}${authPart}${hostPart}/${queryString}`;
+    } catch (e) {
+        return uri;
+    }
+}
+
+/**
+ * Parses mongorestore output to extract document restore counts
+ */
+function parseMongorestoreStats(output) {
+    let totalRestored = 0;
+    let totalFailed = 0;
+    let foundMatch = false;
+
+    // Matches patterns like:
+    // "266 document(s) restored successfully. 0 document(s) failed to restore."
+    // "5 document(s) restored successfully"
+    const restoreRegex = /(\d+)\s+document\(s\)\s+restored\s+successfully(?:[,\.]\s+(\d+)\s+document\(s\)\s+failed\s+to\s+restore)?/gi;
+    let match;
+    while ((match = restoreRegex.exec(output)) !== null) {
+        foundMatch = true;
+        totalRestored += parseInt(match[1], 10);
+        if (match[2]) {
+            totalFailed += parseInt(match[2], 10);
+        }
+    }
+
+    return {
+        foundMatch,
+        totalRestored,
+        totalFailed
+    };
+}
+
 function checkMongorestoreAvailable() {
     try {
-        execSync(`${MONGORESTORE_BIN} --version`, { stdio: 'ignore', timeout: 3000 });
+        childProcess.execSync(`${MONGORESTORE_BIN} --version`, { stdio: 'ignore', timeout: 3000 });
         return true;
     } catch (e) {
         return false;
@@ -54,8 +121,8 @@ async function runRestore(options = {}) {
     const customUri = options.uri || MONGO_URI;
     const allowProd = options.allowProductionRestore === true || process.argv.includes('--allow-production-restore');
     const confirmOverwrite = options.confirmProductionOverwrite === true || process.argv.includes('--confirm-production-overwrite');
-    const skipPrompt = options.nonInteractive === true;
     const nsFrom = options.nsFrom || null;
+    const allowZeroDocuments = options.allowZeroDocuments === true;
 
     console.log('\n==================================================');
     console.log('[DATABASE RESTORE] Initializing Restore Engine...');
@@ -108,17 +175,15 @@ async function runRestore(options = {}) {
             throw new Error('Production restore denied due to missing safety overrides.');
         }
 
-        // Must be interactive terminal or explicitly confirmed
-        if (!process.stdin.isTTY && skipPrompt) {
-            console.warn('⚠️ Warning: Non-interactive production restore detected.');
+        // Section 11 Fix: Production restore must NEVER run non-interactively
+        if (!process.stdin.isTTY) {
+            throw new Error('CRITICAL SECURITY HALT: Production database restore is forbidden in non-interactive environments (automation/cron/script). A real interactive TTY terminal is mandatory.');
         }
 
-        if (!skipPrompt) {
-            console.warn('👉 To proceed, type EXACTLY: RESTORE SHREEMATA PRODUCTION');
-            const confirmation = await promptConfirmation('Confirmation phrase: ');
-            if (confirmation !== 'RESTORE SHREEMATA PRODUCTION') {
-                throw new Error('Confirmation phrase did not match. Aborting production restore.');
-            }
+        console.warn('👉 To proceed, type EXACTLY: RESTORE SHREEMATA PRODUCTION');
+        const confirmation = await promptConfirmation('Confirmation phrase: ');
+        if (confirmation !== 'RESTORE SHREEMATA PRODUCTION') {
+            throw new Error('Confirmation phrase did not match. Aborting production restore.');
         }
     }
 
@@ -126,32 +191,42 @@ async function runRestore(options = {}) {
         throw new Error('mongorestore tool is not found or not executable. Restore requires mongorestore CLI.');
     }
 
-    // 3. EXECUTE RESTORE WITH NAMESPACE REMAPPING
+    // 3. EXECUTE RESTORE WITH DATABASE-LESS URI & NAMESPACE REMAPPING
     const sourceNs = nsFrom || `${detectedProductionDb}.*`;
     const targetNs = `${targetDb}.*`;
+    const restoreDeploymentUri = buildDeploymentRestoreUri(customUri);
 
     console.log(`[DATABASE RESTORE] Restoring from ${path.basename(filePath)}...`);
     console.log(`[DATABASE RESTORE] Target DB: ${targetDb}`);
     console.log(`[DATABASE RESTORE] Remapping namespaces: ${sourceNs} -> ${targetNs}`);
-    console.log(`[DATABASE RESTORE] Target URI: ${maskUri(customUri)}`);
+    console.log(`[DATABASE RESTORE] Deployment URI: ${maskUri(restoreDeploymentUri)}`);
 
     const restoreArgs = [
-        `--uri=${customUri}`,
+        `--uri=${restoreDeploymentUri}`,
         `--archive=${filePath}`,
         '--gzip',
         `--nsFrom=${sourceNs}`,
         `--nsTo=${targetNs}`,
-        '--drop' // Drops collections in the target database before restoring
+        '--drop',
+        '--stopOnError',
+        '--verbose'
     ];
 
+    let combinedOutput = '';
+
     await new Promise((resolve, reject) => {
-        const proc = spawn(MONGORESTORE_BIN, restoreArgs, {
+        const proc = childProcess.spawn(MONGORESTORE_BIN, restoreArgs, {
             stdio: ['ignore', 'pipe', 'pipe']
         });
 
-        let stderrData = '';
+        proc.stdout.on('data', (chunk) => {
+            const text = chunk.toString();
+            combinedOutput += text;
+        });
+
         proc.stderr.on('data', (chunk) => {
-            stderrData += chunk.toString();
+            const text = chunk.toString();
+            combinedOutput += text;
         });
 
         proc.on('error', (err) => {
@@ -160,13 +235,27 @@ async function runRestore(options = {}) {
 
         proc.on('close', (code) => {
             if (code === 0) {
-                console.log('✅ [DATABASE RESTORE] mongorestore completed successfully (Exit Code 0).');
+                console.log('✅ [DATABASE RESTORE] mongorestore command exited with code 0.');
                 resolve();
             } else {
-                reject(new Error(`mongorestore failed with exit code ${code}: ${stderrData}`));
+                reject(new Error(`mongorestore failed with exit code ${code}: ${sanitizeError(combinedOutput)}`));
             }
         });
     });
+
+    // 4. CAPTURE & VALIDATE MONGORESTORE RESTORE STATS
+    const stats = parseMongorestoreStats(combinedOutput);
+    if (stats.foundMatch) {
+        console.log(`[DATABASE RESTORE] mongorestore Summary: ${stats.totalRestored} document(s) restored successfully, ${stats.totalFailed} document(s) failed to restore.`);
+        if (stats.totalRestored === 0 && !allowZeroDocuments) {
+            throw new Error(`CRITICAL RESTORE FAILURE: mongorestore reported 0 document(s) restored successfully!`);
+        }
+        if (stats.totalFailed > 0) {
+            throw new Error(`CRITICAL RESTORE FAILURE: mongorestore reported ${stats.totalFailed} document(s) failed to restore.`);
+        }
+    } else {
+        console.log(`[DATABASE RESTORE] mongorestore process completed without structured doc count lines.`);
+    }
 
     console.log('==================================================');
     console.log(`[DATABASE RESTORE] COMPLETE: Database '${targetDb}' restored successfully.`);
@@ -176,7 +265,8 @@ async function runRestore(options = {}) {
         success: true,
         targetDb,
         filePath,
-        checksum: calculatedChecksum
+        checksum: calculatedChecksum,
+        stats
     };
 }
 
@@ -191,7 +281,7 @@ if (require.main === module) {
         if (arg.startsWith('--nsFrom=')) options.nsFrom = arg.split('=')[1];
         if (arg === '--allow-production-restore') options.allowProductionRestore = true;
         if (arg === '--confirm-production-overwrite') options.confirmProductionOverwrite = true;
-        if (arg === '--non-interactive') options.nonInteractive = true;
+        if (arg === '--allow-zero-documents') options.allowZeroDocuments = true;
     });
 
     runRestore(options)
@@ -204,5 +294,7 @@ if (require.main === module) {
 
 module.exports = {
     runRestore,
+    buildDeploymentRestoreUri,
+    parseMongorestoreStats,
     checkMongorestoreAvailable
 };
