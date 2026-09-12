@@ -20,7 +20,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawn, execSync } = require('child_process');
+const childProcess = require('child_process');
 const crypto = require('crypto');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
@@ -31,6 +31,7 @@ const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 const BACKUP_ENABLED = process.env.BACKUP_ENABLED !== 'false';
 const BACKUP_ROOT = path.resolve(process.env.BACKUP_LOCAL_DIR || path.join(__dirname, '../backups'));
 const MONGODUMP_BIN = process.env.MONGODUMP_PATH || 'mongodump';
+const AWS_CLI_BIN = process.env.AWS_CLI_PATH || 'aws';
 const LOCK_FILE_PATH = path.join(BACKUP_ROOT, '.backup.lock');
 
 // Retention configuration (days / weeks / months)
@@ -39,9 +40,9 @@ const RETENTION_WEEKLY_WEEKS = parseInt(process.env.BACKUP_WEEKLY_RETENTION_WEEK
 const RETENTION_MONTHLY_MONTHS = parseInt(process.env.BACKUP_MONTHLY_RETENTION_MONTHS || '6', 10);
 
 // S3 Configuration
-const S3_ENABLED = process.env.BACKUP_S3_ENABLED === 'true';
-const S3_BUCKET = process.env.BACKUP_S3_BUCKET || '';
-const S3_REGION = process.env.BACKUP_S3_REGION || 'ap-south-1';
+const S3_ENABLED = process.env.BACKUP_S3_ENABLED === 'true' || process.env.BACKUP_S3_ENABLED === '1';
+const S3_BUCKET = process.env.BACKUP_S3_BUCKET || 'shreemata-production-backups-2026';
+const S3_REGION = process.env.BACKUP_S3_REGION || process.env.AWS_REGION || 'ap-south-1';
 
 // 2. HELPER FUNCTIONS
 function maskUri(uri) {
@@ -224,12 +225,101 @@ function appendFilesystemLog(record) {
     }
 }
 
+function uploadFileToS3(localFilePath, s3Bucket, s3Key, region) {
+    if (!fs.existsSync(localFilePath)) {
+        throw new Error(`Local file not found for S3 upload: ${localFilePath}`);
+    }
+
+    const s3Uri = `s3://${s3Bucket}/${s3Key}`;
+    const cpArgs = [
+        's3',
+        'cp',
+        localFilePath,
+        s3Uri,
+        '--region',
+        region,
+        '--sse',
+        'AES256'
+    ];
+
+    const cpResult = childProcess.spawnSync(AWS_CLI_BIN, cpArgs, {
+        encoding: 'utf8',
+        timeout: 120000,
+        maxBuffer: 10 * 1024 * 1024
+    });
+
+    if (cpResult.error) {
+        throw new Error(`AWS CLI execution error: ${sanitizeError(cpResult.error)}`);
+    }
+
+    if (cpResult.status !== 0) {
+        const stderr = (cpResult.stderr || cpResult.stdout || 'Unknown S3 cp error').trim();
+        throw new Error(`aws s3 cp exited with status ${cpResult.status}: ${sanitizeError(stderr)}`);
+    }
+
+    return true;
+}
+
+function verifyS3ObjectHead(s3Bucket, s3Key, region) {
+    const headArgs = [
+        's3api',
+        'head-object',
+        '--bucket',
+        s3Bucket,
+        '--key',
+        s3Key,
+        '--region',
+        region
+    ];
+
+    const headResult = childProcess.spawnSync(AWS_CLI_BIN, headArgs, {
+        encoding: 'utf8',
+        timeout: 30000,
+        maxBuffer: 5 * 1024 * 1024
+    });
+
+    if (headResult.error) {
+        throw new Error(`AWS CLI head-object execution error: ${sanitizeError(headResult.error)}`);
+    }
+
+    if (headResult.status !== 0) {
+        const stderr = (headResult.stderr || headResult.stdout || 'HeadObject failed').trim();
+        throw new Error(`aws s3api head-object failed (status ${headResult.status}): ${sanitizeError(stderr)}`);
+    }
+
+    let headData;
+    try {
+        headData = JSON.parse(headResult.stdout);
+    } catch (parseErr) {
+        throw new Error(`Failed to parse head-object JSON response: ${parseErr.message}`);
+    }
+
+    const contentLength = typeof headData.ContentLength === 'number' ? headData.ContentLength : parseInt(headData.ContentLength, 10);
+    if (!contentLength || isNaN(contentLength) || contentLength <= 0) {
+        throw new Error(`Remote object has invalid or zero ContentLength: ${headData.ContentLength}`);
+    }
+
+    return {
+        contentLength,
+        eTag: headData.ETag,
+        versionId: headData.VersionId,
+        serverSideEncryption: headData.ServerSideEncryption
+    };
+}
+
 async function recordBackupToDb(record) {
     let connectionOpened = false;
     try {
         if (mongoose.connection.readyState !== 1) {
             await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 4000 });
             connectionOpened = true;
+        }
+
+        if (record.collectionsCount === null && mongoose.connection.readyState === 1) {
+            try {
+                const collections = await mongoose.connection.db.listCollections().toArray();
+                record.collectionsCount = collections.length;
+            } catch (e) {}
         }
 
         const BackupRecord = require('../models/BackupRecord');
@@ -245,7 +335,7 @@ async function recordBackupToDb(record) {
 
 function checkMongodumpAvailable() {
     try {
-        execSync(`${MONGODUMP_BIN} --version`, { stdio: 'ignore', timeout: 3000 });
+        childProcess.execSync(`${MONGODUMP_BIN} --version`, { stdio: 'ignore', timeout: 3000 });
         return true;
     } catch (e) {
         return false;
@@ -331,7 +421,8 @@ async function runBackup(options = {}) {
         errorMessage: null,
         restoreTested: false,
         restoreTestedAt: null,
-        collectionsCount: 0
+        collectionsCount: null,
+        documentsCount: null
     };
 
     let lockAcquired = false;
@@ -404,7 +495,7 @@ async function runBackup(options = {}) {
                     '--gzip'
                 ];
 
-                const proc = spawn(MONGODUMP_BIN, args, {
+                const proc = childProcess.spawn(MONGODUMP_BIN, args, {
                     stdio: ['ignore', 'pipe', 'pipe']
                 });
 
@@ -501,18 +592,43 @@ async function runBackup(options = {}) {
             console.warn('⚠️ Warning: Retention promotion encountered an error:', sanitizeError(promoErr));
         }
 
-        // STAGE 6: S3 UPLOAD (Archive + Checksum Object)
+        // STAGE 6: REAL S3 UPLOAD & VERIFICATION (Archive + Checksum Object)
         if (S3_ENABLED && S3_BUCKET) {
+            const archiveKey = `database-backups/daily/${filename}`;
+            const checksumKey = `database-backups/daily/${filename}.sha256`;
+            const localChecksumPath = `${dailyPath}.sha256`;
+
             try {
-                console.log(`[DATABASE BACKUP] Uploading archive and .sha256 to S3 bucket ${S3_BUCKET}...`);
-                resultRecord.s3Key = `database-backups/daily/${filename}`;
+                console.log(`[DATABASE BACKUP] Step 6a: Uploading archive to s3://${S3_BUCKET}/${archiveKey}...`);
+                uploadFileToS3(dailyPath, S3_BUCKET, archiveKey, S3_REGION);
+
+                console.log(`[DATABASE BACKUP] Step 6b: Verifying remote archive via HeadObject...`);
+                const remoteArchiveHead = verifyS3ObjectHead(S3_BUCKET, archiveKey, S3_REGION);
+
+                if (remoteArchiveHead.contentLength !== resultRecord.sizeBytes) {
+                    throw new Error(`Remote archive size mismatch: remote ContentLength (${remoteArchiveHead.contentLength}) !== local size (${resultRecord.sizeBytes})`);
+                }
+
+                console.log(`[DATABASE BACKUP] Step 6c: Uploading checksum to s3://${S3_BUCKET}/${checksumKey}...`);
+                uploadFileToS3(localChecksumPath, S3_BUCKET, checksumKey, S3_REGION);
+
+                console.log(`[DATABASE BACKUP] Step 6d: Verifying remote checksum via HeadObject...`);
+                const remoteChecksumHead = verifyS3ObjectHead(S3_BUCKET, checksumKey, S3_REGION);
+
+                if (remoteChecksumHead.contentLength <= 0) {
+                    throw new Error(`Remote checksum ContentLength is invalid (${remoteChecksumHead.contentLength})`);
+                }
+
+                // ONLY MARK SUCCESS ON COMPLETE VERIFICATION
+                resultRecord.s3Key = archiveKey;
                 resultRecord.remoteStatus = 'SUCCESS';
                 resultRecord.storageLocation = 'both';
-                console.log(`[DATABASE BACKUP] S3 Upload: SUCCESS -> s3://${S3_BUCKET}/${resultRecord.s3Key}`);
+                console.log(`[DATABASE BACKUP] S3 Upload & Verification: SUCCESS -> s3://${S3_BUCKET}/${archiveKey}`);
             } catch (s3Err) {
                 resultRecord.remoteStatus = 'FAILED';
                 resultRecord.failureStage = 'UPLOAD';
-                resultRecord.errorMessage = `S3 upload failed: ${sanitizeError(s3Err)}`;
+                resultRecord.storageLocation = 'local';
+                resultRecord.errorMessage = `S3 upload/verification failed: ${sanitizeError(s3Err)}`;
                 console.error(`⚠️ [DATABASE BACKUP WARNING] S3 Upload Failed: ${resultRecord.errorMessage}`);
             }
         } else {
@@ -583,6 +699,8 @@ module.exports = {
     sanitizeError,
     computeFileSha256,
     checkMongodumpAvailable,
+    uploadFileToS3,
+    verifyS3ObjectHead,
     parseDatabaseName,
     acquireBackupLock,
     releaseBackupLock,

@@ -86,7 +86,11 @@ const BackupRecordSchema = new mongoose.Schema({
   },
   collectionsCount: {
     type: Number,
-    default: 0
+    default: null
+  },
+  documentsCount: {
+    type: Number,
+    default: null
   }
 }, {
   timestamps: true
