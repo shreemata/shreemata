@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#101820">
+    <title>Operations Dashboard — Shree Mata Admin</title>
+    <meta name="description" content="Operational control center for Shree Mata orders, payments, inventory, customers and financial activity.">
+    <link rel="icon" href="/images/press.png" type="image/png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+</head>
+
+<body>
+
+    <!-- Fallback Top Nav (hydrated dynamically by admin-navigation.js) -->
+    <nav id="adminNav">
+        <div class="container">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <img src="/images/press.png" onerror="this.src='/images/logo.png'" alt="Shree Mata" style="width: 32px; height: 32px; border-radius: 50%;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 18px; font-weight: 700;">📚 Shree Mata Admin</h1>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span id="userName" style="color: white; font-size: 14px; font-weight: 500;">Admin</span>
+                <a href="/" id="logoutBtn" style="color: #ffffff; text-decoration: none; font-size: 13.5px; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.15);">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="dashboard-container">
+        <div class="main-content">
+
+            <!-- 1. DASHBOARD HEADER BAND -->
+            <section class="dashboard-header-band" aria-label="Dashboard Header">
+                <div>
+                    <div class="header-brand-tag">
+                        <span>👑 SHREE MATA ADMIN</span>
+                    </div>
+                    <h1 class="header-title-text">
+                        <span>📊 Operations Dashboard</span>
+                    </h1>
+                    <p class="header-subtitle-text">
+                        Monitor orders, payments, inventory, customers and financial activity.
+                    </p>
+                </div>
+                <div class="header-controls">
+                    <span id="headerDateDisplay" class="header-date-badge">📅 Loading date...</span>
+                    <button type="button" id="refreshDashboardBtn" class="btn-refresh-dashboard" onclick="window.refreshOperationsDashboard()" aria-label="Refresh Dashboard">
+                        <span class="spin-icon">🔄</span>
+                        <span>Refresh</span>
+                    </button>
+                    <span id="lastUpdatedText" class="last-updated-text">Updating...</span>
+                </div>
+            </section>
+
+            <!-- 2. QUICK ACTIONS TOOLBAR -->
+            <section class="quick-actions-bar" aria-label="Quick Actions">
+                <span style="font-size: 12px; font-weight: 800; color: var(--sm-text-muted); text-transform: uppercase; margin-right: 4px;">Quick Actions:</span>
+                <a href="/admin.html" class="quick-action-pill accent">➕ Add Book</a>
+                <a href="/admin-bundles.html" class="quick-action-pill accent">📦 Add Bundle</a>
+                <a href="/admin-orders.html" class="quick-action-pill">🛒 View Orders</a>
+                <a href="/admin.html" class="quick-action-pill">📚 Manage Inventory</a>
+                <a href="/admin-withdrawals.html" class="quick-action-pill">💰 Process Withdrawals</a>
+                <a href="/admin-check-payments.html" class="quick-action-pill">📋 Cheque Approvals</a>
+                <a href="/admin-commission-settings.html" class="quick-action-pill">⚙️ Commission Settings</a>
+                <a href="/admin-referral-tree.html" class="quick-action-pill">🌳 Referral Tree</a>
+                <a href="/admin-vip-cards.html" class="quick-action-pill">👑 VIP Cards</a>
+            </section>
+
+            <!-- 3. TODAY'S CLICKABLE KPI CARDS -->
+            <section aria-label="Key Performance Indicators">
+                <div class="kpi-grid-container">
+                    <!-- Orders Today -->
+                    <a href="/admin-orders.html" class="kpi-card gold" title="View all orders">
+                        <div class="kpi-card-header">
+                            <span class="kpi-label">Orders Today</span>
+                            <span class="kpi-icon-badge">📦</span>
+                        </div>
+                        <div class="kpi-value" id="kpiOrdersToday">0</div>
+                        <div class="kpi-subtext">Total customer purchases today</div>
+                    </a>
+
+                    <!-- Revenue Today -->
+                    <a href="/admin-orders.html" class="kpi-card green" title="View paid orders">
+                        <div class="kpi-card-header">
+                            <span class="kpi-label">Revenue Today</span>
+                            <span class="kpi-icon-badge">💰</span>
+                        </div>
+                        <div class="kpi-value" id="kpiRevenueToday">₹0.00</div>
+                        <div class="kpi-subtext">Completed orders revenue</div>
+                    </a>
+
+                    <!-- Paid Orders -->
+                    <a href="/admin-orders.html" class="kpi-card blue" title="View verified paid orders">
+                        <div class="kpi-card-header">
+                            <span class="kpi-label">Paid Orders</span>
+                            <span class="kpi-icon-badge">✅</span>
+                        </div>
+                        <div class="kpi-value" id="kpiPaidOrders">0</div>
+                        <div class="kpi-subtext">Verified & paid transactions</div>
+                    </a>
+
+                    <!-- Pending Payments -->
+                    <a href="/admin-check-payments.html" class="kpi-card amber" title="Verify pending cheque & bank transfers">
+                        <div class="kpi-card-header">
+                            <span class="kpi-label">Pending Payments</span>
+                            <span class="kpi-icon-badge">⏳</span>
+                        </div>
+                        <div class="kpi-value" id="kpiPendingPayments">0</div>
+                        <div class="kpi-subtext">Cheque / Bank transfer verifications</div>
+                    </a>
+
+                    <!-- Orders To Process -->
+                    <a href="/admin-orders.html" class="kpi-card gold" title="Orders needing packing and shipping">
+                        <div class="kpi-card-header">
+                            <span class="kpi-label">Orders To Process</span>
+                            <span class="kpi-icon-badge">🔄</span>
+                        </div>
+                        <div class="kpi-value" id="kpiOrdersToProcess">0</div>
+                        <div class="kpi-subtext">Paid orders awaiting fulfillment</div>
+                    </a>
+
+                    <!-- Ready To Dispatch -->
+                    <a href="/admin-orders.html" class="kpi-card blue" title="Orders packed and ready for courier pickup">
+                        <div class="kpi-card-header">
+                            <span class="kpi-label">Ready To Dispatch</span>
+                            <span class="kpi-icon-badge">🚚</span>
+                        </div>
+                        <div class="kpi-value" id="kpiReadyToDispatch">0</div>
+                        <div class="kpi-subtext">Packed for courier pickup</div>
+                    </a>
+
+                    <!-- Ready For Pickup -->
+                    <a href="/admin-orders.html" class="kpi-card amber" title="Orders ready for store pickup">
+                        <div class="kpi-card-header">
+                            <span class="kpi-label">Ready For Pickup</span>
+                            <span class="kpi-icon-badge">🏪</span>
+                        </div>
+                        <div class="kpi-value" id="kpiReadyForPickup">0</div>
+                        <div class="kpi-subtext">Store counter pickup orders</div>
+                    </a>
+
+                    <!-- Delivered Today -->
+                    <a href="/admin-orders.html" class="kpi-card green" title="Orders successfully delivered today">
+                        <div class="kpi-card-header">
+                            <span class="kpi-label">Delivered Today</span>
+                            <span class="kpi-icon-badge">📬</span>
+                        </div>
+                        <div class="kpi-value" id="kpiDeliveredToday">0</div>
+                        <div class="kpi-subtext">Confirmed successful deliveries</div>
+                    </a>
+
+                    <!-- Cancelled Today -->
+                    <a href="/admin-orders.html" class="kpi-card red" title="Orders cancelled today">
+                        <div class="kpi-card-header">
+                            <span class="kpi-label">Cancelled Today</span>
+                            <span class="kpi-icon-badge">❌</span>
+                        </div>
+                        <div class="kpi-value" id="kpiCancelledToday">0</div>
+                        <div class="kpi-subtext">Cancelled or refunded orders</div>
+                    </a>
+
+                    <!-- New Members -->
+                    <a href="/admin-users.html" class="kpi-card gold" title="New active members joined today">
+                        <div class="kpi-card-header">
+                            <span class="kpi-label">New Members Today</span>
+                            <span class="kpi-icon-badge">👑</span>
+                        </div>
+                        <div class="kpi-value" id="kpiNewMembers">0</div>
+                        <div class="kpi-subtext">Activated membership today</div>
+                    </a>
+
+                    <!-- Pending Withdrawals -->
+                    <a href="/admin-withdrawals.html" class="kpi-card amber" title="Withdrawal requests pending payout">
+                        <div class="kpi-card-header">
+                            <span class="kpi-label">Pending Withdrawals</span>
+                            <span class="kpi-icon-badge">💸</span>
+                        </div>
+                        <div class="kpi-value" id="kpiPendingWithdrawals">0</div>
+                        <div class="kpi-subtext">Wallet / VIP withdrawal requests</div>
+                    </a>
+
+                    <!-- Low Stock Books -->
+                    <a href="/admin.html" class="kpi-card red" title="Books requiring inventory replenishment">
+                        <div class="kpi-card-header">
+                            <span class="kpi-label">Low Stock Books</span>
+                            <span class="kpi-icon-badge">⚠️</span>
+                        </div>
+                        <div class="kpi-value" id="kpiLowStock">0</div>
+                        <div class="kpi-subtext">Titles near or at depletion</div>
+                    </a>
+                </div>
+            </section>
+
+            <!-- 4. ACTION REQUIRED SECTION -->
+            <section class="dashboard-section" aria-label="Action Required">
+                <div class="section-title-row">
+                    <h2 class="section-heading">
+                        <span>🚨 Action Required</span>
+                    </h2>
+                    <span style="font-size: 12.5px; color: var(--sm-text-muted);">High-priority items needing admin decision</span>
+                </div>
+                <div id="actionRequiredContainer" class="action-required-list">
+                    <!-- Populated dynamically via admin-dashboard.js -->
+                </div>
+            </section>
+
+            <!-- 5. ORDER OPERATIONS SUMMARY -->
+            <section class="dashboard-section" aria-label="Order Operations Pipeline">
+                <div class="section-title-row">
+                    <h2 class="section-heading">
+                        <span>🛒 Order Fulfillment Pipeline</span>
+                    </h2>
+                    <a href="/admin-orders.html" class="section-link">Manage All Orders →</a>
+                </div>
+                <div class="order-operations-grid">
+                    <a href="/admin-orders.html" class="op-status-card">
+                        <div class="op-status-count" id="opStatusNew">0</div>
+                        <div class="op-status-label">New / Pending</div>
+                    </a>
+                    <a href="/admin-check-payments.html" class="op-status-card">
+                        <div class="op-status-count" id="opStatusPendingPayment">0</div>
+                        <div class="op-status-label">Payment Verification</div>
+                    </a>
+                    <a href="/admin-orders.html" class="op-status-card">
+                        <div class="op-status-count" id="opStatusProcessing">0</div>
+                        <div class="op-status-label">Processing / Packed</div>
+                    </a>
+                    <a href="/admin-orders.html" class="op-status-card">
+                        <div class="op-status-count" id="opStatusShipped">0</div>
+                        <div class="op-status-label">Shipped / In Transit</div>
+                    </a>
+                    <a href="/admin-orders.html" class="op-status-card">
+                        <div class="op-status-count" id="opStatusReadyPickup">0</div>
+                        <div class="op-status-label">Ready For Pickup</div>
+                    </a>
+                    <a href="/admin-orders.html" class="op-status-card">
+                        <div class="op-status-count" id="opStatusDelivered">0</div>
+                        <div class="op-status-label">Delivered</div>
+                    </a>
+                    <a href="/admin-orders.html" class="op-status-card">
+                        <div class="op-status-count" id="opStatusCancelled">0</div>
+                        <div class="op-status-label">Cancelled</div>
+                    </a>
+                </div>
+            </section>
+
+            <!-- 6. RECENT ORDERS TABLE -->
+            <section class="dashboard-section" aria-label="Recent Orders">
+                <div class="section-title-row">
+                    <h2 class="section-heading">
+                        <span>⏱️ Recent Customer Orders</span>
+                    </h2>
+                    <a href="/admin-orders.html" class="section-link">View Order History →</a>
+                </div>
+                <div class="table-responsive-container">
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr>
+                                <th>Order / Invoice</th>
+                                <th>Customer</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Payment</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentOrdersTableBody">
+                            <!-- Populated dynamically via admin-dashboard.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 7. FINANCIAL OVERVIEW (Persisted records only) -->
+            <section class="dashboard-section" aria-label="Financial Overview">
+                <div class="section-title-row">
+                    <h2 class="section-heading">
+                        <span>💵 Financial & Commission Overview</span>
+                    </h2>
+                    <span style="font-size: 12.5px; color: var(--sm-text-muted);">Real persisted ledger records</span>
+                </div>
+                <div class="financial-metrics-grid">
+                    <div class="financial-metric-box">
+                        <div class="financial-metric-label">Sales Today</div>
+                        <div class="financial-metric-value" id="finSalesToday" style="color: var(--sm-navy);">₹0.00</div>
+                    </div>
+                    <div class="financial-metric-box">
+                        <div class="financial-metric-label">Sales This Month</div>
+                        <div class="financial-metric-value" id="finSalesMonth" style="color: var(--sm-navy);">₹0.00</div>
+                    </div>
+                    <div class="financial-metric-box">
+                        <div class="financial-metric-label">Buyer Cashback Paid</div>
+                        <div class="financial-metric-value" id="finCashbackPaid" style="color: var(--sm-gold-dark);">₹0.00</div>
+                    </div>
+                    <div class="financial-metric-box">
+                        <div class="financial-metric-label">Direct Referral Commission Paid</div>
+                        <div class="financial-metric-value" id="finDirectReferralPaid" style="color: var(--sm-gold-dark);">₹0.00</div>
+                    </div>
+                    <div class="financial-metric-box">
+                        <div class="financial-metric-label">Tree Commission Paid</div>
+                        <div class="financial-metric-value" id="finTreeCommissionPaid" style="color: var(--sm-gold-dark);">₹0.00</div>
+                    </div>
+                    <div class="financial-metric-box">
+                        <div class="financial-metric-label">Withdrawals Completed</div>
+                        <div class="financial-metric-value" id="finWithdrawalsCompleted" style="color: var(--sm-navy);">₹0.00</div>
+                    </div>
+                    <div class="financial-metric-box">
+                        <div class="financial-metric-label">Pending Withdrawals</div>
+                        <div class="financial-metric-value" id="finPendingWithdrawals" style="color: var(--sm-warning);">₹0.00</div>
+                    </div>
+                    <div class="financial-metric-box">
+                        <div class="financial-metric-label">Refunds / Reversals</div>
+                        <div class="financial-metric-value" id="finRefunds" style="color: var(--sm-danger);">₹0.00</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 8. INVENTORY ALERTS -->
+            <section class="dashboard-section" aria-label="Inventory Alerts">
+                <div class="section-title-row">
+                    <h2 class="section-heading">
+                        <span>📦 Inventory & Stock Alerts</span>
+                    </h2>
+                    <a href="/admin.html" class="section-link">Manage Catalog →</a>
+                </div>
+                <div style="display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+                    <div style="font-size: 13px; color: var(--sm-text-muted);">
+                        <strong>Total Book Titles:</strong> <span id="invTotalTitles">0</span>
+                    </div>
+                    <div style="font-size: 13px; color: var(--sm-text-muted);">
+                        <strong>Total Units in Stock:</strong> <span id="invTotalUnits">0</span>
+                    </div>
+                    <div style="font-size: 13px; color: var(--sm-danger); font-weight: 700;">
+                        <strong>Out of Stock:</strong> <span id="invOutOfStockCount">0</span>
+                    </div>
+                    <div style="font-size: 13px; color: var(--sm-warning); font-weight: 700;">
+                        <strong>Low Stock:</strong> <span id="invLowStockCount">0</span>
+                    </div>
+                </div>
+                <div id="inventoryAlertsList" class="inventory-alerts-grid">
+                    <!-- Populated dynamically via admin-dashboard.js -->
+                </div>
+            </section>
+
+            <!-- 9. 2-COLUMN GRID: CUSTOMERS / MEMBERSHIP / REFERRALS / VIP -->
+            <div class="dashboard-grid-2col">
+                <!-- Column A: Customers & Membership -->
+                <section class="dashboard-section" style="margin-bottom: 0;" aria-label="Customers & Membership">
+                    <div class="section-title-row">
+                        <h2 class="section-heading">
+                            <span>👥 Customers & Membership</span>
+                        </h2>
+                        <a href="/admin-users.html" class="section-link">View Users →</a>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="financial-metric-box">
+                            <div class="financial-metric-label">Total Customers</div>
+                            <div class="financial-metric-value" id="custTotalCustomers">0</div>
+                        </div>
+                        <div class="financial-metric-box">
+                            <div class="financial-metric-label">New Customers Today</div>
+                            <div class="financial-metric-value" id="custNewToday">0</div>
+                        </div>
+                        <div class="financial-metric-box">
+                            <div class="financial-metric-label">Total Members</div>
+                            <div class="financial-metric-value" id="custTotalMembers" style="color: var(--sm-gold-dark);">0</div>
+                        </div>
+                        <div class="financial-metric-box">
+                            <div class="financial-metric-label">New Members Today</div>
+                            <div class="financial-metric-value" id="custNewMembersToday" style="color: var(--sm-gold-dark);">0</div>
+                        </div>
+                        <div class="financial-metric-box">
+                            <div class="financial-metric-label">Non-Members</div>
+                            <div class="financial-metric-value" id="custNonMembers">0</div>
+                        </div>
+                        <div class="financial-metric-box">
+                            <div class="financial-metric-label">Referral Users</div>
+                            <div class="financial-metric-value" id="custReferralUsers">0</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Column B: Referral Network & VIP Cards -->
+                <section class="dashboard-section" style="margin-bottom: 0;" aria-label="Referral Network & VIP Master Cards">
+                    <div class="section-title-row">
+                        <h2 class="section-heading">
+                            <span>👑 Referral & VIP Cards</span>
+                        </h2>
+                        <a href="/admin-vip-cards.html" class="section-link">Manage VIP →</a>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="financial-metric-box">
+                            <div class="financial-metric-label">Referred Users</div>
+                            <div class="financial-metric-value" id="refTotalReferred">0</div>
+                        </div>
+                        <div class="financial-metric-box">
+                            <div class="financial-metric-label">Tree Commission</div>
+                            <div class="financial-metric-value" id="refTreeCommissions" style="color: var(--sm-gold-dark);">₹0</div>
+                        </div>
+                        <div class="financial-metric-box">
+                            <div class="financial-metric-label">Total VIP Cards</div>
+                            <div class="financial-metric-value" id="vipTotalCards">0</div>
+                        </div>
+                        <div class="financial-metric-box">
+                            <div class="financial-metric-label">Highest Card Tier</div>
+                            <div class="financial-metric-value" id="vipHighestTier">Tier 1</div>
+                        </div>
+                        <div class="financial-metric-box">
+                            <div class="financial-metric-label">Total VIP Withdrawn</div>
+                            <div class="financial-metric-value" id="vipTotalWithdrawn">₹0</div>
+                        </div>
+                        <div class="financial-metric-box">
+                            <div class="financial-metric-label">Pending VIP Payouts</div>
+                            <div class="financial-metric-value" id="vipPendingWithdrawals" style="color: var(--sm-warning);">0</div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 10. 7-DAY SALES TREND CHART -->
+            <section class="dashboard-section" style="margin-top: 24px;" aria-label="7 Day Sales Trend">
+                <div class="section-title-row">
+                    <h2 class="section-heading">
+                        <span>📈 Sales Trend — Last 7 Days</span>
+                    </h2>
+                    <span style="font-size: 12.5px; color: var(--sm-text-muted);">Daily revenue from completed orders</span>
+                </div>
+                <div id="sevenDaysChartContainer" class="chart-container-box">
+                    <!-- Populated dynamically via admin-dashboard.js -->
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="/js/admin-dashboard.js"></script>
+    <script src="/js/admin-navigation.js"></script>
+
+</body>
+
+</html>

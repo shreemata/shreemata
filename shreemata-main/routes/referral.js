@@ -450,6 +450,8 @@ router.get("/commissions", authenticateToken, async (req, res) => {
         const commissions = [];
         let totalDirectCommission = 0;
         let totalTreeCommission = 0;
+
+        const userDoc = await User.findById(userId).select('wallet directCommissionEarned referralCommissionEarned treeCommissionEarned');
         
         // Query direct commissions (3%)
         if (!commissionType || commissionType === 'direct') {
@@ -460,7 +462,7 @@ router.get("/commissions", authenticateToken, async (req, res) => {
             };
             
             const directCommissions = await CommissionTransaction.find(directCommissionQuery)
-                .populate('purchaser', 'name email')
+                .populate('purchaser', 'name')
                 .populate('orderId', 'orderNumber totalAmount')
                 .sort({ processedAt: -1 });
             
@@ -478,8 +480,7 @@ router.get("/commissions", authenticateToken, async (req, res) => {
                         orderId: transaction.orderId?._id,
                         orderNumber: transaction.orderId?.orderNumber,
                         purchaser: {
-                            name: transaction.purchaser?.name,
-                            email: transaction.purchaser?.email
+                            name: transaction.purchaser?.name || 'Customer'
                         },
                         level: 1,
                         percentage: percentage
@@ -490,7 +491,7 @@ router.get("/commissions", authenticateToken, async (req, res) => {
         }
         
         // Query referral commissions (2%)
-        if (!commissionType || commissionType === 'direct') {
+        if (!commissionType || commissionType === 'direct' || commissionType === 'referral') {
             const referralCommissionQuery = {
                 referralReferrer: userId,
                 status: 'completed',
@@ -498,7 +499,7 @@ router.get("/commissions", authenticateToken, async (req, res) => {
             };
             
             const referralCommissions = await CommissionTransaction.find(referralCommissionQuery)
-                .populate('purchaser', 'name email')
+                .populate('purchaser', 'name')
                 .populate('orderId', 'orderNumber totalAmount')
                 .sort({ processedAt: -1 });
             
@@ -516,8 +517,7 @@ router.get("/commissions", authenticateToken, async (req, res) => {
                         orderId: transaction.orderId?._id,
                         orderNumber: transaction.orderId?.orderNumber,
                         purchaser: {
-                            name: transaction.purchaser?.name,
-                            email: transaction.purchaser?.email
+                            name: transaction.purchaser?.name || 'Customer'
                         },
                         level: 1,
                         percentage: percentage
@@ -536,7 +536,7 @@ router.get("/commissions", authenticateToken, async (req, res) => {
             };
             
             const treeCommissions = await CommissionTransaction.find(treeCommissionQuery)
-                .populate('purchaser', 'name email')
+                .populate('purchaser', 'name')
                 .populate('orderId', 'orderNumber totalAmount')
                 .sort({ processedAt: -1 });
             
@@ -556,8 +556,7 @@ router.get("/commissions", authenticateToken, async (req, res) => {
                         orderId: transaction.orderId?._id,
                         orderNumber: transaction.orderId?.orderNumber,
                         purchaser: {
-                            name: transaction.purchaser?.name,
-                            email: transaction.purchaser?.email
+                            name: transaction.purchaser?.name || 'Customer'
                         },
                         level: userTreeCommission.level,
                         percentage: userTreeCommission.percentage
@@ -592,7 +591,8 @@ router.get("/commissions", authenticateToken, async (req, res) => {
                 totalDirectCommission: totalDirectCommission,
                 totalTreeCommission: totalTreeCommission,
                 directCommissionCount: commissions.filter(c => c.commissionType === 'direct' || c.commissionType === 'referral').length,
-                treeCommissionCount: commissions.filter(c => c.commissionType === 'tree').length
+                treeCommissionCount: commissions.filter(c => c.commissionType === 'tree').length,
+                walletBalance: userDoc ? (userDoc.wallet || 0) : 0
             }
         });
 

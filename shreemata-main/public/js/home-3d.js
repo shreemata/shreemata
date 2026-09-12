@@ -37,67 +37,292 @@
         });
     }
 
-    // 2. ULTRA-CALM PHOTOGRAPHIC MOUSE PARALLAX (REAL 3D BOOKS STAGE)
+    // 2. 3D HERO BOOK STAGE: INTERACTIVE DRAG-ROTATION, PARALLAX & IDLE FLOATING ENGINE
     function initHeroParallax() {
         const stage = document.getElementById('heroStage');
         const heroSection = document.getElementById('heroSection');
         if (!stage || !heroSection) return;
 
-        // Only enable on desktop pointer devices with fine hover
-        const isFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (!isFinePointer || prefersReducedMotion) return;
 
+        // Pointer Drag State
+        let isPointerDown = false;
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let lastX = 0;
+        let lastY = 0;
+        let velocityX = 0;
+        let velocityY = 0;
+        let targetManualRotX = 0;
+        let targetManualRotY = 0;
+        let currentManualRotX = 0;
+        let currentManualRotY = 0;
+        let lastInteractionTime = performance.now();
+        let activePointerId = null;
+
+        // Desktop Parallax State
         let mouseX = 0;
         let mouseY = 0;
-        let currentX = 0;
-        let currentY = 0;
+        let currentParallaxX = 0;
+        let currentParallaxY = 0;
         let isHeroVisible = true;
+        let isTabActive = !document.hidden;
         let rafId = null;
 
-        // Visibility observer to pause RAF when hero is off-screen
-        const heroObserver = new IntersectionObserver((entries) => {
-            isHeroVisible = entries[0].isIntersecting;
-            if (isHeroVisible && !rafId) {
-                rafId = requestAnimationFrame(updateParallax);
-            }
-        }, { threshold: 0.05 });
-        heroObserver.observe(heroSection);
+        const hasFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
+        // 1. POINTER DRAG LISTENERS (Desktop Mouse, Touch & Stylus)
+        function onPointerDown(e) {
+            // Only primary button for mouse
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+            isPointerDown = true;
+            isDragging = false;
+            activePointerId = e.pointerId;
+            startX = e.clientX;
+            startY = e.clientY;
+            lastX = e.clientX;
+            lastY = e.clientY;
+            velocityX = 0;
+            velocityY = 0;
+            lastInteractionTime = performance.now();
+        }
+
+        function onPointerMove(e) {
+            if (!isPointerDown) return;
+
+            const dx = e.clientX - lastX;
+            const dy = e.clientY - lastY;
+            const totalDistX = Math.abs(e.clientX - startX);
+            const totalDistY = Math.abs(e.clientY - startY);
+
+            // Determine drag vs scroll
+            if (!isDragging) {
+                if (totalDistX > 5 || totalDistY > 5) {
+                    // On touch, if movement is predominantly vertical, allow normal page scroll
+                    if (e.pointerType === 'touch' && totalDistY > totalDistX * 1.6 && totalDistX < 8) {
+                        isPointerDown = false;
+                        return;
+                    }
+
+                    isDragging = true;
+                    try {
+                        stage.setPointerCapture(e.pointerId);
+                    } catch (err) {
+                        // Safe fallback if capture fails
+                    }
+                    stage.classList.add('is-dragging');
+                    document.body.classList.add('hero-stage-dragging');
+                }
+            }
+
+            if (isDragging) {
+                if (e.cancelable) {
+                    e.preventDefault();
+                }
+
+                const isMobile = window.innerWidth <= 768;
+                // Sensitivity
+                const sensX = isMobile ? 0.16 : 0.22;
+                const sensY = isMobile ? 0.08 : 0.12;
+
+                // Rotation Limits
+                const maxRotX = isMobile ? 6 : 10;
+                const maxRotY = isMobile ? 20 : 35;
+
+                targetManualRotY += dx * sensX;
+                targetManualRotX -= dy * sensY;
+
+                // Clamp to prevent flipping
+                targetManualRotX = Math.max(-maxRotX, Math.min(maxRotX, targetManualRotX));
+                targetManualRotY = Math.max(-maxRotY, Math.min(maxRotY, targetManualRotY));
+
+                // Momentary velocity for inertia
+                velocityX = dx * 0.32;
+                velocityY = -dy * 0.22;
+
+                lastX = e.clientX;
+                lastY = e.clientY;
+                lastInteractionTime = performance.now();
+            }
+        }
+
+        function onPointerUp(e) {
+            if (!isPointerDown && !isDragging) return;
+
+            isPointerDown = false;
+            if (isDragging) {
+                isDragging = false;
+                stage.classList.remove('is-dragging');
+                document.body.classList.remove('hero-stage-dragging');
+                if (activePointerId !== null && stage.hasPointerCapture && stage.hasPointerCapture(activePointerId)) {
+                    try {
+                        stage.releasePointerCapture(activePointerId);
+                    } catch (err) {}
+                }
+                lastInteractionTime = performance.now();
+            }
+            activePointerId = null;
+        }
+
+        function onPointerCancel(e) {
+            onPointerUp(e);
+        }
+
+        // Double Click / Double Tap View Reset
+        function onDoubleClick() {
+            targetManualRotX = 0;
+            targetManualRotY = 0;
+            velocityX = 0;
+            velocityY = 0;
+            lastInteractionTime = performance.now() - 3000;
+        }
+
+        stage.addEventListener('pointerdown', onPointerDown, { passive: false });
+        window.addEventListener('pointermove', onPointerMove, { passive: false });
+        window.addEventListener('pointerup', onPointerUp, { passive: true });
+        window.addEventListener('pointercancel', onPointerCancel, { passive: true });
+        stage.addEventListener('dblclick', onDoubleClick, { passive: true });
+
+        // 2. DESKTOP MOUSE PARALLAX TRACKING
         function onMouseMove(e) {
+            if (isDragging) return;
             const rect = heroSection.getBoundingClientRect();
             if (rect.top <= window.innerHeight && rect.bottom >= 0) {
                 const centerX = rect.left + rect.width / 2;
                 const centerY = rect.top + rect.height / 2;
-                mouseX = (e.clientX - centerX) / (rect.width / 2);
-                mouseY = (e.clientY - centerY) / (rect.height / 2);
+                mouseX = Math.max(-1, Math.min(1, (e.clientX - centerX) / (rect.width / 2)));
+                mouseY = Math.max(-1, Math.min(1, (e.clientY - centerY) / (rect.height / 2)));
             }
         }
 
-        window.addEventListener('mousemove', onMouseMove, { passive: true });
+        function onMouseLeave() {
+            mouseX = 0;
+            mouseY = 0;
+        }
 
-        function updateParallax() {
-            if (!isHeroVisible) {
+        if (hasFinePointer) {
+            heroSection.addEventListener('mousemove', onMouseMove, { passive: true });
+            heroSection.addEventListener('mouseleave', onMouseLeave, { passive: true });
+            window.addEventListener('mousemove', onMouseMove, { passive: true });
+        }
+
+        // 3. VISIBILITY OBSERVER & TAB VISIBILITY CONTROLS
+        const heroObserver = new IntersectionObserver((entries) => {
+            isHeroVisible = entries[0].isIntersecting;
+            handleAnimationState();
+        }, { threshold: 0.05 });
+        heroObserver.observe(heroSection);
+
+        document.addEventListener('visibilitychange', () => {
+            isTabActive = !document.hidden;
+            handleAnimationState();
+        });
+
+        function handleAnimationState() {
+            if (isHeroVisible && isTabActive) {
+                if (!rafId) {
+                    rafId = requestAnimationFrame(updateEngine);
+                }
+            } else {
+                if (rafId) {
+                    cancelAnimationFrame(rafId);
+                    rafId = null;
+                }
+            }
+        }
+
+        // 4. MAIN ANIMATION & COMPOSITION LOOP
+        function updateEngine() {
+            if (!isHeroVisible || !isTabActive) {
                 rafId = null;
                 return;
             }
 
-            // High-damping smooth lerp for expensive photographic feel
-            currentX += (mouseX - currentX) * 0.045;
-            currentY += (mouseY - currentY) * 0.045;
+            const time = performance.now() * 0.001;
+            const isMobile = window.innerWidth <= 768;
 
-            // Restrained limits: max rotateX ±1.8deg, rotateY ±2.5deg, translate ±4px
-            const rotX = -currentY * 1.8;
-            const rotY = currentX * 2.5;
-            const transX = currentX * 4.0;
-            const transY = currentY * 3.0;
+            if (prefersReducedMotion) {
+                // In reduced-motion mode: direct rotation without inertia/floating/drift
+                currentManualRotX = targetManualRotX;
+                currentManualRotY = targetManualRotY;
+                stage.style.transform = `rotateX(${currentManualRotX.toFixed(2)}deg) rotateY(${currentManualRotY.toFixed(2)}deg)`;
+                rafId = requestAnimationFrame(updateEngine);
+                return;
+            }
 
-            stage.style.transform = `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translate3d(${transX.toFixed(1)}px, ${transY.toFixed(1)}px, 0)`;
+            // Inertia & decay when pointer is released
+            if (!isDragging) {
+                if (Math.abs(velocityX) > 0.01 || Math.abs(velocityY) > 0.01) {
+                    const maxRotX = isMobile ? 6 : 10;
+                    const maxRotY = isMobile ? 20 : 35;
 
-            rafId = requestAnimationFrame(updateParallax);
+                    targetManualRotY += velocityX;
+                    targetManualRotX += velocityY;
+
+                    targetManualRotX = Math.max(-maxRotX, Math.min(maxRotX, targetManualRotX));
+                    targetManualRotY = Math.max(-maxRotY, Math.min(maxRotY, targetManualRotY));
+
+                    velocityX *= 0.92;
+                    velocityY *= 0.90;
+
+                    if (Math.abs(velocityX) < 0.01) velocityX = 0;
+                    if (Math.abs(velocityY) < 0.01) velocityY = 0;
+                } else {
+                    // Return / Idle Behavior after 2.5s of inactivity
+                    const timeSinceInteraction = performance.now() - lastInteractionTime;
+                    if (timeSinceInteraction > 2500) {
+                        targetManualRotX += (0 - targetManualRotX) * 0.035;
+                        targetManualRotY += (0 - targetManualRotY) * 0.035;
+
+                        if (Math.abs(targetManualRotX) < 0.05) targetManualRotX = 0;
+                        if (Math.abs(targetManualRotY) < 0.05) targetManualRotY = 0;
+                    }
+                }
+            }
+
+            // Smooth interpolation for manual rotation (0.08)
+            currentManualRotX += (targetManualRotX - currentManualRotX) * 0.08;
+            currentManualRotY += (targetManualRotY - currentManualRotY) * 0.08;
+
+            // Manual rotation activity factor (0 = fully idle, 1 = manual active)
+            const manualMagnitude = Math.abs(currentManualRotX) + Math.abs(currentManualRotY);
+            const manualActivity = Math.min(1, manualMagnitude / 10 + (isDragging ? 1 : 0));
+            const parallaxWeight = Math.max(0, 1 - manualActivity * 0.9);
+
+            let totalRotX, totalRotY, transX, transY;
+
+            if (hasFinePointer && !isMobile) {
+                // Desktop Parallax + Continuous Float
+                currentParallaxX += (mouseX - currentParallaxX) * 0.055;
+                currentParallaxY += (mouseY - currentParallaxY) * 0.055;
+
+                const floatY = Math.sin(time * 0.95) * 4.0;
+                const idleRotY = Math.sin(time * 0.6) * 1.2 * (1 - manualActivity);
+
+                const parallaxRotX = -currentParallaxY * 3.0 * parallaxWeight;
+                const parallaxRotY = currentParallaxX * 5.0 * parallaxWeight;
+
+                totalRotX = (currentManualRotX + parallaxRotX).toFixed(2);
+                totalRotY = (currentManualRotY + parallaxRotY + idleRotY).toFixed(2);
+                transX = (currentParallaxX * 6.0 * parallaxWeight).toFixed(2);
+                transY = (currentParallaxY * 4.0 * parallaxWeight + floatY).toFixed(2);
+            } else {
+                // Mobile Floating Wave
+                const floatY = Math.sin(time * 0.95) * 3.0;
+                totalRotX = currentManualRotX.toFixed(2);
+                totalRotY = currentManualRotY.toFixed(2);
+                transX = '0.00';
+                transY = floatY.toFixed(2);
+            }
+
+            stage.style.transform = `rotateX(${totalRotX}deg) rotateY(${totalRotY}deg) translate3d(${transX}px, ${transY}px, 0)`;
+
+            rafId = requestAnimationFrame(updateEngine);
         }
 
-        rafId = requestAnimationFrame(updateParallax);
+        handleAnimationState();
     }
 
     // 3. MAIN HEADER SCROLL TRANSFORMATION

@@ -180,34 +180,45 @@ function renderProfileFromData(data) {
     const membershipDetailsContent = document.getElementById("membershipDetailsContent");
     if (membershipBadge && membershipDetailsContent) {
         if (user.isMember) {
-            membershipBadge.textContent = "Member: YES";
+            membershipBadge.textContent = "✓ Active Member";
             membershipBadge.style.background = "#DEF7EC";
             membershipBadge.style.color = "#03543F";
+            membershipBadge.style.border = "1px solid #31C48D";
+            
             const memberSinceDate = user.memberActivatedAt 
                 ? new Date(user.memberActivatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
                 : "Active";
+            
+            let purchaseInfoHtml = '';
+            if (user.membershipSubtotal !== undefined && user.membershipSubtotal !== null && Number(user.membershipSubtotal) > 0) {
+                purchaseInfoHtml = `<div><strong style="color: #1E293B;">Qualified Purchase:</strong> <span style="color: #0F766E; font-weight: 700;">₹${Number(user.membershipSubtotal).toFixed(2)}</span></div>`;
+            }
+
             membershipDetailsContent.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
                     <div><strong style="color: #1E293B;">Member Since:</strong> <span style="color: #0F766E; font-weight: 600;">${escapeHtml(memberSinceDate)}</span></div>
-                    <p style="margin: 0; color: #475569;">🎉 You are an active verified Shree Mata Member with full access to direct referral cashback, community rewards, and tree pool earnings.</p>
+                    ${purchaseInfoHtml}
+                    <p style="margin: 0; color: #475569; font-size: 13.5px;">Your Shree Mata membership is active.</p>
                 </div>
             `;
         } else {
-            membershipBadge.textContent = "Member: NO";
+            membershipBadge.textContent = "Not a Member Yet";
             membershipBadge.style.background = "#FEF3C7";
             membershipBadge.style.color = "#92400E";
+            membershipBadge.style.border = "1px solid #F59E0B";
+            
             membershipDetailsContent.innerHTML = `
                 <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <p style="margin: 0; color: #334155;"><strong>How to Activate:</strong> Purchase ₹100 or more of eligible books/products in a single order to automatically unlock lifetime membership.</p>
-                    <div style="font-size: 13px; background: #F8FAFC; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #EAB308; color: #64748B;">
-                        📌 <strong>Qualification Rule:</strong> Single order product subtotal ≥ ₹100 (excluding courier/delivery charges).
+                    <p style="margin: 0; color: #334155; font-size: 14px; line-height: 1.5;">Complete one successful eligible product purchase of ₹100 or more to become a Shree Mata Member.</p>
+                    <div style="font-size: 12.5px; background: #F8FAFC; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #EAB308; color: #64748B;">
+                        📌 <strong>Qualification Rule:</strong> Single order eligible product subtotal ≥ ₹100 (excluding shipping/courier charges).
                     </div>
                 </div>
             `;
         }
     }
 
-    // Render MasterCard if assigned
+    // Render MasterCard if assigned on profile
     const masterCardContainer = document.getElementById("masterCardContainer");
     if (user.masterCard && user.masterCard.isAssigned) {
         const cardNumEl = document.getElementById("accCardNumber");
@@ -240,8 +251,8 @@ function renderProfileFromData(data) {
    CHANGE PAGE SECTIONS (LAZY LOAD ON DEMAND)
 ----------------------------------------- */
 function showSection(section) {
-    // List of all possible sections
-    const sections = ["profileSection", "editSection", "addressSection", "storeSection", "ordersSection", "walletSection", "pointsSection"];
+    // List of all canonical account sections
+    const sections = ["profileSection", "editSection", "addressSection", "storeSection", "ordersSection", "walletSection", "pointsSection", "vipSection"];
     
     // Hide all sections that exist
     sections.forEach(sectionId => {
@@ -272,6 +283,21 @@ function showSection(section) {
         loadPoints();
     } else if (section === 'orders') {
         loadOrders();
+    } else if (section === 'vip') {
+        loadVipSectionData();
+    }
+
+    // Synchronize browser URL query param without reload
+    try {
+        const currentUrl = new URL(window.location.href);
+        if (section === 'profile') {
+            currentUrl.searchParams.delete('section');
+        } else {
+            currentUrl.searchParams.set('section', section);
+        }
+        window.history.replaceState({ section }, '', currentUrl.pathname + (currentUrl.searchParams.toString() ? '?' + currentUrl.searchParams.toString() : ''));
+    } catch (e) {
+        // Fallback for restricted environments
     }
     
     // Update active button states on desktop sidebar
@@ -279,14 +305,16 @@ function showSection(section) {
     menuButtons.forEach(button => {
         button.classList.remove('active');
         const buttonText = button.textContent.toLowerCase();
+        const secAttr = button.getAttribute('data-section');
         if (
-            (section === 'profile' && buttonText.includes('profile') && !buttonText.includes('edit')) ||
-            (section === 'edit' && buttonText.includes('edit')) ||
+            (secAttr && secAttr === section) ||
+            ((section === 'profile' || section === 'edit') && buttonText.includes('profile')) ||
             (section === 'address' && buttonText.includes('address')) ||
             (section === 'store' && buttonText.includes('store')) ||
             (section === 'orders' && buttonText.includes('order')) ||
             (section === 'wallet' && buttonText.includes('wallet')) ||
-            (section === 'points' && buttonText.includes('points'))
+            (section === 'points' && buttonText.includes('points')) ||
+            (section === 'vip' && buttonText.includes('vip'))
         ) {
             button.classList.add('active');
         }
@@ -295,6 +323,227 @@ function showSection(section) {
     // Update active button states on mobile off-canvas sidebar & mobile badge
     updateMobileActiveNav(section);
 }
+window.showSection = showSection;
+
+/* -----------------------------------------
+   LOAD VIP MASTER CARD SECTION
+----------------------------------------- */
+async function loadVipSectionData(force = false) {
+    const token = localStorage.getItem("token");
+    const container = document.getElementById("vipSectionContent");
+    if (!container) return;
+
+    if (!token) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px; background: var(--surface, #FFFFFF); border: 1px solid var(--border-subtle, #E2E8F0); border-radius: 16px;">
+                <p style="color: #64748B;">Please log in to view your VIP Master Card.</p>
+                <a href="/login.html" class="btn-primary" style="display: inline-block; padding: 10px 20px; text-decoration: none; border-radius: 8px; margin-top: 12px;">Log In</a>
+            </div>
+        `;
+        return;
+    }
+
+    if (!force && accountDataCache.vipCards) {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        renderVipSection(accountDataCache.vipCards, user);
+        return accountDataCache.vipCards;
+    }
+
+    // 1. Loading State
+    container.innerHTML = `
+        <div class="vip-state-container" style="text-align: center; padding: 48px 24px; background: var(--surface, #FFFFFF); border: 1px solid var(--border-subtle, #E2E8F0); border-radius: 16px; box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05));">
+            <div style="width: 44px; height: 44px; border: 3px solid #E2E8F0; border-top-color: #D4AF37; border-radius: 50%; margin: 0 auto 16px; animation: spin 0.8s linear infinite;"></div>
+            <div style="font-size: 16px; font-weight: 700; color: var(--text-main, #1E293B);">Loading VIP Master Card...</div>
+            <div style="font-size: 13.5px; color: var(--text-muted, #64748B); margin-top: 6px;">Fetching your VIP tier milestone details & card balance</div>
+        </div>
+    `;
+
+    try {
+        const res = await fetch(`${API}/users/profile/vip-mastercards`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+            const vipData = await res.json();
+            accountDataCache.vipCards = vipData;
+            
+            if (vipData.bankDetailsSetup !== undefined) {
+                window.isBankDetailsSetup = Boolean(vipData.bankDetailsSetup);
+            }
+            if (vipData.maskedBankDetails) {
+                window.userBankDetails = vipData.maskedBankDetails;
+            }
+            if (vipData.withdrawals && vipData.withdrawals.length > 0) {
+                renderWithdrawalHistory(vipData.withdrawals);
+            }
+
+            const user = JSON.parse(localStorage.getItem("user") || "{}");
+            renderVipSection(vipData, user);
+            return vipData;
+        } else {
+            throw new Error(`Server returned ${res.status}`);
+        }
+    } catch (err) {
+        console.error("Error loading VIP Master Card:", err);
+        container.innerHTML = `
+            <div class="vip-state-container" style="text-align: center; padding: 48px 24px; background: var(--surface, #FFFFFF); border: 1px solid #FEE2E2; border-radius: 16px; box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05));">
+                <div style="width: 56px; height: 56px; border-radius: 50%; background: #FEE2E2; color: #DC2626; font-size: 28px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">⚠️</div>
+                <h3 style="font-size: 18px; font-weight: 700; color: #1E293B; margin: 0 0 8px 0;">Unable to load your VIP Master Card right now. Please try again.</h3>
+                <p style="font-size: 14px; color: #64748B; margin: 0 0 20px 0;">Please check your connection and click Retry below.</p>
+                <button type="button" class="btn-primary" onclick="loadVipSectionData(true)" style="padding: 10px 22px; border-radius: 8px; font-weight: 700; cursor: pointer;">
+                    🔄 Retry
+                </button>
+            </div>
+        `;
+    }
+}
+window.loadVipSectionData = loadVipSectionData;
+
+function renderVipSection(vipData, user) {
+    const container = document.getElementById("vipSectionContent");
+    if (!container) return;
+
+    const cards = (vipData && Array.isArray(vipData.cards)) ? vipData.cards : [];
+    const hasCards = cards.length > 0 || Boolean(user?.masterCard && user?.masterCard?.isAssigned);
+    const cumulativeTotal = Number(vipData?.cumulativeTotal || 0);
+
+    // 2. EMPTY STATE: If no VIP card has been issued yet
+    if (!hasCards) {
+        container.innerHTML = `
+            <div style="background: var(--surface, #FFFFFF); border: 1px solid var(--border-subtle, #E2E8F0); border-radius: 16px; padding: 36px 24px; text-align: center; box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05));">
+                <div style="width: 68px; height: 68px; border-radius: 50%; background: #FEF3C7; color: #D97706; font-size: 34px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 18px; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.15);">
+                    👑
+                </div>
+                <h3 style="font-size: 20px; font-weight: 800; color: var(--text-main, #1E293B); margin: 0 0 10px 0;">VIP Master Card</h3>
+                <p style="font-size: 15.5px; font-weight: 700; color: #475569; margin: 0 0 10px 0;">No VIP Master Card has been issued yet.</p>
+                <p style="font-size: 14px; color: #64748B; max-width: 520px; margin: 0 auto 24px auto; line-height: 1.6;">
+                    VIP Master Cards are automatically unlocked as you achieve milestone purchases and community referral goals on Shree Mata.
+                </p>
+                <div style="display: inline-flex; flex-direction: column; gap: 6px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 24px; text-align: left;">
+                    <div style="font-size: 13.5px; color: #475569;">
+                        📊 <strong>Completed Purchases:</strong> <span style="color: #0F766E; font-weight: 700;">₹${cumulativeTotal.toFixed(2)}</span>
+                    </div>
+                    <div style="font-size: 12.5px; color: #64748B;">
+                        Keep purchasing eligible products to qualify for your first Digital VIP Master Card.
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // 3. SUCCESS STATE: Render real VIP Card(s)
+    const sortedCards = [...cards].sort((a, b) => (Number(b.tier) || 0) - (Number(a.tier) || 0));
+    const activeCard = sortedCards[0] || {};
+
+    const cumulative = Number(vipData?.cumulativeTotal || 0);
+    const milestoneAmount = Number(activeCard.milestoneAmount || 0);
+    const nextMilestone = milestoneAmount > 0 ? milestoneAmount : ((Math.floor(cumulative / 100) + 1) * 100);
+    const progressPercent = Math.min(100, Math.max(0, (cumulative % 100)));
+    const walletBalance = Number(vipData?.walletBalance !== undefined ? vipData.walletBalance : (activeCard.balance !== undefined ? activeCard.balance : (user?.wallet || 0)));
+    const totalWithdrawn = Number(activeCard.totalWithdrawn || 0);
+    
+    const issuedDateFormatted = activeCard.issuedAt 
+        ? new Date(activeCard.issuedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+        : (user?.masterCard?.issuedAt ? new Date(user.masterCard.issuedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Active');
+    
+    const lastWithdrawalFormatted = activeCard.lastWithdrawalDate 
+        ? new Date(activeCard.lastWithdrawalDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+        : 'None yet';
+
+    const cardHtml = `
+        <div style="display: flex; flex-direction: column; gap: 24px; max-width: 500px;">
+            <!-- VIP Digital Card Card Graphic -->
+            <div class="vip-mastercard-card" style="box-sizing: border-box; width: 100%;">
+                <!-- Card Header -->
+                <div class="vip-card-header">
+                    <div class="vip-card-brand">
+                        <span style="font-size: 1.25rem;">👑</span>
+                        <span class="vip-card-brand-name">SHREE MATA</span>
+                    </div>
+                    <span class="vip-card-badge">VIP MASTER CARD</span>
+                </div>
+
+                <!-- Chip -->
+                <div class="vip-chip-graphic"></div>
+
+                <!-- Card Number -->
+                <div class="vip-card-number-display">${escapeHtml(activeCard.cardNumber || user?.masterCard?.cardNumber || 'SMC-10001')}</div>
+
+                <!-- Card Footer Info -->
+                <div class="vip-card-footer-info">
+                    <div>
+                        <div class="vip-card-meta-label">Card Holder</div>
+                        <div class="vip-card-meta-val">${escapeHtml(user?.name || 'Valued Member')}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="vip-card-meta-label">Tier</div>
+                        <div style="font-weight: 800; color: #FACC15; font-size: 0.95rem;">CARD ${String(activeCard.tier || 1).padStart(2, '0')}</div>
+                    </div>
+                </div>
+
+                <!-- Progress toward Next Milestone -->
+                <div style="margin-top: 14px; font-size: 0.78rem;">
+                    <div style="display: flex; justify-content: space-between; color: #94A3B8; margin-bottom: 4px;">
+                        <span>Next Milestone Progress:</span>
+                        <span style="font-weight: 700; color: #FACC15;">₹${cumulative.toFixed(2)} / ₹${nextMilestone}</span>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.12); height: 6px; border-radius: 3px; overflow: hidden; border: 0.5px solid rgba(250, 204, 21, 0.3);">
+                        <div style="background: linear-gradient(90deg, #FACC15 0%, #FDE047 100%); width: ${progressPercent}%; height: 100%; border-radius: 3px;"></div>
+                    </div>
+                </div>
+
+                <!-- Shared Commission Wallet -->
+                <div class="vip-card-wallet-row">
+                    <span style="color: #94A3B8;">Available Balance:</span>
+                    <span class="vip-card-wallet-val">₹${walletBalance.toFixed(2)}</span>
+                </div>
+
+                <!-- Quick Withdraw Button -->
+                <button type="button" class="btn-vip-withdraw"
+                    onclick="openVipWithdrawModal('${escapeHtml(activeCard.cardNumber || user?.masterCard?.cardNumber || 'VIP Master Card')}', ${Number(activeCard.tier || 1)})">
+                    <span>💸 Withdraw from VIP Card</span>
+                </button>
+            </div>
+
+            <!-- VIP Card Details Breakdown Table -->
+            <div style="background: var(--surface, #FFFFFF); border: 1px solid var(--border-subtle, #E2E8F0); border-radius: 12px; padding: 18px; box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05));">
+                <h4 style="margin: 0 0 14px 0; font-size: 15px; font-weight: 700; color: var(--text-main, #1E293B); display: flex; align-items: center; gap: 6px;">
+                    <span>📋</span> VIP Card Details
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13.5px;">
+                    <div>
+                        <div style="font-size: 11.5px; color: var(--text-muted, #64748B); text-transform: uppercase; font-weight: 600;">Card Number</div>
+                        <div style="font-weight: 700; color: var(--text-main, #1E293B); font-family: monospace;">${escapeHtml(activeCard.cardNumber || 'SMC-10001')}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11.5px; color: var(--text-muted, #64748B); text-transform: uppercase; font-weight: 600;">Current Tier</div>
+                        <div style="font-weight: 700; color: #D97706;">Tier ${Number(activeCard.tier || 1)}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11.5px; color: var(--text-muted, #64748B); text-transform: uppercase; font-weight: 600;">Available Balance</div>
+                        <div style="font-weight: 700; color: #059669;">₹${walletBalance.toFixed(2)}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11.5px; color: var(--text-muted, #64748B); text-transform: uppercase; font-weight: 600;">Total Withdrawn</div>
+                        <div style="font-weight: 700; color: var(--text-main, #1E293B);">₹${totalWithdrawn.toFixed(2)}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11.5px; color: var(--text-muted, #64748B); text-transform: uppercase; font-weight: 600;">Issued Date</div>
+                        <div style="font-weight: 600; color: var(--text-main, #1E293B);">${escapeHtml(issuedDateFormatted)}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11.5px; color: var(--text-muted, #64748B); text-transform: uppercase; font-weight: 600;">Last Withdrawal</div>
+                        <div style="font-weight: 600; color: var(--text-main, #1E293B);">${escapeHtml(lastWithdrawalFormatted)}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = cardHtml;
+}
+window.renderVipSection = renderVipSection;
 
 /* -----------------------------------------
    MOBILE ACCOUNT OFF-CANVAS SIDEBAR CONTROLS
@@ -339,9 +588,10 @@ function closeMobileAccountSidebar() {
 
 function updateMobileActiveNav(section) {
     const mobileNavItems = document.querySelectorAll('#mobileAccountNav .mobile-nav-item');
+    const targetSec = (section === 'edit') ? 'profile' : section;
     mobileNavItems.forEach(item => {
         const itemSec = item.getAttribute('data-section');
-        if (itemSec === section) {
+        if (itemSec === targetSec) {
             item.classList.add('active');
         } else {
             item.classList.remove('active');
@@ -353,13 +603,12 @@ function updateMobileActiveNav(section) {
     if (badgeEl) {
         const sectionLabels = {
             'profile': 'Profile Overview',
-            'edit': 'Edit Profile',
+            'edit': 'Profile Overview',
             'address': 'Delivery Address',
             'store': 'Store Details',
             'orders': 'Order History',
             'wallet': 'Wallet & Cashback',
             'points': 'Points & Rewards',
-            'membership': 'Membership',
             'vip': 'VIP Master Card',
             'referral': 'Referral Network'
         };
@@ -369,31 +618,6 @@ function updateMobileActiveNav(section) {
 
 function handleMobileNavClick(section) {
     closeMobileAccountSidebar();
-    
-    if (section === 'membership') {
-        showSection('profile');
-        setTimeout(() => {
-            const el = document.getElementById('membershipStatusCard');
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }, 120);
-        updateMobileActiveNav('membership');
-        return;
-    }
-    
-    if (section === 'vip') {
-        showSection('profile');
-        setTimeout(() => {
-            const el = document.getElementById('masterCardContainer');
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }, 120);
-        updateMobileActiveNav('vip');
-        return;
-    }
-
     showSection(section);
 }
 
@@ -1619,6 +1843,9 @@ async function restoreTransaction(txId) {
 function openAdminDeleteTxConfirmModal(txId) {
     if (!window.isUserAdmin) return;
 
+    // Reset in-flight flags
+    window.isDeletingTx = false;
+
     // Close dropdowns
     document.querySelectorAll('.tx-dropdown-menu').forEach(menu => menu.classList.remove('open'));
     document.querySelectorAll('.tx-action-trigger').forEach(trig => trig.classList.remove('active'));
@@ -1642,6 +1869,13 @@ function openAdminDeleteTxConfirmModal(txId) {
         `;
     }
 
+    const confirmBtn = document.getElementById("confirmAdminDeleteTxBtn");
+    if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = "Delete Permanently";
+        confirmBtn.style.opacity = "1";
+    }
+
     const modal = document.getElementById("txAdminDeleteModal");
     if (modal) modal.style.display = "flex";
 }
@@ -1651,6 +1885,13 @@ function closeTxAdminDeleteModal() {
     const modal = document.getElementById("txAdminDeleteModal");
     if (modal) modal.style.display = "none";
     window.pendingAdminDeleteTxId = null;
+
+    const confirmBtn = document.getElementById("confirmAdminDeleteTxBtn");
+    if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = "Delete Permanently";
+        confirmBtn.style.opacity = "1";
+    }
 }
 
 async function submitAdminPermanentDelete() {
@@ -1678,6 +1919,8 @@ async function submitAdminPermanentDelete() {
     }
 
     const tx = findTxById(txId);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout safeguard
 
     try {
         const res = await fetch(`${API}/commission/transactions/${encodeURIComponent(txId)}`, {
@@ -1688,33 +1931,38 @@ async function submitAdminPermanentDelete() {
             },
             body: JSON.stringify({
                 recordId: tx?.recordId || txId,
-                sourceType: tx?.sourceType || 'auto'
-            })
+                sourceType: tx?.sourceType || 'auto',
+                category: tx?.category || tx?.type
+            }),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
-        const data = await res.json().catch(() => ({}));
+        let data = {};
+        try {
+            data = await res.json();
+        } catch (parseErr) {
+            data = {};
+        }
 
         if (!res.ok || !data.success) {
             const errorMsg = data.error || data.message || `Failed to delete transaction (${res.status})`;
             showTxToast(errorMsg, "danger");
-            // Keep modal open and re-enable button
-            if (confirmBtn) {
-                confirmBtn.disabled = false;
-                confirmBtn.textContent = "Delete Permanently";
-                confirmBtn.style.opacity = "1";
-            }
             return;
         }
 
-        // Remove from local list
-        window.allWalletTransactions = (window.allWalletTransactions || []).filter(t => String(t._id) !== String(txId));
+        // Remove from local collection
+        window.allWalletTransactions = (window.allWalletTransactions || []).filter(t => String(t._id) !== String(txId) && String(t.recordId) !== String(txId));
         window.hiddenTxSet.delete(String(txId));
         accountDataCache.wallet = null;
+        accountDataCache.profile = null;
 
+        // Reset deletion state & close modal cleanly
         window.isDeletingTx = false;
         closeTxAdminDeleteModal();
-        showTxToast("Transaction deleted successfully", "success");
+        showTxToast("Financial record deleted successfully.", "success");
 
+        // Remove DOM element with smooth animation
         const cardEl = document.getElementById(`txCard_${txId}`);
         if (cardEl) {
             cardEl.classList.add('fade-out');
@@ -1724,16 +1972,26 @@ async function submitAdminPermanentDelete() {
         } else {
             displayWalletHistory(window.allWalletTransactions);
         }
+
+        // Refresh canonical server data (Wallet balance, Total earnings, VIP cards)
+        if (typeof loadWalletData === 'function') {
+            loadWalletData(true).catch(e => console.warn("Failed to refresh wallet data after delete:", e));
+        }
     } catch (err) {
+        clearTimeout(timeoutId);
         console.error("Error permanently deleting transaction:", err);
-        showTxToast(err.message || "Failed to delete transaction. Please try again.", "danger");
+        const isTimeout = err.name === 'AbortError';
+        const msg = isTimeout 
+            ? "Unable to delete this record. Request timed out. Please try again." 
+            : (err.message || "Unable to delete this record. Please try again.");
+        showTxToast(msg, "danger");
+    } finally {
+        window.isDeletingTx = false;
         if (confirmBtn) {
             confirmBtn.disabled = false;
             confirmBtn.textContent = "Delete Permanently";
             confirmBtn.style.opacity = "1";
         }
-    } finally {
-        window.isDeletingTx = false;
     }
 }
 

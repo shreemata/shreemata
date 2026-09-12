@@ -7,7 +7,7 @@
 const adminNavConfig = {
     title: "📚 Shree Mata Admin",
     links: [
-        { href: "/admin.html", icon: "🏠", text: "Dashboard", id: "admin-dashboard", title: "Admin Dashboard" },
+        { href: "/admin-dashboard.html", icon: "🏠", text: "Dashboard", id: "admin-dashboard", title: "Admin Operations Dashboard" },
         { href: "/", icon: "🚪", text: "Public Site", id: "public-site", title: "Visit Public Site" },
         { href: "/admin.html", icon: "📚", text: "Books", id: "books", title: "Manage Books" },
         { href: "/admin-bundles.html", icon: "📦", text: "Bundles", id: "bundles", title: "Manage Bundles" },
@@ -168,7 +168,7 @@ function createAdminNavHTML(currentPageId) {
                     <div class="popup-menu-links">
                         <div class="popup-menu-group">
                             <div class="popup-group-title">Main</div>
-                            <a href="/admin.html" class="${currentPageId === 'admin-dashboard' ? 'active' : ''}"><span class="icon">🏠</span> Dashboard</a>
+                            <a href="/admin-dashboard.html" class="${currentPageId === 'admin-dashboard' ? 'active' : ''}"><span class="icon">🏠</span> Dashboard</a>
                             <a href="/"><span class="icon">🚪</span> Public Site</a>
                         </div>
                         
@@ -891,6 +891,7 @@ function detectCurrentPage() {
     else if (path.includes('admin-razorpay-reports')) currentPageId = 'razorpay-reports';
     else if (path.includes('admin-reports')) currentPageId = 'reports-center';
     else if (path.includes('admin-salary-dashboard')) currentPageId = 'salary-dashboard';
+    else if (path.includes('admin-dashboard')) currentPageId = 'admin-dashboard';
     else if (path.includes('admin.html') || path === '/admin') currentPageId = 'books';
     
     return currentPageId;

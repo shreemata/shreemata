@@ -1,446 +1,307 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Commission History - Shree Mata</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#F7F3EA">
+    <title>Your Earnings — Commission History — Shree Mata</title>
+    <meta name="description" content="View your referral, tree, cashback, and other eligible earnings on Shree Mata.">
+    <link rel="icon" href="/images/press.png" type="image/png">
 
-        .commission-container {
-            max-width: 1200px;
-            margin: 80px auto 40px;
-            padding: 20px;
-        }
+    <!-- Premium Google Fonts: Playfair Display + Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
 
-        .page-header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-        }
-
-        .page-header h1 {
-            font-size: 48px;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .page-header p {
-            font-size: 18px;
-            opacity: 0.95;
-        }
-
-        .commission-card {
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .summary-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 25px;
-            border-radius: 12px;
-            color: white;
-            text-align: center;
-        }
-
-        .summary-card.green {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        }
-
-        .summary-card.purple {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .summary-label {
-            font-size: 14px;
-            opacity: 0.9;
-            margin-bottom: 8px;
-        }
-
-        .summary-value {
-            font-size: 32px;
-            font-weight: bold;
-        }
-
-        .summary-subtext {
-            font-size: 12px;
-            opacity: 0.8;
-            margin-top: 5px;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 10px;
-        }
-
-        .tab-btn {
-            padding: 12px 24px;
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 15px;
-            color: #666;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .tab-btn:hover {
-            color: #667eea;
-        }
-
-        .tab-btn.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-        }
-
-        .filters {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .filter-group label {
-            font-size: 13px;
-            color: #666;
-            font-weight: 600;
-        }
-
-        .filter-group input {
-            padding: 10px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .filter-btn {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin-top: auto;
-        }
-
-        .filter-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .clear-btn {
-            padding: 10px 20px;
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin-top: auto;
-        }
-
-        .clear-btn:hover {
-            background: #f8f9fa;
-        }
-
-        .commission-table {
-            width: 100%;
-            border-collapse: collapse;
-            overflow-x: auto;
-            display: block;
-        }
-
-        .commission-table thead {
-            background: #f8f9fa;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .commission-table th {
-            padding: 15px 12px;
-            text-align: left;
-            font-size: 13px;
-            color: #666;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .commission-table tbody {
-            display: block;
-            max-height: 600px;
-            overflow-y: auto;
-        }
-
-        .commission-table thead,
-        .commission-table tbody tr {
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-        }
-
-        .commission-table td {
-            padding: 15px 12px;
-            font-size: 14px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .commission-table tbody tr:hover {
-            background: #f8f9fa;
-        }
-
-        .type-badge {
-            padding: 5px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            display: inline-block;
-        }
-
-        .type-direct {
-            background: #667eea;
-            color: white;
-        }
-
-        .type-referral {
-            background: #20c997;
-            color: white;
-        }
-
-        .type-tree {
-            background: #28a745;
-            color: white;
-        }
-
-        .amount-positive {
-            color: #28a745;
-            font-weight: 600;
-        }
-
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .pagination button {
-            padding: 10px 15px;
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .pagination button:hover:not(:disabled) {
-            border-color: #667eea;
-            color: #667eea;
-        }
-
-        .pagination button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .pagination .page-info {
-            padding: 10px 15px;
-            color: #666;
-            font-weight: 600;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-
-        .no-data {
-            text-align: center;
-            padding: 60px 20px;
-            color: #999;
-        }
-
-        .no-data-icon {
-            font-size: 64px;
-            margin-bottom: 15px;
-        }
-
-        @media (max-width: 768px) {
-            .page-header h1 {
-                font-size: 32px;
-            }
-
-            .summary-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .tabs {
-                overflow-x: auto;
-            }
-
-            .filters {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .filter-btn,
-            .clear-btn {
-                margin-top: 10px;
-            }
-        }
-    </style>
+    <!-- Design System & Customer Shell Stylesheets -->
+    <link rel="stylesheet" href="/css/design-system.css">
+    <link rel="stylesheet" href="/css/customer-layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/commission-history.css">
 </head>
+
 <body>
-    <header>
-        <div class="navbar">
-            <div class="container navbar-content">
-                <div class="logo">
-                    <a href="/">📚 Shree Mata</a>
+
+    <!-- 1. ANNOUNCEMENT BAR -->
+    <div class="top-bar" role="region" aria-label="Notice">
+        <div class="top-bar-inner">
+            <div class="top-bar-left">
+                <span class="badge-gold-pill">Earnings Notice</span>
+                <span>All referral, cashback, and tree commissions are credited automatically to your wallet</span>
+            </div>
+            <div class="top-bar-right">
+                <a href="/referral.html" class="top-bar-link">👥 Referral Dashboard</a>
+                <a href="/account.html?section=wallet" class="top-bar-link">👛 Wallet & Cashback</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. GLOBAL MAIN HEADER -->
+    <header class="main-header" role="banner">
+        <div class="container">
+            <div class="header-inner">
+                <!-- Mobile Menu Hamburger Button -->
+                <button type="button" id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="Open Navigation Menu">☰</button>
+
+                <!-- Brand Logo & Identity -->
+                <a href="/" class="brand-logo" aria-label="Shree Mata Home">
+                    <img src="/images/press.png" onerror="this.src='/images/logo.png'" alt="Shree Mata Logo" width="44" height="44">
+                    <div class="brand-text">
+                        <span class="brand-title">Shree Mata</span>
+                        <span class="brand-sub">Disseminating Knowledge</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Primary Navigation Links -->
+                <nav class="header-nav-links" aria-label="Primary Navigation">
+                    <a href="/#booksSection" class="nav-item-link">Books</a>
+                    <a href="/#bundlesSection" class="nav-item-link">
+                        <span>Book Sets</span>
+                        <span class="nav-badge-accent">Combos</span>
+                    </a>
+                    <a href="/#classSection" class="nav-item-link">Class 10</a>
+                    <a href="/#subjectSection" class="nav-item-link">Categories</a>
+                    <a href="/#notificationsSection" class="nav-item-link">Offers</a>
+                </nav>
+
+                <!-- Wide Search Field -->
+                <div class="header-search">
+                    <div class="search-box" role="search">
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                        <input 
+                            type="search" 
+                            id="searchInput" 
+                            class="search-input" 
+                            placeholder="Search books, subjects, class..." 
+                            aria-label="Search catalog"
+                            autocomplete="off"
+                        >
+                        <button type="button" id="searchBtn" class="search-btn" aria-label="Search">Search</button>
+                    </div>
                 </div>
-                <div class="nav-links">
-                    <a href="/">Home</a>
-                    <a href="/orders.html">My Orders</a>
-                    <span id="userName"></span>
-                    <a href="account.html">Account</a>
-                    <a href="referral.html">Referral💰</a>
-                    <a href="cart.html" class="cart-icon">🛒 Cart (<span id="cartCount">0</span>)</a>
-                    <a href="#" id="logoutBtn">Logout</a>
-                    <a href="admin.html" id="adminLink" style="display: none;">Admin</a>
+
+                <!-- User & Cart Actions -->
+                <div class="header-actions">
+                    <!-- Guest Auth Links -->
+                    <div id="authLinks" class="auth-group">
+                        <a href="/login.html" class="btn-login">Log In</a>
+                        <a href="/signup.html" class="btn-signup">Sign Up</a>
+                    </div>
+
+                    <!-- Logged-in User Navigation Dropdown -->
+                    <div id="userLinks" class="user-nav-wrap" style="display: none;">
+                        <button type="button" class="user-name-badge" id="userMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-label="User Account Menu">
+                            <span class="user-avatar-icon" aria-hidden="true">👤</span>
+                            <span id="userName" class="user-name-text">Account</span>
+                            <span class="dropdown-chevron" aria-hidden="true">▾</span>
+                        </button>
+                        <div class="user-dropdown-menu" id="userDropdownMenu" role="menu" aria-labelledby="userMenuBtn">
+                            <div class="dropdown-header">
+                                <div class="dropdown-user-profile">
+                                    <div class="dropdown-user-avatar">👤</div>
+                                    <div class="dropdown-user-info">
+                                        <span class="dropdown-user-name" id="dropdownUserName">User</span>
+                                        <span class="dropdown-user-email" id="dropdownUserEmail"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="/account.html" class="dropdown-item-link" id="accountLink" role="menuitem">
+                                <span class="dropdown-item-icon">👤</span> <span>My Account</span>
+                            </a>
+                            <a href="/orders.html" class="dropdown-item-link" id="ordersLink" role="menuitem">
+                                <span class="dropdown-item-icon">📦</span> <span>My Orders</span>
+                            </a>
+                            <a href="/account.html?section=wallet" class="dropdown-item-link" id="dropdownWalletLink" role="menuitem">
+                                <span class="dropdown-item-icon">👛</span> <span>Wallet & Cashback</span>
+                            </a>
+                            <a href="/referral.html" class="dropdown-item-link" id="referralLink" role="menuitem">
+                                <span class="dropdown-item-icon">💰</span> <span>Referral Network</span>
+                            </a>
+                            <a href="/account.html?section=vip" class="dropdown-item-link" id="dropdownVipLink" role="menuitem">
+                                <span class="dropdown-item-icon">👑</span> <span>VIP Master Card</span>
+                            </a>
+                            <a href="/admin.html" class="dropdown-item-link" id="adminLink" role="menuitem" style="display: none;">
+                                <span class="dropdown-item-icon">⚙️</span> <span>Admin Dashboard</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button type="button" id="logoutBtn" class="btn-logout-item" role="menuitem">
+                                <span class="dropdown-item-icon">🚪</span> <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Orders Link (Quick Access) -->
+                    <a href="/orders.html" class="nav-item-link" style="display: inline-flex; align-items: center; gap: 4px;">Orders</a>
+
+                    <!-- Shopping Cart Button with Dynamic Badge -->
+                    <a href="/cart.html" id="cartLink" class="btn-cart-header" title="Shopping Cart">
+                        <span aria-hidden="true">🛒</span>
+                        <span>Cart</span>
+                        <span id="cartCount" class="cart-count-badge">0</span>
+                    </a>
                 </div>
             </div>
         </div>
     </header>
 
-    <main>
+    <!-- 3. MAIN COMMISSION HISTORY CONTENT -->
+    <main class="commission-page-wrapper">
         <div class="commission-container">
-            <div class="page-header">
-                <h1>💰 Commission History</h1>
-                <p>Track all your earnings — cashbacks, referrals, and tree commissions</p>
-            </div>
-
-            <div class="commission-card">
-                <h2 style="margin: 0 0 20px 0; color: #333;">📊 Earnings Summary</h2>
-                <div class="summary-grid">
-                    <div class="summary-card">
-                        <div class="summary-label">Total Earnings</div>
-                        <div class="summary-value">₹<span id="totalEarnings">0</span></div>
-                        <div class="summary-subtext"><span id="totalCount">0</span> transactions</div>
-                    </div>
-                    <div class="summary-card green">
-                        <div class="summary-label">Direct Commission (Cashback)</div>
-                        <div class="summary-value">₹<span id="directTotal">0</span></div>
-                        <div class="summary-subtext"><span id="directCount">0</span> transactions</div>
-                    </div>
-                    <div class="summary-card purple">
-                        <div class="summary-label">Tree Commission</div>
-                        <div class="summary-value">₹<span id="treeTotal">0</span></div>
-                        <div class="summary-subtext"><span id="treeCount">0</span> transactions</div>
+            
+            <!-- Breadcrumb & Hero Header -->
+            <div class="commission-page-header">
+                <div class="commission-breadcrumb">
+                    <a href="/">Home</a>
+                    <span>/</span>
+                    <a href="/referral.html">Referral</a>
+                    <span>/</span>
+                    <span>Commission History</span>
+                </div>
+                
+                <div class="commission-header-row">
+                    <div>
+                        <div class="commission-badge-kicker">💰 COMMISSION HISTORY</div>
+                        <h1 class="commission-page-title">Your Earnings</h1>
+                        <p class="commission-page-subtitle">View your referral, tree, cashback and other eligible earnings.</p>
                     </div>
                 </div>
             </div>
 
-            <div class="commission-card">
-                <div class="tabs">
-                    <button class="tab-btn active" onclick="switchTab('all')" id="tabAll">
-                        All Commissions
+            <!-- Summary Cards Grid -->
+            <section class="commission-summary-grid" aria-label="Earnings Summary">
+                <!-- 1. Total Earnings -->
+                <div class="ch-summary-card primary">
+                    <div class="ch-summary-header">
+                        <span class="ch-summary-label">Total Earnings</span>
+                        <span class="ch-summary-icon" aria-hidden="true">💎</span>
+                    </div>
+                    <div class="ch-summary-amount" id="summaryTotalEarnings">₹0.00</div>
+                    <div class="ch-summary-subtext">Lifetime total commission credited</div>
+                </div>
+
+                <!-- 2. Direct Referral -->
+                <div class="ch-summary-card">
+                    <div class="ch-summary-header">
+                        <span class="ch-summary-label">Direct Referral</span>
+                        <span class="ch-summary-icon" aria-hidden="true">👥</span>
+                    </div>
+                    <div class="ch-summary-amount" id="summaryDirectEarnings">₹0.00</div>
+                    <div class="ch-summary-subtext">From direct referral purchases</div>
+                </div>
+
+                <!-- 3. Tree Earnings -->
+                <div class="ch-summary-card">
+                    <div class="ch-summary-header">
+                        <span class="ch-summary-label">Tree Earnings</span>
+                        <span class="ch-summary-icon" aria-hidden="true">🌳</span>
+                    </div>
+                    <div class="ch-summary-amount" id="summaryTreeEarnings">₹0.00</div>
+                    <div class="ch-summary-subtext">From tree network team purchases</div>
+                </div>
+
+                <!-- 4. Buyer Cashback -->
+                <div class="ch-summary-card">
+                    <div class="ch-summary-header">
+                        <span class="ch-summary-label">Buyer Cashback</span>
+                        <span class="ch-summary-icon" aria-hidden="true">💰</span>
+                    </div>
+                    <div class="ch-summary-amount" id="summaryCashbackEarnings">₹0.00</div>
+                    <div class="ch-summary-subtext">From your own direct purchases</div>
+                </div>
+
+                <!-- 5. Available Wallet Balance -->
+                <div class="ch-summary-card">
+                    <div class="ch-summary-header">
+                        <span class="ch-summary-label">Available Wallet</span>
+                        <span class="ch-summary-icon" aria-hidden="true">👛</span>
+                    </div>
+                    <div class="ch-summary-amount" id="summaryWalletBalance" style="color: var(--ch-navy, #101820);">₹0.00</div>
+                    <div class="ch-summary-subtext">Current redeemable wallet balance</div>
+                </div>
+            </section>
+
+            <!-- Controls: Search, Date Filter & Category Chips -->
+            <div class="commission-controls-card">
+                <div class="controls-top-row">
+                    <!-- Search Input -->
+                    <div class="ch-search-box">
+                        <span class="ch-search-icon" aria-hidden="true">🔍</span>
+                        <input 
+                            type="text" 
+                            id="commissionSearchInput" 
+                            class="ch-search-input" 
+                            placeholder="Search earnings by order # or description..."
+                            aria-label="Search earnings by order number or description"
+                        >
+                        <button type="button" id="commissionSearchClear" class="ch-search-clear" style="display: none;" aria-label="Clear search">✕</button>
+                    </div>
+
+                    <!-- Date Range Filter Chips -->
+                    <div class="date-filters-group" role="group" aria-label="Filter by date range">
+                        <span class="date-filter-label">Period:</span>
+                        <button type="button" class="date-chip active" data-date="all">All Time</button>
+                        <button type="button" class="date-chip" data-date="month">This Month</button>
+                        <button type="button" class="date-chip" data-date="30days">Last 30 Days</button>
+                        <button type="button" class="date-chip" data-date="year">This Year</button>
+                    </div>
+                </div>
+
+                <!-- Category Filter Chips -->
+                <div class="ch-filter-chips" role="tablist" aria-label="Filter earnings by type">
+                    <button type="button" class="ch-filter-chip active" data-filter="all" role="tab" aria-selected="true">
+                        <span>All Earnings</span>
+                        <span class="ch-chip-count" id="chipCountAll">0</span>
                     </button>
-                    <button class="tab-btn" onclick="switchTab('direct')" id="tabDirect">
-                        Cashback (Direct)
+                    <button type="button" class="ch-filter-chip" data-filter="cashback" role="tab" aria-selected="false">
+                        <span>💰 Buyer Cashback</span>
+                        <span class="ch-chip-count" id="chipCountCashback">0</span>
                     </button>
-                    <button class="tab-btn" onclick="switchTab('tree')" id="tabTree">
-                        Tree Only
+                    <button type="button" class="ch-filter-chip" data-filter="referral" role="tab" aria-selected="false">
+                        <span>👥 Direct Referral</span>
+                        <span class="ch-chip-count" id="chipCountReferral">0</span>
                     </button>
-                </div>
-
-                <div class="filters">
-                    <div class="filter-group">
-                        <label>From Date</label>
-                        <input type="date" id="startDate">
-                    </div>
-                    <div class="filter-group">
-                        <label>To Date</label>
-                        <input type="date" id="endDate">
-                    </div>
-                    <button class="filter-btn" onclick="applyFilters()">Apply Filters</button>
-                    <button class="clear-btn" onclick="clearFilters()">Clear</button>
-                </div>
-
-                <div id="loadingCommissions" class="loading">
-                    <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
-                    <p>Loading commission history...</p>
-                </div>
-
-                <div id="commissionsContent" style="display: none;">
-                    <div style="overflow-x: auto;">
-                        <table class="commission-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 15%;">Date</th>
-                                    <th style="width: 12%;">Type</th>
-                                    <th style="width: 12%;">Amount</th>
-                                    <th style="width: 10%;">Level</th>
-                                    <th style="width: 10%;">Rate</th>
-                                    <th style="width: 20%;">Purchaser</th>
-                                    <th style="width: 12%;">Order Amount</th>
-                                    <th style="width: 9%;">Order ID</th>
-                                </tr>
-                            </thead>
-                            <tbody id="commissionsTableBody">
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="pagination">
-                        <button onclick="previousPage()" id="prevBtn">← Previous</button>
-                        <div class="page-info">
-                            Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
-                        </div>
-                        <button onclick="nextPage()" id="nextBtn">Next →</button>
-                    </div>
-                </div>
-
-                <div id="noCommissions" class="no-data" style="display: none;">
-                    <div class="no-data-icon">💸</div>
-                    <h3>No Commission History Yet</h3>
-                    <p>Start earning by sharing your referral code!</p>
-                    <a href="referral.html" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
-                        Go to Referral Dashboard
-                    </a>
+                    <button type="button" class="ch-filter-chip" data-filter="tree" role="tab" aria-selected="false">
+                        <span>🌳 Tree Commission</span>
+                        <span class="ch-chip-count" id="chipCountTree">0</span>
+                    </button>
                 </div>
             </div>
+
+            <!-- Transactions List Container -->
+            <div id="commissionListContainer" class="commission-list-container" aria-live="polite">
+                <!-- Skeletons injected on load, populated via commission-history.js -->
+            </div>
+
+            <!-- Pagination Bar (if needed) -->
+            <div id="commissionPaginationBar" class="ch-pagination-bar" style="display: none;">
+                <span id="commissionPageInfo" class="ch-page-indicator">Showing records</span>
+            </div>
+
         </div>
     </main>
 
+    <!-- 4. TRANSACTION DETAILS MODAL -->
+    <div id="transactionModal" class="ch-modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="transactionModalTitle">
+        <div class="ch-modal-card">
+            <div class="ch-modal-header">
+                <h3 id="transactionModalTitle" class="ch-modal-title">Earnings Details</h3>
+                <button type="button" class="ch-modal-close-btn" onclick="window.closeTransactionModal()" aria-label="Close modal">&times;</button>
+            </div>
+            
+            <div id="transactionModalBody" class="ch-modal-body">
+                <!-- Populated dynamically -->
+            </div>
+
+            <div class="ch-modal-footer">
+                <button type="button" class="btn-ch-action outline" onclick="window.closeTransactionModal()">Close</button>
+                <a href="/referral.html" class="btn-ch-action gold">Referral Dashboard</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. GLOBAL FOOTER -->
     <footer>
         <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
             <p>&copy; 2026 Shree Mata. All rights reserved.</p>
@@ -451,7 +312,13 @@
         </div>
     </footer>
 
-    <script src="js/config.js"></script>
-    <script src="js/commission-history.js"></script>
+    <!-- Scripts -->
+    <script src="/js/config.js"></script>
+    <script src="/js/cartUtils.js"></script>
+    <script src="/js/global.js"></script>
+    <script src="/js/global-nav.js"></script>
+    <script src="/js/commission-history.js"></script>
+
 </body>
+
 </html>

@@ -568,16 +568,23 @@ router.post("/commission/transactions/restore", authenticateToken, async (req, r
 
 /* -------------------------------------------
    DELETE /api/commission/transactions/:id
-   ADMIN ONLY: Permanent delete financial transaction
+   ADMIN ONLY: Permanent delete financial transaction with safe reconciliation
 --------------------------------------------*/
 router.delete("/commission/transactions/:id", authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id || req.user.userId;
+    const adminUserId = req.user.id || req.user.userId;
     const User = require("../models/User");
-    const userDoc = await User.findById(userId).select("role");
-    const isAdmin = (req.user && req.user.role === 'admin') || (userDoc && userDoc.role === 'admin');
+    const WalletTransaction = require("../models/WalletTransaction");
+    const VipMasterCard = require("../models/VipMasterCard");
+    const Order = require("../models/Order");
+    const CommissionTransaction = require("../models/CommissionTransaction");
+
+    // Strict Admin Authorization Check
+    const adminDoc = await User.findById(adminUserId).select("role name email");
+    const isAdmin = (req.user && req.user.role === 'admin') || (adminDoc && adminDoc.role === 'admin');
     
     if (!isAdmin) {
+      console.warn(`🚨 SECURITY AUDIT: Unauthorized financial delete attempt by user ${adminUserId} (${req.user?.email}) at ${new Date().toISOString()}`);
       return res.status(403).json({ error: "Access denied: Admin authorization required" });
     }
 
@@ -586,13 +593,12 @@ router.delete("/commission/transactions/:id", authenticateToken, async (req, res
       return res.status(400).json({ error: "Invalid transaction identifier: ID is missing" });
     }
 
-    console.log("🗑️ Admin permanent delete requested for ID:", txId, "by admin:", userId);
-
-    // Multi-source identifier resolution
+    // Resolve source & record identifier
     let sourceType = req.body?.sourceType;
     let recordId = req.body?.recordId;
+    let category = req.body?.category;
 
-    if (!sourceType || !recordId) {
+    if (!sourceType || !recordId || sourceType === 'auto') {
       if (txId.endsWith('_cashback')) {
         sourceType = 'cashback';
         recordId = txId.replace('_cashback', '');
@@ -614,48 +620,156 @@ router.delete("/commission/transactions/:id", authenticateToken, async (req, res
       }
     }
 
-    // Process source-specific deletion
-    if (sourceType === 'wallet_transaction' && mongoose.Types.ObjectId.isValid(recordId)) {
-      const WalletTransaction = require("../models/WalletTransaction");
-      await WalletTransaction.findByIdAndDelete(recordId);
-      
-      // If matching withdrawal entry in user's withdrawals array, clean it up
-      await User.findByIdAndUpdate(userId, {
-        $pull: { withdrawals: { _id: recordId } }
-      });
-    } else if (sourceType === 'cashback') {
-      const Order = require("../models/Order");
-      if (mongoose.Types.ObjectId.isValid(recordId)) {
-        const orderExists = await Order.findById(recordId).select("_id user_id");
-        if (orderExists && orderExists.user_id) {
-          await User.findByIdAndUpdate(orderExists.user_id, {
+    // Audit log
+    console.log(`🛡️ [ADMIN FINANCIAL AUDIT] Admin ${adminDoc?.name || req.user.name || 'Admin'} (${adminDoc?.email || req.user.email} / ID: ${adminUserId}) requested permanent deletion of record: ${txId} (Source: ${sourceType}, Record ID: ${recordId}) at ${new Date().toISOString()}`);
+
+    let targetUserId = null;
+    let reconciliationApplied = false;
+    let reconciledAmount = 0;
+
+    // 1. Process WalletTransaction Deletion & Reconciliation
+    if (mongoose.Types.ObjectId.isValid(recordId)) {
+      const wtx = await WalletTransaction.findById(recordId);
+      if (wtx) {
+        targetUserId = wtx.userId;
+        sourceType = 'wallet_transaction';
+        const isDebitWithdrawal = (wtx.type === 'debit' || wtx.category === 'vip_master_card_withdrawal' || wtx.category === 'withdrawal');
+
+        const targetUser = await User.findById(targetUserId);
+        if (targetUser) {
+          // If this was a withdrawal that was pending, safely restore money to wallet & reconcile VIP card
+          if (isDebitWithdrawal && Array.isArray(targetUser.withdrawals)) {
+            const pendingW = targetUser.withdrawals.find(w => 
+              (w.status === 'pending') && 
+              (w._id.toString() === recordId || Math.abs((w.amount || 0) - (wtx.amount || 0)) < 0.01)
+            );
+
+            if (pendingW) {
+              reconciledAmount = Number(pendingW.amount || wtx.amount || 0);
+              reconciliationApplied = true;
+
+              // Atomically restore wallet balance, remove pending withdrawal, and add exclusion
+              await User.findByIdAndUpdate(targetUserId, {
+                $inc: { wallet: reconciledAmount },
+                $pull: { 
+                  withdrawals: { _id: pendingW._id },
+                  hiddenTransactions: String(txId)
+                },
+                $addToSet: { adminDeletedTransactions: String(txId) }
+              });
+
+              // If VIP withdrawal, atomically adjust totalWithdrawn
+              if (pendingW.source === 'vip_master_card' || wtx.category === 'vip_master_card_withdrawal') {
+                const cardFilter = pendingW.cardId 
+                  ? { _id: pendingW.cardId } 
+                  : (pendingW.cardNumber ? { cardNumber: pendingW.cardNumber } : { userId: targetUserId });
+                
+                const existingCard = await VipMasterCard.findOne(cardFilter);
+                if (existingCard) {
+                  const newTotalWithdrawn = Math.max(0, (existingCard.totalWithdrawn || 0) - reconciledAmount);
+                  await VipMasterCard.findByIdAndUpdate(existingCard._id, {
+                    $set: { totalWithdrawn: newTotalWithdrawn }
+                  });
+                }
+              }
+            } else {
+              // Clean up any direct withdrawal matching recordId
+              await User.findByIdAndUpdate(targetUserId, {
+                $pull: { 
+                  withdrawals: { _id: recordId },
+                  hiddenTransactions: String(txId)
+                },
+                $addToSet: { adminDeletedTransactions: String(txId) }
+              });
+            }
+          } else {
+            await User.findByIdAndUpdate(targetUserId, {
+              $pull: { hiddenTransactions: String(txId) },
+              $addToSet: { adminDeletedTransactions: String(txId) }
+            });
+          }
+        }
+
+        // Permanently delete ledger transaction
+        await WalletTransaction.findByIdAndDelete(recordId);
+      } else {
+        // Also check if user has a pending withdrawal matching recordId as subdoc _id
+        const userWithWithdrawal = await User.findOne({ "withdrawals._id": recordId });
+        if (userWithWithdrawal) {
+          await User.findByIdAndUpdate(userWithWithdrawal._id, {
+            $pull: { 
+              withdrawals: { _id: recordId },
+              hiddenTransactions: String(txId)
+            },
             $addToSet: { adminDeletedTransactions: String(txId) }
           });
         }
       }
-    } else if (sourceType.startsWith('commission_')) {
-      const CommissionTransaction = require("../models/CommissionTransaction");
+    }
+
+    // 2. Process Cashback Deletion
+    if (sourceType === 'cashback') {
       if (mongoose.Types.ObjectId.isValid(recordId)) {
-        await CommissionTransaction.findById(recordId).select("_id");
+        const order = await Order.findById(recordId).select("_id user_id");
+        if (order && order.user_id) {
+          targetUserId = order.user_id;
+          await User.findByIdAndUpdate(order.user_id, {
+            $addToSet: { adminDeletedTransactions: String(txId) },
+            $pull: { hiddenTransactions: String(txId) }
+          });
+        }
       }
     }
 
-    // Persist exclusion on user document so transaction is never returned in history
-    await User.findByIdAndUpdate(userId, {
+    // 3. Process Commission Deletions (Direct, Referral, Tree)
+    if (sourceType.startsWith('commission_')) {
+      if (mongoose.Types.ObjectId.isValid(recordId)) {
+        const commTx = await CommissionTransaction.findById(recordId);
+        if (commTx) {
+          const affectedUserIds = new Set();
+          if (commTx.purchaser) affectedUserIds.add(commTx.purchaser.toString());
+          if (commTx.directReferrer) affectedUserIds.add(commTx.directReferrer.toString());
+          if (commTx.referralReferrer) affectedUserIds.add(commTx.referralReferrer.toString());
+          if (Array.isArray(commTx.treeCommissions)) {
+            commTx.treeCommissions.forEach(tc => {
+              if (tc.recipient) affectedUserIds.add(tc.recipient.toString());
+            });
+          }
+
+          for (const uId of affectedUserIds) {
+            await User.findByIdAndUpdate(uId, {
+              $addToSet: { adminDeletedTransactions: String(txId) },
+              $pull: { hiddenTransactions: String(txId) }
+            });
+          }
+        }
+      }
+    }
+
+    // Ensure admin document and exclusions are always updated
+    await User.findByIdAndUpdate(adminUserId, {
       $addToSet: { adminDeletedTransactions: String(txId) },
       $pull: { hiddenTransactions: String(txId) }
     });
 
-    // Clean up hidden arrays system-wide
+    // Clean up hidden transactions system-wide for this record
     await User.updateMany({}, { $pull: { hiddenTransactions: String(txId) } });
 
-    console.log("✅ Admin permanent delete completed successfully for:", { txId, sourceType, recordId });
+    console.log("✅ Admin permanent delete completed successfully for:", { 
+      txId, 
+      sourceType, 
+      recordId, 
+      reconciliationApplied, 
+      reconciledAmount 
+    });
 
     return res.status(200).json({ 
       success: true, 
-      message: "Transaction permanently deleted by admin", 
+      message: "Financial record deleted successfully", 
       transactionId: txId,
-      sourceType: sourceType 
+      sourceType: sourceType,
+      reconciled: reconciliationApplied,
+      reconciledAmount
     });
   } catch (err) {
     console.error("❌ Error permanently deleting transaction:", err);

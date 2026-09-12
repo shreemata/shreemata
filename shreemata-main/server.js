@@ -58,6 +58,7 @@ app.use("/api", authRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin/orders", authenticateToken, isAdmin, orderRoutes);
+app.use("/api/admin/dashboard", require("./routes/adminDashboard"));
 app.use("/api/referral", require("./routes/referral"));
 app.use("/api/referral", require("./routes/referralTree"));
 app.use("/api/admin/withdrawals", require("./routes/adminWithdraw"));
