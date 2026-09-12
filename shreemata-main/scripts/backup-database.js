@@ -570,6 +570,48 @@ async function runBackup(options = {}) {
             return resultRecord;
         }
 
+        // STAGE 4.5: GENERATE BACKUP-TIME MANIFEST
+        const manifestPath = `${dailyPath}.manifest.json`;
+        let backupManifest = null;
+        try {
+            let manifestDbConn = null;
+            const collectionsMap = {};
+            let totalDocs = 0;
+            try {
+                manifestDbConn = await mongoose.createConnection(MONGO_URI, { serverSelectionTimeoutMS: 5000 }).asPromise();
+                const colList = await manifestDbConn.db.listCollections().toArray();
+                for (const col of colList) {
+                    if (col.name.startsWith('system.')) continue;
+                    const cCount = await manifestDbConn.db.collection(col.name).countDocuments();
+                    collectionsMap[col.name] = cCount;
+                    totalDocs += cCount;
+                }
+            } finally {
+                if (manifestDbConn) {
+                    try { await manifestDbConn.close(); } catch (e) {}
+                }
+            }
+
+            backupManifest = {
+                version: '1.0',
+                filename,
+                createdAt: startedAt.toISOString(),
+                databaseName: parseDatabaseName(MONGO_URI),
+                archiveSha256: resultRecord.checksumSha256,
+                collectionCount: Object.keys(collectionsMap).length,
+                documentCount: totalDocs,
+                collections: collectionsMap
+            };
+
+            resultRecord.collectionsCount = backupManifest.collectionCount;
+            resultRecord.documentsCount = backupManifest.documentCount;
+
+            fs.writeFileSync(manifestPath, JSON.stringify(backupManifest, null, 2), 'utf8');
+            console.log(`[DATABASE BACKUP] Created backup manifest: ${filename}.manifest.json (${backupManifest.collectionCount} collections, ${totalDocs} documents)`);
+        } catch (manifestErr) {
+            console.warn(`⚠️ Warning generating backup manifest:`, sanitizeError(manifestErr));
+        }
+
         // STAGE 5: RETENTION PROMOTION (Single-Dump Architecture)
         try {
             const dayOfWeek = startedAt.getUTCDay(); // 0 = Sunday
@@ -579,6 +621,9 @@ async function runBackup(options = {}) {
                 const weeklyPath = path.join(BACKUP_ROOT, 'weekly', filename);
                 fs.copyFileSync(dailyPath, weeklyPath);
                 fs.copyFileSync(`${dailyPath}.sha256`, `${weeklyPath}.sha256`);
+                if (fs.existsSync(manifestPath)) {
+                    fs.copyFileSync(manifestPath, `${weeklyPath}.manifest.json`);
+                }
                 console.log(`[DATABASE BACKUP] Promoted to weekly retention: ${weeklyPath}`);
             }
 
@@ -586,17 +631,22 @@ async function runBackup(options = {}) {
                 const monthlyPath = path.join(BACKUP_ROOT, 'monthly', filename);
                 fs.copyFileSync(dailyPath, monthlyPath);
                 fs.copyFileSync(`${dailyPath}.sha256`, `${monthlyPath}.sha256`);
+                if (fs.existsSync(manifestPath)) {
+                    fs.copyFileSync(manifestPath, `${monthlyPath}.manifest.json`);
+                }
                 console.log(`[DATABASE BACKUP] Promoted to monthly retention: ${monthlyPath}`);
             }
         } catch (promoErr) {
             console.warn('⚠️ Warning: Retention promotion encountered an error:', sanitizeError(promoErr));
         }
 
-        // STAGE 6: REAL S3 UPLOAD & VERIFICATION (Archive + Checksum Object)
+        // STAGE 6: REAL S3 UPLOAD & VERIFICATION (Archive + Checksum + Manifest)
         if (S3_ENABLED && S3_BUCKET) {
             const archiveKey = `database-backups/daily/${filename}`;
             const checksumKey = `database-backups/daily/${filename}.sha256`;
+            const manifestKey = `database-backups/daily/${filename}.manifest.json`;
             const localChecksumPath = `${dailyPath}.sha256`;
+            const localManifestPath = `${dailyPath}.manifest.json`;
 
             try {
                 console.log(`[DATABASE BACKUP] Step 6a: Uploading archive to s3://${S3_BUCKET}/${archiveKey}...`);
@@ -617,6 +667,17 @@ async function runBackup(options = {}) {
 
                 if (remoteChecksumHead.contentLength <= 0) {
                     throw new Error(`Remote checksum ContentLength is invalid (${remoteChecksumHead.contentLength})`);
+                }
+
+                if (fs.existsSync(localManifestPath)) {
+                    console.log(`[DATABASE BACKUP] Step 6e: Uploading manifest to s3://${S3_BUCKET}/${manifestKey}...`);
+                    uploadFileToS3(localManifestPath, S3_BUCKET, manifestKey, S3_REGION);
+
+                    console.log(`[DATABASE BACKUP] Step 6f: Verifying remote manifest via HeadObject...`);
+                    const remoteManifestHead = verifyS3ObjectHead(S3_BUCKET, manifestKey, S3_REGION);
+                    if (remoteManifestHead.contentLength <= 0) {
+                        throw new Error(`Remote manifest ContentLength is invalid (${remoteManifestHead.contentLength})`);
+                    }
                 }
 
                 // ONLY MARK SUCCESS ON COMPLETE VERIFICATION

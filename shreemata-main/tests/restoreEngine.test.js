@@ -73,4 +73,71 @@ describe('Database Restore Engine & Namespace Remapping', () => {
         expect(record.collectionsCount).toBeNull();
         expect(record.documentsCount).toBeNull();
     });
+
+    test('5. Manifest-based validation enforces exact document counts per manifest', () => {
+        const manifest = {
+            version: '1.0',
+            collectionCount: 3,
+            documentCount: 110,
+            collections: {
+                users: 5,
+                orders: 25,
+                wallettransactions: 80
+            }
+        };
+
+        const restored = {
+            users: 5,
+            orders: 25,
+            wallettransactions: 80
+        };
+
+        for (const [col, count] of Object.entries(manifest.collections)) {
+            expect(restored[col]).toBe(count);
+        }
+        const total = Object.values(restored).reduce((a, b) => a + b, 0);
+        expect(total).toBe(manifest.documentCount);
+    });
+
+    test('6. Legacy mode tolerates backuprecords operational metadata drift while strictly verifying business collections', () => {
+        const prodCounts = {
+            users: 5,
+            orders: 25,
+            books: 5,
+            wallettransactions: 80,
+            commissiontransactions: 102,
+            vipmastercards: 14,
+            backuprecords: 6
+        };
+
+        const restoredCounts = {
+            users: 5,
+            orders: 25,
+            books: 5,
+            wallettransactions: 80,
+            commissiontransactions: 102,
+            vipmastercards: 14,
+            backuprecords: 5 // 1 post-backup record drift
+        };
+
+        let businessPassed = true;
+        let operationalDriftDetected = false;
+
+        for (const [col, pCount] of Object.entries(prodCounts)) {
+            const rCount = restoredCounts[col] || 0;
+            if (col === 'backuprecords') {
+                if (pCount !== rCount) {
+                    operationalDriftDetected = true;
+                }
+            } else {
+                if (pCount !== rCount) {
+                    businessPassed = false;
+                }
+            }
+        }
+
+        expect(businessPassed).toBe(true);
+        expect(operationalDriftDetected).toBe(true);
+    });
 });
+

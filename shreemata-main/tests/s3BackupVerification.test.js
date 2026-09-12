@@ -244,4 +244,35 @@ describe('S3 Database Backup & Remote Verification Engine', () => {
         expect(fs.existsSync(archiveFile)).toBe(true);
         expect(fs.existsSync(checksumFile)).toBe(true);
     });
+
+    test('11. Manifest JSON upload and verification executes correctly with S3 HeadObject', () => {
+        const manifestFile = path.join(testBackupDir, 'shreemata-test.archive.gz.manifest.json');
+        const manifestContent = JSON.stringify({ version: '1.0', documentCount: 268, collections: { users: 5 } });
+        fs.writeFileSync(manifestFile, manifestContent);
+        const manifestSize = Buffer.byteLength(manifestContent);
+
+        childProcess.spawnSync = jest.fn((cmd, args) => {
+            const subCmd = args[0];
+            if (subCmd === 's3' && args[1] === 'cp') {
+                return { status: 0, stdout: 'upload successful', stderr: '', error: null };
+            }
+            if (subCmd === 's3api' && args[1] === 'head-object') {
+                return {
+                    status: 0,
+                    stdout: JSON.stringify({ ContentLength: manifestSize, ETag: '"manifest-etag"' }),
+                    stderr: '',
+                    error: null
+                };
+            }
+            return { status: 0, stdout: '', stderr: '', error: null };
+        });
+
+        const manifestKey = 'database-backups/daily/shreemata-test.archive.gz.manifest.json';
+        const uploadRes = backupEngine.uploadFileToS3(manifestFile, 'shreemata-production-backups-2026', manifestKey, 'ap-south-1');
+        expect(uploadRes).toBe(true);
+
+        const headRes = backupEngine.verifyS3ObjectHead('shreemata-production-backups-2026', manifestKey, 'ap-south-1');
+        expect(headRes.contentLength).toBe(manifestSize);
+    });
 });
+
