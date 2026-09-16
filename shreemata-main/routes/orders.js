@@ -381,6 +381,12 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
 
         // If status changed to "completed"
         if (status === "completed" && previousStatus !== "completed") {
+            try {
+                const { processAutomaticCommissionForOrder } = require("../services/commissionDistribution");
+                await processAutomaticCommissionForOrder(order);
+            } catch (commErr) {
+                console.error("⚠️ Automatic commission distribution error in update-status:", commErr.message);
+            }
 
             // Check and activate membership if product subtotal >= ₹100
             try {

@@ -81,6 +81,7 @@ router.put("/commission-settings", authenticateToken, isAdmin, async (req, res) 
     const {
       directCommissionPercent,
       referralCommissionPercent,
+      referralRegistrationReward,
       adminCommissionPercent,
       adminCommissionPercentage,
       treeCommissionPoolPercent,

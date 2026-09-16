@@ -243,8 +243,17 @@ const userSchema = new mongoose.Schema({
   adminDeletedTransactions: [{ type: String }]
 }, { timestamps: true });
 
-// Compound index for efficient tree traversal and position queries
-userSchema.index({ treeParent: 1, treePosition: 1 });
+// Partial unique index for tree placement uniqueness (only applies to users actually placed in the tree)
+userSchema.index(
+  { treeParent: 1, treePosition: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      treeParent: { $type: "objectId" },
+      treePosition: { $type: "number" }
+    }
+  }
+);
 
 // Method to setup or update bank details
 userSchema.methods.setupBankDetails = function(bankData) {

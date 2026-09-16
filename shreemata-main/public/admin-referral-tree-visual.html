@@ -1425,13 +1425,15 @@ function createOptimizedUserNode(user) {
     const nameDisplay = isVirtual ? `${name} (Virtual)` : name;
     const virtualBadge = isVirtual ? '<span class="virtual-badge">🤖 Virtual</span>' : '';
     const wallet = Number(user.wallet || (user.account?.wallet) || 0).toFixed(2);
-    const referrals = (user.referrals !== undefined) ? user.referrals : (user.childrenCount || (user.relationships && user.relationships.treeChildrenCount) || 0);
+    const directRefsCount = user.directReferralsCount !== undefined ? user.directReferralsCount : (user.referrals || 0);
+    const treeChildrenCount = user.treeChildrenCount !== undefined ? user.treeChildrenCount : (user.childrenCount || 0);
     
     // Use innerHTML once instead of multiple DOM operations
     node.innerHTML = `
         <div class="tree-name">${nameDisplay} ${virtualBadge}</div>
         <div class="tree-meta">₹${wallet}</div>
-        <div class="tree-meta">${referrals} refs</div>
+        <div class="tree-meta">Direct Referrals: ${directRefsCount}</div>
+        <div class="tree-meta">Tree Children: ${treeChildrenCount} / 5</div>
     `;
     
     // Add hover event listeners to show connections

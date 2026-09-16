@@ -430,7 +430,8 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
           totalBuyerCashback += lineProfit * (settings.directCommissionPercent / 100);
         }
       }
-    } else {
+    }
+    if (totalBuyerCashback === 0 && numericProfit > 0) {
       totalBuyerCashback = numericProfit * (settings.directCommissionPercent / 100);
     }
 
@@ -777,9 +778,109 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
   }
 }
 
+
+/**
+ * Check whether an order is eligible for commission distribution.
+ * 
+ * @param {Object} order - Order document
+ * @returns {Promise<Object>} { eligible: boolean, reason?: string, profit?: number }
+ */
+async function isOrderEligibleForCommission(order) {
+  if (!order) {
+    return { eligible: false, reason: "Order object is missing" };
+  }
+
+  // 1. Valid completed order
+  if (order.status !== 'completed') {
+    return { eligible: false, reason: `Order status is '${order.status}', expected 'completed'` };
+  }
+
+  // 1b. Check payment verification based on paymentType
+  const pType = (order.paymentType || 'online').toLowerCase();
+  if (['check', 'cheque', 'transfer'].includes(pType)) {
+    if (order.paymentDetails?.status !== 'verified') {
+      return { eligible: false, reason: `Offline ${pType} payment status is '${order.paymentDetails?.status || 'unverified'}', expected 'verified'` };
+    }
+  } else if (pType === 'online') {
+    // For online Razorpay orders, status='completed' set via HMAC verification or admin confirmation
+    if (!order.razorpay_payment_id && !order.rewardApplied && order.status !== 'completed') {
+      return { eligible: false, reason: "Online payment missing verification proof" };
+    }
+  }
+
+  // 2. Commission status must not already be 'distributed'
+  if (order.commissionStatus === 'distributed') {
+    return { eligible: false, reason: "Commission status is already 'distributed'" };
+  }
+
+  // 3. No existing completed CommissionTransaction for this order
+  const existingTx = await CommissionTransaction.findOne({ orderId: order._id, status: 'completed' });
+  if (existingTx) {
+    return { eligible: false, reason: "CommissionTransaction already exists and is completed for this order" };
+  }
+
+  // 4. Calculate authoritative profit base
+  let numericProfit = 0;
+  if (typeof order.orderProfitTotal === 'number' && order.orderProfitTotal >= 0) {
+    numericProfit = order.orderProfitTotal;
+  } else if (typeof order.profitAmount === 'number' && order.profitAmount >= 0) {
+    numericProfit = order.profitAmount;
+  }
+
+  if (numericProfit <= 0) {
+    return { eligible: false, reason: `Order profit is ₹${numericProfit} (must be > 0)` };
+  }
+
+  return { eligible: true, profit: numericProfit };
+}
+
+/**
+ * Process automatic commission distribution for an order if eligible.
+ * 
+ * @param {Object} order - Order document
+ * @returns {Promise<Object|null>} CommissionTransaction or null if not processed/ineligible
+ */
+async function processAutomaticCommissionForOrder(order) {
+  try {
+    const eligibility = await isOrderEligibleForCommission(order);
+    if (!eligibility.eligible) {
+      console.log(`ℹ️ Order ${order._id} ineligible for automatic commission: ${eligibility.reason}`);
+      return null;
+    }
+
+    console.log(`🚀 Triggering automatic commission distribution for order ${order._id} (Profit: ₹${eligibility.profit})`);
+    const transaction = await distributeCommissions(
+      order._id,
+      order.user_id,
+      order.totalAmount || 0,
+      eligibility.profit
+    );
+
+    if (transaction && transaction.status === 'completed') {
+      order.profitAmount = eligibility.profit;
+      order.commissionStatus = 'distributed';
+      order.rewardApplied = true;
+      await order.save();
+      console.log(`✅ Automatic commission distribution SUCCESS for order ${order._id}`);
+      return transaction;
+    }
+    return null;
+  } catch (err) {
+    console.error(`❌ Automatic commission distribution FAILED for order ${order._id}:`, err);
+    try {
+      order.commissionStatus = order.commissionStatus || 'pending';
+      await order.save();
+    } catch (saveErr) {}
+    return null;
+  }
+}
+
 module.exports = {
   distributeCommissions,
   previewCommissions,
   addToTrustFund,
-  creditWallet
+  creditWallet,
+  isOrderEligibleForCommission,
+  processAutomaticCommissionForOrder
 };
+

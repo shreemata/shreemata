@@ -37,75 +37,61 @@ async function findTreePlacement(referenceUserId) {
 }
 
 /**
- * Find available spot in tree using breadth-first, left-to-right filling
- * Each node can have maximum 5 children
+ * Find available spot in tree using strict queue-based serial breadth-first search (BFS).
+ * Maximum 5 children per parent (positions 0 to 4).
+ * 
+ * Traversal Guarantee:
+ * 1. Root fills positions 0..4 first.
+ * 2. Position 0 under Root fills 1A..1E (positions 0..4) before Position 1 under Root is checked.
+ * 3. Position 1 fills 2A..2E, Position 2 fills 3A..3E, Position 3 fills 4A..4E, Position 4 fills 5A..5E.
+ * 4. Only after all 25 positions at Level 2 are full does Level 3 begin (under 1A).
  */
 async function findAvailableSpotInTree(root) {
-  // Check if root has space (< 5 children)
-  if (root.treeChildren.length < 5) {
-    console.log(`🎯 Found space under root ${root.name || root.email}: position ${root.treeChildren.length}`);
-    return {
-      parentId: root._id,
-      level: root.treeLevel + 1,
-      position: root.treeChildren.length
-    };
-  }
-  
-  console.log(`🔍 Root is full (${root.treeChildren.length}/5), searching levels...`);
-  
-  // Root is full, search level by level
-  let currentLevel = root.treeLevel + 1;
-  
-  while (true) {
-    console.log(`🔍 Searching level ${currentLevel}...`);
-    
-    // Get all users at current level, ordered by first purchase time (left to right)
-    const usersAtLevel = await User.find({ 
-      treeLevel: currentLevel,
-      firstPurchaseDone: true // Only consider users who have made purchases
-    }).sort({ firstPurchaseDate: 1 }); // Sort by purchase time, not registration time
-    
-    if (usersAtLevel.length === 0) {
-      console.log(`❌ No users found at level ${currentLevel}`);
-      break;
-    }
-    
-    console.log(`📊 Found ${usersAtLevel.length} users at level ${currentLevel}`);
-    
-    // Check each user at this level (left to right) for available space
-    for (const user of usersAtLevel) {
-      if (user.treeChildren.length < 5) {
-        console.log(`🎯 Found space under ${user.name || user.email} at level ${currentLevel}: position ${user.treeChildren.length}`);
-        return {
-          parentId: user._id,
-          level: currentLevel + 1,
-          position: user.treeChildren.length
-        };
+  const queue = [root];
+
+  while (queue.length > 0) {
+    const parent = queue.shift();
+
+    // Query real placed User documents under this parent (positions 0..4)
+    const children = await User.find({
+      treeParent: parent._id,
+      treePosition: { $gte: 0, $lte: 4 }
+    }).sort({ treePosition: 1, firstPurchaseDate: 1, createdAt: 1, _id: 1 });
+
+    const occupiedPositions = new Set(children.map(c => c.treePosition));
+
+    if (occupiedPositions.size < 5) {
+      let freeSlot = 0;
+      while (occupiedPositions.has(freeSlot) && freeSlot < 5) {
+        freeSlot++;
       }
+      console.log(`🎯 Found available slot under ${parent.name || parent.email} (ID: ${parent._id}): position ${freeSlot} (occupied: ${occupiedPositions.size}/5)`);
+      return {
+        parentId: parent._id,
+        level: parent.treeLevel + 1,
+        position: freeSlot
+      };
     }
-    
-    console.log(`⏭️ Level ${currentLevel} is full, moving to next level`);
-    currentLevel++;
-    
-    // Safety check to prevent infinite loop
-    if (currentLevel > 20) {
-      throw new Error('Tree depth limit exceeded (20 levels)');
+
+    // Parent is full (5/5). Enqueue children in exact slot order 0, 1, 2, 3, 4
+    for (const child of children) {
+      queue.push(child);
     }
   }
-  
-  // If we reach here, no existing users have space, place under root
-  console.log(`🎯 No available spots found, placing under root as fallback`);
+
+  // Fallback
+  console.log(`🎯 Queue fallback: placing under root`);
   return {
     parentId: root._id,
     level: root.treeLevel + 1,
-    position: root.treeChildren.length
+    position: 0
   };
 }
 
 /**
  * Create tree placement for a user on their first purchase
- * This function handles both referred and non-referred users
- * IMPORTANT: Only creates tree placement for the purchasing user, not their referrers
+ * Handles both referred and non-referred users
+ * Includes E11000 collision retry loop (up to 5 retries) for concurrent placements
  * 
  * @param {String} userId - The ID of the user making their first purchase
  * @param {Object} session - Optional MongoDB session for transactions
@@ -131,60 +117,68 @@ async function createTreePlacementOnFirstPurchase(userId, session = null) {
   
   console.log(`Creating tree placement for user ${user.email} on first purchase`);
   
-  let treePlacementData;
-  
-  if (user.referredBy) {
-    // User was referred - find their direct referrer
-    console.log(`🔗 User has referrer code: ${user.referredBy}`);
-    const referrerQuery = session ? 
-      User.findOne({ referralCode: user.referredBy }).session(session) : 
-      User.findOne({ referralCode: user.referredBy });
-    const directReferrer = await referrerQuery;
-    
-    if (directReferrer) {
-      console.log(`✅ Direct referrer found: ${directReferrer.email}`);
-      
-      // Check if referrer has tree placement (has made a purchase)
-      if (directReferrer.treeLevel > 0 && directReferrer.treeParent !== undefined) {
-        // Referrer has tree placement - use tree algorithm starting from referrer
-        console.log(`🌳 Referrer ${directReferrer.email} has tree placement - using as reference`);
-        const placement = await findTreePlacement(directReferrer._id);
-        treePlacementData = placement;
+  const MAX_RETRIES = 5;
+  let attempt = 0;
+  let treePlacementData = null;
+
+  while (attempt < MAX_RETRIES) {
+    attempt++;
+    try {
+      if (user.referredBy) {
+        const referrerQuery = session ? 
+          User.findOne({ referralCode: user.referredBy }).session(session) : 
+          User.findOne({ referralCode: user.referredBy });
+        const directReferrer = await referrerQuery;
+        
+        if (directReferrer && directReferrer.treeLevel > 0 && directReferrer.treeParent !== undefined) {
+          treePlacementData = await findTreePlacement(directReferrer._id);
+        } else {
+          treePlacementData = await findGlobalTreePlacement(session, user._id);
+        }
       } else {
-        // Referrer hasn't made a purchase yet - use global tree placement
-        console.log(`⚠️ Referrer ${directReferrer.email} hasn't purchased yet - using global tree placement`);
         treePlacementData = await findGlobalTreePlacement(session, user._id);
       }
-    } else {
-      console.log(`❌ Direct referrer not found for code: ${user.referredBy}`);
-      // Invalid referral code - use global tree placement
-      treePlacementData = await findGlobalTreePlacement(session, user._id);
+      
+      // Update user with tree placement
+      user.treeParent = treePlacementData.parentId;
+      user.treeLevel = treePlacementData.level;
+      user.treePosition = treePlacementData.position;
+      
+      const saveOptions = session ? { session } : {};
+      await user.save(saveOptions);
+
+      // Successfully saved! Break retry loop.
+      break;
+    } catch (saveError) {
+      // Check for E11000 duplicate slot collision
+      if (saveError.code === 11000 && saveError.message.includes('treeParent') && attempt < MAX_RETRIES) {
+        console.warn(`⚠️ E11000 slot collision on attempt ${attempt}/${MAX_RETRIES} for user ${user.email}. Retrying placement search...`);
+        // Reset local placement properties before retrying
+        user.treeParent = null;
+        user.treeLevel = 0;
+        user.treePosition = 0;
+        continue;
+      }
+      throw saveError;
     }
-  } else {
-    // User without referrer - use global tree placement
-    console.log("👤 User without referrer, using global tree placement...");
-    treePlacementData = await findGlobalTreePlacement(session, user._id);
   }
   
-  // Update user with tree placement
-  user.treeParent = treePlacementData.parentId;
-  user.treeLevel = treePlacementData.level;
-  user.treePosition = treePlacementData.position;
-  
-  const saveOptions = session ? { session } : {};
-  await user.save(saveOptions);
-  
-  // Add user to tree parent's children array
-  if (treePlacementData.parentId) {
+  // Synchronize tree parent's denormalized treeChildren array
+  if (treePlacementData && treePlacementData.parentId) {
     const treeParentQuery = session ? 
       User.findById(treePlacementData.parentId).session(session) : 
       User.findById(treePlacementData.parentId);
     const treeParent = await treeParentQuery;
     
     if (treeParent) {
-      treeParent.treeChildren.push(user._id);
+      const realChildrenQuery = session ?
+        User.find({ treeParent: treeParent._id }).session(session) :
+        User.find({ treeParent: treeParent._id });
+      const realChildren = await realChildrenQuery;
+      treeParent.treeChildren = realChildren.map(c => c._id);
+      const saveOptions = session ? { session } : {};
       await treeParent.save(saveOptions);
-      console.log(`Added ${user.email} to tree parent ${treeParent.email}'s children`);
+      console.log(`Synced ${user.email} into tree parent ${treeParent.email}'s children list (${treeParent.treeChildren.length} children)`);
     }
   }
   

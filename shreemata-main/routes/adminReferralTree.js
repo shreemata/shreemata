@@ -33,6 +33,14 @@ async function buildLevelGroupedTree(rootUsers, currentDepth = 0, maxDepth = 20)
             // Calculate total commission earned
             const totalCommissionEarned = (user.directCommissionEarned || 0) + (user.treeCommissionEarned || 0);
 
+            // Count real tree children (documents in DB with treeParent = user._id)
+            const realTreeChildrenCount = await User.countDocuments({ treeParent: user._id });
+            
+            // Count direct referrals (documents in DB with referredBy = user.referralCode)
+            const directReferralsCount = user.referralCode 
+                ? await User.countDocuments({ referredBy: user.referralCode }) 
+                : 0;
+
             // Determine referral status
             const referralStatus = {
                 hasReferrer: !!user.referredBy,
@@ -57,7 +65,9 @@ async function buildLevelGroupedTree(rootUsers, currentDepth = 0, maxDepth = 20)
                     direct: user.directCommissionEarned || 0,
                     tree: user.treeCommissionEarned || 0
                 },
-                childrenCount: user.treeChildren.length,
+                childrenCount: realTreeChildrenCount,
+                treeChildrenCount: realTreeChildrenCount,
+                directReferralsCount: directReferralsCount,
                 children: [], // No nested children for horizontal layout
                 isVirtual: user.isVirtual || false, // Include virtual status
                 originalUserId: user.originalUserId || null // Include original user reference
@@ -70,9 +80,11 @@ async function buildLevelGroupedTree(rootUsers, currentDepth = 0, maxDepth = 20)
             levels[user.treeLevel].push(userData);
             allUsers.push(userData);
 
-            // Process children at next level
-            if (user.treeChildren.length > 0) {
-                await processUsersAtLevel(user.treeChildren, user.treeLevel + 1);
+            // Fetch actual children IDs from DB to process next level (ignoring dangling IDs)
+            const realChildDocs = await User.find({ treeParent: user._id, firstPurchaseDone: true }).select('_id');
+            const realChildIds = realChildDocs.map(c => c._id);
+            if (realChildIds.length > 0) {
+                await processUsersAtLevel(realChildIds, user.treeLevel + 1);
             }
         }
     }

@@ -6,7 +6,7 @@ const User = require("../models/User");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { sendOrderConfirmationEmail, sendAdminNotification } = require("../utils/emailService");
 const { buildOrderProfitSnapshot, calculateOrderProfitTotal } = require("../services/orderProfit");
-const { distributeCommissions } = require("../services/commissionDistribution");
+const { distributeCommissions, processAutomaticCommissionForOrder } = require("../services/commissionDistribution");
 const { createTreePlacementOnFirstPurchase } = require("../services/treePlacement");
 const { awardPoints } = require("../services/pointsService");
 const { checkAndActivateMembership } = require("../services/membershipService");
@@ -624,9 +624,12 @@ router.post("/verify", authenticateToken, async (req, res) => {
       console.error("⚠️ Invoice auto-generation error in /verify:", invErr.message);
     }
 
-    // Commission distribution is now manual and admin-approved based on profit
-    order.commissionStatus = order.commissionStatus || 'pending';
-    await order.save();
+    // Automatic commission distribution for completed online orders
+    try {
+      await processAutomaticCommissionForOrder(order);
+    } catch (commErr) {
+      console.error("⚠️ Automatic commission distribution error in /verify:", commErr.message);
+    }
 
     // Check and activate membership if product subtotal >= ₹100
     try {
@@ -904,9 +907,12 @@ router.post("/webhook", async (req, res) => {
           console.error("⚠️ Invoice auto-generation error in webhook:", invErr.message);
         }
 
-        // Commission distribution is now manual and admin-approved based on profit
-        order.commissionStatus = order.commissionStatus || 'pending';
-        await order.save();
+        // Automatic commission distribution for completed online orders
+        try {
+          await processAutomaticCommissionForOrder(order);
+        } catch (commErr) {
+          console.error("⚠️ Automatic commission distribution error in webhook:", commErr.message);
+        }
         
         // Check and activate membership if product subtotal >= ₹100
         try {
@@ -1774,9 +1780,12 @@ async function processApprovedChequeOrder(order, adminUser) {
   try {
     console.log(`🔄 Processing approved check order: ${order._id}`);
 
-    // 1. COMMISSION STATUS (Manual admin distribution based on profit)
-    order.commissionStatus = order.commissionStatus || 'pending';
-    await order.save();
+    // Automatic commission distribution for approved cheque/transfer orders
+    try {
+      await processAutomaticCommissionForOrder(order);
+    } catch (commErr) {
+      console.error("⚠️ Automatic commission distribution error in processApprovedChequeOrder:", commErr.message);
+    }
     
     // Check and activate membership if product subtotal >= ₹100
     try {
