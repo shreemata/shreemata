@@ -30,6 +30,7 @@ const adminNavConfig = {
         { href: "/admin-salary-dashboard.html", icon: "💼", text: "Salary Dashboard", id: "salary-dashboard", title: "Employee Salary Management" },
         { href: "#", icon: "📄", text: "Daily Report", id: "daily-report", title: "Download Daily Report", onclick: "downloadDailyReport(event)" },
         { href: "/admin-commission-settings.html", icon: "⚙️", text: "Commission", id: "commission-settings", title: "Commission Settings" },
+        { href: "/admin-trust-fund.html", icon: "🏛️", text: "Trust Fund", id: "trust-fund", title: "Trust Fund Dashboard" },
         { href: "/admin-settings.html", icon: "🎛️", text: "Points System", id: "admin-settings", title: "Points & Virtual Tree Settings" },
         { href: "/admin-receipt-settings.html", icon: "🧾", text: "Receipt Settings", id: "receipt-settings", title: "Receipt Settings" },
         { href: "/", icon: "🚪", text: "Logout", id: "logout" }
@@ -207,9 +208,10 @@ function createAdminNavHTML(currentPageId) {
                         </div>
                         
                         <div class="popup-menu-group">
-                            <div class="popup-group-title">Settings</div>
+                            <div class="popup-group-title">Settings & Finance</div>
                             <a href="/admin-home-settings.html" class="${currentPageId === 'home-settings' ? 'active' : ''}"><span class="icon">🏡</span> Home Page Settings</a>
                             <a href="/admin-commission-settings.html" class="${currentPageId === 'commission-settings' ? 'active' : ''}"><span class="icon">⚙️</span> Commission Settings</a>
+                            <a href="/admin-trust-fund.html" class="${currentPageId === 'trust-fund' ? 'active' : ''}"><span class="icon">🏛️</span> Trust Fund</a>
                             <a href="/admin-settings.html" class="${currentPageId === 'admin-settings' ? 'active' : ''}"><span class="icon">🎛️</span> Points System</a>
                             <a href="/admin-receipt-settings.html" class="${currentPageId === 'receipt-settings' ? 'active' : ''}"><span class="icon">🧾</span> Receipt Settings</a>
                         </div>

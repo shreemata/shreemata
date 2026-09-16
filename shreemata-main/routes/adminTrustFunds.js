@@ -483,4 +483,419 @@ router.get("/trust-funds/statistics", authenticateToken, isAdmin, async (req, re
     }
 });
 
+/* -------------------------------------------
+   GET /api/admin/trust-fund/summary
+   Get Trust Fund summary KPIs and Sources breakdown (IST date based)
+--------------------------------------------*/
+router.get(["/trust-fund/summary", "/trust-funds/summary"], authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const trustFund = await TrustFund.findOne({ fundType: 'trust' });
+        if (!trustFund) {
+            return res.json({
+                success: true,
+                summary: {
+                    currentBalance: 0,
+                    today: 0,
+                    thisMonth: 0,
+                    transactionCount: 0,
+                    sources: {
+                        baseTrust: 0,
+                        unusedTreePool: 0,
+                        missingDirectReferral: 0,
+                        other: 0
+                    }
+                }
+            });
+        }
+
+        const now = new Date();
+        const istOffsetMs = 5.5 * 60 * 60 * 1000;
+        const istNow = new Date(now.getTime() + istOffsetMs);
+        const year = istNow.getUTCFullYear();
+        const month = istNow.getUTCMonth();
+        const date = istNow.getUTCDate();
+
+        const startOfTodayIST = new Date(Date.UTC(year, month, date) - istOffsetMs);
+        const startOfMonthIST = new Date(Date.UTC(year, month, 1) - istOffsetMs);
+
+        let todayCredits = 0;
+        let thisMonthCredits = 0;
+
+        let baseTrust = 0;
+        let unusedTreePool = 0;
+        let missingDirectReferral = 0;
+        let other = 0;
+
+        const transactions = trustFund.transactions || [];
+
+        transactions.forEach(t => {
+            const amt = Number(t.amount) || 0;
+            if (amt > 0) {
+                const ts = new Date(t.timestamp);
+                if (ts >= startOfTodayIST) todayCredits += amt;
+                if (ts >= startOfMonthIST) thisMonthCredits += amt;
+
+                const desc = t.description || '';
+                if (desc.includes('Order commission allocation') || desc.includes('Development fund allocation')) {
+                    baseTrust += amt;
+                } else if (desc.includes('Tree remainder')) {
+                    unusedTreePool += amt;
+                } else if (desc.includes('Referral commission') || desc.includes('Direct commission')) {
+                    missingDirectReferral += amt;
+                } else {
+                    other += amt;
+                }
+            }
+        });
+
+        const round2 = (val) => Math.round((val + Number.EPSILON) * 100) / 100;
+
+        res.json({
+            success: true,
+            summary: {
+                currentBalance: trustFund.balance || 0,
+                today: round2(todayCredits),
+                thisMonth: round2(thisMonthCredits),
+                transactionCount: transactions.length,
+                sources: {
+                    baseTrust: round2(baseTrust),
+                    unusedTreePool: round2(unusedTreePool),
+                    missingDirectReferral: round2(missingDirectReferral),
+                    other: round2(other)
+                }
+            }
+        });
+    } catch (err) {
+        console.error("Trust fund summary error:", err);
+        res.status(500).json({ error: "Server error fetching Trust Fund summary" });
+    }
+});
+
+/* -------------------------------------------
+   GET /api/admin/trust-fund/transactions
+   Get Trust Fund paginated & filtered transactions history
+--------------------------------------------*/
+router.get(["/trust-fund/transactions", "/trust-funds/transactions"], authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 15,
+            dateRange = 'all',
+            startDate,
+            endDate,
+            type = 'all',
+            search = ''
+        } = req.query;
+
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.max(1, parseInt(limit, 10) || 15);
+
+        const trustFund = await TrustFund.findOne({ fundType: 'trust' })
+            .populate('transactions.orderId', 'orderNumber totalAmount orderProfitTotal commissionStatus createdAt');
+
+        if (!trustFund || !Array.isArray(trustFund.transactions)) {
+            return res.json({
+                success: true,
+                transactions: [],
+                pagination: { page: pageNum, limit: limitNum, totalCount: 0, totalPages: 0 }
+            });
+        }
+
+        // Group transactions by orderId where available
+        const groupedByOrder = new Map();
+        const standaloneList = [];
+
+        trustFund.transactions.forEach(t => {
+            const amt = Number(t.amount) || 0;
+            const desc = t.description || '';
+            const orderDoc = t.orderId && typeof t.orderId === 'object' && t.orderId._id ? t.orderId : null;
+            const orderIdStr = orderDoc ? orderDoc._id.toString() : (t.orderId ? t.orderId.toString() : null);
+
+            if (!orderIdStr) {
+                standaloneList.push({
+                    _id: t._id,
+                    orderId: null,
+                    orderNumber: 'N/A',
+                    timestamp: t.timestamp,
+                    type: desc.includes('withdrawal') ? 'Withdrawal' : 'Other',
+                    typeCategories: desc.includes('withdrawal') ? ['withdrawal'] : ['other'],
+                    description: desc || 'Trust Fund Entry',
+                    baseTrust: 0,
+                    treeRemainder: 0,
+                    otherAmount: amt,
+                    totalCredit: amt,
+                    status: amt >= 0 ? 'Credited' : 'Withdrawn'
+                });
+                return;
+            }
+
+            if (!groupedByOrder.has(orderIdStr)) {
+                const orderNum = orderDoc && orderDoc.orderNumber 
+                    ? orderDoc.orderNumber 
+                    : `#SM${orderIdStr.slice(-6).toUpperCase()}`;
+
+                groupedByOrder.set(orderIdStr, {
+                    _id: t._id,
+                    orderId: orderIdStr,
+                    orderNumber: orderNum,
+                    timestamp: t.timestamp,
+                    baseTrust: 0,
+                    treeRemainder: 0,
+                    missingDirectReferral: 0,
+                    other: 0,
+                    totalCredit: 0,
+                    descriptions: [],
+                    orderProfit: orderDoc ? orderDoc.orderProfitTotal : 0
+                });
+            }
+
+            const group = groupedByOrder.get(orderIdStr);
+            if (new Date(t.timestamp) > new Date(group.timestamp)) {
+                group.timestamp = t.timestamp;
+            }
+            group.totalCredit += amt;
+
+            if (desc.includes('Order commission allocation') || desc.includes('Development fund allocation')) {
+                group.baseTrust += amt;
+            } else if (desc.includes('Tree remainder')) {
+                group.treeRemainder += amt;
+            } else if (desc.includes('Referral commission') || desc.includes('Direct commission')) {
+                group.missingDirectReferral += amt;
+            } else {
+                group.other += amt;
+            }
+            group.descriptions.push(desc);
+        });
+
+        // Convert grouped orders to display rows
+        const groupedRows = Array.from(groupedByOrder.values()).map(grp => {
+            const types = [];
+            const categories = [];
+
+            if (grp.baseTrust > 0) {
+                types.push('Base Trust');
+                categories.push('base_trust');
+            }
+            if (grp.treeRemainder > 0) {
+                types.push('Tree Remainder');
+                categories.push('tree_remainder');
+            }
+            if (grp.missingDirectReferral > 0) {
+                types.push('Missing Direct Referrer');
+                categories.push('missing_direct_referral');
+            }
+            if (grp.other > 0) {
+                types.push('Other');
+                categories.push('other');
+            }
+
+            const displayType = types.length > 0 ? types.join(' + ') : 'Trust Credit';
+            const primaryDesc = grp.descriptions.find(d => d.includes('Order commission allocation')) 
+                || grp.descriptions[0] 
+                || 'Order commission allocation';
+
+            const round2 = (val) => Math.round((val + Number.EPSILON) * 100) / 100;
+
+            return {
+                _id: grp._id,
+                orderId: grp.orderId,
+                orderNumber: grp.orderNumber,
+                timestamp: grp.timestamp,
+                type: displayType,
+                typeCategories: categories,
+                description: primaryDesc,
+                baseTrust: round2(grp.baseTrust),
+                treeRemainder: round2(grp.treeRemainder),
+                otherAmount: round2(grp.missingDirectReferral + grp.other),
+                totalCredit: round2(grp.totalCredit),
+                status: 'Credited'
+            };
+        });
+
+        let allRows = [...groupedRows, ...standaloneList];
+
+        // 1. Date Range Filtering (IST)
+        const istOffsetMs = 5.5 * 60 * 60 * 1000;
+        const now = new Date();
+        const istNow = new Date(now.getTime() + istOffsetMs);
+        const year = istNow.getUTCFullYear();
+        const month = istNow.getUTCMonth();
+        const date = istNow.getUTCDate();
+
+        let filterStart = null;
+        let filterEnd = null;
+
+        if (dateRange === 'today') {
+            filterStart = new Date(Date.UTC(year, month, date) - istOffsetMs);
+            filterEnd = new Date(Date.UTC(year, month, date + 1) - istOffsetMs - 1);
+        } else if (dateRange === 'week') {
+            const dayOfWeek = istNow.getUTCDay();
+            filterStart = new Date(Date.UTC(year, month, date - dayOfWeek) - istOffsetMs);
+        } else if (dateRange === 'month') {
+            filterStart = new Date(Date.UTC(year, month, 1) - istOffsetMs);
+        } else if (dateRange === 'custom') {
+            if (startDate) filterStart = new Date(startDate);
+            if (endDate) {
+                const e = new Date(endDate);
+                e.setHours(23, 59, 59, 999);
+                filterEnd = e;
+            }
+        }
+
+        if (filterStart) {
+            allRows = allRows.filter(r => new Date(r.timestamp) >= filterStart);
+        }
+        if (filterEnd) {
+            allRows = allRows.filter(r => new Date(r.timestamp) <= filterEnd);
+        }
+
+        // 2. Type Filtering
+        if (type && type !== 'all') {
+            allRows = allRows.filter(r => r.typeCategories && r.typeCategories.includes(type));
+        }
+
+        // 3. Search Filtering (Order ID / Order Number)
+        if (search && search.trim() !== '') {
+            const q = search.trim().toLowerCase();
+            allRows = allRows.filter(r => 
+                (r.orderNumber && r.orderNumber.toLowerCase().includes(q)) ||
+                (r.orderId && r.orderId.toLowerCase().includes(q)) ||
+                (r.description && r.description.toLowerCase().includes(q))
+            );
+        }
+
+        // 4. Sort Newest First
+        allRows.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        // 5. Pagination
+        const totalCount = allRows.length;
+        const totalPages = Math.ceil(totalCount / limitNum) || 1;
+        const startIndex = (pageNum - 1) * limitNum;
+        const paginatedRows = allRows.slice(startIndex, startIndex + limitNum);
+
+        res.json({
+            success: true,
+            transactions: paginatedRows,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                totalCount,
+                totalPages
+            }
+        });
+
+    } catch (err) {
+        console.error("Trust fund transactions list error:", err);
+        res.status(500).json({ error: "Server error fetching Trust Fund transactions" });
+    }
+});
+
+/* -------------------------------------------
+   GET /api/admin/trust-fund/transactions/:id
+   Get single transaction detail for modal breakdown
+--------------------------------------------*/
+router.get(["/trust-fund/transactions/:id", "/trust-funds/transactions/:id"], authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const trustFund = await TrustFund.findOne({ fundType: 'trust' });
+
+        if (!trustFund || !Array.isArray(trustFund.transactions)) {
+            return res.status(404).json({ error: "Trust Fund record not found" });
+        }
+
+        // Check if id is an orderId or a tx _id
+        let targetOrderId = id;
+        const txById = trustFund.transactions.find(t => t._id.toString() === id);
+        if (txById && txById.orderId) {
+            targetOrderId = txById.orderId.toString();
+        }
+
+        const txsForOrder = trustFund.transactions.filter(t => t.orderId && t.orderId.toString() === targetOrderId.toString());
+
+        const orderDoc = await Order.findById(targetOrderId).populate('user_id', 'name email mobile');
+        const commTxDoc = await CommissionTransaction.findOne({ orderId: targetOrderId });
+
+        let baseTrust = 0;
+        let unusedTreePool = 0;
+        let missingDirectReferral = 0;
+        let other = 0;
+
+        if (txsForOrder.length > 0) {
+            txsForOrder.forEach(t => {
+                const amt = Number(t.amount) || 0;
+                const desc = t.description || '';
+                if (desc.includes('Order commission allocation') || desc.includes('Development fund allocation')) {
+                    baseTrust += amt;
+                } else if (desc.includes('Tree remainder')) {
+                    unusedTreePool += amt;
+                } else if (desc.includes('Referral commission') || desc.includes('Direct commission')) {
+                    missingDirectReferral += amt;
+                } else {
+                    other += amt;
+                }
+            });
+        } else if (txById) {
+            const amt = Number(txById.amount) || 0;
+            const desc = txById.description || '';
+            if (desc.includes('Order commission allocation')) baseTrust = amt;
+            else if (desc.includes('Tree remainder')) unusedTreePool = amt;
+            else if (desc.includes('Referral commission') || desc.includes('Direct commission')) missingDirectReferral = amt;
+            else other = amt;
+        }
+
+        const round2 = (val) => Math.round((val + Number.EPSILON) * 100) / 100;
+        const totalTrustCredit = round2(baseTrust + unusedTreePool + missingDirectReferral + other);
+
+        let treeStats = null;
+        if (commTxDoc) {
+            const profit = commTxDoc.profitAmount || (orderDoc ? orderDoc.orderProfitTotal : 0);
+            const treePoolAvailable = round2(profit * 0.4);
+            let treePaid = 0;
+            if (Array.isArray(commTxDoc.treeCommissions)) {
+                treePaid = commTxDoc.treeCommissions.reduce((s, tc) => s + (tc.amount || 0), 0);
+            }
+            const treeRemainder = commTxDoc.remainderToDevFund !== undefined 
+                ? commTxDoc.remainderToDevFund 
+                : round2(treePoolAvailable - treePaid);
+
+            treeStats = {
+                treePoolAvailable,
+                treePaid: round2(treePaid),
+                treeRemainder: round2(treeRemainder)
+            };
+        }
+
+        const detailObj = {
+            orderId: targetOrderId,
+            orderNumber: orderDoc 
+                ? (orderDoc.orderNumber || `#SM${orderDoc._id.toString().slice(-6).toUpperCase()}`) 
+                : `#SM${targetOrderId.slice(-6).toUpperCase()}`,
+            orderDate: orderDoc ? orderDoc.createdAt : (txsForOrder[0] ? txsForOrder[0].timestamp : null),
+            buyer: orderDoc && orderDoc.user_id ? {
+                name: orderDoc.user_id.name || 'N/A',
+                email: orderDoc.user_id.email || 'N/A'
+            } : null,
+            orderProfit: commTxDoc ? commTxDoc.profitAmount : (orderDoc ? (orderDoc.orderProfitTotal || 0) : 0),
+            commissionStatus: commTxDoc ? commTxDoc.status : (orderDoc ? orderDoc.commissionStatus : 'completed'),
+            baseTrust: round2(baseTrust),
+            unusedTreePool: round2(unusedTreePool),
+            missingDirectReferral: round2(missingDirectReferral),
+            other: round2(other),
+            totalTrustCredit,
+            createdAt: txsForOrder[0] ? txsForOrder[0].timestamp : (txById ? txById.timestamp : new Date()),
+            treeStats
+        };
+
+        res.json({
+            success: true,
+            transaction: detailObj
+        });
+
+    } catch (err) {
+        console.error("Trust fund transaction detail error:", err);
+        res.status(500).json({ error: "Server error fetching transaction detail" });
+    }
+});
+
 module.exports = router;
+
