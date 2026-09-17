@@ -11,6 +11,8 @@ jest.mock('../models/User');
 jest.mock('../models/CommissionTransaction');
 jest.mock('../models/TrustFund');
 jest.mock('../models/CommissionSettings');
+jest.mock('../models/Order');
+jest.mock('../models/WalletTransaction');
 
 // Mock mongoose session for transaction support
 const mockSession = {
@@ -30,6 +32,9 @@ describe('Commission Distribution Service', () => {
     mockSession.abortTransaction.mockClear();
     mockSession.endSession.mockClear();
     
+    const WalletTransaction = require('../models/WalletTransaction');
+    WalletTransaction.create = jest.fn().mockResolvedValue({});
+
     // Mock CommissionSettings.getSettings()
     CommissionSettings.getSettings = jest.fn().mockResolvedValue({
       trustFundPercent: 1,
@@ -102,10 +107,38 @@ describe('Commission Distribution Service', () => {
           };
           
           // Setup User.findById mock with session support
-          User.findById.mockReturnValue(mockQueryWithSession(purchaser));
+          User.findById.mockImplementation((id) => {
+            if (id === purchaserId) return mockQueryWithSession(purchaser);
+            return mockQueryWithSession(null);
+          });
           
-          // Setup User.findOne mock for direct referrer with session support
-          User.findOne.mockReturnValue(mockQueryWithSession(directReferrer));
+          const adminUser = {
+            _id: 'admin123',
+            email: 'admin@example.com',
+            role: 'admin',
+            wallet: 0
+          };
+
+          // Setup User.findOne mock for direct referrer & admin with session support
+          User.findOne.mockImplementation((query) => {
+            if (query && query.referralCode === 'REF123') return mockQueryWithSession(directReferrer);
+            if (query && query.role === 'admin') return mockQueryWithSession(adminUser);
+            return mockQueryWithSession(null);
+          });
+
+          const OrderModel = require('../models/Order');
+          OrderModel.findById.mockReturnValue(mockQueryWithSession({ _id: orderId, orderProfitTotal: orderAmount }));
+
+          User.findOneAndUpdate.mockImplementation((query, update) => {
+            const idStr = query._id ? query._id.toString() : null;
+            let u = null;
+            if (idStr === purchaserId) u = purchaser;
+            else if (idStr === 'referrer123') u = directReferrer;
+            if (u && update && update.$inc) {
+              if (typeof update.$inc.wallet === 'number') u.wallet = (u.wallet || 0) + update.$inc.wallet;
+            }
+            return mockQueryWithSession(u);
+          });
           
           // Mock TrustFund with session support
           const mockTrustFund = {
@@ -146,7 +179,7 @@ describe('Commission Distribution Service', () => {
           CommissionTransaction.findOne = jest.fn().mockResolvedValue(null);
           
           // Execute commission distribution
-          await distributeCommissions(orderId, purchaserId, orderAmount);
+          await distributeCommissions(orderId, purchaserId, orderAmount, orderAmount);
           
           const expectedPurchaserCommission = orderAmount * 0.03;
           const expectedReferrerCommission = orderAmount * 0.02;
@@ -230,6 +263,23 @@ describe('Commission Distribution Service', () => {
             }
             return mockQueryWithSession(null);
           });
+
+          const OrderModel = require('../models/Order');
+          OrderModel.findById.mockReturnValue(mockQueryWithSession({ _id: orderId, orderProfitTotal: orderAmount }));
+
+          User.findOneAndUpdate.mockImplementation((query, update) => {
+            const idStr = query._id ? query._id.toString() : null;
+            let u = null;
+            if (idStr === purchaserId) u = purchaser;
+            else if (idStr === 'admin123') u = adminUser;
+            else if (idStr === 'treeParent123') u = treeParent;
+            if (u && update && update.$inc) {
+              if (typeof update.$inc.wallet === 'number') u.wallet = (u.wallet || 0) + update.$inc.wallet;
+              if (typeof update.$inc.referralCommissionEarned === 'number') u.referralCommissionEarned = (u.referralCommissionEarned || 0) + update.$inc.referralCommissionEarned;
+              if (typeof update.$inc.directCommissionEarned === 'number') u.directCommissionEarned = (u.directCommissionEarned || 0) + update.$inc.directCommissionEarned;
+            }
+            return mockQueryWithSession(u);
+          });
           
           // Mock TrustFund with session support
           let trustFundAddedAmount = 0;
@@ -280,14 +330,14 @@ describe('Commission Distribution Service', () => {
           CommissionTransaction.findOne = jest.fn().mockResolvedValue(null);
           
           // Execute commission distribution
-          await distributeCommissions(orderId, purchaserId, orderAmount);
+          await distributeCommissions(orderId, purchaserId, orderAmount, orderAmount);
           
           // The Trust Fund should receive:
           // - Base trust fund (1%)
           // - Half of referral commission (1%)
-          // - Tree commission remainder (2% because treeParent received level 1 = 2% out of 4% tree commission pool)
-          // Total trust = 1% + 1% + 2% = 4% of order amount
-          const expectedTotalTrustFund = orderAmount * 0.04;
+          // - Tree commission remainder (0% - tree pool is 100% normalized across existing uplines)
+          // Total trust = 1% + 1% = 2% of order amount
+          const expectedTotalTrustFund = orderAmount * 0.02;
           const expectedAdminAmount = orderAmount * 0.01;
           const expectedPurchaserAmount = orderAmount * 0.03;
           const tolerance = 0.01; // 1 cent tolerance
@@ -364,6 +414,23 @@ describe('Commission Distribution Service', () => {
       save: jest.fn().mockResolvedValue(true)
     };
 
+    const OrderModel = require('../models/Order');
+    OrderModel.findById.mockReturnValue(mockQueryWithSession({ _id: orderId, orderProfitTotal: orderAmount }));
+
+    User.findOneAndUpdate.mockImplementation((query, update) => {
+      const idStr = query._id ? query._id.toString() : null;
+      let u = null;
+      if (idStr === purchaserId) u = purchaser;
+      else if (idStr === 'admin123') u = adminUser;
+      else if (idStr === 'treeParent123') u = treeParent;
+      if (u && update && update.$inc) {
+        if (typeof update.$inc.wallet === 'number') u.wallet = (u.wallet || 0) + update.$inc.wallet;
+        if (typeof update.$inc.referralCommissionEarned === 'number') u.referralCommissionEarned = (u.referralCommissionEarned || 0) + update.$inc.referralCommissionEarned;
+        if (typeof update.$inc.directCommissionEarned === 'number') u.directCommissionEarned = (u.directCommissionEarned || 0) + update.$inc.directCommissionEarned;
+      }
+      return mockQueryWithSession(u);
+    });
+
     User.findById.mockImplementation((id) => {
       if (id === purchaserId) return mockQueryWithSession(purchaser);
       if (id === 'treeParent123') return mockQueryWithSession(treeParent);
@@ -412,7 +479,7 @@ describe('Commission Distribution Service', () => {
 
     CommissionTransaction.mockImplementation(() => savedTransaction);
 
-    await distributeCommissions(orderId, purchaserId, orderAmount);
+    await distributeCommissions(orderId, purchaserId, orderAmount, orderAmount);
 
     // Verify Purchaser receives Direct Commission (3% = 30)
     expect(purchaser.wallet).toBe(30);
@@ -425,8 +492,8 @@ describe('Commission Distribution Service', () => {
 
     // Verify Trust Fund receives:
     // - Base trust (1% = 10)
-    // - Tree remainder (2% = 20)
-    // Total Trust = 30
-    expect(trustFundAddedAmount).toBe(30);
+    // - Tree remainder (0% = 0, tree pool 100% allocated to existing upline)
+    // Total Trust = 10
+    expect(trustFundAddedAmount).toBe(10);
   });
 });
