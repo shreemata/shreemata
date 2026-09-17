@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const QRCode = require('qrcode');
 const Order = require('../models/Order');
 const User = require('../models/User');
+const { isPaymentVerified } = require('../utils/paymentHelper');
 
 // Document Types Configuration
 const DOCUMENT_CONFIG = {
@@ -277,6 +278,11 @@ async function autoGenerateInvoiceForOrder(orderOrId) {
       return null;
     }
 
+    if (!isPaymentVerified(order)) {
+      console.log(`⚠️ autoGenerateInvoiceForOrder: Payment not verified for Order ${order._id}, skipping invoice generation.`);
+      return null;
+    }
+
     // Check if invoice already exists for this order
     const existing = await Invoice.findOne({ orderId: order._id });
     if (existing) {
@@ -499,6 +505,10 @@ router.get('/by-order/:orderId', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Cannot generate invoice for a cancelled or failed order.' });
     }
 
+    if (!isPaymentVerified(order)) {
+      return res.status(400).json({ message: 'Payment must be verified before generating a final tax invoice.' });
+    }
+
     let invoice = await Invoice.findOne({ orderId: order._id });
 
     if (!invoice) {
@@ -674,6 +684,14 @@ router.get('/:id', authenticateToken, isAdmin, async (req, res) => {
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found' });
     }
+
+    if (invoice.orderId) {
+      const linkedOrder = await Order.findById(invoice.orderId);
+      if (linkedOrder && !isPaymentVerified(linkedOrder)) {
+        return res.status(400).json({ message: 'Payment must be verified before generating a final tax invoice.' });
+      }
+    }
+
     res.json(invoice);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });

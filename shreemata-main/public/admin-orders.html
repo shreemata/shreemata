@@ -2227,9 +2227,26 @@
                     dispatchCellHtml = `<span class="no-invoice-badge">No invoice yet</span>`;
                 }
 
-                // Invoice action button
+                // Payment verification and action buttons
+                const isVerified = isPaymentVerified(order);
+
+                let verifyPaymentBtn = '';
+                if (!isVerified) {
+                    verifyPaymentBtn = `
+                        <button class="btn btn-primary" style="background: #2563eb; color: white;" onclick="openVerifyPaymentModal('${order._id}')" title="Manually Verify Payment">
+                            💳 Verify Payment
+                        </button>
+                    `;
+                }
+
                 let invoiceActionBtn = '';
-                if (linkedInvoice) {
+                if (!isVerified) {
+                    invoiceActionBtn = `
+                        <button class="btn btn-disabled" disabled title="Payment must be verified before viewing or generating tax invoice">
+                            🧾 Invoice locked (Pending Payment)
+                        </button>
+                    `;
+                } else if (linkedInvoice) {
                     invoiceActionBtn = `
                         <a href="/admin-invoice-print.html?id=${encodeURIComponent(linkedInvoice.invoiceNumber)}" target="_blank" class="btn btn-invoice" title="View Invoice ${linkedInvoice.invoiceNumber}">
                             🧾 View Invoice
@@ -2239,6 +2256,36 @@
                     invoiceActionBtn = `
                         <button class="btn btn-disabled" disabled title="No invoice generated yet">
                             🧾 Invoice pending
+                        </button>
+                    `;
+                }
+
+                let commissionBtn = '';
+                if (!isVerified) {
+                    commissionBtn = `
+                        <button class="btn btn-disabled" disabled title="Payment must be verified before previewing/distributing commissions">
+                            💰 Commissions locked
+                        </button>
+                    `;
+                } else {
+                    commissionBtn = `
+                        <button class="btn btn-secondary" style="border-color: #4f46e5; color: #4f46e5; background: #eef2ff;" onclick="openCommissionModal('${order._id}')" title="Commission & Profit Distribution">
+                            💰 ${order.commissionStatus === 'distributed' ? 'Commissions ✅' : 'Commissions ⏳'}
+                        </button>
+                    `;
+                }
+
+                let receiptBtn = '';
+                if (!isVerified) {
+                    receiptBtn = `
+                        <button class="btn btn-disabled" disabled title="Payment must be verified before printing receipt">
+                            📄 Receipt locked
+                        </button>
+                    `;
+                } else {
+                    receiptBtn = `
+                        <button class="btn btn-success" onclick="printReceipt('${order._id}')" title="Print Sales Receipt">
+                            📄 Receipt
                         </button>
                     `;
                 }
@@ -2276,16 +2323,13 @@
                     </td>
                     <td>
                         <div class="table-actions">
+                            ${verifyPaymentBtn}
                             <button class="btn btn-secondary" onclick="updateDelivery('${order._id}')" title="Update Delivery Status">
                                 🚚 Status
                             </button>
-                            <button class="btn btn-secondary" style="border-color: #4f46e5; color: #4f46e5; background: #eef2ff;" onclick="openCommissionModal('${order._id}')" title="Commission & Profit Distribution">
-                                💰 ${order.commissionStatus === 'distributed' ? 'Commissions ✅' : 'Commissions ⏳'}
-                            </button>
+                            ${commissionBtn}
                             ${invoiceActionBtn}
-                            <button class="btn btn-success" onclick="printReceipt('${order._id}')" title="Print Sales Receipt">
-                                📄 Receipt
-                            </button>
+                            ${receiptBtn}
                             <button class="btn btn-danger" onclick="deleteOrder('${order._id}', '${order.user_id?.name || 'Unknown'}')" title="Delete Order">
                                 🗑️
                             </button>
@@ -2356,9 +2400,26 @@
                 `;
             }
 
-            // Invoice action button
+            // Action buttons for mobile card
+            const isVerified = isPaymentVerified(order);
+
+            let verifyMobileBtn = '';
+            if (!isVerified) {
+                verifyMobileBtn = `
+                    <button class="btn btn-primary" style="background: #2563eb; color: white; width: 100%;" onclick="openVerifyPaymentModal('${order._id}')">
+                        💳 Verify Payment
+                    </button>
+                `;
+            }
+
             let invoiceMobileBtn = '';
-            if (linkedInvoice) {
+            if (!isVerified) {
+                invoiceMobileBtn = `
+                    <button class="btn btn-disabled" disabled style="width: 100%;" title="Payment must be verified before viewing or generating tax invoice">
+                        🧾 Invoice locked (Pending Payment)
+                    </button>
+                `;
+            } else if (linkedInvoice) {
                 invoiceMobileBtn = `
                     <a href="/admin-invoice-print.html?id=${encodeURIComponent(linkedInvoice.invoiceNumber)}" target="_blank" class="btn btn-invoice" style="width: 100%;">
                         🧾 View Invoice (${linkedInvoice.invoiceNumber})
@@ -2368,6 +2429,36 @@
                 invoiceMobileBtn = `
                     <button class="btn btn-disabled" disabled style="width: 100%;">
                         🧾 Invoice pending
+                    </button>
+                `;
+            }
+
+            let commissionMobileBtn = '';
+            if (!isVerified) {
+                commissionMobileBtn = `
+                    <button class="btn btn-disabled" disabled style="width: 100%;" title="Payment must be verified before previewing/distributing commissions">
+                        💰 Commissions locked
+                    </button>
+                `;
+            } else {
+                commissionMobileBtn = `
+                    <button class="btn btn-secondary" style="border-color: #4f46e5; color: #4f46e5; background: #eef2ff; width: 100%;" onclick="openCommissionModal('${order._id}')">
+                        💰 ${order.commissionStatus === 'distributed' ? 'Commissions (Distributed ✅)' : 'Commissions (Pending ⏳)'}
+                    </button>
+                `;
+            }
+
+            let receiptMobileBtn = '';
+            if (!isVerified) {
+                receiptMobileBtn = `
+                    <button class="btn btn-disabled" disabled style="width: 100%;" title="Payment must be verified before printing receipt">
+                        📄 Receipt locked
+                    </button>
+                `;
+            } else {
+                receiptMobileBtn = `
+                    <button class="btn btn-success" style="width: 100%;" onclick="printReceipt('${order._id}')">
+                        📄 Print Sales Receipt
                     </button>
                 `;
             }
@@ -2418,17 +2509,14 @@
                 ${dispatchMobileHtml}
 
                 <div class="order-card-actions">
-                    <button class="btn btn-secondary" onclick="updateDelivery('${order._id}')">
+                    ${verifyMobileBtn}
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="updateDelivery('${order._id}')">
                         🚚 Update Delivery Status
                     </button>
-                    <button class="btn btn-secondary" style="border-color: #4f46e5; color: #4f46e5; background: #eef2ff; width: 100%;" onclick="openCommissionModal('${order._id}')">
-                        💰 ${order.commissionStatus === 'distributed' ? 'Commissions (Distributed ✅)' : 'Commissions (Pending ⏳)'}
-                    </button>
+                    ${commissionMobileBtn}
                     ${invoiceMobileBtn}
-                    <button class="btn btn-success" onclick="printReceipt('${order._id}')">
-                        📄 Print Sales Receipt
-                    </button>
-                    <button class="btn btn-danger" onclick="deleteOrder('${order._id}', '${order.user_id?.name || 'Unknown'}')">
+                    ${receiptMobileBtn}
+                    <button class="btn btn-danger" style="width: 100%;" onclick="deleteOrder('${order._id}', '${order.user_id?.name || 'Unknown'}')">
                         🗑️ Delete Order
                     </button>
                 </div>
@@ -2949,6 +3037,149 @@
         }
 
         /* ==========================================================================
+           MANUAL PAYMENT VERIFICATION MODAL & ACTIONS
+           ========================================================================== */
+        function isPaymentVerified(order) {
+            if (!order) return false;
+
+            const paymentStatus = String(order.paymentStatus || '').toLowerCase().trim();
+            const paymentDetailsStatus = String(order.paymentDetails?.status || '').toLowerCase().trim();
+            const legacyStatus = String(order.status || '').toLowerCase().trim();
+
+            if (paymentStatus === 'completed' || paymentStatus === 'verified') return true;
+            if (paymentDetailsStatus === 'verified') return true;
+
+            const hasLegacyPaymentEvidence =
+                Boolean(order.paymentDetails?.razorpayPaymentId) ||
+                Boolean(order.paymentDetails?.paymentId) ||
+                Boolean(order.paymentDetails?.utrNumber);
+
+            if (
+                hasLegacyPaymentEvidence &&
+                (legacyStatus === 'completed' || legacyStatus === 'verified')
+            ) {
+                return true;
+            }
+
+            return false;
+        }
+
+        function openVerifyPaymentModal(orderId) {
+            const order = allOrders.find(o => o._id === orderId);
+            if (!order) {
+                alert('Order not found');
+                return;
+            }
+
+            const existingModal = document.getElementById('verifyPaymentModalContainer');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const modal = document.createElement('div');
+            modal.id = 'verifyPaymentModalContainer';
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(15,23,42,0.65); z-index: 1050; display: flex;
+                align-items: center; justify-content: center; padding: 20px;
+                backdrop-filter: blur(4px); box-sizing: border-box;
+            `;
+
+            const customerName = order.user_id?.name || 'Unknown Customer';
+            const customerEmail = order.user_id?.email || '';
+            const orderTotal = (order.totalAmount || 0).toLocaleString('en-IN');
+            const defaultPaymentType = order.paymentType || 'transfer';
+            const currentUtr = order.paymentDetails?.utrNumber || order.paymentDetails?.razorpay_payment_id || '';
+
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 14px; width: 100%; max-width: 520px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; overflow: hidden; display: flex; flex-direction: column;">
+                    <div style="padding: 20px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+                        <div>
+                            <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: #0f172a;">💳 Verify Order Payment</h3>
+                            <div style="font-size: 12px; color: #64748b; margin-top: 3px;">
+                                Order ID: <span style="font-family: monospace; font-weight: 600;">${order._id}</span>
+                            </div>
+                        </div>
+                        <button onclick="closeVerifyPaymentModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; padding: 0 4px;">✕</button>
+                    </div>
+
+                    <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+                        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #1e40af;">
+                            <div>Customer: <strong>${customerName}</strong> (${customerEmail})</div>
+                            <div style="margin-top: 4px;">Order Total: <strong>₹${orderTotal}</strong></div>
+                            <div style="margin-top: 4px; font-size: 12px; color: #3b82f6;">Verifying this payment will update payment status to <strong>completed</strong> and enable tax invoice, sales receipt, and commission distribution.</div>
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 6px;">Payment Method</label>
+                            <select id="verifyPaymentTypeSelect" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13.5px; color: #0f172a;">
+                                <option value="online" ${defaultPaymentType === 'online' ? 'selected' : ''}>Online (PhonePe / UPI / Razorpay)</option>
+                                <option value="transfer" ${defaultPaymentType === 'transfer' ? 'selected' : ''}>Bank Transfer / NEFT / IMPS</option>
+                                <option value="cheque" ${defaultPaymentType === 'cheque' || defaultPaymentType === 'check' ? 'selected' : ''}>Cheque</option>
+                                <option value="cash" ${defaultPaymentType === 'cash' ? 'selected' : ''}>Cash</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 6px;">UTR / Reference / Transaction Number</label>
+                            <input type="text" id="verifyPaymentUtrInput" value="${currentUtr}" placeholder="e.g. UTR1234567890 or Cheque #000123" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13.5px; box-sizing: border-box;">
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 6px;">Admin Notes (Optional)</label>
+                            <textarea id="verifyPaymentNotesInput" rows="2" placeholder="e.g. Payment verified via HDFC bank statement" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; box-sizing: border-box; resize: vertical;"></textarea>
+                        </div>
+                    </div>
+
+                    <div style="padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: flex-end; gap: 12px;">
+                        <button onclick="closeVerifyPaymentModal()" style="padding: 9px 16px; border: 1px solid #cbd5e1; background: white; border-radius: 8px; font-weight: 600; color: #475569; cursor: pointer;">Cancel</button>
+                        <button onclick="submitPaymentVerification('${order._id}')" style="padding: 9px 18px; border: none; background: #16a34a; color: white; border-radius: 8px; font-weight: 700; cursor: pointer;">✓ Verify Payment Now</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        function closeVerifyPaymentModal() {
+            const modal = document.getElementById('verifyPaymentModalContainer');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        async function submitPaymentVerification(orderId) {
+            const paymentType = document.getElementById('verifyPaymentTypeSelect')?.value || 'transfer';
+            const utrNumber = (document.getElementById('verifyPaymentUtrInput')?.value || '').trim();
+            const adminNotes = (document.getElementById('verifyPaymentNotesInput')?.value || '').trim();
+
+            try {
+                const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+                const res = await fetch(`${API}/orders/admin/verify-payment/${orderId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ paymentType, utrNumber, adminNotes })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    alert('✅ Payment verified successfully!');
+                    closeVerifyPaymentModal();
+                    loadOrders();
+                } else {
+                    alert('❌ ' + (data.error || 'Failed to verify payment'));
+                }
+            } catch (err) {
+                console.error('Error verifying payment:', err);
+                alert('❌ Error verifying payment: ' + err.message);
+            }
+        }
+
+        /* ==========================================================================
            COMMISSION DISTRIBUTION MODAL & ACTIONS
            ========================================================================== */
         let currentCommissionOrder = null;
@@ -2957,6 +3188,10 @@
             const order = allOrders.find(o => o._id === orderId);
             if (!order) {
                 alert('Order not found');
+                return;
+            }
+            if (!isPaymentVerified(order)) {
+                alert('Payment must be verified before previewing or distributing commissions.');
                 return;
             }
             currentCommissionOrder = order;
@@ -3365,6 +3600,10 @@
             const order = allOrders.find(o => o._id === orderId);
             if (!order) {
                 alert('Order not found');
+                return;
+            }
+            if (!isPaymentVerified(order)) {
+                alert('Payment must be verified before printing receipt.');
                 return;
             }
 

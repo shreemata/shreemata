@@ -592,8 +592,12 @@ router.post("/verify", authenticateToken, async (req, res) => {
       return res.json({ success: true, message: "Payment already processed", order });
     }
 
-    // Update order status
+    // Update order status & real payment fields
     order.status = "completed";
+    order.paymentStatus = "completed";
+    order.paymentDetails = order.paymentDetails || {};
+    order.paymentDetails.status = "verified";
+    order.paymentDetails.verifiedAt = new Date();
     order.razorpay_payment_id = razorpay_payment_id;
     if (items && Array.isArray(items) && items.length > 0) {
       order.items = items;
@@ -891,6 +895,9 @@ router.post("/webhook", async (req, res) => {
         },
         {
           status: "completed",
+          paymentStatus: "completed",
+          "paymentDetails.status": "verified",
+          "paymentDetails.verifiedAt": new Date(),
           razorpay_payment_id: payment.id,
           rewardApplied: true  // Mark immediately
         },
