@@ -44,6 +44,144 @@ async function addToTrustFund(fundType, amount, orderId, type = 'order_allocatio
 }
 
 /**
+ * 11-level ordered Tree Pool weight table (sum = 100.000000%)
+ */
+const TREE_WEIGHT_TABLE = [
+  49.024905, // Level 1 (nearest parent = buyer.treeParent)
+  25.512961, // Level 2
+  12.756480, // Level 3
+  6.378240,  // Level 4
+  3.189120,  // Level 5
+  1.594510,  // Level 6
+  0.796405,  // Level 7
+  0.398602,  // Level 8
+  0.199301,  // Level 9
+  0.099651,  // Level 10
+  0.049825   // Level 11
+];
+
+/**
+ * Shared tree upline resolver.
+ * Traverses upward using treeParent starting from purchaser.treeParent.
+ * Preserves nearest-to-farthest order, limits to maxLevels (default 11),
+ * prevents cycles/duplicates, and stops if a referenced parent is missing/invalid.
+ * If zero uplines are found via treeParent, attempts to resolve root/admin tree node.
+ * 
+ * @param {Object} purchaser - Purchaser user document (must have treeParent or _id)
+ * @param {Number} maxLevels - Maximum levels to collect (default 11)
+ * @returns {Promise<Array<Object>>} Ordered list of actual existing upline user documents
+ */
+async function resolveTreeUplines(purchaser, maxLevels = 11) {
+  if (!purchaser) return [];
+
+  const uplines = [];
+  const visited = new Set();
+
+  if (purchaser._id) {
+    visited.add(purchaser._id.toString());
+  }
+
+  let currentTreeParentId = purchaser.treeParent;
+
+  while (currentTreeParentId && uplines.length < maxLevels) {
+    const idStr = currentTreeParentId.toString();
+
+    if (visited.has(idStr)) {
+      console.warn(`⚠️ Cycle or duplicate detected in treeParent chain at user ID: ${idStr}. Traversal stopped.`);
+      break;
+    }
+    visited.add(idStr);
+
+    const parentUser = await User.findById(currentTreeParentId);
+    if (!parentUser) {
+      console.warn(`⚠️ Referenced treeParent ID ${idStr} not found in database. Traversal stopped.`);
+      break;
+    }
+
+    uplines.push(parentUser);
+    currentTreeParentId = parentUser.treeParent;
+  }
+
+  // Zero-upline fallback: If no upline exists in treeParent chain, resolve root/admin account
+  if (uplines.length === 0) {
+    const adminUser = await User.findOne({ role: 'admin' });
+    if (adminUser) {
+      uplines.push(adminUser);
+    }
+  }
+
+  return uplines;
+}
+
+/**
+ * Shared pure Tree Pool calculation function.
+ * Calculates normalized weight allocations across existing uplines and enforces exact paise integer reconciliation.
+ * 
+ * @param {Array<Object>} uplines - Ordered list of upline user objects
+ * @param {Number} treePoolAmount - Total tree pool amount in currency units (Rupees)
+ * @returns {Object} Normalized distribution breakdown and totals
+ */
+function calculateTreePoolDistribution(uplines, treePoolAmount) {
+  const numericPool = Math.max(0, Number(treePoolAmount) || 0);
+  const poolInPaise = Math.round(numericPool * 100);
+
+  if (poolInPaise === 0) {
+    return {
+      distribution: [],
+      totalCredited: 0,
+      totalCreditedPaise: 0,
+      poolAmount: 0,
+      poolInPaise: 0
+    };
+  }
+
+  if (!Array.isArray(uplines) || uplines.length === 0) {
+    throw new Error('Tree Pool calculation failed: No valid tree upline or root recipient exists to receive Tree Pool distribution.');
+  }
+
+  const N = Math.min(uplines.length, TREE_WEIGHT_TABLE.length);
+  const selectedWeights = TREE_WEIGHT_TABLE.slice(0, N);
+  const selectedWeightTotal = selectedWeights.reduce((sum, w) => sum + w, 0);
+
+  const distribution = uplines.slice(0, N).map((upline, idx) => {
+    const weight = selectedWeights[idx];
+    const normalizedPercent = (weight / selectedWeightTotal) * 100;
+    const rawAmount = (poolInPaise / 100) * (weight / selectedWeightTotal);
+    const paiseAmount = Math.round(rawAmount * 100);
+    return {
+      upline,
+      level: idx + 1,
+      weight,
+      normalizedPercent,
+      rawAmount,
+      paiseAmount,
+      amount: paiseAmount / 100
+    };
+  });
+
+  // Paise integer rounding reconciliation
+  const sumPaise = distribution.reduce((sum, d) => sum + d.paiseAmount, 0);
+  const paiseRemainder = poolInPaise - sumPaise;
+  if (paiseRemainder !== 0 && distribution.length > 0) {
+    distribution[0].paiseAmount += paiseRemainder;
+    distribution[0].amount = distribution[0].paiseAmount / 100;
+  }
+
+  const totalCreditedPaise = distribution.reduce((sum, d) => sum + d.paiseAmount, 0);
+  if (totalCreditedPaise !== poolInPaise) {
+    throw new Error(`Tree Pool calculation failed invariant: totalCreditedPaise (${totalCreditedPaise}) !== poolInPaise (${poolInPaise})`);
+  }
+
+  return {
+    distribution,
+    totalCredited: totalCreditedPaise / 100,
+    totalCreditedPaise,
+    poolAmount: poolInPaise / 100,
+    poolInPaise
+  };
+}
+
+/**
  * Preview commission breakdown for an order given a profit amount.
  * Does NOT modify any user wallets or create database transactions.
  * 
@@ -149,74 +287,61 @@ async function previewCommissions(orderId, profitAmount = 0) {
     }
   }
 
-  // 4. Tree Commissions Pool (4%)
+  // 4. Tree Commissions Pool (dynamic %, settings.treeCommissionPoolPercent)
   const treeCommissionPool = numericProfit * (settings.treeCommissionPoolPercent / 100);
-  let remainingPool = treeCommissionPool;
-  let currentTreeParent = purchaser.treeParent;
-  let levelIndex = 0;
-  const maxLevels = (settings.treeCommissionLevels && settings.treeCommissionLevels.length) || 20;
   const treeCommissionsList = [];
 
-  while (currentTreeParent && remainingPool > 0.001 && levelIndex < maxLevels) {
-    const treeParent = await User.findById(currentTreeParent);
-    if (!treeParent) break;
+  const uplines = await resolveTreeUplines(purchaser, 11);
+  const treeCalc = calculateTreePoolDistribution(uplines, treeCommissionPool);
 
-    const levelConfig = settings.treeCommissionLevels[levelIndex];
-    if (!levelConfig) break;
+  for (const dist of treeCalc.distribution) {
+    const treeParent = dist.upline;
+    const levelIndex = dist.level;
+    const percentage = Number(dist.normalizedPercent.toFixed(6));
+    const commissionAmount = dist.amount;
 
-    const percentage = levelConfig.percentage;
-    const commissionAmount = numericProfit * (percentage / 100);
-
-    if (commissionAmount <= remainingPool) {
-      if (treeParent.suspended) {
-        treeCommissionsList.push({
-          level: levelIndex + 1,
-          userId: treeParent._id,
-          name: treeParent.name,
-          email: treeParent.email,
-          percentage,
-          amount: commissionAmount,
-          status: 'suspended',
-          fallbackNote: 'Suspended (Allocated to Trust Fund)',
-          destination: 'Trust Fund'
-        });
-      } else if (treeParent.isVirtual && treeParent.originalUser) {
-        const originalUser = await User.findById(treeParent.originalUser);
-        treeCommissionsList.push({
-          level: levelIndex + 1,
-          userId: treeParent._id,
-          name: `${treeParent.name} (Virtual)`,
-          email: treeParent.email,
-          percentage,
-          amount: commissionAmount,
-          status: 'active',
-          destination: originalUser ? `Original User (${originalUser.name})` : 'Trust Fund'
-        });
-      } else {
-        treeCommissionsList.push({
-          level: levelIndex + 1,
-          userId: treeParent._id,
-          name: treeParent.name,
-          email: treeParent.email,
-          percentage,
-          amount: commissionAmount,
-          status: 'active',
-          destination: `Wallet (${treeParent.name})`
-        });
-      }
-
-      remainingPool -= commissionAmount;
-      currentTreeParent = treeParent.treeParent;
-      levelIndex++;
+    if (treeParent.suspended) {
+      treeCommissionsList.push({
+        level: levelIndex,
+        userId: treeParent._id,
+        name: treeParent.name,
+        email: treeParent.email,
+        percentage,
+        amount: commissionAmount,
+        status: 'suspended',
+        fallbackNote: 'Suspended (Allocated to Trust Fund)',
+        destination: 'Trust Fund'
+      });
+    } else if (treeParent.isVirtual && treeParent.originalUser) {
+      const originalUser = await User.findById(treeParent.originalUser);
+      treeCommissionsList.push({
+        level: levelIndex,
+        userId: treeParent._id,
+        name: `${treeParent.name} (Virtual)`,
+        email: treeParent.email,
+        percentage,
+        amount: commissionAmount,
+        status: 'active',
+        destination: originalUser ? `Original User (${originalUser.name})` : 'Trust Fund'
+      });
     } else {
-      break;
+      treeCommissionsList.push({
+        level: levelIndex,
+        userId: treeParent._id,
+        name: treeParent.name,
+        email: treeParent.email,
+        percentage,
+        amount: commissionAmount,
+        status: 'active',
+        destination: `Wallet (${treeParent.name})`
+      });
     }
   }
 
-  // 5. Trust Fund Breakdown (1% Base + Tree Remainder)
+  // 5. Trust Fund Breakdown (Base Trust Fund only, Remainder = 0)
   const trustFundBase = numericProfit * (settings.trustFundPercent / 100);
-  const trustFundRemainder = Math.max(0, remainingPool);
-  const totalTrustFund = trustFundBase + trustFundRemainder;
+  const trustFundRemainder = 0;
+  const totalTrustFund = trustFundBase;
 
   const trustFundBreakdown = {
     category: 'Trust Fund',
@@ -313,7 +438,10 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
   const validOrderAmount = typeof orderAmount === 'number' && orderAmount >= 0 ? orderAmount : 0;
   
   // Look up order document to get authoritative orderProfitTotal
-  const orderDoc = await Order.findById(orderId);
+  let orderDoc = null;
+  if (orderId && mongoose.Types.ObjectId.isValid(orderId)) {
+    orderDoc = await Order.findById(orderId);
+  }
   let numericProfit = 0;
 
   if (orderDoc && typeof orderDoc.orderProfitTotal === 'number' && orderDoc.orderProfitTotal >= 0) {
@@ -583,102 +711,80 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
     }
     totalAllocated += devTrustBaseAmount;
     
-    // 5. Distribute Tree Commissions — atomic $inc + ledger
+    // 5. Distribute Tree Commissions — atomic $inc + ledger with normalized upline distribution
     const treeCommissionPool = numericProfit * (settings.treeCommissionPoolPercent / 100);
-    let remainingPool = treeCommissionPool;
-    let currentTreeParent = purchaser.treeParent;
-    let levelIndex = 0;
-    const maxLevels = (settings.treeCommissionLevels && settings.treeCommissionLevels.length) || 20;
-    
-    while (currentTreeParent && remainingPool > 0.001 && levelIndex < maxLevels) {
-      const treeParent = await User.findById(currentTreeParent);
-      if (!treeParent) break;
-      
-      const levelConfig = settings.treeCommissionLevels[levelIndex];
-      if (!levelConfig) break;
-      
-      const percentage = levelConfig.percentage;
-      const commissionAmount = numericProfit * (percentage / 100);
-      
-      if (commissionAmount <= remainingPool) {
-        if (treeParent.suspended) {
-          if (commissionAmount > 0) {
-            await addToTrustFund('trust', commissionAmount, orderId, 'order_allocation', `Tree commission - user suspended (${treeParent.email})`, null);
-          }
-          transaction.trustFundAmount += commissionAmount;
-          transaction.treeCommissions.push({
-            recipient: treeParent._id,
-            level: levelIndex + 1,
-            percentage,
-            amount: commissionAmount
-          });
-        } else if (treeParent.isVirtual && treeParent.originalUser) {
-          const originalUser = await User.findById(treeParent.originalUser);
-          if (originalUser) {
-            if (commissionAmount > 0) {
-              await creditWallet(
-                originalUser._id, commissionAmount,
-                'tree_commission',
-                `Tree Commission (L${levelIndex + 1}, via virtual) for Order #${orderShortId}`,
-                orderId, null,
-                { treeCommissionEarned: commissionAmount }
-              );
-            }
-            
-            transaction.treeCommissions.push({
-              recipient: treeParent._id,
-              level: levelIndex + 1,
-              percentage,
-              amount: commissionAmount,
-              redirectedTo: originalUser._id
-            });
-          } else {
-            if (commissionAmount > 0) {
-              await addToTrustFund('trust', commissionAmount, orderId, 'order_allocation', `Tree commission - virtual user original not found (${treeParent.email})`, null);
-            }
-            transaction.trustFundAmount += commissionAmount;
-            transaction.treeCommissions.push({
-              recipient: treeParent._id,
-              level: levelIndex + 1,
-              percentage,
-              amount: commissionAmount
-            });
-          }
-        } else {
-          if (commissionAmount > 0) {
-            await creditWallet(
-              treeParent._id, commissionAmount,
-              'tree_commission',
-              `Tree Commission (Level ${levelIndex + 1}) for Order #${orderShortId}`,
-              orderId, null,
-              { treeCommissionEarned: commissionAmount }
-            );
-          }
+    transaction.treeCommissions = [];
+
+    const uplines = await resolveTreeUplines(purchaser, 11);
+    const treeCalc = calculateTreePoolDistribution(uplines, treeCommissionPool);
+
+    for (const dist of treeCalc.distribution) {
+      const treeParent = dist.upline;
+      const levelIndex = dist.level;
+      const percentage = Number(dist.normalizedPercent.toFixed(6));
+      const commissionAmount = dist.amount;
+
+      if (commissionAmount <= 0) continue;
+
+      if (treeParent.suspended) {
+        await addToTrustFund('trust', commissionAmount, orderId, 'order_allocation', `Tree commission - user suspended (${treeParent.email})`, null);
+        transaction.trustFundAmount += commissionAmount;
+        transaction.treeCommissions.push({
+          recipient: treeParent._id,
+          level: levelIndex,
+          percentage,
+          amount: commissionAmount
+        });
+      } else if (treeParent.isVirtual && treeParent.originalUser) {
+        const originalUser = await User.findById(treeParent.originalUser);
+        if (originalUser) {
+          await creditWallet(
+            originalUser._id, commissionAmount,
+            'tree_commission',
+            `Tree Commission (L${levelIndex}, via virtual) for Order #${orderShortId}`,
+            orderId, null,
+            { treeCommissionEarned: commissionAmount }
+          );
           
           transaction.treeCommissions.push({
             recipient: treeParent._id,
-            level: levelIndex + 1,
+            level: levelIndex,
+            percentage,
+            amount: commissionAmount,
+            redirectedTo: originalUser._id
+          });
+        } else {
+          await addToTrustFund('trust', commissionAmount, orderId, 'order_allocation', `Tree commission - virtual user original not found (${treeParent.email})`, null);
+          transaction.trustFundAmount += commissionAmount;
+          transaction.treeCommissions.push({
+            recipient: treeParent._id,
+            level: levelIndex,
             percentage,
             amount: commissionAmount
           });
         }
-        
-        totalAllocated += commissionAmount;
-        remainingPool -= commissionAmount;
-        currentTreeParent = treeParent.treeParent;
-        levelIndex++;
       } else {
-        break;
+        await creditWallet(
+          treeParent._id, commissionAmount,
+          'tree_commission',
+          `Tree Commission (Level ${levelIndex}) for Order #${orderShortId}`,
+          orderId, null,
+          { treeCommissionEarned: commissionAmount }
+        );
+        
+        transaction.treeCommissions.push({
+          recipient: treeParent._id,
+          level: levelIndex,
+          percentage,
+          amount: commissionAmount
+        });
       }
+      
+      totalAllocated += commissionAmount;
     }
     
-    // 6. Add remainder from tree commission pool to Trust Fund
-    transaction.remainderToDevFund = remainingPool;
-    if (remainingPool > 0) {
-      await addToTrustFund('trust', remainingPool, orderId, 'order_allocation', `Tree remainder (₹${remainingPool.toFixed(2)})`, null);
-      transaction.trustFundAmount += remainingPool;
-      totalAllocated += remainingPool;
-    }
+    // 6. Tree remainder to Trust Fund is 0 (100% Tree Pool distributed across existing uplines)
+    transaction.remainderToDevFund = 0;
     
     // Verify total allocation matches expected % of profit
     // Verify total allocation matches expected total (allow tolerance for floating point rounding and manual cashback overrides)
@@ -699,66 +805,72 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
     await transaction.save();
     
     // Backfill commissionTransactionId into all WalletTransaction entries created for this order
-    await WalletTransaction.updateMany(
-      { orderId, commissionTransactionId: null },
-      { $set: { commissionTransactionId: transaction._id } }
-    );
+    if (orderId && mongoose.Types.ObjectId.isValid(orderId)) {
+      await WalletTransaction.updateMany(
+        { orderId, commissionTransactionId: null },
+        { $set: { commissionTransactionId: transaction._id } }
+      );
+    }
     
     // --- VIP Master Card Milestone System ---
     try {
-      const VipMasterCard = require('../models/VipMasterCard');
-      const VipMasterCardSequence = require('../models/VipMasterCardSequence');
-      
-      // Calculate user's cumulative completed purchases (including the current order)
-      const completedOrders = await Order.find({
-        user_id: purchaserId,
-        $or: [
-          { status: 'completed' },
-          { _id: orderId }
-        ]
-      });
-      
-      const uniqueOrdersMap = new Map();
-      completedOrders.forEach(o => uniqueOrdersMap.set(o._id.toString(), o));
-      const uniqueOrders = Array.from(uniqueOrdersMap.values());
-      const cumulativeTotal = uniqueOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
-      
-      // Get currently issued cards
-      const existingCards = await VipMasterCard.find({ userId: purchaserId }).sort({ tier: 1 });
-      const highestTier = existingCards.length;
-      
-      // Calculate how many milestones should be reached
-      const targetMilestones = Math.floor(cumulativeTotal / 100);
-      
-      if (targetMilestones > highestTier) {
-        console.log(`🏆 User ${purchaserId} cumulative total is ₹${cumulativeTotal.toFixed(2)}. Crossed ${targetMilestones - highestTier} new VIP Master Card milestone(s)!`);
+      if (purchaserId && mongoose.Types.ObjectId.isValid(purchaserId)) {
+        const VipMasterCard = require('../models/VipMasterCard');
+        const VipMasterCardSequence = require('../models/VipMasterCardSequence');
         
-        for (let M = highestTier + 1; M <= targetMilestones; M++) {
-          // Retrieve and increment atomic sequence
-          const counterDoc = await VipMasterCardSequence.findOneAndUpdate(
-            { key: 'vip_master_card_seq' },
-            { $inc: { seq: 1 } },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-          );
+        // Calculate user's cumulative completed purchases (including the current order)
+        const queryObj = { user_id: purchaserId };
+        if (orderId && mongoose.Types.ObjectId.isValid(orderId)) {
+          queryObj.$or = [{ status: 'completed' }, { _id: orderId }];
+        } else {
+          queryObj.status = 'completed';
+        }
+        const completedOrders = await Order.find(queryObj);
+        
+        if (Array.isArray(completedOrders) && completedOrders.length > 0) {
+          const uniqueOrdersMap = new Map();
+          completedOrders.forEach(o => uniqueOrdersMap.set(o._id.toString(), o));
+          const uniqueOrders = Array.from(uniqueOrdersMap.values());
+          const cumulativeTotal = uniqueOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
           
-          const padded = String(counterDoc.seq).padStart(8, '0');
-          const part1 = padded.slice(0, 4);
-          const part2 = padded.slice(4, 8);
-          const cardNumber = `VIP ${part1} ${part2}`;
+          // Get currently issued cards
+          const existingCards = await VipMasterCard.find({ userId: purchaserId }).sort({ tier: 1 });
+          const highestTier = Array.isArray(existingCards) ? existingCards.length : 0;
           
-          const newCard = new VipMasterCard({
-            userId: purchaserId,
-            cardNumber,
-            tier: M,
-            milestoneAmount: M * 100,
-            issuedAt: new Date()
-          });
-          await newCard.save();
-          console.log(`✅ Issued VIP Master Card ${cardNumber} (Tier ${M}) to User ${purchaserId}`);
+          // Calculate how many milestones should be reached
+          const targetMilestones = Math.floor(cumulativeTotal / 100);
+          
+          if (targetMilestones > highestTier) {
+            console.log(`🏆 User ${purchaserId} cumulative total is ₹${cumulativeTotal.toFixed(2)}. Crossed ${targetMilestones - highestTier} new VIP Master Card milestone(s)!`);
+            
+            for (let M = highestTier + 1; M <= targetMilestones; M++) {
+              // Retrieve and increment atomic sequence
+              const counterDoc = await VipMasterCardSequence.findOneAndUpdate(
+                { key: 'vip_master_card_seq' },
+                { $inc: { seq: 1 } },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
+              );
+              
+              const padded = String(counterDoc.seq).padStart(8, '0');
+              const part1 = padded.slice(0, 4);
+              const part2 = padded.slice(4, 8);
+              const cardNumber = `VIP ${part1} ${part2}`;
+              
+              const newCard = new VipMasterCard({
+                userId: purchaserId,
+                cardNumber,
+                tier: M,
+                milestoneAmount: M * 100,
+                issuedAt: new Date()
+              });
+              await newCard.save();
+              console.log(`✅ Issued VIP Master Card ${cardNumber} (Tier ${M}) to User ${purchaserId}`);
+            }
+          }
         }
       }
     } catch (vipError) {
-      console.error('❌ Error processing VIP Master Card milestones:', vipError);
+      console.error('❌ Error processing VIP Master Card milestones:', vipError.message || vipError);
     }
     
     console.log(`✅ Commission distribution completed successfully for order ${orderId}`);
@@ -881,6 +993,9 @@ module.exports = {
   addToTrustFund,
   creditWallet,
   isOrderEligibleForCommission,
-  processAutomaticCommissionForOrder
+  processAutomaticCommissionForOrder,
+  TREE_WEIGHT_TABLE,
+  resolveTreeUplines,
+  calculateTreePoolDistribution
 };
 
