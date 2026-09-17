@@ -1456,6 +1456,37 @@ body.hero-stage-dragging * {
     object-fit: cover;
 }
 
+/* Layer 4: Rear Right Book (Kannada/Supporting Textbook) */
+.book-3d-rear-right {
+    position: absolute;
+    right: 20px;
+    bottom: 85px;
+    width: 195px;
+    height: 270px;
+    transform-style: preserve-3d;
+    transform: translate3d(0, 0, -70px) rotateY(-16deg);
+    filter: drop-shadow(0 16px 24px rgba(16, 24, 32, 0.22));
+    border-radius: 2px 6px 6px 2px;
+    overflow: hidden;
+    background: #FAF7F0;
+    border: 1px solid rgba(0, 0, 0, 0.16);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), filter 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: bookRearRightBreathe 8.8s ease-in-out infinite;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.book-3d-rear-right:hover {
+    transform: translate3d(0, -4px, -55px) rotateY(-16deg);
+    filter: drop-shadow(0 22px 30px rgba(16, 24, 32, 0.30));
+}
+
+.book-3d-rear-right img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 /* Layer 4: Dominating Primary Facing 3D Book (Mathematics Textbook) */
 .book-3d-primary {
     position: absolute;
@@ -1589,6 +1620,15 @@ body.hero-stage-dragging * {
     }
 }
 
+@keyframes bookRearRightBreathe {
+    0%, 100% {
+        transform: translate3d(0, 0, -70px) rotateY(-16deg) rotateX(0deg);
+    }
+    50% {
+        transform: translate3d(0, -2.5px, -68px) rotateY(-17.5deg) rotateX(1deg);
+    }
+}
+
 @keyframes heroBooksFloatMobile {
     0%, 100% {
         transform: translateY(0);
@@ -1603,6 +1643,7 @@ body.hero-stage-dragging * {
     .hero-3d-book-stage,
     .book-3d-primary,
     .book-3d-rear-left,
+    .book-3d-rear-right,
     .book-3d-back-left,
     .book-3d-back-right {
         animation: none !important;
@@ -3089,7 +3130,8 @@ footer {
         height: 320px;
     }
     
-    .book-3d-rear-left {
+    .book-3d-rear-left,
+    .book-3d-rear-right {
         width: 210px;
         height: 290px;
     }
@@ -3116,7 +3158,8 @@ footer {
         height: 260px;
     }
     
-    .book-3d-rear-left {
+    .book-3d-rear-left,
+    .book-3d-rear-right {
         display: none;
     }
 }
@@ -3829,6 +3872,19 @@ footer {
         left: calc(50% - 165px);
         bottom: 55px;
         transform: translate3d(0, 0, -35px) rotateY(10deg);
+        opacity: 0.85;
+        filter: drop-shadow(0 8px 12px rgba(16, 24, 32, 0.16));
+        animation: none;
+    }
+
+    .book-3d-rear-right {
+        display: block;
+        width: 105px;
+        height: 150px;
+        left: auto;
+        right: calc(50% - 165px);
+        bottom: 55px;
+        transform: translate3d(0, 0, -35px) rotateY(-10deg);
         opacity: 0.85;
         filter: drop-shadow(0 8px 12px rgba(16, 24, 32, 0.16));
         animation: none;
