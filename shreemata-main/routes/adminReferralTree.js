@@ -125,6 +125,12 @@ async function buildCompleteTree(rootUsers, currentDepth = 0, maxDepth = 20) {
         // Calculate total commission earned
         const totalCommissionEarned = (user.directCommissionEarned || 0) + (user.treeCommissionEarned || 0);
 
+        // Count real tree children & direct referrals
+        const realTreeChildrenCount = await User.countDocuments({ treeParent: user._id });
+        const directReferralsCount = user.referralCode 
+            ? await User.countDocuments({ referredBy: user.referralCode }) 
+            : 0;
+
         // Determine referral status
         const referralStatus = {
             hasReferrer: !!user.referredBy,
@@ -152,7 +158,9 @@ async function buildCompleteTree(rootUsers, currentDepth = 0, maxDepth = 20) {
                 direct: user.directCommissionEarned || 0,
                 tree: user.treeCommissionEarned || 0
             },
-            childrenCount: user.treeChildren.length,
+            childrenCount: realTreeChildrenCount,
+            treeChildrenCount: realTreeChildrenCount,
+            directReferralsCount: directReferralsCount,
             children: children,
             isVirtual: user.isVirtual || false, // Include virtual status
             originalUserId: user.originalUserId || null // Include original user reference
