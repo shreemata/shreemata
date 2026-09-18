@@ -56,7 +56,15 @@ const commissionTransactionSchema = new mongoose.Schema({
     default: 0
   },
   
-  // Tree Commissions (up to 3% total)
+  // Tree Commissions (Level-Based Tree Pool)
+  buyerTreeLevel: {
+    type: Number,
+    default: 0
+  },
+  treePoolTotal: {
+    type: Number,
+    default: 0
+  },
   treeCommissions: [{
     recipient: { 
       type: mongoose.Schema.Types.ObjectId, 
@@ -80,6 +88,24 @@ const commissionTransactionSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null
+    },
+    recipientLevel: {
+      type: Number
+    },
+    levelBucket: {
+      type: String
+    },
+    originalWeight: {
+      type: Number
+    },
+    normalizedPercent: {
+      type: Number
+    },
+    levelBucketAmount: {
+      type: Number
+    },
+    memberShareAmount: {
+      type: Number
     }
   }],
   

@@ -149,81 +149,89 @@ async function previewCommissions(orderId, profitAmount = 0) {
     }
   }
 
-  // 4. Tree Commissions Pool (4%)
+  // 4. Tree Commissions Pool (Level-Based Tree Pool)
   const treeCommissionPool = numericProfit * (settings.treeCommissionPoolPercent / 100);
-  let remainingPool = treeCommissionPool;
-  let currentTreeParent = purchaser.treeParent;
-  let levelIndex = 0;
-  const maxLevels = (settings.treeCommissionLevels && settings.treeCommissionLevels.length) || 20;
+  const buyerLevel = purchaser.treeLevel || 1;
+  const maxUpperLevel = Math.min(Math.max(buyerLevel - 1, 1), 10);
+  const levelRecipients = await resolveTreeLevelRecipients(maxUpperLevel);
+
+  const { distributions: treeDistributions } = calculateLevelBasedTreePoolDistribution({
+    buyerLevel,
+    treePoolAmount: treeCommissionPool,
+    levelRecipients,
+    orderId: String(order._id)
+  });
+
   const treeCommissionsList = [];
 
-  while (currentTreeParent && remainingPool > 0.001 && levelIndex < maxLevels) {
-    const treeParent = await User.findById(currentTreeParent);
-    if (!treeParent) break;
+  for (const item of treeDistributions) {
+    const treeParent = item.recipientUser || await User.findById(item.recipient);
+    if (!treeParent) continue;
 
-    const levelConfig = settings.treeCommissionLevels[levelIndex];
-    if (!levelConfig) break;
-
-    const percentage = levelConfig.percentage;
-    const commissionAmount = numericProfit * (percentage / 100);
-
-    if (commissionAmount <= remainingPool) {
-      if (treeParent.suspended) {
-        treeCommissionsList.push({
-          level: levelIndex + 1,
-          userId: treeParent._id,
-          name: treeParent.name,
-          email: treeParent.email,
-          percentage,
-          amount: commissionAmount,
-          status: 'suspended',
-          fallbackNote: 'Suspended (Allocated to Trust Fund)',
-          destination: 'Trust Fund'
-        });
-      } else if (treeParent.isVirtual && treeParent.originalUser) {
-        const originalUser = await User.findById(treeParent.originalUser);
-        treeCommissionsList.push({
-          level: levelIndex + 1,
-          userId: treeParent._id,
-          name: `${treeParent.name} (Virtual)`,
-          email: treeParent.email,
-          percentage,
-          amount: commissionAmount,
-          status: 'active',
-          destination: originalUser ? `Original User (${originalUser.name})` : 'Trust Fund'
-        });
-      } else {
-        treeCommissionsList.push({
-          level: levelIndex + 1,
-          userId: treeParent._id,
-          name: treeParent.name,
-          email: treeParent.email,
-          percentage,
-          amount: commissionAmount,
-          status: 'active',
-          destination: `Wallet (${treeParent.name})`
-        });
-      }
-
-      remainingPool -= commissionAmount;
-      currentTreeParent = treeParent.treeParent;
-      levelIndex++;
+    if (treeParent.suspended) {
+      treeCommissionsList.push({
+        level: item.level,
+        recipientLevel: item.level,
+        userId: treeParent._id,
+        name: treeParent.name,
+        email: treeParent.email,
+        percentage: item.percentage,
+        amount: item.amount,
+        levelBucket: item.levelBucket,
+        originalWeight: item.originalWeight,
+        levelBucketAmount: item.levelBucketAmount,
+        memberShareAmount: item.memberShareAmount,
+        status: 'suspended',
+        fallbackNote: 'Suspended (Allocated to Trust Fund)',
+        destination: 'Trust Fund'
+      });
+    } else if (treeParent.isVirtual && treeParent.originalUser) {
+      const originalUser = await User.findById(treeParent.originalUser);
+      treeCommissionsList.push({
+        level: item.level,
+        recipientLevel: item.level,
+        userId: treeParent._id,
+        name: `${treeParent.name} (Virtual)`,
+        email: treeParent.email,
+        percentage: item.percentage,
+        amount: item.amount,
+        levelBucket: item.levelBucket,
+        originalWeight: item.originalWeight,
+        levelBucketAmount: item.levelBucketAmount,
+        memberShareAmount: item.memberShareAmount,
+        status: 'active',
+        destination: originalUser ? `Original User (${originalUser.name})` : 'Trust Fund'
+      });
     } else {
-      break;
+      treeCommissionsList.push({
+        level: item.level,
+        recipientLevel: item.level,
+        userId: treeParent._id,
+        name: treeParent.name,
+        email: treeParent.email,
+        percentage: item.percentage,
+        amount: item.amount,
+        levelBucket: item.levelBucket,
+        originalWeight: item.originalWeight,
+        levelBucketAmount: item.levelBucketAmount,
+        memberShareAmount: item.memberShareAmount,
+        status: 'active',
+        destination: `Wallet (${treeParent.name})`
+      });
     }
   }
 
-  // 5. Trust Fund Breakdown (1% Base + Tree Remainder)
+  // 5. Trust Fund Breakdown (Base Trust Fund using settings.trustFundPercent, remainder is 0)
   const trustFundBase = numericProfit * (settings.trustFundPercent / 100);
-  const trustFundRemainder = Math.max(0, remainingPool);
-  const totalTrustFund = trustFundBase + trustFundRemainder;
+  const trustFundRemainder = 0;
+  const totalTrustFund = trustFundBase;
 
   const trustFundBreakdown = {
     category: 'Trust Fund',
     basePercentage: settings.trustFundPercent,
     baseAmount: trustFundBase,
-    remainderAmount: trustFundRemainder,
-    totalTrustAmount: totalTrustFund
+    remainderAmount: 0,
+    totalTrustAmount: trustFundBase
   };
 
   const totalPercent = (settings.directCommissionPercent || 0) + 
@@ -583,102 +591,120 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
     }
     totalAllocated += devTrustBaseAmount;
     
-    // 5. Distribute Tree Commissions — atomic $inc + ledger
+    // 5. Distribute Tree Commissions (Level-Based Tree Pool) — atomic $inc + ledger
     const treeCommissionPool = numericProfit * (settings.treeCommissionPoolPercent / 100);
-    let remainingPool = treeCommissionPool;
-    let currentTreeParent = purchaser.treeParent;
-    let levelIndex = 0;
-    const maxLevels = (settings.treeCommissionLevels && settings.treeCommissionLevels.length) || 20;
-    
-    while (currentTreeParent && remainingPool > 0.001 && levelIndex < maxLevels) {
-      const treeParent = await User.findById(currentTreeParent);
-      if (!treeParent) break;
-      
-      const levelConfig = settings.treeCommissionLevels[levelIndex];
-      if (!levelConfig) break;
-      
-      const percentage = levelConfig.percentage;
-      const commissionAmount = numericProfit * (percentage / 100);
-      
-      if (commissionAmount <= remainingPool) {
-        if (treeParent.suspended) {
-          if (commissionAmount > 0) {
-            await addToTrustFund('trust', commissionAmount, orderId, 'order_allocation', `Tree commission - user suspended (${treeParent.email})`, null);
-          }
-          transaction.trustFundAmount += commissionAmount;
-          transaction.treeCommissions.push({
-            recipient: treeParent._id,
-            level: levelIndex + 1,
-            percentage,
-            amount: commissionAmount
-          });
-        } else if (treeParent.isVirtual && treeParent.originalUser) {
-          const originalUser = await User.findById(treeParent.originalUser);
-          if (originalUser) {
-            if (commissionAmount > 0) {
-              await creditWallet(
-                originalUser._id, commissionAmount,
-                'tree_commission',
-                `Tree Commission (L${levelIndex + 1}, via virtual) for Order #${orderShortId}`,
-                orderId, null,
-                { treeCommissionEarned: commissionAmount }
-              );
-            }
-            
-            transaction.treeCommissions.push({
-              recipient: treeParent._id,
-              level: levelIndex + 1,
-              percentage,
-              amount: commissionAmount,
-              redirectedTo: originalUser._id
-            });
-          } else {
-            if (commissionAmount > 0) {
-              await addToTrustFund('trust', commissionAmount, orderId, 'order_allocation', `Tree commission - virtual user original not found (${treeParent.email})`, null);
-            }
-            transaction.trustFundAmount += commissionAmount;
-            transaction.treeCommissions.push({
-              recipient: treeParent._id,
-              level: levelIndex + 1,
-              percentage,
-              amount: commissionAmount
-            });
-          }
-        } else {
+    const buyerLevel = purchaser.treeLevel || 1;
+    const maxUpperLevel = Math.min(Math.max(buyerLevel - 1, 1), 10);
+    const levelRecipients = await resolveTreeLevelRecipients(maxUpperLevel);
+
+    const { distributions: treeDistributions } = calculateLevelBasedTreePoolDistribution({
+      buyerLevel,
+      treePoolAmount: treeCommissionPool,
+      levelRecipients,
+      orderId: String(orderId)
+    });
+
+    transaction.buyerTreeLevel = buyerLevel;
+    transaction.treePoolTotal = treeCommissionPool;
+
+    for (const item of treeDistributions) {
+      const treeParent = item.recipientUser || await User.findById(item.recipient);
+      if (!treeParent) continue;
+
+      const commissionAmount = item.amount;
+      const recipientId = treeParent._id;
+
+      if (treeParent.suspended) {
+        if (commissionAmount > 0) {
+          await addToTrustFund('trust', commissionAmount, orderId, 'order_allocation', `Tree commission - user suspended (${treeParent.email})`, null);
+        }
+        transaction.trustFundAmount += commissionAmount;
+        transaction.treeCommissions.push({
+          recipient: recipientId,
+          level: item.level,
+          percentage: item.percentage,
+          amount: commissionAmount,
+          recipientLevel: item.level,
+          levelBucket: item.levelBucket,
+          originalWeight: item.originalWeight,
+          normalizedPercent: item.normalizedPercent,
+          levelBucketAmount: item.levelBucketAmount,
+          memberShareAmount: commissionAmount
+        });
+      } else if (treeParent.isVirtual && treeParent.originalUser) {
+        const originalUser = await User.findById(treeParent.originalUser);
+        if (originalUser) {
           if (commissionAmount > 0) {
             await creditWallet(
-              treeParent._id, commissionAmount,
+              originalUser._id, commissionAmount,
               'tree_commission',
-              `Tree Commission (Level ${levelIndex + 1}) for Order #${orderShortId}`,
+              `Tree Commission (L${item.level}, via virtual) for Order #${orderShortId}`,
               orderId, null,
               { treeCommissionEarned: commissionAmount }
             );
           }
           
           transaction.treeCommissions.push({
-            recipient: treeParent._id,
-            level: levelIndex + 1,
-            percentage,
-            amount: commissionAmount
+            recipient: recipientId,
+            level: item.level,
+            percentage: item.percentage,
+            amount: commissionAmount,
+            redirectedTo: originalUser._id,
+            recipientLevel: item.level,
+            levelBucket: item.levelBucket,
+            originalWeight: item.originalWeight,
+            normalizedPercent: item.normalizedPercent,
+            levelBucketAmount: item.levelBucketAmount,
+            memberShareAmount: commissionAmount
+          });
+        } else {
+          if (commissionAmount > 0) {
+            await addToTrustFund('trust', commissionAmount, orderId, 'order_allocation', `Tree commission - virtual user original not found (${treeParent.email})`, null);
+          }
+          transaction.trustFundAmount += commissionAmount;
+          transaction.treeCommissions.push({
+            recipient: recipientId,
+            level: item.level,
+            percentage: item.percentage,
+            amount: commissionAmount,
+            recipientLevel: item.level,
+            levelBucket: item.levelBucket,
+            originalWeight: item.originalWeight,
+            normalizedPercent: item.normalizedPercent,
+            levelBucketAmount: item.levelBucketAmount,
+            memberShareAmount: commissionAmount
           });
         }
-        
-        totalAllocated += commissionAmount;
-        remainingPool -= commissionAmount;
-        currentTreeParent = treeParent.treeParent;
-        levelIndex++;
       } else {
-        break;
+        if (commissionAmount > 0) {
+          await creditWallet(
+            recipientId, commissionAmount,
+            'tree_commission',
+            `Tree Commission (Level ${item.level}) for Order #${orderShortId}`,
+            orderId, null,
+            { treeCommissionEarned: commissionAmount }
+          );
+        }
+        
+        transaction.treeCommissions.push({
+          recipient: recipientId,
+          level: item.level,
+          percentage: item.percentage,
+          amount: commissionAmount,
+          recipientLevel: item.level,
+          levelBucket: item.levelBucket,
+          originalWeight: item.originalWeight,
+          normalizedPercent: item.normalizedPercent,
+          levelBucketAmount: item.levelBucketAmount,
+          memberShareAmount: commissionAmount
+        });
       }
+      
+      totalAllocated += commissionAmount;
     }
     
-    // 6. Add remainder from tree commission pool to Trust Fund
-    transaction.remainderToDevFund = remainingPool;
-    if (remainingPool > 0) {
-      await addToTrustFund('trust', remainingPool, orderId, 'order_allocation', `Tree remainder (₹${remainingPool.toFixed(2)})`, null);
-      transaction.trustFundAmount += remainingPool;
-      totalAllocated += remainingPool;
-    }
+    // 6. Tree pool remainder is 0 under 100% level-based distribution
+    transaction.remainderToDevFund = 0;
     
     // Verify total allocation matches expected % of profit
     // Verify total allocation matches expected total (allow tolerance for floating point rounding and manual cashback overrides)
@@ -881,6 +907,276 @@ module.exports = {
   addToTrustFund,
   creditWallet,
   isOrderEligibleForCommission,
-  processAutomaticCommissionForOrder
+  processAutomaticCommissionForOrder,
+  resolveTreeLevelRecipients,
+  calculateLevelBasedTreePoolDistribution,
+  getDeterministicOffset
 };
+
+/**
+ * Simple deterministic string hash algorithm.
+ * Returns a non-negative integer modulo count.
+ */
+function getDeterministicOffset(seedString, count) {
+  if (!count || count <= 1) return 0;
+  let hash = 0;
+  const str = String(seedString || '');
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  return hash % count;
+}
+
+/**
+ * Queries and retrieves eligible physical tree members for levels 1 through maxUpperLevel.
+ * Results are deterministically pre-sorted by treePosition ASC, _id ASC.
+ * 
+ * @param {Number} maxUpperLevel - Max upper physical tree level to fetch
+ * @param {Object} session - Optional MongoDB session
+ * @returns {Promise<Object>} Map of level numbers to arrays of user documents
+ */
+async function resolveTreeLevelRecipients(maxUpperLevel, session = null) {
+  const queryLimit = Math.max(1, Math.min(Number(maxUpperLevel) || 1, 10));
+  
+  const query = User.find({
+    treeLevel: { $gte: 1, $lte: queryLimit }
+  }).sort({ treePosition: 1, firstPurchaseDate: 1, createdAt: 1, _id: 1 });
+
+  if (session) {
+    query.session(session);
+  }
+
+  const users = await query;
+
+  const levelMap = {};
+  for (let l = 1; l <= queryLimit; l++) {
+    levelMap[l] = [];
+  }
+
+  for (const user of users) {
+    if (user.treeLevel && levelMap[user.treeLevel]) {
+      levelMap[user.treeLevel].push(user);
+    }
+  }
+
+  return levelMap;
+}
+
+/**
+ * Pure calculation function for Level-Based Tree Pool distribution.
+ * 
+ * Business Rule:
+ * - Every member inside the same physical level receives the EXACT same equal share to the paise (Math.floor(levelBucketPaise / memberCount)).
+ * - Any indivisible paise remainder for that level is swept upward and added to the Level 1 / Admin bucket.
+ * - Invariant: sum(all member credits) === treePoolPaise (Tree Pool Remainder = ₹0).
+ * 
+ * @param {Object} params
+ * @param {Number} params.buyerLevel - Purchaser's physical tree level
+ * @param {Number} params.treePoolAmount - Configured tree pool total in Rupees
+ * @param {Object} params.levelRecipients - Map of level numbers to arrays of User objects
+ * @param {String} params.orderId - Order ID for tracking
+ * @returns {Object} { distributions, treePoolTotal, bucketResults }
+ */
+function calculateLevelBasedTreePoolDistribution({ buyerLevel, treePoolAmount, levelRecipients, orderId = 'preview' }) {
+  const treePoolPaise = Math.round((Number(treePoolAmount) || 0) * 100);
+  if (treePoolPaise <= 0) {
+    return {
+      distributions: [],
+      treePoolTotal: 0,
+      bucketResults: []
+    };
+  }
+
+  const WEIGHT_TABLE = {
+    admin: 0.04980,
+    1: 0.0996,
+    2: 0.1992,
+    3: 0.3984,
+    4: 0.796,
+    5: 1.5937,
+    6: 3.1875,
+    7: 6.375,
+    8: 12.75,
+    9: 25.5,
+    10: 49
+  };
+
+  const effectiveBuyerLevel = Math.max(1, Number(buyerLevel) || 1);
+  const maxUpperLevel = Math.min(Math.max(effectiveBuyerLevel - 1, 1), 10);
+
+  const activeBuckets = [];
+
+  // Check Level 1
+  const level1Recipients = (levelRecipients && levelRecipients[1]) || [];
+  if (level1Recipients.length > 0) {
+    activeBuckets.push({ bucketKey: 'admin', levelNum: 1, weight: WEIGHT_TABLE.admin, label: 'Admin' });
+    activeBuckets.push({ bucketKey: '1', levelNum: 1, weight: WEIGHT_TABLE['1'], label: '5^1' });
+  } else {
+    console.error("❌ CRITICAL FINANCIAL ERROR: Level 1 has no valid physical recipients.");
+    throw new Error("Level 1 / root user missing. Cannot distribute Tree Pool.");
+  }
+
+  // Check Levels 2 to maxUpperLevel
+  for (let l = 2; l <= maxUpperLevel; l++) {
+    const recipients = (levelRecipients && levelRecipients[l]) || [];
+    if (recipients.length > 0) {
+      activeBuckets.push({ bucketKey: String(l), levelNum: l, weight: WEIGHT_TABLE[l], label: `5^${l}` });
+    }
+  }
+
+  const totalWeight = activeBuckets.reduce((sum, b) => sum + b.weight, 0);
+  if (totalWeight <= 0) {
+    throw new Error("Total active Tree Pool weight is 0.");
+  }
+
+  let allocatedBucketPaiseSum = 0;
+  const bucketResults = activeBuckets.map(b => {
+    const normalizedPercent = (b.weight / totalWeight) * 100;
+    const exactPaise = treePoolPaise * (b.weight / totalWeight);
+    const basePaise = Math.floor(exactPaise);
+    const fraction = exactPaise - basePaise;
+    allocatedBucketPaiseSum += basePaise;
+    return {
+      ...b,
+      normalizedPercent,
+      exactPaise,
+      basePaise,
+      fraction,
+      finalPaise: basePaise
+    };
+  });
+
+  // Distribute remainder bucket paise using Hamilton largest remainder method
+  let remainderBucketPaise = treePoolPaise - allocatedBucketPaiseSum;
+  const sortedIndices = bucketResults
+    .map((b, idx) => ({ idx, fraction: b.fraction, weight: b.weight }))
+    .sort((a, b) => b.fraction - a.fraction || b.weight - a.weight);
+
+  for (let i = 0; i < remainderBucketPaise; i++) {
+    const targetIdx = sortedIndices[i % sortedIndices.length].idx;
+    bucketResults[targetIdx].finalPaise += 1;
+  }
+
+  // Aggregate bucket amounts by physical tree level
+  const levelAllocations = {};
+  bucketResults.forEach(b => {
+    if (!levelAllocations[b.levelNum]) {
+      levelAllocations[b.levelNum] = { totalPaise: 0, buckets: [] };
+    }
+    levelAllocations[b.levelNum].totalPaise += b.finalPaise;
+    levelAllocations[b.levelNum].buckets.push(b);
+  });
+
+  // Level 1 / Admin bucket gets base allocation + all indivisible remainder paise swept from levels 2..10
+  let level1Paise = (levelAllocations[1] && levelAllocations[1].totalPaise) || 0;
+
+  // Process levels 2..maxUpperLevel: compute equal share per member, sweep level remainder upward to Level 1
+  const levelMemberShares = {}; // levelNum -> { equalSharePaise, totalPaidPaise, buckets }
+
+  Object.keys(levelAllocations).forEach(levelStr => {
+    const levelNum = Number(levelStr);
+    if (levelNum === 1) return; // Process Level 1 last after sweeping all upper level remainders
+
+    const alloc = levelAllocations[levelStr];
+    const members = (levelRecipients && levelRecipients[levelNum]) || [];
+    const M = members.length;
+
+    if (M > 0) {
+      const equalSharePaise = Math.floor(alloc.totalPaise / M);
+      const levelRemainderPaise = alloc.totalPaise - (equalSharePaise * M);
+
+      // Sweep indivisible level remainder to Level 1 / Admin
+      level1Paise += levelRemainderPaise;
+
+      levelMemberShares[levelNum] = {
+        equalSharePaise,
+        totalPaidPaise: equalSharePaise * M,
+        buckets: alloc.buckets
+      };
+    }
+  });
+
+  // Now build final distributions
+  const finalDistributions = [];
+  let totalTreeRecipientPaise = 0;
+
+  // 1. Level 1 Members distribution (receives level 1 base + all swept upper level remainders)
+  const level1Members = (levelRecipients && levelRecipients[1]) || [];
+  const M1 = level1Members.length;
+
+  if (M1 > 0) {
+    const level1EqualSharePaise = Math.floor(level1Paise / M1);
+    const level1RemainderPaise = level1Paise - (level1EqualSharePaise * M1);
+
+    const l1Alloc = levelAllocations[1] || { buckets: [] };
+    const combinedWeight = l1Alloc.buckets.reduce((s, b) => s + b.weight, 0);
+    const combinedPercent = l1Alloc.buckets.reduce((s, b) => s + b.normalizedPercent, 0);
+    const combinedBucketLabel = l1Alloc.buckets.map(b => b.label).join(' + ');
+
+    level1Members.forEach((member, i) => {
+      // If there are multiple Level 1 members, remainder is allocated to root/first Level 1 user
+      const memberPaise = level1EqualSharePaise + (i === 0 ? level1RemainderPaise : 0);
+      totalTreeRecipientPaise += memberPaise;
+      const memberAmount = memberPaise / 100;
+
+      finalDistributions.push({
+        recipient: member._id || member.id || member,
+        recipientUser: member,
+        level: 1,
+        recipientLevel: 1,
+        percentage: Number(combinedPercent.toFixed(6)),
+        amount: memberAmount,
+        memberShareAmount: memberAmount,
+        levelBucket: combinedBucketLabel,
+        originalWeight: combinedWeight,
+        normalizedPercent: Number(combinedPercent.toFixed(6)),
+        levelBucketAmount: level1Paise / 100,
+        treePoolTotal: treePoolPaise / 100
+      });
+    });
+  }
+
+  // 2. Levels 2..maxUpperLevel Members distribution (every member receives exact equalSharePaise)
+  Object.keys(levelMemberShares).forEach(levelStr => {
+    const levelNum = Number(levelStr);
+    const shareInfo = levelMemberShares[levelNum];
+    const members = (levelRecipients && levelRecipients[levelNum]) || [];
+
+    const combinedWeight = shareInfo.buckets.reduce((s, b) => s + b.weight, 0);
+    const combinedPercent = shareInfo.buckets.reduce((s, b) => s + b.normalizedPercent, 0);
+    const combinedBucketLabel = shareInfo.buckets.map(b => b.label).join(' + ');
+
+    members.forEach(member => {
+      const memberPaise = shareInfo.equalSharePaise;
+      totalTreeRecipientPaise += memberPaise;
+      const memberAmount = memberPaise / 100;
+
+      finalDistributions.push({
+        recipient: member._id || member.id || member,
+        recipientUser: member,
+        level: levelNum,
+        recipientLevel: levelNum,
+        percentage: Number(combinedPercent.toFixed(6)),
+        amount: memberAmount,
+        memberShareAmount: memberAmount,
+        levelBucket: combinedBucketLabel,
+        originalWeight: combinedWeight,
+        normalizedPercent: Number(combinedPercent.toFixed(6)),
+        levelBucketAmount: (shareInfo.equalSharePaise * members.length) / 100,
+        treePoolTotal: treePoolPaise / 100
+      });
+    });
+  });
+
+  // Financial assertion: sum(all tree recipient paise) === treePoolPaise
+  if (totalTreeRecipientPaise !== treePoolPaise) {
+    throw new Error(`CRITICAL FINANCIAL ASSERTION FAILED: Tree recipient paise sum (${totalTreeRecipientPaise}) !== tree pool paise (${treePoolPaise})`);
+  }
+
+  return {
+    distributions: finalDistributions,
+    treePoolTotal: treePoolPaise / 100,
+    bucketResults
+  };
+}
 
