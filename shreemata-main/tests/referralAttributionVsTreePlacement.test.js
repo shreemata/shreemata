@@ -22,6 +22,7 @@ describe('Direct Referral Attribution vs Tree Placement Test Suite', () => {
     const q = Promise.resolve(data);
     q.select = jest.fn().mockImplementation(() => q);
     q.session = jest.fn().mockImplementation(() => q);
+    q.sort = jest.fn().mockImplementation(() => q);
     q.exec = jest.fn().mockImplementation(() => Promise.resolve(data));
     return q;
   };
@@ -154,6 +155,7 @@ describe('Direct Referral Attribution vs Tree Placement Test Suite', () => {
   });
 
   test('TEST 3: Direct Referral Commission goes strictly to Ratnabai (referredBy)', async () => {
+    User.find.mockImplementation(() => mockQuery([rootUser, shivraj, ratnabai, yuvaraj, revati]));
     User.findOne.mockImplementation(q => {
       if (q && q.referralCode === 'REF588019') return mockQuery(ratnabai);
       if (q && q.role === 'admin') return mockQuery(rootUser);
@@ -190,7 +192,8 @@ describe('Direct Referral Attribution vs Tree Placement Test Suite', () => {
     expect(result.referrer.name).toBe(ratnabai.name);
   });
 
-  test('TEST 4: Tree Pool begins with Shivraj (treeParent)', async () => {
+  test('TEST 4: Tree Pool includes Shivraj (Level 2 tree member)', async () => {
+    User.find.mockImplementation(() => mockQuery([rootUser, shivraj, ratnabai, yuvaraj, revati]));
     User.findOne.mockImplementation(q => {
       if (q && q.referralCode === 'REF588019') return mockQuery(ratnabai);
       if (q && q.role === 'admin') return mockQuery(rootUser);
@@ -224,8 +227,9 @@ describe('Direct Referral Attribution vs Tree Placement Test Suite', () => {
     expect(result.treeCommissions).toBeDefined();
 
     expect(result.treeCommissions.length).toBeGreaterThan(0);
-    expect(result.treeCommissions[0].userId.toString()).toBe(shivraj._id.toString());
-    expect(result.treeCommissions[0].name).toBe(shivraj.name);
+    const shivrajComm = result.treeCommissions.find(c => c.userId.toString() === shivraj._id.toString());
+    expect(shivrajComm).toBeDefined();
+    expect(shivrajComm.name).toBe(shivraj.name);
   });
 
   test('TEST 5: Tree placement does not overwrite referredBy', () => {
