@@ -7,6 +7,7 @@ const Book = require("../models/Book");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { sendDeliveryStatusEmail } = require("../utils/emailService");
 const { autoGenerateInvoiceForOrder } = require("./invoices");
+const { isPaymentVerified } = require("../utils/paymentHelper");
 
 const router = express.Router();
 
@@ -802,6 +803,90 @@ function sanitizeOrderForCustomer(order, req) {
     return obj;
 }
 
+/**
+ * ADMIN — VERIFY PAYMENT (Manual UPI / PhonePe / Cheque / Bank Transfer)
+ * Updates payment-specific fields ONLY: paymentStatus, paymentDetails.status, utrNumber, verifiedAt, verifiedBy.
+ * Keeps deliveryStatus and fulfillment status separate.
+ */
+router.post("/admin/verify-payment/:id", authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        const { utrNumber, paymentMethod, adminNotes } = req.body;
+
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        // Update payment-specific fields ONLY
+        order.paymentStatus = 'completed';
+        order.paymentDetails = order.paymentDetails || {};
+        order.paymentDetails.status = 'verified';
+        if (utrNumber && utrNumber.trim()) {
+            order.paymentDetails.utrNumber = utrNumber.trim();
+        }
+        order.paymentDetails.verifiedAt = new Date();
+        order.paymentDetails.verifiedBy = req.user.id;
+        if (paymentMethod && paymentMethod.trim()) {
+            order.paymentType = paymentMethod.trim().toLowerCase();
+        }
+        if (adminNotes && adminNotes.trim()) {
+            order.paymentDetails.adminNotes = adminNotes.trim();
+        }
+        order.rewardApplied = true;
+
+        await order.save();
+        console.log(`✅ Admin verified payment for order ${orderId}: UTR ${order.paymentDetails.utrNumber || 'N/A'}, Method: ${order.paymentType}`);
+
+        // Post-verification actions
+        try {
+            await autoGenerateInvoiceForOrder(order);
+        } catch (invErr) {
+            console.error("⚠️ Invoice auto-generation error in verify-payment:", invErr.message);
+        }
+
+        try {
+            const { processAutomaticCommissionForOrder } = require("../services/commissionDistribution");
+            await processAutomaticCommissionForOrder(order);
+        } catch (commErr) {
+            console.error("⚠️ Automatic commission distribution error in verify-payment:", commErr.message);
+        }
+
+        try {
+            const { checkAndActivateMembership } = require("../services/membershipService");
+            await checkAndActivateMembership(order);
+        } catch (memErr) {
+            console.error("⚠️ Error checking/activating membership in verify-payment:", memErr.message);
+        }
+
+        try {
+            const user = await User.findById(order.user_id);
+            if (user) {
+                if (!user.firstPurchaseDone) {
+                    user.firstPurchaseDone = true;
+                    user.firstPurchaseDate = new Date();
+                    await user.save();
+                }
+                if (user.treeLevel === 0 || !user.treeParent) {
+                    const { createTreePlacementOnFirstPurchase } = require("../services/treePlacement");
+                    await createTreePlacementOnFirstPurchase(user._id);
+                }
+            }
+        } catch (treeErr) {
+            console.error("⚠️ Tree placement error in verify-payment:", treeErr.message);
+        }
+
+        res.json({
+            success: true,
+            message: "Payment verified successfully",
+            order
+        });
+    } catch (error) {
+        console.error("Error verifying payment:", error);
+        res.status(500).json({ error: error.message || "Failed to verify payment" });
+    }
+});
+
 const { previewCommissions, distributeCommissions } = require("../services/commissionDistribution");
 
 router.post(["/admin/:id/preview-commissions", "/:id/preview-commissions"], authenticateToken, isAdmin, async (req, res) => {
@@ -810,6 +895,10 @@ router.post(["/admin/:id/preview-commissions", "/:id/preview-commissions"], auth
         const order = await Order.findById(orderId);
         if (!order) {
             return res.status(404).json({ error: "Order not found" });
+        }
+
+        if (!isPaymentVerified(order)) {
+            return res.status(400).json({ error: "Payment must be verified before previewing commissions." });
         }
 
         let profitAmount = typeof order.orderProfitTotal === 'number' && order.orderProfitTotal >= 0
@@ -845,6 +934,10 @@ router.post(["/admin/:id/distribute-commissions", "/:id/distribute-commissions"]
         const order = await Order.findById(orderId);
         if (!order) {
             return res.status(404).json({ error: "Order not found" });
+        }
+
+        if (!isPaymentVerified(order)) {
+            return res.status(400).json({ error: "Payment must be verified before approving or distributing commissions." });
         }
 
         if (order.commissionStatus === 'distributed') {

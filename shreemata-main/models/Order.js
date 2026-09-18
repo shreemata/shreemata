@@ -80,6 +80,13 @@ const orderSchema = new mongoose.Schema({
     razorpay_order_id: { type: String },
     razorpay_payment_id: { type: String },
 
+    // Explicit Payment Status
+    paymentStatus: {
+        type: String,
+        enum: ["pending", "completed", "verified", "failed", "cancelled", "refunded"],
+        default: "pending"
+    },
+
     // Payment Type and Details (for cheque/bank transfer)
     paymentType: { 
         type: String, 
@@ -111,6 +118,8 @@ const orderSchema = new mongoose.Schema({
         driveFileIds: [{ type: String }], // Array of Google Drive file IDs
         
         adminNotes: { type: String, default: "" },
+        verifiedAt: { type: Date },
+        verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
         createdAt: { type: Date, default: Date.now },
         updatedAt: { type: Date, default: Date.now }
     },

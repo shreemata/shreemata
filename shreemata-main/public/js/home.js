@@ -57,6 +57,9 @@ async function loadClassesAndSubjects() {
             const books = data.books;
             console.log('Sample book data:', books[0]);
             
+            // Dynamically update Homepage 3D Hero Books using real active catalog data
+            updateHeroBooks(books);
+
             // Extract unique classes and subjects
             const classes = [...new Set(books.map(book => book.class).filter(Boolean))].sort((a, b) => a - b);
             const subjects = [...new Set(books.map(book => book.subject).filter(Boolean))].sort();
@@ -83,6 +86,10 @@ async function loadClassesAndSubjects() {
             const classChipsContainer = document.getElementById('classChipsContainer');
             if (classChipsContainer) {
                 if (classes.length === 1 && classes[0] === '10') {
+                    const mathBook = books.find(b => (b.subject && b.subject.toLowerCase().includes('math')) || (b.title && b.title.toLowerCase().includes('math'))) || books[0];
+                    const sciBook = books.find(b => (b.subject && b.subject.toLowerCase().includes('science')) || (b.title && b.title.toLowerCase().includes('science'))) || books[1] || books[0];
+                    const kanBook = books.find(b => (b.subject && b.subject.toLowerCase().includes('kannada')) || (b.title && b.title.toLowerCase().includes('kannada'))) || books[2] || books[0];
+
                     classChipsContainer.innerHTML = `
                         <div class="class-feature-banner">
                             <div class="class-feature-info">
@@ -104,13 +111,13 @@ async function loadClassesAndSubjects() {
                             </div>
                             <div class="class-feature-visual" aria-hidden="true">
                                 <div class="class-book-thumb">
-                                    <img src="https://res.cloudinary.com/dbtqqalo2/image/upload/v1766247514/kl2gbelkihjecix4uf11.jpg" alt="Mathematics" loading="lazy">
+                                    <img src="${mathBook.cover_image || 'https://res.cloudinary.com/degwjha60/image/upload/v1789113792/fgof9q3orqhgeg0swcdf.jpg'}" alt="Mathematics" loading="lazy">
                                 </div>
                                 <div class="class-book-thumb">
-                                    <img src="https://res.cloudinary.com/dbtqqalo2/image/upload/v1766248060/yvfjzpxleo9yb0fbav6z.jpg" alt="Science" loading="lazy">
+                                    <img src="${sciBook.cover_image || 'https://res.cloudinary.com/degwjha60/image/upload/v1789113820/rqu2wvoroihouoe6vjgx.jpg'}" alt="Science" loading="lazy">
                                 </div>
                                 <div class="class-book-thumb">
-                                    <img src="https://res.cloudinary.com/dbtqqalo2/image/upload/v1766250002/rwbfwmpvmmsljwwj2cmq.jpg" alt="Kannada" loading="lazy">
+                                    <img src="${kanBook.cover_image || 'https://res.cloudinary.com/degwjha60/image/upload/v1789117103/jfaydvq4wucvvyrj7b9h.jpg'}" alt="Kannada" loading="lazy">
                                 </div>
                             </div>
                         </div>
@@ -1362,6 +1369,111 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+/* ------------------------------
+   DYNAMIC 3D HERO BOOK UPDATER
+--------------------------------*/
+function updateHeroBooks(books) {
+    if (!books || !Array.isArray(books) || books.length === 0) return;
+
+    // Filter books with valid cover images
+    const lbaBooks = books.filter(b => b.cover_image && b.cover_image.trim() !== '');
+    if (lbaBooks.length === 0) return;
+
+    // 1. Select Main Center Book: Preferably Mathematics
+    let mainBook = lbaBooks.find(b => 
+        (b.title && b.title.toUpperCase().includes('MATH')) || 
+        (b.subject && b.subject.toUpperCase().includes('MATH'))
+    );
+    if (!mainBook) mainBook = lbaBooks[0];
+
+    // Remaining supporting books
+    const remainingBooks = lbaBooks.filter(b => String(b._id || b.id) !== String(mainBook._id || mainBook.id));
+
+    // Helper to find specific subject book or fallback
+    const getSubjectBook = (subjectKeyword, excludeIds) => {
+        let match = remainingBooks.find(b => {
+            const bId = String(b._id || b.id);
+            if (excludeIds.includes(bId)) return false;
+            const text = `${b.title || ''} ${b.subject || ''}`.toUpperCase();
+            return text.includes(subjectKeyword);
+        });
+        if (!match) {
+            match = remainingBooks.find(b => !excludeIds.includes(String(b._id || b.id)));
+        }
+        return match;
+    };
+
+    const usedIds = [String(mainBook._id || mainBook.id)];
+
+    const scienceBook = getSubjectBook('SCIENCE', usedIds);
+    if (scienceBook) usedIds.push(String(scienceBook._id || scienceBook.id));
+
+    const socialBook = getSubjectBook('SOCIAL', usedIds);
+    if (socialBook) usedIds.push(String(socialBook._id || socialBook.id));
+
+    const hindiBook = getSubjectBook('HINDI', usedIds);
+    if (hindiBook) usedIds.push(String(hindiBook._id || hindiBook.id));
+
+    const kannadaBook = getSubjectBook('KANNADA', usedIds);
+    if (kannadaBook) usedIds.push(String(kannadaBook._id || kannadaBook.id));
+
+    // Update 3D Stage Covers & Alt Texts
+    const primaryImg = document.getElementById('heroImgPrimary');
+    if (primaryImg && mainBook.cover_image) {
+        primaryImg.src = mainBook.cover_image;
+        primaryImg.alt = mainBook.title || 'Mathematics Textbook Cover';
+    }
+
+    const rearLeftImg = document.getElementById('heroImgRearLeft');
+    if (rearLeftImg && scienceBook && scienceBook.cover_image) {
+        rearLeftImg.src = scienceBook.cover_image;
+        rearLeftImg.alt = scienceBook.title || 'Science Textbook Cover';
+    }
+
+    const backLeftImg = document.getElementById('heroImgBackLeft');
+    if (backLeftImg && socialBook && socialBook.cover_image) {
+        backLeftImg.src = socialBook.cover_image;
+        backLeftImg.alt = socialBook.title || 'Social Science Textbook Cover';
+    }
+
+    const backRightImg = document.getElementById('heroImgBackRight');
+    if (backRightImg && hindiBook && hindiBook.cover_image) {
+        backRightImg.src = hindiBook.cover_image;
+        backRightImg.alt = hindiBook.title || 'Hindi Textbook Cover';
+    }
+
+    const rearRightImg = document.getElementById('heroImgRearRight');
+    if (rearRightImg && kannadaBook && kannadaBook.cover_image) {
+        rearRightImg.src = kannadaBook.cover_image;
+        rearRightImg.alt = kannadaBook.title || 'Kannada Textbook Cover';
+    }
+
+    // Dynamic Year Badge (if year string exists in data e.g. 2026-27 or 2025-26)
+    const yearPattern = /(20\d{2}[-\/]\d{2,4})/;
+    let detectedYear = null;
+    for (const b of books) {
+        const textToSearch = `${b.title || ''} ${b.description || ''}`;
+        const match = textToSearch.match(yearPattern);
+        if (match) {
+            detectedYear = match[1];
+            break;
+        }
+    }
+
+    const editionLabel = document.getElementById('heroEditionLabel');
+    const editionTitle = document.getElementById('heroEditionTitle');
+    if (editionLabel && editionTitle) {
+        if (detectedYear) {
+            editionLabel.textContent = `${detectedYear} Edition`;
+            editionTitle.textContent = 'Current Edition';
+        } else {
+            const classVal = mainBook.class || '10';
+            editionLabel.textContent = `Class ${classVal} Syllabus`;
+            editionTitle.textContent = 'Current Edition';
+        }
+    }
 }
 
 // Global exposures for navigation and inline calls

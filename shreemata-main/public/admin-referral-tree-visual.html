@@ -1978,12 +1978,14 @@ function createHorizontalUserNode(user) {
     const nameDisplay = isVirtual ? `${name} (Virtual)` : name;
     const virtualBadge = isVirtual ? '<span class="virtual-badge">🤖 Virtual</span>' : '';
     const wallet = Number(user.wallet || (user.account?.wallet) || 0).toFixed(2);
-    const referrals = (user.referrals !== undefined) ? user.referrals : (user.childrenCount || (user.relationships && user.relationships.treeChildrenCount) || 0);
-    
+    const directRefsCount = user.directReferralsCount !== undefined ? user.directReferralsCount : (user.referrals || 0);
+    const treeChildrenCount = user.treeChildrenCount !== undefined ? user.treeChildrenCount : (user.childrenCount || 0);
+
     node.innerHTML = `
         <div class="tree-name">${nameDisplay} ${virtualBadge}</div>
         <div class="tree-meta">Wallet: ₹${wallet}</div>
-        <div class="tree-meta">${referrals} referrals</div>
+        <div class="tree-meta">Direct Referrals: ${directRefsCount}</div>
+        <div class="tree-meta">Tree Children: ${treeChildrenCount} / 5</div>
     `;
     
     // Add hover event listeners to show connections
@@ -2098,12 +2100,14 @@ function createUserNodeElement(user){
     const nameDisplay = isVirtual ? `${name} (Virtual)` : name;
     const virtualBadge = isVirtual ? '<span class="virtual-badge">🤖 Virtual</span>' : '';
     const wallet = Number(user.wallet || (user.account?.wallet) || 0).toFixed(2);
-    const referrals = (user.referrals !== undefined) ? user.referrals : (user.childrenCount || (user.relationships && user.relationships.treeChildrenCount) || 0);
+    const directRefsCount = user.directReferralsCount !== undefined ? user.directReferralsCount : (user.referrals || 0);
+    const treeChildrenCount = user.treeChildrenCount !== undefined ? user.treeChildrenCount : (user.childrenCount || 0);
 
     node.innerHTML = `
         <div class="tree-name">${nameDisplay} ${virtualBadge}</div>
         <div class="tree-meta">Wallet: ₹${wallet}</div>
-        <div class="tree-meta">${referrals} referrals</div>
+        <div class="tree-meta">Direct Referrals: ${directRefsCount}</div>
+        <div class="tree-meta">Tree Children: ${treeChildrenCount} / 5</div>
     `;
 
     // click opens modal (non-blocking)
@@ -2281,8 +2285,9 @@ function populateEnhancedModalWithData(user, referralStats, referrerName, treePa
     const treeLevel = user.treeLevel || 0;
     const treePosition = user.treePosition || 'N/A';
     
-    // Children information
-    const directChildren = user.treeChildren?.length || 0;
+    // Children & Referral information
+    const directRefsCount = user.directReferralsCount !== undefined ? user.directReferralsCount : (user.referrals || 0);
+    const directChildren = user.treeChildren?.length || user.treeChildrenCount || 0;
     const totalDescendants = referralStats?.totalDescendants || directChildren;
     
     // Commission from referrals
@@ -2296,7 +2301,7 @@ function populateEnhancedModalWithData(user, referralStats, referrerName, treePa
     // Build children list HTML
     const childrenListHTML = childrenNames.length > 0 ? `
         <div style="margin-top: 15px;">
-            <h5 style="margin-bottom: 10px;">👥 Direct Children (${childrenNames.length}${directChildren > childrenNames.length ? ` of ${directChildren}` : ''}):</h5>
+            <h5 style="margin-bottom: 10px;">🌳 Tree Children (${childrenNames.length}${directChildren > childrenNames.length ? ` of ${directChildren}` : ''}):</h5>
             <div style="max-height: 300px; overflow-y: auto;">
                 ${childrenNames.map(child => `
                     <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #667eea; cursor: pointer;" onclick="openUserModal('${child.id}')">
@@ -2461,10 +2466,13 @@ function populateEnhancedModalWithData(user, referralStats, referrerName, treePa
                         <span style="color: #667eea; font-weight: 600;">${treeParentDisplay}</span>
                     </div>
                     <div style="margin-bottom: 8px;">
-                        <strong>Direct Referrals Made:</strong> ${directChildren} users
+                        <strong>Direct Referrals Made:</strong> ${directRefsCount} users
                     </div>
                     <div style="margin-bottom: 8px;">
-                        <strong>Users Under This Person:</strong> ${totalDescendants} users (including all levels)
+                        <strong>Tree Children:</strong> ${directChildren} / 5
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Users Under This Person (Tree):</strong> ${totalDescendants} users (all levels)
                     </div>
                     <div>
                         <strong>Referral Code:</strong> 
@@ -2538,7 +2546,8 @@ function populateModalWithData(user) {
     const joinDate = user.joinDate ? (new Date(user.joinDate)).toLocaleDateString() : 'N/A';
     const wallet = Number(user.wallet || 0).toFixed(2);
     const totalComms = Number(user.commissions?.total || user.totalCommissions || 0).toFixed(2);
-    const referrals = user.referrals ?? user.childrenCount ?? (user.relationships?.treeChildrenCount ?? 0);
+    const directRefsCount = user.directReferralsCount !== undefined ? user.directReferralsCount : (user.referrals || 0);
+    const treeChildrenCount = user.treeChildrenCount !== undefined ? user.treeChildrenCount : (user.childrenCount || 0);
 
     modalContent.innerHTML = `
         <button class="close" id="modalCloseInner" aria-label="Close">&times;</button>
@@ -2546,8 +2555,8 @@ function populateModalWithData(user) {
         <div class="stat-grid">
             <div class="stat-card"><strong>Wallet</strong><div>₹${wallet}</div></div>
             <div class="stat-card"><strong>Total Commissions</strong><div>₹${totalComms}</div></div>
-            <div class="stat-card"><strong>Direct Children</strong><div>${referrals}</div></div>
-            <div class="stat-card"><strong>Joined</strong><div>${joinDate}</div></div>
+            <div class="stat-card"><strong>Direct Referrals</strong><div>${directRefsCount}</div></div>
+            <div class="stat-card"><strong>Tree Children</strong><div>${treeChildrenCount} / 5</div></div>
         </div>
         <div style="margin-top:8px;">
             <strong>Email:</strong> ${escapeHtml(user.email || 'N/A')}<br/>
