@@ -970,8 +970,10 @@ async function saveAddress(e) {
    LOAD POINTS (PARALLEL & CACHED)
 ----------------------------------------- */
 async function loadPoints(force = false) {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || localStorage.getItem("sm_token");
     if (!token) return;
+
+    loadVirtualReferralEarningsData();
 
     if (!force && accountDataCache.points) {
         renderPointsFromCache(accountDataCache.points);
@@ -996,6 +998,7 @@ async function loadPoints(force = false) {
 
         accountDataCache.points = { balanceData, historyData };
         renderPointsFromCache(accountDataCache.points);
+        loadVirtualReferralEarningsData();
 
     } catch (err) {
         console.error("Error loading points:", err);
@@ -1006,6 +1009,148 @@ async function loadPoints(force = false) {
     }
 }
 
+async function loadVirtualReferralEarningsData() {
+    const token = localStorage.getItem("token") || localStorage.getItem("sm_token");
+    if (!token) return;
+
+    const cardsListContainer = document.getElementById("virtualReferralCardsList");
+    const countBadge = document.getElementById("vrTotalCountBadge");
+    const availEl = document.getElementById("vrSummaryAvailable");
+    const lifeEl = document.getElementById("vrSummaryLifetime");
+    const transEl = document.getElementById("vrSummaryTransferred");
+
+    try {
+        const res = await fetch(`${API}/points/virtual-referrals`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        if (!res.ok) {
+            if (cardsListContainer) {
+                cardsListContainer.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; color: #dc3545; padding: 20px; background: #fff5f5; border-radius: 8px;">
+                        Unable to load Virtual Referrals. <a href="javascript:void(0)" onclick="loadVirtualReferralEarningsData()" style="color: #4f46e5; font-weight: 600; text-decoration: underline;">Retry</a>
+                    </div>
+                `;
+            }
+            return;
+        }
+
+        const data = await res.json();
+        const summary = data.summary || {};
+        const virtualReferrals = data.virtualReferrals || [];
+
+        const posCount = summary.totalVirtualReferrals || 0;
+        if (countBadge) countBadge.textContent = `Total Virtual Referrals: ${posCount}`;
+        if (availEl) availEl.textContent = `₹${(summary.totalAvailableEarnings || 0).toFixed(2)}`;
+        if (lifeEl) lifeEl.textContent = `₹${(summary.lifetimeVirtualEarnings || 0).toFixed(2)}`;
+        if (transEl) transEl.textContent = `₹${(summary.totalTransferredToVip || 0).toFixed(2)}`;
+
+        if (!cardsListContainer) return;
+
+        if (!virtualReferrals || virtualReferrals.length === 0) {
+            cardsListContainer.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 24px; background: #f8fafc; border-radius: 8px;">
+                    No Virtual Referrals created yet. Earn 100 points to create your first Virtual Referral!
+                </div>
+            `;
+            return;
+        }
+
+        cardsListContainer.innerHTML = virtualReferrals.map(vr => {
+            const availAmt = typeof vr.availableEarnings === 'number' ? vr.availableEarnings : 0;
+            const lifeAmt = typeof vr.lifetimeEarnings === 'number' ? vr.lifetimeEarnings : 0;
+            const claimAmt = typeof vr.claimedEarnings === 'number' ? vr.claimedEarnings : 0;
+            const amountFormatted = `₹${availAmt.toFixed(2)}`;
+            
+            let buttonHtml = '';
+            if (!summary.hasVipMasterCard) {
+                buttonHtml = `<button disabled style="width: 100%; padding: 8px 12px; background: #cbd5e1; color: #475569; border: none; border-radius: 6px; font-weight: 600; cursor: not-allowed; font-size: 13px;">🔒 VIP Master Card Required</button>`;
+            } else if (availAmt > 0) {
+                buttonHtml = `<button onclick="claimVirtualEarnings('${vr.id}', '${vr.virtualReferralNumber}', '${amountFormatted}')" style="width: 100%; padding: 8px 12px; background: #059669; color: #ffffff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: background 0.2s;">⚡ Take Money (${amountFormatted})</button>`;
+            } else {
+                buttonHtml = `<button disabled style="width: 100%; padding: 8px 12px; background: #f1f5f9; color: #94a3b8; border: 1px solid #e2e8f0; border-radius: 6px; font-weight: 500; cursor: not-allowed; font-size: 13px;">No Earnings Yet</button>`;
+            }
+
+            return `
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 700; color: #1e293b; font-size: 14px;">${vr.virtualReferralNumber}</span>
+                            <span style="font-size: 11px; background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 12px;">Level ${vr.treeLevel} (Pos ${vr.treePosition})</span>
+                        </div>
+                        <div style="font-size: 12.5px; color: #64748b; margin-bottom: 6px;">
+                            Tree Parent: <strong style="color: #334155;">${vr.treeParentName}</strong>
+                        </div>
+                        <div style="font-size: 12.5px; color: #64748b; margin-bottom: 10px;">
+                            Destination: <strong style="color: #4f46e5;">VIP Master Card</strong>
+                        </div>
+                        <div style="background: #f8fafc; border-radius: 6px; padding: 8px 10px; margin-bottom: 12px; font-size: 12px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span style="color: #64748b;">Available:</span>
+                                <strong style="color: #059669;">${amountFormatted}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span style="color: #64748b;">Lifetime:</span>
+                                <span style="color: #334155; font-weight: 600;">₹${lifeAmt.toFixed(2)}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #64748b;">Transferred:</span>
+                                <span style="color: #7c3aed; font-weight: 600;">₹${claimAmt.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        ${buttonHtml}
+                    </div>
+                </div>
+            `;
+        }).join("");
+
+    } catch (err) {
+        console.error("Error loading virtual referral earnings data:", err);
+        if (cardsListContainer) {
+            cardsListContainer.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; color: #dc3545; padding: 20px; background: #fff5f5; border-radius: 8px;">
+                    Unable to load Virtual Referrals. <a href="javascript:void(0)" onclick="loadVirtualReferralEarningsData()" style="color: #4f46e5; font-weight: 600; text-decoration: underline;">Retry</a>
+                </div>
+            `;
+        }
+    }
+}
+
+async function claimVirtualEarnings(virtualId, vrNum, amountFormatted) {
+    const token = localStorage.getItem("token") || localStorage.getItem("sm_token");
+    if (!token) return;
+
+    if (!confirm(`Transfer ${amountFormatted} from Virtual Referral ${vrNum} to your VIP Master Card?`)) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API}/points/virtual-referrals/${virtualId}/claim`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            }
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+            alert(data.message || "Failed to claim virtual referral earnings");
+            return;
+        }
+
+        alert(data.message || `Successfully transferred ${amountFormatted} to your VIP Master Card!`);
+        
+        loadVirtualReferralEarningsData();
+        if (typeof loadAccountData === "function") loadAccountData();
+    } catch (err) {
+        console.error("Error claiming virtual referral earnings:", err);
+        alert("An error occurred while transferring earnings.");
+    }
+}
+
 function renderPointsFromCache(cached) {
     if (!cached) return;
     const { balanceData, historyData } = cached;
@@ -1013,11 +1158,22 @@ function renderPointsFromCache(cached) {
     // Update basic points display with null checks
     const pointsWalletEl = document.getElementById("pointsWallet");
     const totalPointsEarnedEl = document.getElementById("totalPointsEarned");
+    const pointsRedeemedEl = document.getElementById("pointsRedeemed");
     const virtualReferralsCreatedEl = document.getElementById("virtualReferralsCreated");
+    const virtualAvailablePointsEl = document.getElementById("virtualAvailablePoints");
+    const virtualReferralStatusMsgEl = document.getElementById("virtualReferralStatusMsg");
     
-    if (pointsWalletEl) pointsWalletEl.textContent = balanceData.pointsWallet || 0;
-    if (totalPointsEarnedEl) totalPointsEarnedEl.textContent = balanceData.totalPointsEarned || 0;
+    const availablePoints = balanceData.pointsWallet || 0;
+    const lifetimePointsEarned = balanceData.totalPointsEarned || 0;
+    const pointsRedeemed = typeof balanceData.pointsRedeemed === 'number'
+        ? balanceData.pointsRedeemed
+        : Math.max(0, lifetimePointsEarned - availablePoints);
+
+    if (pointsWalletEl) pointsWalletEl.textContent = availablePoints;
+    if (totalPointsEarnedEl) totalPointsEarnedEl.textContent = lifetimePointsEarned;
+    if (pointsRedeemedEl) pointsRedeemedEl.textContent = pointsRedeemed;
     if (virtualReferralsCreatedEl) virtualReferralsCreatedEl.textContent = balanceData.virtualReferralsCreated || 0;
+    if (virtualAvailablePointsEl) virtualAvailablePointsEl.textContent = availablePoints;
 
     // Update virtual tree cost displays
     const virtualTreeCost = balanceData.settings?.virtualTree?.cost || 100;
@@ -1037,13 +1193,21 @@ function renderPointsFromCache(cached) {
         } else {
             redeemSection.style.display = "block";
             
-            if (balanceData.capabilities?.canCreateVirtual) {
+            if (availablePoints >= virtualTreeCost && balanceData.capabilities?.canCreateVirtual) {
                 redeemBtn.disabled = false;
-                redeemBtn.innerHTML = `🎁 Redeem ${virtualTreeCost} Points for Virtual Referral`;
+                redeemBtn.innerHTML = `🎁 Create Virtual Referral — ${virtualTreeCost} Points`;
+                if (virtualReferralStatusMsgEl) {
+                    virtualReferralStatusMsgEl.textContent = "You have enough available points to create your next Virtual Referral!";
+                    virtualReferralStatusMsgEl.style.color = "#155724";
+                }
             } else {
                 redeemBtn.disabled = true;
-                const needed = virtualTreeCost - (balanceData.pointsWallet || 0);
-                redeemBtn.innerHTML = `Need ${needed} more points`;
+                const needed = virtualTreeCost - availablePoints;
+                redeemBtn.innerHTML = `Need ${needed} More Points`;
+                if (virtualReferralStatusMsgEl) {
+                    virtualReferralStatusMsgEl.textContent = `You need ${needed} more points to create your next Virtual Referral.`;
+                    virtualReferralStatusMsgEl.style.color = "#666";
+                }
             }
         }
     }

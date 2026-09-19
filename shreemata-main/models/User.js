@@ -122,6 +122,24 @@ const userSchema = new mongoose.Schema({
     default: 0 
   },
 
+  // Virtual Referral Holding Balance System (in Paise)
+  virtualEarningsBalancePaise: {
+    type: Number,
+    default: 0
+  },
+  virtualLifetimeEarningsPaise: {
+    type: Number,
+    default: 0
+  },
+  virtualClaimedEarningsPaise: {
+    type: Number,
+    default: 0
+  },
+  lastVirtualClaimAt: {
+    type: Date,
+    default: null
+  },
+
   // Metadata
   referralJoinedAt: Date,
 

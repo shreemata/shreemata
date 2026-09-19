@@ -1,5 +1,7 @@
 const express = require("express");
 const User = require("../models/User");
+const Order = require("../models/Order");
+const WalletTransaction = require("../models/WalletTransaction");
 const CommissionTransaction = require("../models/CommissionTransaction");
 const CommissionSettings = require("../models/CommissionSettings");
 const { authenticateToken } = require("../middleware/auth");
@@ -435,152 +437,128 @@ router.get("/commissions", authenticateToken, async (req, res) => {
         const skip = (page - 1) * limit;
         
         // Parse filters
-        const commissionType = req.query.type; // 'direct', 'tree', or undefined for all
+        const commissionType = req.query.type; // 'direct', 'referral', 'tree', or undefined for all
         const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
         const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
         
         // Build date filter
         const dateFilter = {};
         if (startDate || endDate) {
-            dateFilter.processedAt = {};
-            if (startDate) dateFilter.processedAt.$gte = startDate;
-            if (endDate) dateFilter.processedAt.$lte = endDate;
+            dateFilter.createdAt = {};
+            if (startDate) dateFilter.createdAt.$gte = startDate;
+            if (endDate) dateFilter.createdAt.$lte = endDate;
         }
-        
-        const commissions = [];
-        let totalDirectCommission = 0;
-        let totalTreeCommission = 0;
 
-        const userDoc = await User.findById(userId).select('wallet directCommissionEarned referralCommissionEarned treeCommissionEarned');
-        
-        // Query direct commissions (3%)
-        if (!commissionType || commissionType === 'direct') {
-            const directCommissionQuery = {
-                directReferrer: userId,
-                status: 'completed',
-                ...dateFilter
-            };
-            
-            const directCommissions = await CommissionTransaction.find(directCommissionQuery)
-                .populate('purchaser', 'name')
-                .populate('orderId', 'orderNumber totalAmount')
-                .sort({ processedAt: -1 });
-            
-            directCommissions.forEach(transaction => {
-                if (transaction.directCommissionAmount > 0) {
-                    const percentage = transaction.orderAmount > 0 
-                        ? parseFloat((transaction.directCommissionAmount / transaction.orderAmount * 100).toFixed(2)) 
-                        : 3;
-                    commissions.push({
-                        _id: transaction._id + '_direct',
-                        date: transaction.processedAt,
-                        amount: transaction.directCommissionAmount,
-                        commissionType: 'direct',
-                        orderAmount: transaction.orderAmount,
-                        orderId: transaction.orderId?._id,
-                        orderNumber: transaction.orderId?.orderNumber,
-                        purchaser: {
-                            name: transaction.purchaser?.name || 'Customer'
-                        },
-                        level: 1,
-                        percentage: percentage
-                    });
-                    totalDirectCommission += transaction.directCommissionAmount;
-                }
+        const userDoc = await User.findById(userId).select('wallet name email');
+        if (!userDoc) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const earningsCategories = [
+            'direct_commission', 'cashback', 'buyer_cashback',
+            'referral_commission', 'referral_registration_reward', 'referral_fallback',
+            'tree_commission', 'tree_pool', 'tree', 'treeCommission', 'tree_pool_commission'
+        ];
+
+        const wtxQuery = {
+            userId: userId,
+            type: 'credit',
+            category: { $in: earningsCategories },
+            ...dateFilter
+        };
+
+        const walletTxs = await WalletTransaction.find(wtxQuery)
+            .populate({
+                path: 'orderId',
+                select: 'orderNumber totalAmount user_id',
+                populate: { path: 'user_id', select: 'name' }
+            })
+            .sort({ createdAt: -1 });
+
+        const round2 = (num) => Math.round((Number(num) || 0) * 100) / 100;
+
+        let totalDirectCommission = 0;   // Direct Referral (2%)
+        let totalCashbackCommission = 0; // Buyer Cashback (3%)
+        let totalTreeCommission = 0;     // Tree Earnings
+        let directCount = 0;
+        let cashbackCount = 0;
+        let treeCount = 0;
+
+        const allCommissions = [];
+
+        for (const tx of walletTxs) {
+            const cat = (tx.category || '').toLowerCase();
+            let commType = 'other';
+            let isVirtual = false;
+            let level = 1;
+
+            const levelMatch = tx.description ? tx.description.match(/Level\s*(\d+)|L(\d+)/i) : null;
+            if (levelMatch) {
+                level = parseInt(levelMatch[1] || levelMatch[2]);
+            }
+            if (tx.description && /via virtual/i.test(tx.description)) {
+                isVirtual = true;
+            }
+
+            if (['tree_commission', 'tree_pool', 'tree', 'treecommission', 'tree_pool_commission'].includes(cat)) {
+                commType = 'tree';
+                totalTreeCommission += tx.amount;
+                treeCount++;
+            } else if (['direct_commission', 'cashback', 'buyer_cashback'].includes(cat)) {
+                commType = 'direct'; // maps to Buyer Cashback
+                totalCashbackCommission += tx.amount;
+                cashbackCount++;
+            } else if (['referral_commission', 'referral_registration_reward', 'referral_fallback'].includes(cat)) {
+                commType = 'referral'; // maps to Direct Referral
+                totalDirectCommission += tx.amount;
+                directCount++;
+            }
+
+            const orderObj = tx.orderId;
+            const orderNum = orderObj ? orderObj.orderNumber : null;
+            const orderIdVal = orderObj ? orderObj._id : null;
+            const purchaserObj = orderObj ? (orderObj.purchaser || orderObj.user_id) : null;
+            const purchaserName = purchaserObj ? purchaserObj.name : 'Customer';
+
+            allCommissions.push({
+                _id: tx._id,
+                date: tx.createdAt,
+                amount: tx.amount,
+                commissionType: commType,
+                category: tx.category,
+                description: tx.description,
+                orderAmount: orderObj ? orderObj.totalAmount : 0,
+                orderId: orderIdVal,
+                orderNumber: orderNum,
+                purchaser: {
+                    name: purchaserName
+                },
+                level: level,
+                isVirtual: isVirtual,
+                status: 'completed'
             });
         }
-        
-        // Query referral commissions (2%)
-        if (!commissionType || commissionType === 'direct' || commissionType === 'referral') {
-            const referralCommissionQuery = {
-                referralReferrer: userId,
-                status: 'completed',
-                ...dateFilter
-            };
-            
-            const referralCommissions = await CommissionTransaction.find(referralCommissionQuery)
-                .populate('purchaser', 'name')
-                .populate('orderId', 'orderNumber totalAmount')
-                .sort({ processedAt: -1 });
-            
-            referralCommissions.forEach(transaction => {
-                if (transaction.referralCommissionAmount > 0) {
-                    const percentage = transaction.orderAmount > 0 
-                        ? parseFloat((transaction.referralCommissionAmount / transaction.orderAmount * 100).toFixed(2)) 
-                        : 2;
-                    commissions.push({
-                        _id: transaction._id + '_referral',
-                        date: transaction.processedAt,
-                        amount: transaction.referralCommissionAmount,
-                        commissionType: 'referral',
-                        orderAmount: transaction.orderAmount,
-                        orderId: transaction.orderId?._id,
-                        orderNumber: transaction.orderId?.orderNumber,
-                        purchaser: {
-                            name: transaction.purchaser?.name || 'Customer'
-                        },
-                        level: 1,
-                        percentage: percentage
-                    });
-                    totalDirectCommission += transaction.referralCommissionAmount;
-                }
-            });
+
+        // Apply type filter if requested
+        let filteredCommissions = allCommissions;
+        if (commissionType) {
+            filteredCommissions = allCommissions.filter(c => c.commissionType === commissionType);
         }
-        
-        // Query tree commissions
-        if (!commissionType || commissionType === 'tree') {
-            const treeCommissionQuery = {
-                'treeCommissions.recipient': userId,
-                status: 'completed',
-                ...dateFilter
-            };
-            
-            const treeCommissions = await CommissionTransaction.find(treeCommissionQuery)
-                .populate('purchaser', 'name')
-                .populate('orderId', 'orderNumber totalAmount')
-                .sort({ processedAt: -1 });
-            
-            treeCommissions.forEach(transaction => {
-                // Find the specific tree commission for this user
-                const userTreeCommission = transaction.treeCommissions.find(
-                    tc => tc.recipient.toString() === userId
-                );
-                
-                if (userTreeCommission && userTreeCommission.amount > 0) {
-                    commissions.push({
-                        _id: transaction._id + '_tree',
-                        date: transaction.processedAt,
-                        amount: userTreeCommission.amount,
-                        commissionType: 'tree',
-                        orderAmount: transaction.orderAmount,
-                        orderId: transaction.orderId?._id,
-                        orderNumber: transaction.orderId?.orderNumber,
-                        purchaser: {
-                            name: transaction.purchaser?.name || 'Customer'
-                        },
-                        level: userTreeCommission.level,
-                        percentage: userTreeCommission.percentage
-                    });
-                    totalTreeCommission += userTreeCommission.amount;
-                }
-            });
-        }
-        
-        // Sort all commissions by date (most recent first)
-        commissions.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        // Calculate totals
-        const totalCommission = totalDirectCommission + totalTreeCommission;
-        const totalCount = commissions.length;
-        
-        // Apply pagination
-        const paginatedCommissions = commissions.slice(skip, skip + limit);
-        
+
+        totalDirectCommission = round2(totalDirectCommission);
+        totalCashbackCommission = round2(totalCashbackCommission);
+        totalTreeCommission = round2(totalTreeCommission);
+
+        // Enforce Total Earnings Invariant: totalCommission = direct + tree + cashback
+        const totalCommission = round2(totalDirectCommission + totalTreeCommission + totalCashbackCommission);
+        const totalCount = filteredCommissions.length;
+        const paginatedCommissions = filteredCommissions.slice(skip, skip + limit);
+
         res.json({
             commissions: paginatedCommissions,
             pagination: {
                 currentPage: page,
-                totalPages: Math.ceil(totalCount / limit),
+                totalPages: Math.ceil(totalCount / limit) || 1,
                 totalCount: totalCount,
                 limit: limit,
                 hasNextPage: skip + limit < totalCount,
@@ -590,15 +568,17 @@ router.get("/commissions", authenticateToken, async (req, res) => {
                 totalCommission: totalCommission,
                 totalDirectCommission: totalDirectCommission,
                 totalTreeCommission: totalTreeCommission,
-                directCommissionCount: commissions.filter(c => c.commissionType === 'direct' || c.commissionType === 'referral').length,
-                treeCommissionCount: commissions.filter(c => c.commissionType === 'tree').length,
-                walletBalance: userDoc ? (userDoc.wallet || 0) : 0
+                totalCashbackCommission: totalCashbackCommission,
+                directCommissionCount: directCount,
+                treeCommissionCount: treeCount,
+                cashbackCommissionCount: cashbackCount,
+                walletBalance: round2(userDoc.wallet || 0)
             }
         });
 
     } catch (err) {
-        console.error("Commission history error:", err);
-        res.status(500).json({ error: "Server error" });
+        console.error("Commission history error:", err.stack || err);
+        res.status(500).json({ error: "Failed to fetch commission history" });
     }
 });
 

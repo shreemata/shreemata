@@ -46,7 +46,7 @@
     // Commission type metadata
     function getCommissionMeta(item) {
         const type = (item.commissionType || '').toLowerCase();
-        if (type === 'direct') {
+        if (type === 'direct' || type === 'cashback' || type === 'direct_commission') {
             return {
                 label: 'Buyer Cashback',
                 icon: '💰',
@@ -55,7 +55,7 @@
                 filterKey: 'cashback'
             };
         }
-        if (type === 'referral') {
+        if (type === 'referral' || type === 'referral_commission' || type === 'referral_registration_reward') {
             return {
                 label: 'Direct Referral',
                 icon: '👥',
@@ -64,12 +64,15 @@
                 filterKey: 'referral'
             };
         }
-        if (type === 'tree') {
+        if (type === 'tree' || type === 'tree_commission' || type === 'tree_pool') {
+            const levelLabel = item.isVirtual
+                ? `Virtual L${item.level || 1}`
+                : `Level ${item.level || 1}`;
             return {
-                label: 'Tree Commission',
+                label: item.isVirtual ? 'Virtual Referral Tree Commission' : 'Tree Commission',
                 icon: '🌳',
                 iconClass: 'tree',
-                levelBadge: `Level ${item.level || 1}`,
+                levelBadge: levelLabel,
                 filterKey: 'tree'
             };
         }
@@ -170,7 +173,7 @@
         const cashbackEarnedEl = document.getElementById('summaryCashbackEarnings');
         const walletBalanceEl = document.getElementById('summaryWalletBalance');
 
-        // Calculate breakdown
+        // Calculate breakdown from loaded page
         let directSum = 0;
         let cashbackSum = 0;
         let treeSum = 0;
@@ -188,11 +191,11 @@
             }
         });
 
-        // Use summary if available, or fallback to transactions aggregate
+        // Use authoritative summary data from backend API
         const displayTotal = summaryData.totalCommission !== undefined ? summaryData.totalCommission : totalSum;
         const displayTree = summaryData.totalTreeCommission !== undefined ? summaryData.totalTreeCommission : treeSum;
-        const displayDirect = directSum > 0 ? directSum : (summaryData.totalDirectCommission || 0);
-        const displayCashback = cashbackSum > 0 ? cashbackSum : 0;
+        const displayDirect = summaryData.totalDirectCommission !== undefined ? summaryData.totalDirectCommission : directSum;
+        const displayCashback = summaryData.totalCashbackCommission !== undefined ? summaryData.totalCashbackCommission : cashbackSum;
         const displayWallet = summaryData.walletBalance !== undefined ? summaryData.walletBalance : 0;
 
         if (totalEarnedEl) totalEarnedEl.textContent = formatCurrency(displayTotal);
@@ -205,18 +208,23 @@
     // Update Filter Chip Badges
     function updateFilterCounts() {
         const counts = {
-            all: allTransactions.length,
-            cashback: 0,
-            referral: 0,
-            tree: 0
+            all: paginationData?.totalCount !== undefined ? paginationData.totalCount : allTransactions.length,
+            cashback: summaryData?.cashbackCommissionCount !== undefined ? summaryData.cashbackCommissionCount : 0,
+            referral: summaryData?.directCommissionCount !== undefined ? summaryData.directCommissionCount : 0,
+            tree: summaryData?.treeCommissionCount !== undefined ? summaryData.treeCommissionCount : 0
         };
 
-        allTransactions.forEach(tx => {
-            const meta = getCommissionMeta(tx);
-            if (counts[meta.filterKey] !== undefined) {
-                counts[meta.filterKey]++;
-            }
-        });
+        if (summaryData?.cashbackCommissionCount === undefined) {
+            counts.cashback = 0;
+            counts.referral = 0;
+            counts.tree = 0;
+            allTransactions.forEach(tx => {
+                const meta = getCommissionMeta(tx);
+                if (counts[meta.filterKey] !== undefined) {
+                    counts[meta.filterKey]++;
+                }
+            });
+        }
 
         const chipAll = document.getElementById('chipCountAll');
         const chipCashback = document.getElementById('chipCountCashback');

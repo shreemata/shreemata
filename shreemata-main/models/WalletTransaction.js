@@ -20,17 +20,23 @@ const walletTransactionSchema = new mongoose.Schema({
   category: {
     type: String,
     enum: [
-      'direct_commission',     // Cashback to buyer
-      'referral_commission',   // Referral earnings
-      'tree_commission',       // Tree placement earnings
-      'admin_commission',      // Admin share
-      'referral_fallback',     // Referral fallback to admin
-      'withdrawal',            // Wallet withdrawal
-      'vip_master_card_withdrawal', // VIP Master Card withdrawal
-      'refund',                // Order refund
-      'adjustment',            // Manual admin adjustment
-      'test_simulation',       // Test simulated payouts
-      'referral_registration_reward' // Registration reward for introducing new user
+      'direct_commission',
+      'cashback',
+      'buyer_cashback',
+      'referral_commission',
+      'referral_registration_reward',
+      'referral_fallback',
+      'tree_commission',
+      'tree_pool',
+      'tree',
+      'treeCommission',
+      'tree_pool_commission',
+      'admin_commission',
+      'withdrawal',
+      'vip_master_card_withdrawal',
+      'refund',
+      'adjustment',
+      'test_simulation'
     ],
     required: true
   },

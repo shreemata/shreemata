@@ -787,11 +787,15 @@
                                 <p class="points-value" id="pointsWallet">0</p>
                             </div>
                             <div class="points-card">
-                                <h3>Total Points Earned</h3>
+                                <h3>Lifetime Points Earned</h3>
                                 <p class="points-value" id="totalPointsEarned">0</p>
                             </div>
                             <div class="points-card">
-                                <h3>Virtual Referrals</h3>
+                                <h3>Points Redeemed</h3>
+                                <p class="points-value" id="pointsRedeemed">0</p>
+                            </div>
+                            <div class="points-card">
+                                <h3>Virtual Referrals Created</h3>
                                 <p class="points-value" id="virtualReferralsCreated">0</p>
                             </div>
                         </div>
@@ -799,12 +803,49 @@
                         <!-- Virtual Referral Box -->
                         <div class="redeem-section">
                             <h3 style="margin-top: 0; font-size: 16px;">🌳 Create Virtual Referral</h3>
-                            <p style="color: var(--sm-body); font-size: 13.5px; margin-bottom: 14px;">
-                                Redeem <strong id="virtualTreeCost">100</strong> points to create a virtual referral in your placement tree.
-                            </p>
+                            <div class="virtual-referral-info-box" style="margin-bottom: 14px; font-size: 13.5px; color: var(--sm-body);">
+                                <div style="display: flex; gap: 20px; margin-bottom: 8px; font-weight: 500;">
+                                    <span>Cost: <strong id="virtualTreeCost">100</strong> points</span>
+                                    <span>Available: <strong id="virtualAvailablePoints">0</strong> points</span>
+                                </div>
+                                <p id="virtualReferralStatusMsg" style="margin: 0; font-size: 13px; color: #666;">
+                                    Redeem 100 points to create a virtual referral in your placement tree.
+                                </p>
+                            </div>
                             <button class="btn-primary" id="redeemBtn" onclick="redeemVirtualReferral()">
-                                🎁 Redeem <span id="virtualTreeCostBtn">100</span> Points for Virtual Referral
+                                🎁 Create Virtual Referral — <span id="virtualTreeCostBtn">100</span> Points
                             </button>
+                        </div>
+
+                        <!-- Virtual Referral Earnings & VIP Transfer Section -->
+                        <div class="virtual-earnings-section" style="margin-top: 24px; padding: 20px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #eee; padding-bottom: 12px;">
+                                <h3 style="margin: 0; font-size: 17px; color: #1a1a1a; display: flex; align-items: center; gap: 8px;">
+                                    <span>🌳</span> My Virtual Referrals & Earnings
+                                </h3>
+                                <span class="badge" id="vrTotalCountBadge" style="background: #eef2ff; color: #4f46e5; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">0 Positions</span>
+                            </div>
+
+                            <!-- Summary Cards -->
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
+                                    <div style="font-size: 11.5px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Available to Transfer</div>
+                                    <div style="font-size: 20px; font-weight: 700; color: #059669; margin-top: 4px;" id="vrSummaryAvailable">₹0.00</div>
+                                </div>
+                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
+                                    <div style="font-size: 11.5px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Lifetime Virtual Earnings</div>
+                                    <div style="font-size: 20px; font-weight: 700; color: #2563eb; margin-top: 4px;" id="vrSummaryLifetime">₹0.00</div>
+                                </div>
+                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
+                                    <div style="font-size: 11.5px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Transferred to VIP Card</div>
+                                    <div style="font-size: 20px; font-weight: 700; color: #7c3aed; margin-top: 4px;" id="vrSummaryTransferred">₹0.00</div>
+                                </div>
+                            </div>
+
+                            <!-- Individual Virtual Cards Container -->
+                            <div id="virtualReferralCardsList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;">
+                                <div style="text-align: center; color: #94a3b8; padding: 20px;">Loading Virtual Referrals...</div>
+                            </div>
                         </div>
 
                         <!-- Cash Conversion Tool -->

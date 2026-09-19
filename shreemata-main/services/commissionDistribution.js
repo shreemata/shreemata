@@ -204,7 +204,7 @@ async function previewCommissions(orderId, profitAmount = 0) {
         ...baseRecord,
         name: `${treeParent.name} (Virtual)`,
         status: 'active',
-        destination: originalUser ? `Original User (${originalUser.name})` : 'Trust Fund'
+        destination: originalUser ? `Virtual Referral Balance (${originalUser.name})` : 'Trust Fund'
       });
     } else {
       treeCommissionsList.push({
@@ -654,18 +654,36 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
         const originalUser = await User.findById(treeParent.originalUser);
         if (originalUser) {
           if (commissionAmount > 0) {
-            await creditWallet(
-              originalUser._id, commissionAmount,
-              'tree_commission',
-              `Tree Commission (L${item.level}, via virtual) for Order #${orderShortId}`,
-              orderId, null,
-              { treeCommissionEarned: commissionAmount }
+            const amountPaise = Math.round(commissionAmount * 100);
+            const updatedVirtual = await User.findByIdAndUpdate(
+              treeParent._id,
+              {
+                $inc: {
+                  virtualEarningsBalancePaise: amountPaise,
+                  virtualLifetimeEarningsPaise: amountPaise,
+                  treeCommissionEarned: commissionAmount
+                }
+              },
+              { new: true }
             );
+
+            const VirtualReferralTransaction = require('../models/VirtualReferralTransaction');
+            await VirtualReferralTransaction.create({
+              virtualReferralId: treeParent._id,
+              ownerUserId: treeParent.originalUser,
+              type: 'tree_commission',
+              amountPaise: amountPaise,
+              balanceAfterPaise: updatedVirtual ? updatedVirtual.virtualEarningsBalancePaise : amountPaise,
+              orderId: orderId,
+              sourceTreeLevel: item.level,
+              createdAt: new Date()
+            });
           }
           
           transaction.treeCommissions.push({
             ...baseAuditRecord,
-            redirectedTo: originalUser._id
+            redirectedTo: originalUser._id,
+            creditedDestination: "virtual_referral_balance"
           });
         } else {
           if (commissionAmount > 0) {
