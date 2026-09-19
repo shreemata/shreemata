@@ -202,6 +202,28 @@ body {
     position: relative;
 }
 
+/* Virtual Referral Card Styles */
+.horizontal-node.virtual-card, .tree-node.virtual-card {
+    background: linear-gradient(135deg, #fff9f0 0%, #fff3e0 100%) !important;
+    border: 2px dashed #f57c00 !important;
+    box-shadow: 0 4px 15px rgba(245, 124, 0, 0.18) !important;
+    max-width: 210px !important;
+    min-width: 175px !important;
+}
+.horizontal-node.virtual-card:hover, .tree-node.virtual-card:hover {
+    box-shadow: 0 8px 25px rgba(245, 124, 0, 0.35) !important;
+    border-color: #e65100 !important;
+}
+.virtual-badge {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    display: inline-block;
+}
+
 /* Enhanced tree structure with visible connections */
 
 /* Vertical connecting lines from each node to next level - More visible */
@@ -1420,21 +1442,8 @@ function createOptimizedUserNode(user) {
     node.setAttribute('data-user-id', user.id || user._id || '');
     node.setAttribute('data-parent-id', user.treeParent || user.parentId || '');
     
-    // Use template literals for better performance
-    const name = escapeHtml(user.name || user.fullName || user.displayName || 'Unnamed');
-    const nameDisplay = isVirtual ? `${name} (Virtual)` : name;
-    const virtualBadge = isVirtual ? '<span class="virtual-badge">🤖 Virtual</span>' : '';
-    const wallet = Number(user.wallet || (user.account?.wallet) || 0).toFixed(2);
-    const directRefsCount = user.directReferralsCount !== undefined ? user.directReferralsCount : (user.referrals || 0);
-    const treeChildrenCount = user.treeChildrenCount !== undefined ? user.treeChildrenCount : (user.childrenCount || 0);
-    
     // Use innerHTML once instead of multiple DOM operations
-    node.innerHTML = `
-        <div class="tree-name">${nameDisplay} ${virtualBadge}</div>
-        <div class="tree-meta">₹${wallet}</div>
-        <div class="tree-meta">Direct Referrals: ${directRefsCount}</div>
-        <div class="tree-meta">Tree Children: ${treeChildrenCount} / 5</div>
-    `;
+    node.innerHTML = renderNodeInnerContent(user);
     
     // Add hover event listeners to show connections
     node.addEventListener('mouseenter', handleNodeHover);
@@ -1959,6 +1968,50 @@ function adjustConnectionLines() {
     }
 }
 
+/* ---------- Node Inner Content Renderer ---------- */
+function renderNodeInnerContent(user) {
+    const isVirtual = user.isVirtual || false;
+    const treeChildrenCount = user.treeChildrenCount !== undefined ? user.treeChildrenCount : (user.childrenCount || 0);
+
+    if (isVirtual) {
+        const rawOwner = user.ownerName || (user.name ? user.name.split('-Virtual-')[0] : 'Owner');
+        const ownerName = escapeHtml(rawOwner);
+        let vrNum = user.virtualReferralNumber;
+        if (!vrNum && user.name && user.name.includes('-Virtual-')) {
+            vrNum = user.name.split('-Virtual-')[1];
+        }
+        vrNum = vrNum || '1';
+
+        const virtBal = (Number(user.virtualEarningsBalancePaise || 0) / 100).toFixed(2);
+        const virtLife = (Number(user.virtualLifetimeEarningsPaise || 0) / 100).toFixed(2);
+        const virtClaimed = (Number(user.virtualClaimedEarningsPaise || 0) / 100).toFixed(2);
+        const posDisplay = (user.treePosition || 0) + 1;
+
+        return `
+            <div class="tree-name">${ownerName} — Virtual #${vrNum}</div>
+            <div style="margin: 3px 0 6px;"><span class="virtual-badge">🤖 Virtual Referral</span></div>
+            <div class="tree-meta"><strong>Owner:</strong> ${ownerName}</div>
+            <div class="tree-meta"><strong>Level:</strong> ${user.treeLevel || 0}</div>
+            <div class="tree-meta"><strong>Position:</strong> ${posDisplay}</div>
+            <div class="tree-meta"><strong>Virtual Balance:</strong> ₹${virtBal}</div>
+            <div class="tree-meta"><strong>Lifetime Virtual Earnings:</strong> ₹${virtLife}</div>
+            <div class="tree-meta"><strong>Transferred to VIP:</strong> ₹${virtClaimed}</div>
+            <div class="tree-meta"><strong>Tree Children:</strong> ${treeChildrenCount} / 5</div>
+        `;
+    }
+
+    const name = escapeHtml(user.name || user.fullName || user.displayName || 'Unnamed');
+    const wallet = Number(user.wallet || (user.account?.wallet) || 0).toFixed(2);
+    const directRefsCount = user.directReferralsCount !== undefined ? user.directReferralsCount : (user.referrals || 0);
+
+    return `
+        <div class="tree-name">${name}</div>
+        <div class="tree-meta">Wallet: ₹${wallet}</div>
+        <div class="tree-meta">Direct Referrals: ${directRefsCount}</div>
+        <div class="tree-meta">Tree Children: ${treeChildrenCount} / 5</div>
+    `;
+}
+
 /* ---------- Create Horizontal User Node ---------- */
 function createHorizontalUserNode(user) {
     const node = document.createElement('div');
@@ -1973,20 +2026,7 @@ function createHorizontalUserNode(user) {
     node.setAttribute('data-user-id', user.id || user._id || '');
     node.setAttribute('data-parent-id', user.treeParent || user.parentId || '');
     
-    // Safe content
-    const name = escapeHtml(user.name || user.fullName || user.displayName || 'Unnamed');
-    const nameDisplay = isVirtual ? `${name} (Virtual)` : name;
-    const virtualBadge = isVirtual ? '<span class="virtual-badge">🤖 Virtual</span>' : '';
-    const wallet = Number(user.wallet || (user.account?.wallet) || 0).toFixed(2);
-    const directRefsCount = user.directReferralsCount !== undefined ? user.directReferralsCount : (user.referrals || 0);
-    const treeChildrenCount = user.treeChildrenCount !== undefined ? user.treeChildrenCount : (user.childrenCount || 0);
-
-    node.innerHTML = `
-        <div class="tree-name">${nameDisplay} ${virtualBadge}</div>
-        <div class="tree-meta">Wallet: ₹${wallet}</div>
-        <div class="tree-meta">Direct Referrals: ${directRefsCount}</div>
-        <div class="tree-meta">Tree Children: ${treeChildrenCount} / 5</div>
-    `;
+    node.innerHTML = renderNodeInnerContent(user);
     
     // Add hover event listeners to show connections
     node.addEventListener('mouseenter', handleNodeHover);
@@ -2095,20 +2135,7 @@ function createUserNodeElement(user){
     }
     
     node.setAttribute('data-user-id', user.id || user._id || user._id_str || '');
-    // safe content
-    const name = escapeHtml(user.name || user.fullName || user.displayName || 'Unnamed');
-    const nameDisplay = isVirtual ? `${name} (Virtual)` : name;
-    const virtualBadge = isVirtual ? '<span class="virtual-badge">🤖 Virtual</span>' : '';
-    const wallet = Number(user.wallet || (user.account?.wallet) || 0).toFixed(2);
-    const directRefsCount = user.directReferralsCount !== undefined ? user.directReferralsCount : (user.referrals || 0);
-    const treeChildrenCount = user.treeChildrenCount !== undefined ? user.treeChildrenCount : (user.childrenCount || 0);
-
-    node.innerHTML = `
-        <div class="tree-name">${nameDisplay} ${virtualBadge}</div>
-        <div class="tree-meta">Wallet: ₹${wallet}</div>
-        <div class="tree-meta">Direct Referrals: ${directRefsCount}</div>
-        <div class="tree-meta">Tree Children: ${treeChildrenCount} / 5</div>
-    `;
+    node.innerHTML = renderNodeInnerContent(user);
 
     // click opens modal (non-blocking)
     node.addEventListener('click', (e) => {
@@ -2296,7 +2323,21 @@ function populateEnhancedModalWithData(user, referralStats, referrerName, treePa
     
     // Virtual user indicator
     const isVirtual = user.isVirtual || false;
-    const virtualBadge = isVirtual ? '<span style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; margin-left: 8px;">🤖 Virtual Card</span>' : '';
+    const rawOwner = user.ownerName || (user.name ? user.name.split('-Virtual-')[0] : 'Owner');
+    const ownerName = escapeHtml(rawOwner);
+    let vrNum = user.virtualReferralNumber;
+    if (!vrNum && user.name && user.name.includes('-Virtual-')) {
+        vrNum = user.name.split('-Virtual-')[1];
+    }
+    vrNum = vrNum || '1';
+
+    const virtBal = (Number(user.virtualEarningsBalancePaise || 0) / 100).toFixed(2);
+    const virtLife = (Number(user.virtualLifetimeEarningsPaise || 0) / 100).toFixed(2);
+    const virtClaimed = (Number(user.virtualClaimedEarningsPaise || 0) / 100).toFixed(2);
+    const posDisplay = (treePosition !== 'N/A' && !isNaN(treePosition)) ? (parseInt(treePosition) + 1) : treePosition;
+
+    const modalTitle = isVirtual ? `${ownerName} — Virtual #${vrNum}` : escapeHtml(user.name || user.fullName || 'User');
+    const virtualBadge = isVirtual ? '<span style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; margin-left: 8px;">🤖 Virtual Referral</span>' : '';
 
     // Build children list HTML
     const childrenListHTML = childrenNames.length > 0 ? `
@@ -2339,14 +2380,26 @@ function populateEnhancedModalWithData(user, referralStats, referrerName, treePa
         </div>
     `;
 
-    modalContent.innerHTML = `
-        <button class="close" id="modalCloseInner" aria-label="Close">&times;</button>
-        <h3 style="margin-top:6px; display: flex; align-items: center;">
-            ${escapeHtml(user.name || user.fullName || 'User')}
-            ${virtualBadge}
-        </h3>
-        
-        <!-- Quick Stats Grid -->
+    const statsGridHTML = isVirtual ? `
+        <div class="stat-grid" style="margin: 20px 0;">
+            <div class="stat-card" style="border-left-color: #f57c00;">
+                <strong>🤖 Virtual Balance</strong>
+                <div style="font-size: 24px; color: #f57c00;">₹${virtBal}</div>
+            </div>
+            <div class="stat-card" style="border-left-color: #667eea;">
+                <strong>📈 Lifetime Virtual</strong>
+                <div style="font-size: 24px; color: #667eea;">₹${virtLife}</div>
+            </div>
+            <div class="stat-card" style="border-left-color: #28a745;">
+                <strong>💳 Transferred to VIP</strong>
+                <div style="font-size: 24px; color: #28a745;">₹${virtClaimed}</div>
+            </div>
+            <div class="stat-card" style="border-left-color: #764ba2;">
+                <strong>🌳 Tree Level</strong>
+                <div style="font-size: 24px; color: #764ba2;">Level ${treeLevel}</div>
+            </div>
+        </div>
+    ` : `
         <div class="stat-grid" style="margin: 20px 0;">
             <div class="stat-card" style="border-left-color: #28a745;">
                 <strong>💰 Current Wallet</strong>
@@ -2365,6 +2418,17 @@ function populateEnhancedModalWithData(user, referralStats, referrerName, treePa
                 <div style="font-size: 24px; color: #764ba2;">${treeLevel}</div>
             </div>
         </div>
+    `;
+
+    modalContent.innerHTML = `
+        <button class="close" id="modalCloseInner" aria-label="Close">&times;</button>
+        <h3 style="margin-top:6px; display: flex; align-items: center;">
+            ${modalTitle}
+            ${virtualBadge}
+        </h3>
+        
+        <!-- Quick Stats Grid -->
+        ${statsGridHTML}
 
         <!-- Detailed Information Tabs -->
         <div style="border-top: 2px solid #e8ecf4; padding-top: 20px;">
@@ -2384,24 +2448,42 @@ function populateEnhancedModalWithData(user, referralStats, referrerName, treePa
             <div id="modal-overview-tab" class="modal-tab-content">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div>
-                        <h4 style="color: #667eea; margin-bottom: 10px;">👤 Personal Information</h4>
+                        <h4 style="color: #667eea; margin-bottom: 10px;">👤 ${isVirtual ? 'Virtual Node Info' : 'Personal Information'}</h4>
                         <div style="background: #f8f9ff; padding: 15px; border-radius: 8px;">
-                            <div style="margin-bottom: 8px;">
-                                <strong>Email:</strong> ${escapeHtml(user.email || 'N/A')}
-                            </div>
-                            <div style="margin-bottom: 8px;">
-                                <strong>Referral Code:</strong> 
-                                <code style="background: #e8ecf4; padding: 4px 8px; border-radius: 4px; font-weight: 600;">${escapeHtml(referralCode)}</code>
-                            </div>
-                            <div style="margin-bottom: 8px;">
-                                <strong>Join Date:</strong> ${joinDate}
-                            </div>
-                            <div style="margin-bottom: 8px;">
-                                <strong>Account Type:</strong> ${escapeHtml(user.role || 'User')}
-                            </div>
-                            <div>
-                                <strong>First Purchase:</strong> ${user.firstPurchaseDone ? '✅ Yes' : '❌ No'}
-                            </div>
+                            ${isVirtual ? `
+                                <div style="margin-bottom: 8px;">
+                                    <strong>Owner Name:</strong> ${ownerName}
+                                </div>
+                                <div style="margin-bottom: 8px;">
+                                    <strong>Virtual Referral #:</strong> ${vrNum}
+                                </div>
+                                <div style="margin-bottom: 8px;">
+                                    <strong>Virtual Balance:</strong> ₹${virtBal}
+                                </div>
+                                <div style="margin-bottom: 8px;">
+                                    <strong>Lifetime Virtual Earnings:</strong> ₹${virtLife}
+                                </div>
+                                <div style="margin-bottom: 8px;">
+                                    <strong>Transferred to VIP:</strong> ₹${virtClaimed}
+                                </div>
+                            ` : `
+                                <div style="margin-bottom: 8px;">
+                                    <strong>Email:</strong> ${escapeHtml(user.email || 'N/A')}
+                                </div>
+                                <div style="margin-bottom: 8px;">
+                                    <strong>Referral Code:</strong> 
+                                    <code style="background: #e8ecf4; padding: 4px 8px; border-radius: 4px; font-weight: 600;">${escapeHtml(referralCode)}</code>
+                                </div>
+                                <div style="margin-bottom: 8px;">
+                                    <strong>Join Date:</strong> ${joinDate}
+                                </div>
+                                <div style="margin-bottom: 8px;">
+                                    <strong>Account Type:</strong> ${escapeHtml(user.role || 'User')}
+                                </div>
+                                <div>
+                                    <strong>First Purchase:</strong> ${user.firstPurchaseDone ? '✅ Yes' : '❌ No'}
+                                </div>
+                            `}
                         </div>
                     </div>
                     
@@ -2412,7 +2494,7 @@ function populateEnhancedModalWithData(user, referralStats, referrerName, treePa
                                 <strong>Tree Level:</strong> Level ${treeLevel}
                             </div>
                             <div style="margin-bottom: 8px;">
-                                <strong>Position:</strong> ${treePosition}
+                                <strong>Position:</strong> Position ${posDisplay}
                             </div>
                             <div style="margin-bottom: 8px;">
                                 <strong>Tree Parent:</strong> 
@@ -2421,10 +2503,7 @@ function populateEnhancedModalWithData(user, referralStats, referrerName, treePa
                                 </span>
                             </div>
                             <div style="margin-bottom: 8px;">
-                                <strong>Referred By:</strong> 
-                                <span style="color: ${hasReferrer ? '#28a745' : '#dc3545'}; font-weight: 600;">
-                                    ${hasReferrer ? '✅' : '❌'} ${referredByDisplay}
-                                </span>
+                                <strong>Tree Children:</strong> ${directChildren} / 5
                             </div>
                             <div>
                                 <strong>Total Descendants:</strong> ${totalDescendants}
@@ -2455,28 +2534,15 @@ function populateEnhancedModalWithData(user, referralStats, referrerName, treePa
 
                 <div style="background: #f8f9ff; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                     <h5 style="margin-bottom: 10px;">📊 Referral Hierarchy</h5>
-                    <div style="margin-bottom: 12px; padding: 12px; background: white; border-radius: 6px; border-left: 4px solid ${hasReferrer ? '#28a745' : '#dc3545'};">
-                        <strong>Who Referred This User:</strong><br>
-                        <span style="color: ${hasReferrer ? '#28a745' : '#dc3545'}; font-size: 16px; font-weight: 600;">
-                            ${hasReferrer ? '✅ ' : '❌ '}${referredByDisplay}
-                        </span>
-                    </div>
                     <div style="margin-bottom: 8px;">
                         <strong>Tree Parent:</strong> 
                         <span style="color: #667eea; font-weight: 600;">${treeParentDisplay}</span>
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <strong>Direct Referrals Made:</strong> ${directRefsCount} users
                     </div>
                     <div style="margin-bottom: 8px;">
                         <strong>Tree Children:</strong> ${directChildren} / 5
                     </div>
                     <div style="margin-bottom: 8px;">
                         <strong>Users Under This Person (Tree):</strong> ${totalDescendants} users (all levels)
-                    </div>
-                    <div>
-                        <strong>Referral Code:</strong> 
-                        <code style="background: #667eea; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 14px;">${escapeHtml(referralCode)}</code>
                     </div>
                 </div>
 
@@ -2486,52 +2552,37 @@ function populateEnhancedModalWithData(user, referralStats, referrerName, treePa
             <!-- Commissions Tab -->
             <div id="modal-commissions-tab" class="modal-tab-content" style="display: none;">
                 <h4 style="color: #667eea; margin-bottom: 15px;">💰 Commission Breakdown</h4>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px;">
-                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Direct Commission</div>
-                        <div style="font-size: 28px; font-weight: 700;">₹${directCommission}</div>
-                        <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">From ${directChildren} direct referrals</div>
+                ${isVirtual ? `
+                    <div style="background: #fff9f0; border: 1px solid #ffe0b2; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+                        <h5 style="color: #e65100; margin-top: 0;">🤖 Virtual Referral Holding Balance</h5>
+                        <p>Earnings in a Virtual Referral node are held separately and transferred directly to the owner's VIP Master Card when claimed.</p>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li><strong>Available Balance:</strong> ₹${virtBal}</li>
+                            <li><strong>Lifetime Earnings:</strong> ₹${virtLife}</li>
+                            <li><strong>Transferred to VIP Card:</strong> ₹${virtClaimed}</li>
+                        </ul>
                     </div>
-                    <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 20px; border-radius: 12px;">
-                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Tree Commission</div>
-                        <div style="font-size: 28px; font-weight: 700;">₹${treeCommission}</div>
-                        <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">From tree structure</div>
-                    </div>
-                </div>
-
-                <div style="background: #f8f9ff; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h5 style="margin: 0;">Total Commission Earned</h5>
-                        <div style="font-size: 32px; font-weight: 700; color: #28a745;">₹${totalCommission}</div>
-                    </div>
-                    <div style="background: #e8ecf4; height: 8px; border-radius: 4px; overflow: hidden;">
-                        <div style="background: linear-gradient(90deg, #667eea 0%, #43e97b 100%); height: 100%; width: ${Number(totalCommission) > 0 ? '100' : '0'}%; transition: width 0.3s ease;"></div>
-                    </div>
-                </div>
-
-                <div style="background: #f8f9ff; padding: 15px; border-radius: 8px;">
-                    <h5 style="margin-bottom: 10px;">📊 Commission Details</h5>
-                    <div style="margin-bottom: 8px;">
-                        <strong>Commission from Direct Referrals:</strong> ₹${commissionFromDirectReferrals}
-                        <div style="font-size: 12px; color: #666;">Earned from ${directChildren} direct children</div>
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <strong>Commission from Tree:</strong> ₹${commissionFromTreeReferrals}
-                        <div style="font-size: 12px; color: #666;">Earned from tree structure (levels below)</div>
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <strong>Current Wallet Balance:</strong> ₹${wallet}
-                        <div style="font-size: 12px; color: #666;">Available for withdrawal</div>
-                    </div>
-                    <div>
-                        <strong>Commission Rate:</strong>
-                        <div style="font-size: 12px; color: #666;">
-                            ${Number(directCommission) > 0 ? `${((Number(directCommission) / Number(totalCommission)) * 100).toFixed(1)}% Direct` : '0% Direct'} | 
-                            ${Number(treeCommission) > 0 ? `${((Number(treeCommission) / Number(totalCommission)) * 100).toFixed(1)}% Tree` : '0% Tree'}
+                ` : `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px;">
+                            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Direct Commission</div>
+                            <div style="font-size: 28px; font-weight: 700;">₹${directCommission}</div>
+                            <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">From ${directChildren} direct referrals</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 20px; border-radius: 12px;">
+                            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Tree Commission</div>
+                            <div style="font-size: 28px; font-weight: 700;">₹${treeCommission}</div>
+                            <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">From tree structure</div>
                         </div>
                     </div>
-                </div>
+
+                    <div style="background: #f8f9ff; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h5 style="margin: 0;">Total Commission Earned</h5>
+                            <div style="font-size: 32px; font-weight: 700; color: #28a745;">₹${totalCommission}</div>
+                        </div>
+                    </div>
+                `}
             </div>
         </div>
     `;
@@ -2543,28 +2594,60 @@ function populateEnhancedModalWithData(user, referralStats, referrerName, treePa
 
 // Fallback function for simple modal display (when detailed fetch fails)
 function populateModalWithData(user) {
-    const joinDate = user.joinDate ? (new Date(user.joinDate)).toLocaleDateString() : 'N/A';
-    const wallet = Number(user.wallet || 0).toFixed(2);
-    const totalComms = Number(user.commissions?.total || user.totalCommissions || 0).toFixed(2);
+    const isVirtual = user.isVirtual || false;
     const directRefsCount = user.directReferralsCount !== undefined ? user.directReferralsCount : (user.referrals || 0);
     const treeChildrenCount = user.treeChildrenCount !== undefined ? user.treeChildrenCount : (user.childrenCount || 0);
 
-    modalContent.innerHTML = `
-        <button class="close" id="modalCloseInner" aria-label="Close">&times;</button>
-        <h3 style="margin-top:6px;">${escapeHtml(user.name || user.fullName || 'User')}</h3>
-        <div class="stat-grid">
-            <div class="stat-card"><strong>Wallet</strong><div>₹${wallet}</div></div>
-            <div class="stat-card"><strong>Total Commissions</strong><div>₹${totalComms}</div></div>
-            <div class="stat-card"><strong>Direct Referrals</strong><div>${directRefsCount}</div></div>
-            <div class="stat-card"><strong>Tree Children</strong><div>${treeChildrenCount} / 5</div></div>
-        </div>
-        <div style="margin-top:8px;">
-            <strong>Email:</strong> ${escapeHtml(user.email || 'N/A')}<br/>
-            <strong>Referral Code:</strong> ${escapeHtml(user.referralCode || user.code || 'N/A')}<br/>
-            <strong>Role:</strong> ${escapeHtml(user.role || 'User')}
-        </div>
-    `;
-    // wire inner close
+    if (isVirtual) {
+        const rawOwner = user.ownerName || (user.name ? user.name.split('-Virtual-')[0] : 'Owner');
+        const ownerName = escapeHtml(rawOwner);
+        let vrNum = user.virtualReferralNumber;
+        if (!vrNum && user.name && user.name.includes('-Virtual-')) {
+            vrNum = user.name.split('-Virtual-')[1];
+        }
+        vrNum = vrNum || '1';
+
+        const virtBal = (Number(user.virtualEarningsBalancePaise || 0) / 100).toFixed(2);
+        const virtLife = (Number(user.virtualLifetimeEarningsPaise || 0) / 100).toFixed(2);
+        const virtClaimed = (Number(user.virtualClaimedEarningsPaise || 0) / 100).toFixed(2);
+        const posDisplay = (user.treePosition !== undefined) ? (user.treePosition + 1) : 1;
+
+        modalContent.innerHTML = `
+            <button class="close" id="modalCloseInner" aria-label="Close">&times;</button>
+            <h3 style="margin-top:6px;">${ownerName} — Virtual #${vrNum} <span class="virtual-badge">🤖 Virtual Referral</span></h3>
+            <div class="stat-grid">
+                <div class="stat-card"><strong>Virtual Balance</strong><div>₹${virtBal}</div></div>
+                <div class="stat-card"><strong>Lifetime Virtual</strong><div>₹${virtLife}</div></div>
+                <div class="stat-card"><strong>Transferred to VIP</strong><div>₹${virtClaimed}</div></div>
+                <div class="stat-card"><strong>Tree Children</strong><div>${treeChildrenCount} / 5</div></div>
+            </div>
+            <div style="margin-top:8px;">
+                <strong>Owner:</strong> ${ownerName}<br/>
+                <strong>Level:</strong> ${user.treeLevel || 0}<br/>
+                <strong>Position:</strong> ${posDisplay}
+            </div>
+        `;
+    } else {
+        const joinDate = user.joinDate ? (new Date(user.joinDate)).toLocaleDateString() : 'N/A';
+        const wallet = Number(user.wallet || 0).toFixed(2);
+        const totalComms = Number(user.commissions?.total || user.totalCommissions || 0).toFixed(2);
+
+        modalContent.innerHTML = `
+            <button class="close" id="modalCloseInner" aria-label="Close">&times;</button>
+            <h3 style="margin-top:6px;">${escapeHtml(user.name || user.fullName || 'User')}</h3>
+            <div class="stat-grid">
+                <div class="stat-card"><strong>Wallet</strong><div>₹${wallet}</div></div>
+                <div class="stat-card"><strong>Total Commissions</strong><div>₹${totalComms}</div></div>
+                <div class="stat-card"><strong>Direct Referrals</strong><div>${directRefsCount}</div></div>
+                <div class="stat-card"><strong>Tree Children</strong><div>${treeChildrenCount} / 5</div></div>
+            </div>
+            <div style="margin-top:8px;">
+                <strong>Email:</strong> ${escapeHtml(user.email || 'N/A')}<br/>
+                <strong>Referral Code:</strong> ${escapeHtml(user.referralCode || user.code || 'N/A')}<br/>
+                <strong>Role:</strong> ${escapeHtml(user.role || 'User')}
+            </div>
+        `;
+    }
     const innerClose = document.getElementById('modalCloseInner');
     if (innerClose) innerClose.addEventListener('click', closeModal);
 }

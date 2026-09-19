@@ -449,21 +449,51 @@ function renderLevelUsers(users, level) {
             // Check if this is a virtual card
             const isVirtual = user.isVirtual || false;
             const virtualClass = isVirtual ? 'virtual-card' : '';
-            const virtualBadge = isVirtual ? '<span class="virtual-badge">🤖 Virtual Card</span>' : '';
-            const nameDisplay = isVirtual ? `${user.name} (Virtual)` : user.name;
+            const virtualBadge = isVirtual ? '<span class="virtual-badge">🤖 Virtual Referral</span>' : '';
             
+            if (isVirtual) {
+                const ownerName = user.ownerName || (user.name ? user.name.split('-Virtual-')[0] : 'Owner');
+                const vrNum = user.virtualReferralNumber || (user.name && user.name.includes('-Virtual-') ? user.name.split('-Virtual-')[1] : '1');
+                const virtBal = (Number(user.virtualEarningsBalancePaise || 0) / 100).toFixed(2);
+                const virtLife = (Number(user.virtualLifetimeEarningsPaise || 0) / 100).toFixed(2);
+                const virtClaimed = (Number(user.virtualClaimedEarningsPaise || 0) / 100).toFixed(2);
+                const posDisplay = (user.treePosition || 0) + 1;
+
+                return `
+                    <div class="tree-node ${referralStatusClass} ${virtualClass}" data-user-id="${user.id}">
+                        <div class="node-header">
+                            <div class="node-info">
+                                <div class="node-name">${ownerName} — Virtual #${vrNum} ${virtualBadge}</div>
+                                <div class="node-details">
+                                    <span><strong>Owner:</strong> ${ownerName}</span>
+                                    <span><strong>Level:</strong> ${user.treeLevel}</span>
+                                    <span><strong>Position:</strong> ${posDisplay}</span>
+                                    <span><strong>Virtual Balance:</strong> ₹${virtBal}</span>
+                                    <span><strong>Lifetime Virtual:</strong> ₹${virtLife}</span>
+                                    <span><strong>Transferred to VIP:</strong> ₹${virtClaimed}</span>
+                                    <span><strong>Tree Children:</strong> ${user.relationships?.treeChildrenCount || user.treeChildrenCount || 0} / 5</span>
+                                </div>
+                            </div>
+                            <div class="node-actions">
+                                <button class="btn-info" onclick="showUserDetails('${user.id}')">Details</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
             return `
                 <div class="tree-node ${referralStatusClass} ${virtualClass}" data-user-id="${user.id}">
                     <div class="node-header">
                         <div class="node-info">
-                            <div class="node-name">${nameDisplay} ${virtualBadge}</div>
+                            <div class="node-name">${user.name}</div>
                             <div class="node-details">
                                 <span class="level-indicator">Level ${user.treeLevel}</span>
                                 <span class="referral-status ${referralStatusBadge}">${referralStatusText}</span>
-                                <span>Position: ${user.treePosition}</span>
+                                <span>Position: ${(user.treePosition || 0) + 1}</span>
                                 <span>Wallet: ₹${user.wallet.toFixed(2)}</span>
-                                <span>Children: ${user.relationships.treeChildrenCount}</span>
-                                <span>Total Commission: ₹${user.commissions.total.toFixed(2)}</span>
+                                <span>Children: ${user.relationships?.treeChildrenCount || user.treeChildrenCount || 0} / 5</span>
+                                <span>Total Commission: ₹${user.commissions ? user.commissions.total.toFixed(2) : '0.00'}</span>
                                 <span>Joined: ${new Date(user.joinDate).toLocaleDateString()}</span>
                             </div>
                         </div>

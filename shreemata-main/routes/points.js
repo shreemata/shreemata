@@ -218,11 +218,15 @@ router.get('/virtual-referrals', authenticateToken, async (req, res) => {
 
       return {
         id: v._id.toString(),
+        _id: v._id.toString(),
         virtualReferralNumber: `VR-${String(index + 1).padStart(4, '0')}`,
         name: v.name,
         treeLevel: v.treeLevel || 0,
         treePosition: v.treePosition || 0,
         treeParentName: v.treeParent ? v.treeParent.name : 'Root',
+        virtualEarningsBalancePaise: availPaise,
+        virtualLifetimeEarningsPaise: lifePaise,
+        virtualClaimedEarningsPaise: claimPaise,
         availableEarnings: availPaise / 100,
         availableEarningsPaise: availPaise,
         lifetimeEarnings: lifePaise / 100,
