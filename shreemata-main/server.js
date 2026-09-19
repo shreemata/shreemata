@@ -54,6 +54,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // =====================================
 app.use("/api/payments", paymentRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api", authRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/orders", orderRoutes);

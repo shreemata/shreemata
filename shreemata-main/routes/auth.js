@@ -1,8 +1,9 @@
 const express = require("express");
+const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const { sendEmailOTP, sendPasswordResetOTP } = require("../utils/emailService");
+const emailService = require("../utils/emailService");
 
 const router = express.Router();
 
@@ -156,16 +157,18 @@ router.post("/verify-email-otp", async (req, res) => {
 });
 
 // FORGOT PASSWORD - Send Email OTP
-router.post("/forgot-password-send-email-otp", async (req, res) => {
+const handleSendPasswordResetEmailOtp = async (req, res) => {
   try {
-    const { email } = req.body;
+    const rawEmail = req.body.email;
 
-    if (!email) {
+    if (!rawEmail || typeof rawEmail !== "string") {
       return res.status(400).json({ 
         success: false, 
         error: "Email is required" 
       });
     }
+
+    const email = rawEmail.trim().toLowerCase();
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -176,23 +179,37 @@ router.post("/forgot-password-send-email-otp", async (req, res) => {
       });
     }
 
-    // Check if email exists in database
-    const user = await User.findOne({ email });
+    // Check if email exists in database (case-insensitive)
+    const user = await User.findOne({ email: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
     if (!user) {
-      return res.status(400).json({ 
-        success: false, 
-        error: "No account found with this email address" 
+      console.log(`🔐 Password reset requested for unregistered email address`);
+      return res.json({
+        success: true,
+        message: "If an account exists for this email, a verification code has been sent."
       });
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log(`🔐 Generated password reset OTP for ${email}: ${otp}`);
-
-    // Store OTP for password reset
     global.passwordResetOtpStore = global.passwordResetOtpStore || new Map();
+    const existingEntry = global.passwordResetOtpStore.get(email);
+
+    // Rate limiting: 60s cooldown between consecutive code requests
+    if (existingEntry && (Date.now() - existingEntry.createdAt) < 60 * 1000) {
+      const waitSeconds = Math.ceil((60 * 1000 - (Date.now() - existingEntry.createdAt)) / 1000);
+      return res.status(429).json({
+        success: false,
+        error: `Please wait ${waitSeconds} seconds before requesting another code.`
+      });
+    }
+
+    // Generate cryptographically safe 6-digit OTP
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+
+    // Store OTP before sending email
     global.passwordResetOtpStore.set(email, {
       otp: otp,
+      otpHash: otpHash,
+      createdAt: Date.now(),
       expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
       attempts: 0,
       userId: user._id,
@@ -201,24 +218,26 @@ router.post("/forgot-password-send-email-otp", async (req, res) => {
 
     // Send OTP via email
     try {
-      const emailResult = await sendPasswordResetOTP(email, otp);
+      const emailResult = await emailService.sendPasswordResetOTP(email, otp);
       
-      if (emailResult.success) {
-        console.log(`Password reset OTP sent to ${email}: ${otp}`);
-        res.json({
+      if (emailResult && emailResult.success) {
+        console.log(`✅ Password reset OTP email delivered to ${email}`);
+        return res.json({
           success: true,
           message: "Password reset code sent to your email"
         });
       } else {
-        console.error('Email service error:', emailResult.error);
-        res.status(500).json({ 
+        console.error('Email service error during password reset:', emailResult?.error || 'Unknown email error');
+        global.passwordResetOtpStore.delete(email);
+        return res.status(500).json({ 
           success: false, 
           error: "Failed to send password reset email. Please try again." 
         });
       }
     } catch (emailError) {
-      console.error("Email sending error:", emailError);
-      res.status(500).json({ 
+      console.error("Email sending exception during password reset:", emailError.message || emailError);
+      global.passwordResetOtpStore.delete(email);
+      return res.status(500).json({ 
         success: false, 
         error: "Failed to send password reset email. Please try again." 
       });
@@ -226,26 +245,28 @@ router.post("/forgot-password-send-email-otp", async (req, res) => {
 
   } catch (error) {
     console.error("Password reset OTP send error:", error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false, 
       error: "Error sending password reset code. Please try again." 
     });
   }
-});
+};
 
 // FORGOT PASSWORD - Verify Email OTP
-router.post("/forgot-password-verify-email-otp", async (req, res) => {
+const handleVerifyPasswordResetEmailOtp = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email: rawEmail, otp: rawOtp } = req.body;
 
-    if (!email || !otp) {
+    if (!rawEmail || !rawOtp) {
       return res.status(400).json({ 
         success: false, 
         error: "Email and verification code are required" 
       });
     }
 
-    // Get stored OTP data
+    const email = rawEmail.trim().toLowerCase();
+    const otp = String(rawOtp).trim();
+
     global.passwordResetOtpStore = global.passwordResetOtpStore || new Map();
     const storedData = global.passwordResetOtpStore.get(email);
 
@@ -274,14 +295,18 @@ router.post("/forgot-password-verify-email-otp", async (req, res) => {
       });
     }
 
-    // Verify OTP
-    if (storedData.otp !== otp) {
+    // Verify OTP using crypto timing-safe / hash comparison or string match
+    const inputHash = crypto.createHash('sha256').update(otp).digest('hex');
+    const isValid = (storedData.otpHash && storedData.otpHash === inputHash) || (storedData.otp === otp);
+
+    if (!isValid) {
       storedData.attempts += 1;
       global.passwordResetOtpStore.set(email, storedData);
       
+      const remainingAttempts = 3 - storedData.attempts;
       return res.status(400).json({ 
         success: false, 
-        error: `Invalid verification code. ${3 - storedData.attempts} attempts remaining.` 
+        error: `Invalid verification code. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.` 
       });
     }
 
@@ -289,15 +314,15 @@ router.post("/forgot-password-verify-email-otp", async (req, res) => {
     const resetToken = jwt.sign(
       { userId: storedData.userId, email, type: 'password-reset' },
       process.env.JWT_SECRET,
-      { expiresIn: '10m' } // 10 minutes to reset password
+      { expiresIn: '10m' }
     );
 
-    // Clear OTP from store
+    // Clear OTP from store to prevent reuse
     global.passwordResetOtpStore.delete(email);
 
-    console.log(`Password reset OTP verified for ${email}`);
+    console.log(`✅ Password reset OTP verified for ${email}`);
 
-    res.json({
+    return res.json({
       success: true,
       message: "Code verified successfully",
       resetToken
@@ -305,12 +330,18 @@ router.post("/forgot-password-verify-email-otp", async (req, res) => {
 
   } catch (error) {
     console.error("Password reset OTP verify error:", error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false, 
       error: "Error verifying code. Please try again." 
     });
   }
-});
+};
+
+router.post("/forgot-password-send-email-otp", handleSendPasswordResetEmailOtp);
+router.post("/forgot-password", handleSendPasswordResetEmailOtp);
+
+router.post("/forgot-password-verify-email-otp", handleVerifyPasswordResetEmailOtp);
+router.post("/verify-reset-otp", handleVerifyPasswordResetEmailOtp);
 
 // SIGNUP
 router.post("/signup", async (req, res) => {

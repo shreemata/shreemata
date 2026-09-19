@@ -764,28 +764,198 @@
             }
         }
 
-        // API Calls for Forgot Password (Keep your existing logic, just ensuring UI updates work)
+        // API Calls for Forgot Password
+        let currentResetEmail = '';
+        let currentResetToken = '';
+
         async function sendResetOTP() {
-            const email = document.getElementById('forgotEmail').value.trim();
+            const emailInput = document.getElementById('forgotEmail');
+            const email = emailInput ? emailInput.value.trim() : '';
             const errorDiv = document.getElementById('forgotError');
-            errorDiv.style.display = 'none';
+            const successDiv = document.getElementById('forgotSuccess');
+            const sendBtn = document.getElementById('sendOtpBtn');
+
+            if (errorDiv) errorDiv.style.display = 'none';
+            if (successDiv) successDiv.style.display = 'none';
+
             if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                errorDiv.textContent = 'Please enter a valid email'; errorDiv.style.display = 'block'; return;
+                if (errorDiv) {
+                    errorDiv.textContent = 'Please enter a valid email address';
+                    errorDiv.style.display = 'block';
+                }
+                return;
             }
-            // ... (Your existing API call logic here) ...
-            // Mocking success for UI demonstration:
-            document.getElementById('forgotStep1').style.display = 'none';
-            document.getElementById('forgotStep2').style.display = 'block';
+
+            try {
+                if (sendBtn) {
+                    sendBtn.disabled = true;
+                    sendBtn.textContent = 'Sending Code...';
+                }
+                currentResetEmail = email;
+
+                const res = await fetch('/api/auth/forgot-password-send-email-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to send verification code');
+                }
+
+                if (successDiv) {
+                    successDiv.textContent = data.message || 'Verification code sent to your email!';
+                    successDiv.style.display = 'block';
+                }
+
+                setTimeout(() => {
+                    if (successDiv) successDiv.style.display = 'none';
+                    document.getElementById('forgotStep1').style.display = 'none';
+                    document.getElementById('forgotStep2').style.display = 'block';
+                }, 1000);
+
+            } catch (err) {
+                if (errorDiv) {
+                    errorDiv.textContent = err.message || 'An error occurred';
+                    errorDiv.style.display = 'block';
+                }
+            } finally {
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Send Verification Code';
+                }
+            }
         }
+
         async function verifyResetOTP() {
-            // ... (Your existing API call logic here) ...
-            document.getElementById('forgotStep2').style.display = 'none';
-            document.getElementById('forgotStep3').style.display = 'block';
+            const otpInput = document.getElementById('forgotOtp');
+            const otp = otpInput ? otpInput.value.trim() : '';
+            const errorDiv = document.getElementById('forgotError');
+            const successDiv = document.getElementById('forgotSuccess');
+            const verifyBtn = document.getElementById('verifyOtpBtn');
+
+            if (errorDiv) errorDiv.style.display = 'none';
+            if (successDiv) successDiv.style.display = 'none';
+
+            if (!otp || otp.length !== 6) {
+                if (errorDiv) {
+                    errorDiv.textContent = 'Please enter the 6-digit verification code';
+                    errorDiv.style.display = 'block';
+                }
+                return;
+            }
+
+            try {
+                if (verifyBtn) {
+                    verifyBtn.disabled = true;
+                    verifyBtn.textContent = 'Verifying...';
+                }
+
+                const res = await fetch('/api/auth/forgot-password-verify-email-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: currentResetEmail, otp })
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.success || !data.resetToken) {
+                    throw new Error(data.error || 'Invalid verification code');
+                }
+
+                currentResetToken = data.resetToken;
+
+                if (successDiv) {
+                    successDiv.textContent = 'Code verified successfully!';
+                    successDiv.style.display = 'block';
+                }
+
+                setTimeout(() => {
+                    if (successDiv) successDiv.style.display = 'none';
+                    document.getElementById('forgotStep2').style.display = 'none';
+                    document.getElementById('forgotStep3').style.display = 'block';
+                }, 1000);
+
+            } catch (err) {
+                if (errorDiv) {
+                    errorDiv.textContent = err.message || 'Verification failed';
+                    errorDiv.style.display = 'block';
+                }
+            } finally {
+                if (verifyBtn) {
+                    verifyBtn.disabled = false;
+                    verifyBtn.textContent = 'Verify Code';
+                }
+            }
         }
+
         async function resetPassword() {
-            // ... (Your existing API call logic here) ...
-            createConfetti();
-            setTimeout(closeForgotModal, 2000);
+            const newPasswordInput = document.getElementById('newPassword');
+            const confirmPasswordInput = document.getElementById('confirmNewPassword');
+            const newPassword = newPasswordInput ? newPasswordInput.value : '';
+            const confirmNewPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
+            const errorDiv = document.getElementById('forgotError');
+            const successDiv = document.getElementById('forgotSuccess');
+            const resetBtn = document.getElementById('resetPasswordBtn');
+
+            if (errorDiv) errorDiv.style.display = 'none';
+            if (successDiv) successDiv.style.display = 'none';
+
+            if (!newPassword || newPassword.length < 6) {
+                if (errorDiv) {
+                    errorDiv.textContent = 'Password must be at least 6 characters long';
+                    errorDiv.style.display = 'block';
+                }
+                return;
+            }
+
+            if (newPassword !== confirmNewPassword) {
+                if (errorDiv) {
+                    errorDiv.textContent = 'Passwords do not match';
+                    errorDiv.style.display = 'block';
+                }
+                return;
+            }
+
+            try {
+                if (resetBtn) {
+                    resetBtn.disabled = true;
+                    resetBtn.textContent = 'Resetting...';
+                }
+
+                const res = await fetch('/api/auth/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ resetToken: currentResetToken, newPassword })
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Password reset failed');
+                }
+
+                if (successDiv) {
+                    successDiv.textContent = 'Password reset successfully! You can now log in.';
+                    successDiv.style.display = 'block';
+                }
+
+                if (typeof createConfetti === 'function') {
+                    createConfetti();
+                }
+
+                setTimeout(closeForgotModal, 2000);
+
+            } catch (err) {
+                if (errorDiv) {
+                    errorDiv.textContent = err.message || 'Password reset failed';
+                    errorDiv.style.display = 'block';
+                }
+            } finally {
+                if (resetBtn) {
+                    resetBtn.disabled = false;
+                    resetBtn.textContent = 'Reset Password';
+                }
+            }
         }
 
         // Add modal animations to head
