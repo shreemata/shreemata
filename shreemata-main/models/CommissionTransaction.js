@@ -57,6 +57,14 @@ const commissionTransactionSchema = new mongoose.Schema({
   },
   
   // Tree Commissions (Level-Based Tree Pool)
+  treePoolVersion: {
+    type: String,
+    default: "same-level-completed-block-v1"
+  },
+  sameLevelEligibilityRule: {
+    type: String,
+    default: "completed-5-of-5-sibling-block"
+  },
   buyerTreeLevel: {
     type: Number,
     default: 0
@@ -92,6 +100,21 @@ const commissionTransactionSchema = new mongoose.Schema({
     recipientLevel: {
       type: Number
     },
+    bucketLevel: {
+      type: Number
+    },
+    bucketType: {
+      type: String
+    },
+    siblingBlockParent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    siblingBlockComplete: {
+      type: Boolean,
+      default: false
+    },
     levelBucket: {
       type: String
     },
@@ -106,6 +129,10 @@ const commissionTransactionSchema = new mongoose.Schema({
     },
     memberShareAmount: {
       type: Number
+    },
+    rolledUpRemainder: {
+      type: Number,
+      default: 0
     }
   }],
   

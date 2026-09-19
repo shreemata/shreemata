@@ -92,18 +92,21 @@ describe('Final Level-Based Tree Pool Distribution Tests', () => {
     const level1Dist = res.distributions.filter(d => d.level === 1);
     const level2Dist = res.distributions.filter(d => d.level === 2);
 
-    // Level 1 (Shakuntaladevi) receives base ₹3.43 + ₹0.02 swept level 2 remainder = ₹3.45
+    // Under Same-Level Completed-Block rules:
+    // Level 3 bucket = 53.33% (427 paise). Since 0 completed same-level blocks exist in this test,
+    // all 427 paise rolls UPWARD to Level 2 bucket (213 + 427 = 640 paise).
+    // Level 2 members (5) receive 640 / 5 = 128 paise (₹1.28 each). Total Level 2 = ₹6.40.
+    // Level 1 (Shakuntaladevi) receives Level 1 / Root bucket = 20% = 160 paise (₹1.60).
     expect(level1Dist).toHaveLength(1);
-    expect(level1Dist[0].amount).toBe(3.45);
+    expect(level1Dist[0].amount).toBe(1.60);
 
-    // Every Level 2 member receives EXACTLY ₹0.91 each (no differences inside level 2)
     expect(level2Dist).toHaveLength(5);
     level2Dist.forEach(memberDist => {
-      expect(memberDist.amount).toBe(0.91);
+      expect(memberDist.amount).toBe(1.28);
     });
 
     const level2Total = level2Dist.reduce((sum, d) => sum + d.amount, 0);
-    expect(level2Total).toBe(4.55);
+    expect(level2Total).toBe(6.40);
 
     const grandTotalPaise = res.distributions.reduce((sum, d) => sum + Math.round(d.amount * 100), 0);
     expect(grandTotalPaise).toBe(800);

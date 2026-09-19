@@ -126,6 +126,8 @@ describe('Commission Distribution Service', () => {
             return mockQueryWithSession(null);
           });
 
+          User.find.mockReturnValue(mockQueryWithSession([{ _id: 'root123', name: 'Root', treeLevel: 1, treePosition: 0 }]));
+
           const OrderModel = require('../models/Order');
           OrderModel.findById.mockReturnValue(mockQueryWithSession({ _id: orderId, orderProfitTotal: orderAmount }));
 
@@ -263,6 +265,8 @@ describe('Commission Distribution Service', () => {
             }
             return mockQueryWithSession(null);
           });
+
+          User.find.mockReturnValue(mockQueryWithSession([{ _id: 'root123', name: 'Root', treeLevel: 1, treePosition: 0 }]));
 
           const OrderModel = require('../models/Order');
           OrderModel.findById.mockReturnValue(mockQueryWithSession({ _id: orderId, orderProfitTotal: orderAmount }));
@@ -441,6 +445,8 @@ describe('Commission Distribution Service', () => {
       if (query && query.role === 'admin') return mockQueryWithSession(adminUser);
       return mockQueryWithSession(null);
     });
+
+    User.find.mockReturnValue(mockQueryWithSession([{ _id: 'root123', name: 'Root', treeLevel: 1, treePosition: 0 }]));
 
     let trustFundAddedAmount = 0;
     const mockTrustFund = {
