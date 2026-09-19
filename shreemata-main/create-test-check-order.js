@@ -20,7 +20,7 @@ async function createTestCheckOrder() {
     console.log('🔧 Creating test check payment order...');
 
     // Find admin user (or create a test user)
-    let testUser = await User.findOne({ email: 'shashistudy2125@gmail.com' });
+    let testUser = await User.findOne({ email: 'shree.mata.hbl@gmail.com' }) || await User.findOne({});
     
     if (!testUser) {
       console.log('❌ Admin user not found. Please use a valid user email.');

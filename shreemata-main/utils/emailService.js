@@ -1,6 +1,9 @@
 // Email service using nodemailer with Gmail SMTP
 const nodemailer = require('nodemailer');
 
+const supportEmail = process.env.SUPPORT_EMAIL || 'shree.mata.hbl@gmail.com';
+const adminEmail = process.env.ADMIN_EMAIL || supportEmail;
+
 const emailUser = process.env.GMAIL_USER || process.env.SMTP_USER || process.env.EMAIL_FROM;
 const emailPass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
 const emailHost = process.env.SMTP_HOST || 'smtp.gmail.com';
@@ -42,6 +45,9 @@ async function sendEmailSafely(mailOptions) {
     // Ensure 'from' header is populated
     if (!mailOptions.from) {
         mailOptions.from = `"Shree Mata" <${fromEmail}>`;
+    }
+    if (!mailOptions.replyTo) {
+        mailOptions.replyTo = `"Shree Mata Support" <${supportEmail}>`;
     }
     return transporter.sendMail(mailOptions);
 }
@@ -170,7 +176,7 @@ async function sendOrderConfirmationEmail(order, user) {
                         </div>
 
                         <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions, please contact us at shashistudy2125@gmail.com
+                            If you have any questions, please contact us at <a href="mailto:${supportEmail}" style="color: #667eea; text-decoration: underline;">${supportEmail}</a>
                         </p>
                     </div>
 
@@ -198,7 +204,7 @@ async function sendAdminNotification(order, user) {
     try {
         const mailOptions = {
             from: `"Shree Mata" <${fromEmail}>`,
-            to: "shashistudy2125@gmail.com", // Send to admin email
+            to: adminEmail, // Send to admin email
             subject: `New Order Received - Order #${order._id}`,
             html: `
                 <!DOCTYPE html>
@@ -372,7 +378,7 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
                         </div>
 
                         <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions, please contact us at shashistudy2125@gmail.com
+                            If you have any questions, please contact us at <a href="mailto:${supportEmail}" style="color: #667eea; text-decoration: underline;">${supportEmail}</a>
                         </p>
                     </div>
 
@@ -436,7 +442,7 @@ async function sendEmailOTP(email, otp) {
                         </div>
 
                         <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions, please contact us at shashistudy2125@gmail.com
+                            If you have any questions, please contact us at <a href="mailto:${supportEmail}" style="color: #667eea; text-decoration: underline;">${supportEmail}</a>
                         </p>
                     </div>
 
@@ -508,7 +514,7 @@ async function sendPasswordResetOTP(email, otp) {
                         </div>
 
                         <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions, please contact us at shashistudy2125@gmail.com
+                            If you have any questions, please contact us at <a href="mailto:${supportEmail}" style="color: #667eea; text-decoration: underline;">${supportEmail}</a>
                         </p>
                     </div>
 
@@ -607,7 +613,7 @@ async function sendEmployeeVerificationEmail(employee, verificationToken) {
                         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
                             <p style="margin: 0; color: #666; font-size: 14px;">
                                 <strong>Need Help?</strong><br>
-                                Contact HR at <a href="mailto:shashistudy2125@gmail.com" style="color: #667eea;">shashistudy2125@gmail.com</a><br>
+                                Contact HR at <a href="mailto:${supportEmail}" style="color: #667eea;">${supportEmail}</a><br>
                                 Include your Employee ID: <strong>${employee.employeeId}</strong>
                             </p>
                         </div>
@@ -722,7 +728,7 @@ async function sendSalaryNotificationEmail(employee, salaryRecord) {
                         </div>
 
                         <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions about your salary or notice any discrepancies, please contact HR at shashistudy2125@gmail.com
+                            If you have any questions about your salary or notice any discrepancies, please contact HR at <a href="mailto:${supportEmail}" style="color: #667eea; text-decoration: underline;">${supportEmail}</a>
                         </p>
                     </div>
 
@@ -794,7 +800,7 @@ async function sendSalaryUpdateOTP(employee, otp, salaryDetails) {
                         </div>
 
                         <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions, please contact HR at shashistudy2125@gmail.com
+                            If you have any questions, please contact HR at <a href="mailto:${supportEmail}" style="color: #667eea; text-decoration: underline;">${supportEmail}</a>
                         </p>
                     </div>
 
@@ -934,7 +940,7 @@ async function sendSalaryPaymentStatusUpdateEmail(employee, salaryRecord, oldSta
                         ` : ''}
 
                         <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions about this update or notice any discrepancies, please contact HR at shashistudy2125@gmail.com
+                            If you have any questions about this update or notice any discrepancies, please contact HR at <a href="mailto:${supportEmail}" style="color: #667eea; text-decoration: underline;">${supportEmail}</a>
                         </p>
                     </div>
 

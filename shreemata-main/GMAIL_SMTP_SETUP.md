@@ -29,7 +29,7 @@ Replace the placeholder in your `.env` file:
 
 ```properties
 # Gmail SMTP Configuration
-GMAIL_USER=shashistudy2125@gmail.com
+GMAIL_USER=shree.mata.hbl@gmail.com
 GMAIL_APP_PASSWORD=your_16_character_app_password_here
 ```
 
@@ -144,7 +144,7 @@ const sendMail = require('./utils/sendMail');
 
 async function test() {
     await sendMail(
-        'shashistudy2125@gmail.com',
+        'shree.mata.hbl@gmail.com',
         'Test Email from Shree Mata',
         '<h1>Gmail SMTP is working!</h1><p>This is a test email.</p>'
     );
@@ -166,4 +166,4 @@ Run: `node test-gmail-smtp.js`
 
 ---
 
-**Need Help?** Contact: shashistudy2125@gmail.com
+**Need Help?** Contact: shree.mata.hbl@gmail.com

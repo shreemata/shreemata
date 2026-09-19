@@ -169,7 +169,7 @@ function onFormSubmit(e) {
     // Send error email to admin
     try {
       MailApp.sendEmail({
-        to: 'shashistudy2125@gmail.com',
+        to: 'shree.mata.hbl@gmail.com',
         subject: 'Check Payment Form Error - Fixed Version',
         body: `Error processing form: ${error.toString()}\n\nTime: ${new Date()}\n\nEvent: ${JSON.stringify(e, null, 2)}`
       });

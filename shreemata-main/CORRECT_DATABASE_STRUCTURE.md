@@ -19,7 +19,7 @@ Level 3: shashi5, shashi6 (under shashi1)
 {
   _id: "695c1f77912b689315b8d8b7",
   name: "Shashikumar Mulimani",
-  email: "shashistudy2125@gmail.com",
+  email: "shree.mata.hbl@gmail.com",
   treeLevel: 1,
   treePosition: 1,
   treeParent: null,           // Root has no parent

@@ -113,7 +113,7 @@ function onFormSubmit(e) {
     // Optional: Send error notification email to admin
     try {
       MailApp.sendEmail({
-        to: 'shashistudy2125@gmail.com', // Replace with your admin email
+        to: 'shree.mata.hbl@gmail.com', // Replace with your admin email
         subject: 'Check Payment Form Error',
         body: `Error processing check payment form submission:\n\n${error.toString()}\n\nForm Response ID: ${e.response ? e.response.getId() : 'Unknown'}`
       });
