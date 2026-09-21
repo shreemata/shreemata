@@ -211,7 +211,17 @@
                     <div class="ch-summary-subtext">From your own direct purchases</div>
                 </div>
 
-                <!-- 5. Available Wallet Balance -->
+                <!-- 5. Virtual Tree Income -->
+                <div class="ch-summary-card">
+                    <div class="ch-summary-header">
+                        <span class="ch-summary-label">Virtual Tree Income</span>
+                        <span class="ch-summary-icon" aria-hidden="true">🤖</span>
+                    </div>
+                    <div class="ch-summary-amount" id="summaryVirtualTreeIncome">₹0.00</div>
+                    <div class="ch-summary-subtext">Accumulated in Virtual Referral balance</div>
+                </div>
+
+                <!-- 6. Available Wallet Balance -->
                 <div class="ch-summary-card">
                     <div class="ch-summary-header">
                         <span class="ch-summary-label">Available Wallet</span>
@@ -265,6 +275,10 @@
                     <button type="button" class="ch-filter-chip" data-filter="tree" role="tab" aria-selected="false">
                         <span>🌳 Tree Commission</span>
                         <span class="ch-chip-count" id="chipCountTree">0</span>
+                    </button>
+                    <button type="button" class="ch-filter-chip" data-filter="virtual_tree_income" role="tab" aria-selected="false">
+                        <span>🤖 Virtual Tree Income</span>
+                        <span class="ch-chip-count" id="chipCountVirtualTree">0</span>
                     </button>
                 </div>
             </div>

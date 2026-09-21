@@ -1735,13 +1735,18 @@
 
             let deliveryBlockHtml = '';
             if (deliveryMeta.isPickup) {
+                const store = window.STORE_DETAILS || {
+                    name: 'Shree Mata Publication Center',
+                    address: 'Main Branch, Hubballi, Karnataka',
+                    phone: '+91 9886086278'
+                };
                 deliveryBlockHtml = `
                     <div class="modal-info-card">
                         <h4 class="modal-card-heading">🏪 Store Pickup Location</h4>
                         <p style="margin: 0; font-size: 13.5px; line-height: 1.5; color: #334155;">
-                            <strong>Shree Mata Publication Center</strong><br>
-                            Main Branch, Bangalore, Karnataka<br>
-                            Contact: +91 9886086278
+                            <strong>${escapeHtml(store.name)}</strong><br>
+                            ${escapeHtml(store.address)}<br>
+                            Contact: ${escapeHtml(store.phone)}
                         </p>
                     </div>
                 `;

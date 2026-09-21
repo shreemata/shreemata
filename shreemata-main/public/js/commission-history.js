@@ -45,7 +45,18 @@
 
     // Commission type metadata
     function getCommissionMeta(item) {
-        const type = (item.commissionType || '').toLowerCase();
+        const type = (item.commissionType || item.type || '').toLowerCase();
+        if (type === 'virtual_tree_income' || type === 'virtual_tree' || item.displayCategory === 'Virtual Tree Income') {
+            const vrLabel = item.virtualReferralNumber ? `Earned by ${item.virtualReferralNumber}` : 'Held in Virtual Referral';
+            return {
+                label: 'Virtual Tree Income',
+                icon: '🤖',
+                iconClass: 'virtual',
+                levelBadge: vrLabel,
+                filterKey: 'virtual_tree_income',
+                statusText: '⏳ Held in Virtual Balance'
+            };
+        }
         if (type === 'direct' || type === 'cashback' || type === 'direct_commission') {
             return {
                 label: 'Buyer Cashback',
@@ -171,12 +182,14 @@
         const directEarnedEl = document.getElementById('summaryDirectEarnings');
         const treeEarnedEl = document.getElementById('summaryTreeEarnings');
         const cashbackEarnedEl = document.getElementById('summaryCashbackEarnings');
+        const virtualTreeEarnedEl = document.getElementById('summaryVirtualTreeIncome');
         const walletBalanceEl = document.getElementById('summaryWalletBalance');
 
         // Calculate breakdown from loaded page
         let directSum = 0;
         let cashbackSum = 0;
         let treeSum = 0;
+        let virtualTreeSum = 0;
         let totalSum = 0;
 
         allTransactions.forEach(tx => {
@@ -188,6 +201,8 @@
                 directSum += amt;
             } else if (tx.commissionType === 'tree') {
                 treeSum += amt;
+            } else if (tx.commissionType === 'virtual_tree_income') {
+                virtualTreeSum += amt;
             }
         });
 
@@ -196,28 +211,32 @@
         const displayTree = summaryData.totalTreeCommission !== undefined ? summaryData.totalTreeCommission : treeSum;
         const displayDirect = summaryData.totalDirectCommission !== undefined ? summaryData.totalDirectCommission : directSum;
         const displayCashback = summaryData.totalCashbackCommission !== undefined ? summaryData.totalCashbackCommission : cashbackSum;
+        const displayVirtualTree = summaryData.totalVirtualTreeIncome !== undefined ? summaryData.totalVirtualTreeIncome : virtualTreeSum;
         const displayWallet = summaryData.walletBalance !== undefined ? summaryData.walletBalance : 0;
 
         if (totalEarnedEl) totalEarnedEl.textContent = formatCurrency(displayTotal);
         if (directEarnedEl) directEarnedEl.textContent = formatCurrency(displayDirect);
         if (treeEarnedEl) treeEarnedEl.textContent = formatCurrency(displayTree);
         if (cashbackEarnedEl) cashbackEarnedEl.textContent = formatCurrency(displayCashback);
+        if (virtualTreeEarnedEl) virtualTreeEarnedEl.textContent = formatCurrency(displayVirtualTree);
         if (walletBalanceEl) walletBalanceEl.textContent = formatCurrency(displayWallet);
     }
 
     // Update Filter Chip Badges
     function updateFilterCounts() {
         const counts = {
-            all: paginationData?.totalCount !== undefined ? paginationData.totalCount : allTransactions.length,
-            cashback: summaryData?.cashbackCommissionCount !== undefined ? summaryData.cashbackCommissionCount : 0,
-            referral: summaryData?.directCommissionCount !== undefined ? summaryData.directCommissionCount : 0,
-            tree: summaryData?.treeCommissionCount !== undefined ? summaryData.treeCommissionCount : 0
+            all: summaryData?.counts?.all !== undefined ? summaryData.counts.all : (paginationData?.totalCount !== undefined ? paginationData.totalCount : allTransactions.length),
+            cashback: summaryData?.counts?.buyerCashback !== undefined ? summaryData.counts.buyerCashback : (summaryData?.cashbackCommissionCount || 0),
+            referral: summaryData?.counts?.directReferral !== undefined ? summaryData.counts.directReferral : (summaryData?.directCommissionCount || 0),
+            tree: summaryData?.counts?.treeCommission !== undefined ? summaryData.counts.treeCommission : (summaryData?.treeCommissionCount || 0),
+            virtual_tree_income: summaryData?.counts?.virtualTreeIncome !== undefined ? summaryData.counts.virtualTreeIncome : (summaryData?.virtualTreeIncomeCount || 0)
         };
 
-        if (summaryData?.cashbackCommissionCount === undefined) {
+        if (summaryData?.counts === undefined && summaryData?.cashbackCommissionCount === undefined) {
             counts.cashback = 0;
             counts.referral = 0;
             counts.tree = 0;
+            counts.virtual_tree_income = 0;
             allTransactions.forEach(tx => {
                 const meta = getCommissionMeta(tx);
                 if (counts[meta.filterKey] !== undefined) {
@@ -230,11 +249,13 @@
         const chipCashback = document.getElementById('chipCountCashback');
         const chipReferral = document.getElementById('chipCountReferral');
         const chipTree = document.getElementById('chipCountTree');
+        const chipVirtualTree = document.getElementById('chipCountVirtualTree');
 
         if (chipAll) chipAll.textContent = counts.all;
         if (chipCashback) chipCashback.textContent = counts.cashback;
         if (chipReferral) chipReferral.textContent = counts.referral;
         if (chipTree) chipTree.textContent = counts.tree;
+        if (chipVirtualTree) chipVirtualTree.textContent = counts.virtual_tree_income;
     }
 
     // ── APPLY FILTERS & RENDER ──
@@ -326,7 +347,13 @@
         const meta = getCommissionMeta(tx);
         const amountFormatted = '+' + formatCurrency(tx.amount);
         const dateFormatted = formatDateTime(tx.date);
-        const orderDisplay = tx.orderNumber ? `#${tx.orderNumber}` : (tx.orderId ? `#SM-${String(tx.orderId).slice(-6).toUpperCase()}` : 'Order Credit');
+        const isHeld = tx.commissionType === 'virtual_tree_income' || tx.type === 'virtual_tree_income' || tx.status === 'held';
+        const statusBadgeHtml = isHeld
+            ? `<span class="ch-tx-status-badge" style="background: rgba(234, 179, 8, 0.15); color: #B45309; border-color: rgba(234, 179, 8, 0.3);">⏳ Held in Virtual Balance</span>`
+            : `<span class="ch-tx-status-badge">✓ Credited</span>`;
+        const orderDisplay = tx.orderNumber
+            ? `#${tx.orderNumber}`
+            : (tx.orderId ? `#SM-${String(tx.orderId).slice(-6).toUpperCase()}` : (tx.virtualReferralNumber ? tx.virtualReferralNumber : 'Direct Reference'));
 
         return `
             <article class="ch-transaction-card" onclick="window.openTransactionModal('${escapeHtml(txId)}')">
@@ -350,7 +377,7 @@
                 <div class="ch-tx-right">
                     <div class="ch-tx-amount-group">
                         <div class="ch-tx-amount">${amountFormatted}</div>
-                        <span class="ch-tx-status-badge">✓ Credited</span>
+                        ${statusBadgeHtml}
                     </div>
                     <button type="button" class="btn-tx-details" onclick="event.stopPropagation(); window.openTransactionModal('${escapeHtml(txId)}')">
                         <span>Details</span>
@@ -409,8 +436,12 @@
         if (!modal || !modalBody) return;
 
         const meta = getCommissionMeta(tx);
-        const orderDisplay = tx.orderNumber ? `#${tx.orderNumber}` : (tx.orderId ? `#SM-${String(tx.orderId).slice(-6).toUpperCase()}` : 'Direct Reference');
+        const orderDisplay = tx.orderNumber ? `#${tx.orderNumber}` : (tx.orderId ? `#SM-${String(tx.orderId).slice(-6).toUpperCase()}` : (tx.virtualReferralNumber ? tx.virtualReferralNumber : 'Direct Reference'));
         const rateDisplay = tx.percentage ? `${tx.percentage}%` : 'Standard';
+        const isHeld = tx.commissionType === 'virtual_tree_income' || tx.type === 'virtual_tree_income' || tx.status === 'held';
+        const statusBadge = isHeld
+            ? `<span class="ch-tx-status-badge" style="background: rgba(234, 179, 8, 0.15); color: #B45309; border-color: rgba(234, 179, 8, 0.3);">⏳ Held in Virtual Balance</span>`
+            : `<span class="ch-tx-status-badge">✓ Credited to Wallet</span>`;
 
         modalBody.innerHTML = `
             <div style="display: flex; align-items: center; gap: 14px; background: #FAF7F1; padding: 16px; border-radius: 12px; border: 1px solid rgba(16, 24, 32, 0.08);">
@@ -423,7 +454,7 @@
                 </div>
                 <div style="margin-left: auto; text-align: right;">
                     <div style="font-size: 22px; font-weight: 800; color: #16A34A;">+${formatCurrency(tx.amount)}</div>
-                    <span class="ch-tx-status-badge">✓ Credited to Wallet</span>
+                    ${statusBadge}
                 </div>
             </div>
 

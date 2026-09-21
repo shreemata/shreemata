@@ -40,4 +40,12 @@ function escapehtml(str) {
 window.escapeHtml = escapeHtml;
 window.escapehtml = escapehtml;
 
-
+// Centralized Store Details for Pickup & Order Communications
+window.STORE_DETAILS = {
+    name: 'Shree Mata Publication Center',
+    branch: 'Main Branch',
+    city: 'Hubballi',
+    state: 'Karnataka',
+    address: 'Main Branch, Hubballi, Karnataka',
+    phone: '+91 9886086278'
+};

@@ -430,6 +430,7 @@ router.get("/history", authenticateToken, async (req, res) => {
 router.get("/commissions", authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
+        const VirtualReferralTransaction = require('../models/VirtualReferralTransaction');
         
         // Parse query parameters
         const page = parseInt(req.query.page) || 1;
@@ -437,7 +438,7 @@ router.get("/commissions", authenticateToken, async (req, res) => {
         const skip = (page - 1) * limit;
         
         // Parse filters
-        const commissionType = req.query.type; // 'direct', 'referral', 'tree', or undefined for all
+        const commissionType = req.query.type; // 'direct', 'referral', 'tree', 'virtual_tree_income', or undefined for all
         const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
         const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
         
@@ -475,17 +476,51 @@ router.get("/commissions", authenticateToken, async (req, res) => {
             })
             .sort({ createdAt: -1 });
 
+        // Query virtual referral positions to map VR-000x numbers
+        const virtualUsers = await User.find({ originalUser: userId, isVirtual: true })
+            .select('_id name treeLevel treePosition createdAt')
+            .sort({ createdAt: 1 })
+            .lean();
+
+        const vrNumberMap = new Map();
+        virtualUsers.forEach((v, index) => {
+            vrNumberMap.set(v._id.toString(), `VR-${String(index + 1).padStart(4, '0')}`);
+        });
+
+        // Query VirtualReferralTransaction for tree_commission ONLY (excluding internal transfers)
+        const vtxQuery = {
+            ownerUserId: userId,
+            type: 'tree_commission',
+            ...dateFilter
+        };
+
+        const virtualTxs = await VirtualReferralTransaction.find(vtxQuery)
+            .populate({
+                path: 'virtualReferralId',
+                select: 'name email treeLevel treePosition'
+            })
+            .populate({
+                path: 'orderId',
+                select: 'orderNumber totalAmount user_id',
+                populate: { path: 'user_id', select: 'name' }
+            })
+            .sort({ createdAt: -1 })
+            .lean();
+
         const round2 = (num) => Math.round((Number(num) || 0) * 100) / 100;
 
-        let totalDirectCommission = 0;   // Direct Referral (2%)
-        let totalCashbackCommission = 0; // Buyer Cashback (3%)
-        let totalTreeCommission = 0;     // Tree Earnings
+        let totalDirectCommission = 0;    // Direct Referral
+        let totalCashbackCommission = 0;  // Buyer Cashback
+        let totalTreeCommission = 0;      // Real Node Tree Earnings
+        let totalVirtualTreeIncome = 0;   // Virtual Node Tree Earnings
         let directCount = 0;
         let cashbackCount = 0;
         let treeCount = 0;
+        let virtualTreeCount = 0;
 
         const allCommissions = [];
 
+        // 1. Process Wallet Transactions
         for (const tx of walletTxs) {
             const cat = (tx.category || '').toLowerCase();
             let commType = 'other';
@@ -522,9 +557,13 @@ router.get("/commissions", authenticateToken, async (req, res) => {
 
             allCommissions.push({
                 _id: tx._id,
+                id: tx._id.toString(),
                 date: tx.createdAt,
+                createdAt: tx.createdAt,
                 amount: tx.amount,
                 commissionType: commType,
+                type: commType,
+                displayCategory: commType === 'direct' ? 'Buyer Cashback' : (commType === 'referral' ? 'Direct Referral' : 'Tree Commission'),
                 category: tx.category,
                 description: tx.description,
                 orderAmount: orderObj ? orderObj.totalAmount : 0,
@@ -535,22 +574,80 @@ router.get("/commissions", authenticateToken, async (req, res) => {
                 },
                 level: level,
                 isVirtual: isVirtual,
-                status: 'completed'
+                status: 'completed',
+                statusText: 'Credited'
             });
         }
+
+        // 2. Process VirtualReferralTransactions (type === 'tree_commission' ONLY)
+        for (const vtx of virtualTxs) {
+            const amountRupees = round2((vtx.amountPaise || 0) / 100);
+            totalVirtualTreeIncome += amountRupees;
+            virtualTreeCount++;
+
+            const vrIdStr = vtx.virtualReferralId ? vtx.virtualReferralId._id.toString() : '';
+            const vrNumber = vrNumberMap.get(vrIdStr) || (vtx.virtualReferralId ? vtx.virtualReferralId.name : 'Virtual Node');
+            const orderObj = vtx.orderId;
+            const orderNum = orderObj ? orderObj.orderNumber : null;
+            const orderIdVal = orderObj ? orderObj._id : null;
+            const purchaserObj = orderObj ? (orderObj.purchaser || orderObj.user_id) : null;
+            const purchaserName = purchaserObj ? purchaserObj.name : 'Customer';
+
+            allCommissions.push({
+                _id: vtx._id,
+                id: vtx._id.toString(),
+                date: vtx.createdAt,
+                createdAt: vtx.createdAt,
+                amount: amountRupees,
+                amountPaise: vtx.amountPaise,
+                commissionType: 'virtual_tree_income',
+                type: 'virtual_tree_income',
+                displayCategory: 'Virtual Tree Income',
+                category: 'virtual_tree_income',
+                description: `Virtual Tree Pool Commission from Level ${vtx.sourceTreeLevel || 1}`,
+                orderAmount: orderObj ? orderObj.totalAmount : 0,
+                orderId: orderIdVal,
+                orderNumber: orderNum,
+                purchaser: {
+                    name: purchaserName
+                },
+                level: vtx.sourceTreeLevel || 1,
+                sourceTreeLevel: vtx.sourceTreeLevel || 1,
+                virtualReferralId: vrIdStr,
+                virtualReferralNumber: vrNumber,
+                isVirtual: true,
+                status: 'held',
+                statusText: 'Held in Virtual Balance'
+            });
+        }
+
+        // Sort combined list by date descending
+        allCommissions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         // Apply type filter if requested
         let filteredCommissions = allCommissions;
         if (commissionType) {
-            filteredCommissions = allCommissions.filter(c => c.commissionType === commissionType);
+            const reqType = commissionType.toLowerCase();
+            if (['virtual_tree_income', 'virtual_tree', 'virtual'].includes(reqType)) {
+                filteredCommissions = allCommissions.filter(c => c.commissionType === 'virtual_tree_income');
+            } else if (['direct', 'buyer_cashback', 'cashback'].includes(reqType)) {
+                filteredCommissions = allCommissions.filter(c => c.commissionType === 'direct');
+            } else if (['referral', 'direct_referral'].includes(reqType)) {
+                filteredCommissions = allCommissions.filter(c => c.commissionType === 'referral');
+            } else if (['tree', 'tree_commission'].includes(reqType)) {
+                filteredCommissions = allCommissions.filter(c => c.commissionType === 'tree');
+            } else {
+                filteredCommissions = allCommissions.filter(c => c.commissionType === commissionType);
+            }
         }
 
         totalDirectCommission = round2(totalDirectCommission);
         totalCashbackCommission = round2(totalCashbackCommission);
         totalTreeCommission = round2(totalTreeCommission);
+        totalVirtualTreeIncome = round2(totalVirtualTreeIncome);
 
-        // Enforce Total Earnings Invariant: totalCommission = direct + tree + cashback
-        const totalCommission = round2(totalDirectCommission + totalTreeCommission + totalCashbackCommission);
+        // Enforce Total Earnings Invariant: totalCommission = direct + tree + cashback + virtualTreeIncome
+        const totalCommission = round2(totalDirectCommission + totalTreeCommission + totalCashbackCommission + totalVirtualTreeIncome);
         const totalCount = filteredCommissions.length;
         const paginatedCommissions = filteredCommissions.slice(skip, skip + limit);
 
@@ -566,13 +663,28 @@ router.get("/commissions", authenticateToken, async (req, res) => {
             },
             summary: {
                 totalCommission: totalCommission,
+                totalEarnings: totalCommission,
                 totalDirectCommission: totalDirectCommission,
                 totalTreeCommission: totalTreeCommission,
                 totalCashbackCommission: totalCashbackCommission,
+                totalVirtualTreeIncome: totalVirtualTreeIncome,
+                virtualTreeIncome: totalVirtualTreeIncome,
+                directReferral: totalDirectCommission,
+                treeEarnings: totalTreeCommission,
+                buyerCashback: totalCashbackCommission,
                 directCommissionCount: directCount,
                 treeCommissionCount: treeCount,
                 cashbackCommissionCount: cashbackCount,
-                walletBalance: round2(userDoc.wallet || 0)
+                virtualTreeIncomeCount: virtualTreeCount,
+                walletBalance: round2(userDoc.wallet || 0),
+                availableWallet: round2(userDoc.wallet || 0)
+            },
+            counts: {
+                all: allCommissions.length,
+                buyerCashback: cashbackCount,
+                directReferral: directCount,
+                treeCommission: treeCount,
+                virtualTreeIncome: virtualTreeCount
             }
         });
 

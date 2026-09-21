@@ -150,17 +150,17 @@ const commissionSettingsSchema = new mongoose.Schema({
   // Store Details for Pickup
   storeName: {
     type: String,
-    default: 'Shree Mata'
+    default: 'Shree Mata Publication Center'
   },
   
   storeAddress: {
     type: String,
-    default: 'Main Road, Your City'
+    default: 'Main Branch, Hubballi, Karnataka'
   },
   
   storePhone: {
     type: String,
-    default: '+91 9449171605'
+    default: '+91 9886086278'
   },
   
   storeHours: {
@@ -210,9 +210,9 @@ commissionSettingsSchema.statics.getSettings = async function() {
       baseShippingCharge: 50,
       shippingRatePerKg: 25,
       freeShippingThreshold: 500,
-      storeName: 'Shree Mata',
-      storeAddress: 'Main Road, Your City',
-      storePhone: '+91 9449171605',
+      storeName: 'Shree Mata Publication Center',
+      storeAddress: 'Main Branch, Hubballi, Karnataka',
+      storePhone: '+91 9886086278',
       storeHours: 'Mon-Sat 10AM-8PM, Sun 11AM-6PM',
       pickupInstructions: "We'll call you when your order is ready for pickup!",
       treeCommissionLevels: [

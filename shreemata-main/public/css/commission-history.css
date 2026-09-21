@@ -449,6 +449,12 @@ body {
     color: var(--ch-purple, #7C3AED);
 }
 
+.ch-tx-icon-wrap.virtual {
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+    color: #D97706;
+}
+
 .ch-tx-info {
     display: flex;
     flex-direction: column;
