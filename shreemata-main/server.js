@@ -3,6 +3,13 @@ const cors = require("cors");
 const path = require("path");
 require("dotenv").config();
 
+process.on("uncaughtException", (err) => {
+  console.error("❌ UNCAUGHT EXCEPTION:", err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("❌ UNHANDLED REJECTION:", reason);
+});
+
 const connectDB = require("./config/mongo");
 const { authenticateToken, isAdmin } = require("./middleware/auth");
 const authRoutes = require("./routes/auth");
@@ -84,6 +91,7 @@ app.use("/api/employees", require("./routes/employees")); // Employee salary man
 app.use("/api/invoices", require("./routes/invoices")); // Invoice management
 app.use("/api/reports-center", require("./routes/reportsCenter")); // Centralized Reports Center
 app.use("/api/admin/reports", require("./routes/adminReports")); // Centralized Reports & Exports API
+app.use("/api/admin/commission-fund", authenticateToken, isAdmin, require("./routes/adminCommissionFund"));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/sitemap.xml", (req, res) => {

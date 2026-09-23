@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelector('nav a[data-page="users"]')?.classList.add('active');
     } else if (currentPage.includes('admin-commission-settings.html')) {
         document.querySelector('nav a[data-page="settings"]')?.classList.add('active');
+    } else if (currentPage.includes('admin-commission-fund.html')) {
+        document.querySelector('nav a[data-page="commission-fund"]')?.classList.add('active');
     } else if (currentPage.includes('admin-referral-tree.html')) {
         document.querySelector('nav a[data-page="referral-tree"]')?.classList.add('active');
     } else if (currentPage.includes('admin-referral-tree-visual.html')) {
