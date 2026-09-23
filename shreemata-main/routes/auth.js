@@ -10,74 +10,118 @@ const router = express.Router();
 // EMAIL OTP - Send OTP for email verification
 router.post("/send-email-otp", async (req, res) => {
   try {
-    const { email } = req.body;
+    const rawEmail = req.body?.email;
 
-    if (!email) {
+    if (!rawEmail || typeof rawEmail !== "string") {
+      console.warn("⚠️ [EMAIL OTP] Missing email in request body");
       return res.status(400).json({ 
         success: false, 
         error: "Email is required" 
       });
     }
 
+    const email = rawEmail.trim().toLowerCase();
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      console.warn(`⚠️ [EMAIL OTP] Invalid email format: ${rawEmail}`);
       return res.status(400).json({ 
         success: false, 
         error: "Invalid email format" 
       });
     }
 
-    // Check if email is already registered
-    const existingUser = await User.findOne({ email });
+    // Check if email is already registered (case-insensitive)
+    const existingUser = await User.findOne({ 
+      email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } 
+    });
     if (existingUser) {
+      console.warn(`⚠️ [EMAIL OTP] Email is already registered: ${email}`);
       return res.status(400).json({ 
         success: false, 
         error: "Email is already registered" 
       });
     }
 
+    // Rate limiting: 30-second cooldown between resends for the same email
+    global.emailOtpStore = global.emailOtpStore || new Map();
+    const existingOtp = global.emailOtpStore.get(email) || global.emailOtpStore.get(rawEmail.trim());
+    if (existingOtp && existingOtp.createdAt && (Date.now() - existingOtp.createdAt < 30 * 1000)) {
+      const waitSeconds = Math.ceil((30 * 1000 - (Date.now() - existingOtp.createdAt)) / 1000);
+      return res.status(429).json({
+        success: false,
+        error: `Please wait ${waitSeconds} seconds before requesting another code.`
+      });
+    }
+
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log(`📧 Generated email OTP for ${email}: ${otp}`);
+    console.log(`📧 [EMAIL OTP] Generated email OTP for ${email}: ${otp}`);
 
-    // Store OTP for email verification
-    global.emailOtpStore = global.emailOtpStore || new Map();
-    global.emailOtpStore.set(email, {
-      otp: otp,
-      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
-      attempts: 0,
-      isEmailVerification: true
-    });
-
-    // Send OTP via email
+    // Store OTP for email verification before dispatching
     try {
-      const emailResult = await sendEmailOTP(email, otp);
+      const otpRecord = {
+        otp: otp,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+        attempts: 0,
+        isEmailVerification: true,
+        verified: false
+      };
+      global.emailOtpStore.set(email, otpRecord);
+      if (rawEmail.trim() !== email) {
+        global.emailOtpStore.set(rawEmail.trim(), otpRecord);
+      }
+    } catch (storeError) {
+      console.error("❌ [EMAIL OTP] OTP storage failure:", storeError);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to send verification email. Please try again."
+      });
+    }
+
+    // Send OTP via email using emailService
+    try {
+      const emailResult = await emailService.sendEmailOTP(email, otp);
       
-      if (emailResult.success) {
-        console.log(`Email OTP sent to ${email}: ${otp}`);
-        res.json({
+      if (emailResult && emailResult.success) {
+        console.log(`✅ [EMAIL OTP] Verification code sent to ${email} (messageId: ${emailResult.messageId})`);
+        return res.json({
           success: true,
           message: "Verification code sent to your email"
         });
       } else {
-        console.error('Email service error:', emailResult.error);
-        res.status(500).json({ 
+        const errorDetail = emailResult?.error || 'Unknown email service error';
+        if (errorDetail.toLowerCase().includes('auth') || errorDetail.toLowerCase().includes('credential') || errorDetail.includes('535')) {
+          console.error(`❌ [EMAIL OTP] SMTP authentication failure for ${email}:`, errorDetail);
+        } else {
+          console.error(`❌ [EMAIL OTP] Transporter / SMTP send error for ${email}:`, errorDetail);
+        }
+        
+        // Remove unsent OTP from store to avoid dangling unverified codes
+        global.emailOtpStore.delete(email);
+        global.emailOtpStore.delete(rawEmail.trim());
+
+        return res.status(500).json({ 
           success: false, 
           error: "Failed to send verification email. Please try again." 
         });
       }
     } catch (emailError) {
-      console.error("Email sending error:", emailError);
-      res.status(500).json({ 
+      console.error(`❌ [EMAIL OTP] Email sending exception for ${email}:`, emailError.message || emailError);
+      global.emailOtpStore.delete(email);
+      global.emailOtpStore.delete(rawEmail.trim());
+
+      return res.status(500).json({ 
         success: false, 
         error: "Failed to send verification email. Please try again." 
       });
     }
 
   } catch (error) {
-    console.error("Email OTP send error:", error);
-    res.status(500).json({ 
+    console.error("❌ [EMAIL OTP] Unexpected route error in send-email-otp:", error.message || error);
+    return res.status(500).json({ 
       success: false, 
       error: "Error sending verification code. Please try again." 
     });
@@ -87,18 +131,21 @@ router.post("/send-email-otp", async (req, res) => {
 // EMAIL OTP - Verify OTP for email verification
 router.post("/verify-email-otp", async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email: rawEmail, otp: rawOtp } = req.body;
 
-    if (!email || !otp) {
+    if (!rawEmail || !rawOtp) {
       return res.status(400).json({ 
         success: false, 
         error: "Email and verification code are required" 
       });
     }
 
+    const email = String(rawEmail).trim().toLowerCase();
+    const otp = String(rawOtp).trim();
+
     // Get stored OTP data
     global.emailOtpStore = global.emailOtpStore || new Map();
-    const storedData = global.emailOtpStore.get(email);
+    const storedData = global.emailOtpStore.get(email) || global.emailOtpStore.get(String(rawEmail).trim());
 
     if (!storedData) {
       return res.status(400).json({ 
@@ -110,6 +157,7 @@ router.post("/verify-email-otp", async (req, res) => {
     // Check if OTP is expired
     if (Date.now() > storedData.expiresAt) {
       global.emailOtpStore.delete(email);
+      global.emailOtpStore.delete(String(rawEmail).trim());
       return res.status(400).json({ 
         success: false, 
         error: "Verification code has expired. Please request a new code." 
@@ -119,6 +167,7 @@ router.post("/verify-email-otp", async (req, res) => {
     // Check attempt limit
     if (storedData.attempts >= 3) {
       global.emailOtpStore.delete(email);
+      global.emailOtpStore.delete(String(rawEmail).trim());
       return res.status(400).json({ 
         success: false, 
         error: "Too many failed attempts. Please request a new code." 
@@ -129,6 +178,7 @@ router.post("/verify-email-otp", async (req, res) => {
     if (storedData.otp !== otp) {
       storedData.attempts += 1;
       global.emailOtpStore.set(email, storedData);
+      global.emailOtpStore.set(String(rawEmail).trim(), storedData);
       
       return res.status(400).json({ 
         success: false, 
@@ -139,8 +189,9 @@ router.post("/verify-email-otp", async (req, res) => {
     // Mark email as verified
     storedData.verified = true;
     global.emailOtpStore.set(email, storedData);
+    global.emailOtpStore.set(String(rawEmail).trim(), storedData);
 
-    console.log(`Email OTP verified for ${email}`);
+    console.log(`✅ [EMAIL OTP] Email OTP verified for ${email}`);
 
     res.json({
       success: true,
@@ -148,7 +199,7 @@ router.post("/verify-email-otp", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Email OTP verify error:", error);
+    console.error("❌ [EMAIL OTP] Email OTP verify error:", error.message || error);
     res.status(500).json({ 
       success: false, 
       error: "Error verifying code. Please try again." 
@@ -357,7 +408,8 @@ router.post("/signup", async (req, res) => {
 
     // Check if email was verified
     global.emailOtpStore = global.emailOtpStore || new Map();
-    const emailVerificationData = global.emailOtpStore.get(email);
+    const normalizedEmail = (typeof email === 'string') ? email.trim().toLowerCase() : '';
+    const emailVerificationData = global.emailOtpStore.get(email) || global.emailOtpStore.get(normalizedEmail);
     
     if (!emailVerificationData || !emailVerificationData.verified) {
       return res.status(400).json({ 
@@ -368,6 +420,7 @@ router.post("/signup", async (req, res) => {
 
     // Clean up email OTP after successful verification check
     global.emailOtpStore.delete(email);
+    if (normalizedEmail) global.emailOtpStore.delete(normalizedEmail);
 
     // Validate phone number format (10 digits)
     if (!/^\d{10}$/.test(phone)) {
