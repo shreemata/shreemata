@@ -162,8 +162,33 @@
 
             const d = json.data;
             const s = d.summary;
+            const lb = d.liabilitiesBreakdown || {};
 
-            // Render KPI cards
+            const normalWallets = lb.normalWallets ?? lb.heldInNormalWallets ?? 0;
+            const virtualBalance = lb.virtualEarningsHoldings ?? lb.heldInVirtualReferrals ?? 0;
+            const vipBalance = lb.vipMasterCards ?? lb.heldInVipMasterCards ?? 0;
+            const pendingWithdrawals = lb.pendingWithdrawals ?? s.pendingWithdrawals ?? 0;
+            const totalNeedToPay = lb.totalOutstanding ?? lb.needToPay ?? s.needToPay ?? 0;
+            const confirmedPaid = s.paidAmount ?? 0;
+            const availableReserve = s.availableCommissionReserve;
+
+            // 1. Commission Payment Position Banner
+            const posOwedEl = document.getElementById('posOwedToUsers');
+            if (posOwedEl) posOwedEl.textContent = formatCurrency(totalNeedToPay);
+
+            const posPaidEl = document.getElementById('posConfirmedPaid');
+            if (posPaidEl) posPaidEl.textContent = formatCurrency(confirmedPaid);
+
+            const posPendingEl = document.getElementById('posPendingWithdrawals');
+            if (posPendingEl) posPendingEl.textContent = formatCurrency(pendingWithdrawals);
+
+            const posReserveEl = document.getElementById('posAvailableReserve');
+            if (posReserveEl) {
+                posReserveEl.textContent = Boolean(s.isReserveEstablished) && availableReserve !== null ? formatCurrency(availableReserve) : 'Not Established';
+                posReserveEl.style.color = Boolean(s.isReserveEstablished) ? '#34d399' : '#fbbf24';
+            }
+
+            // 2. Render Executive KPI cards
             const totalGenEl = document.getElementById('kpiTotalGenerated');
             if (totalGenEl) totalGenEl.textContent = formatCurrency(s.totalCommissionGenerated);
 
@@ -171,28 +196,69 @@
             if (totalCredEl) totalCredEl.textContent = formatCurrency(s.totalCommissionCredited);
 
             const needToPayEl = document.getElementById('kpiNeedToPay');
-            if (needToPayEl) needToPayEl.textContent = formatCurrency(s.needToPay);
+            if (needToPayEl) needToPayEl.textContent = formatCurrency(totalNeedToPay);
 
-            const needToPaySubEl = document.getElementById('kpiNeedToPaySubtext');
-            if (needToPaySubEl) {
-                const activeBal = s.activeCustomerBalances || 949.65;
-                const unverifiedAmt = s.unresolvedSettlementExposure || s.unverifiedSettledAmount || 0;
-                needToPaySubEl.innerHTML = `Active Balances: ${formatCurrency(activeBal)} | <span style="color:#b45309; font-weight:700;">⚠️ ${formatCurrency(unverifiedAmt)} Unverified Exposure</span>`;
+            const needToPayFormulaEl = document.getElementById('kpiNeedToPayFormula');
+            if (needToPayFormulaEl) {
+                needToPayFormulaEl.innerHTML = `
+                    <span style="font-weight:700; color:#1e293b;">${formatCurrency(normalWallets)}</span> (W) + 
+                    <span style="font-weight:700; color:#6d28d9;">${formatCurrency(virtualBalance)}</span> (V) + 
+                    <span style="font-weight:700; color:#0369a1;">${formatCurrency(vipBalance)}</span> (VIP) + 
+                    <span style="font-weight:700; color:#d97706;">${formatCurrency(pendingWithdrawals)}</span> (P) 
+                    = <strong style="color:#dc2626;">${formatCurrency(totalNeedToPay)}</strong>
+                `;
             }
 
             const paidAmountEl = document.getElementById('kpiPaidAmount');
-            if (paidAmountEl) {
-                paidAmountEl.textContent = formatCurrency(s.paidAmount);
-                const unverifiedAmt = s.unresolvedSettlementExposure || s.unverifiedSettledAmount || 0;
-                const paidCardSubtext = document.querySelector('.kpi-paid .kpi-subtext');
-                if (paidCardSubtext) {
-                    if (Number(unverifiedAmt) > 0) {
-                        paidCardSubtext.innerHTML = `Confirmed: ${formatCurrency(s.paidAmount)} | <span style="color:#b45309; font-weight:600;">⚠️ ${formatCurrency(unverifiedAmt)} Unverified</span>`;
-                    } else {
-                        paidCardSubtext.textContent = 'Confirmed externally settled payouts';
-                    }
-                }
-            }
+            if (paidAmountEl) paidAmountEl.textContent = formatCurrency(confirmedPaid);
+
+            // 3. Customer Money / Outstanding Liability Breakdown 5 Cards
+            const lbWallet = document.getElementById('lbCustomerWallet');
+            if (lbWallet) lbWallet.textContent = formatCurrency(normalWallets);
+
+            const lbVirt = document.getElementById('lbVirtualBalance');
+            if (lbVirt) lbVirt.textContent = formatCurrency(virtualBalance);
+
+            const lbVip = document.getElementById('lbVipBalance');
+            if (lbVip) lbVip.textContent = formatCurrency(vipBalance);
+
+            const lbPend = document.getElementById('lbPendingWithdrawals');
+            if (lbPend) lbPend.textContent = formatCurrency(pendingWithdrawals);
+
+            const lbTotal = document.getElementById('lbTotalNeedToPay');
+            if (lbTotal) lbTotal.textContent = formatCurrency(totalNeedToPay);
+
+            // 4. Need to Pay Formula Calculation Box
+            const fmWallet = document.getElementById('fmNormalWallets');
+            if (fmWallet) fmWallet.textContent = formatCurrency(normalWallets);
+
+            const fmVirt = document.getElementById('fmVirtualBalance');
+            if (fmVirt) fmVirt.textContent = formatCurrency(virtualBalance);
+
+            const fmVip = document.getElementById('fmVipBalance');
+            if (fmVip) fmVip.textContent = formatCurrency(vipBalance);
+
+            const fmPend = document.getElementById('fmPendingWithdrawals');
+            if (fmPend) fmPend.textContent = formatCurrency(pendingWithdrawals);
+
+            const fmTotal = document.getElementById('fmTotalNeedToPay');
+            if (fmTotal) fmTotal.textContent = formatCurrency(totalNeedToPay);
+
+            // 5. Liability Detail Table
+            const tblWallet = document.getElementById('tblNormalWallets');
+            if (tblWallet) tblWallet.textContent = formatCurrency(normalWallets);
+
+            const tblVirt = document.getElementById('tblVirtualBalance');
+            if (tblVirt) tblVirt.textContent = formatCurrency(virtualBalance);
+
+            const tblVip = document.getElementById('tblVipBalance');
+            if (tblVip) tblVip.textContent = formatCurrency(vipBalance);
+
+            const tblPend = document.getElementById('tblPendingWithdrawals');
+            if (tblPend) tblPend.textContent = formatCurrency(pendingWithdrawals);
+
+            const tblTotal = document.getElementById('tblTotalNeedToPay');
+            if (tblTotal) tblTotal.textContent = formatCurrency(totalNeedToPay);
 
             // Reserve & Solvency KPIs
             const isReserveEstablished = Boolean(s.isReserveEstablished);
@@ -1514,6 +1580,14 @@
         initEvents();
         loadSummary();
         loadObligations(1);
+
+        // Automatic Live Recalculation: auto-refresh every 30 seconds
+        setInterval(() => {
+            loadSummary();
+            if (state.activeTab === 'tab-obligations') loadObligations(state.obligations.page);
+            else if (state.activeTab === 'tab-settlements') loadSettlements(state.settlements.page);
+            else if (state.activeTab === 'tab-reserve') loadReserveTransactions(state.reserve.page);
+        }, 30000);
     });
 
 })();

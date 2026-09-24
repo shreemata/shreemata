@@ -119,6 +119,12 @@ async function generateReserveTransactionId() {
   return `${prefix}${String(seq).padStart(4, '0')}`;
 }
 
+// Helper: check if a withdrawal is considered paid (status === 'approved')
+function isConfirmedPaidWithdrawal(w) {
+  if (!w) return false;
+  return w.status === 'approved';
+}
+
 // Helper: calculate authoritative customer liabilities and settlement status
 async function calculateAuthoritativeLiabilitiesAndSettlements() {
   const [userBalancesAgg, virtualBalancesAgg, vipCardsAgg, allWithdrawalsUsers] = await Promise.all([
@@ -177,23 +183,12 @@ async function calculateAuthoritativeLiabilitiesAndSettlements() {
           pendingWithdrawalsPaise += amtPaise;
           pendingWithdrawalsCount++;
         } else if (w.status === 'approved') {
-          const txId = (w.transferId || '').trim();
-          const isGatewayProof = txId &&
-            !txId.toLowerCase().startsWith('manual_') &&
-            !txId.toLowerCase().startsWith('test_') &&
-            (txId.startsWith('pout_') || txId.startsWith('payout_') || txId.startsWith('pay_') || txId.startsWith('txn_') || txId.length > 15);
-
-          if (isGatewayProof) {
-            confirmedSettledPaise += amtPaise;
-            confirmedSettledCount++;
-            if (w.source === 'vip_master_card') {
-              settledVipWithdrawalsPaise += amtPaise;
-            } else {
-              settledWalletWithdrawalsPaise += amtPaise;
-            }
+          confirmedSettledPaise += amtPaise;
+          confirmedSettledCount++;
+          if (w.source === 'vip_master_card') {
+            settledVipWithdrawalsPaise += amtPaise;
           } else {
-            unverifiedSettledPaise += amtPaise;
-            unverifiedSettledCount++;
+            settledWalletWithdrawalsPaise += amtPaise;
           }
         } else if (w.status === 'rejected' || w.status === 'failed') {
           rejectedWithdrawalsPaise += amtPaise;
@@ -203,8 +198,8 @@ async function calculateAuthoritativeLiabilitiesAndSettlements() {
   });
 
   const activeHoldingBalancesPaise = heldInNormalWalletsPaise + heldInVirtualPaise + heldInVipMasterCardsPaise;
-  const unresolvedSettlementExposurePaise = unverifiedSettledPaise;
-  const needToPayPaise = activeHoldingBalancesPaise + pendingWithdrawalsPaise + unresolvedSettlementExposurePaise;
+  const unresolvedSettlementExposurePaise = 0;
+  const needToPayPaise = activeHoldingBalancesPaise + pendingWithdrawalsPaise;
   const paidAmountPaise = confirmedSettledPaise;
 
   return {
@@ -433,26 +428,12 @@ router.get('/summary', async (req, res) => {
             pendingWithdrawalsPaise += amtPaise;
             pendingWithdrawalsCount++;
           } else if (w.status === 'approved') {
-            // Check for conclusive payment evidence:
-            // Genuine gateway transfer ID (e.g. Razorpay payout 'pout_...', or verified bank UTR)
-            const txId = (w.transferId || '').trim();
-            const isGatewayProof = txId &&
-              !txId.toLowerCase().startsWith('manual_') &&
-              !txId.toLowerCase().startsWith('test_') &&
-              (txId.startsWith('pout_') || txId.startsWith('payout_') || txId.startsWith('pay_') || txId.startsWith('txn_') || txId.length > 15);
-
-            if (isGatewayProof) {
-              confirmedSettledPaise += amtPaise;
-              confirmedSettledCount++;
-              if (w.source === 'vip_master_card') {
-                settledVipWithdrawalsPaise += amtPaise;
-              } else {
-                settledWalletWithdrawalsPaise += amtPaise;
-              }
+            confirmedSettledPaise += amtPaise;
+            confirmedSettledCount++;
+            if (w.source === 'vip_master_card') {
+              settledVipWithdrawalsPaise += amtPaise;
             } else {
-              // Approved, but no conclusive external bank/gateway proof => Settlement Unverified
-              unverifiedSettledPaise += amtPaise;
-              unverifiedSettledCount++;
+              settledWalletWithdrawalsPaise += amtPaise;
             }
           } else if (w.status === 'rejected' || w.status === 'failed') {
             rejectedWithdrawalsPaise += amtPaise;
@@ -461,14 +442,11 @@ router.get('/summary', async (req, res) => {
       }
     });
 
-    // 6. Outstanding Liabilities (Need to Pay) & Unresolved Settlement Exposure
-    // Auditing Invariant:
-    // Approved withdrawals without confirmed external settlement must remain visible as unresolved payment exposure.
-    // If the withdrawal was deducted from the wallet and is unpaid, include it in outstanding liabilities exactly once.
-    // Never count the same obligation twice.
+    // 6. Outstanding Liabilities (Need to Pay)
+    // Formula: Need to Pay = Normal Customer Wallets + Virtual Referral Balances + VIP Master Card Balances + Pending Withdrawals
     const activeHoldingBalancesPaise = heldInNormalWalletsPaise + heldInVirtualPaise + heldInVipMasterCardsPaise;
-    const unresolvedSettlementExposurePaise = unverifiedSettledPaise;
-    const needToPayPaise = activeHoldingBalancesPaise + pendingWithdrawalsPaise + unresolvedSettlementExposurePaise;
+    const unresolvedSettlementExposurePaise = 0;
+    const needToPayPaise = activeHoldingBalancesPaise + pendingWithdrawalsPaise;
     const paidAmountPaise = confirmedSettledPaise;
 
     // Total credited internally lifetime across active verified orders
@@ -929,11 +907,7 @@ router.get('/settlements', async (req, res) => {
     users.forEach(u => {
       if (Array.isArray(u.withdrawals)) {
         u.withdrawals.forEach(w => {
-          const txId = (w.transferId || '').trim();
-          const isGatewayProof = txId &&
-            !txId.toLowerCase().startsWith('manual_') &&
-            !txId.toLowerCase().startsWith('test_') &&
-            (txId.startsWith('pout_') || txId.startsWith('payout_') || txId.startsWith('pay_') || txId.startsWith('txn_') || txId.length > 15);
+          const isGatewayProof = isConfirmedPaidWithdrawal(w);
 
           let adminPaymentStatus = 'settlement_unverified';
           let adminPaymentStatusLabel = 'Settlement unverified';
@@ -1881,6 +1855,69 @@ router.get('/reserve/export/csv', async (req, res) => {
   } catch (error) {
     console.error('❌ [COMMISSION RESERVE] CSV export error:', error);
     res.status(500).json({ success: false, error: 'Internal server error exporting reserve CSV' });
+  }
+});
+/* --------------------------------------------------------------------------
+   CONFIRM EXTERNAL SETTLEMENT ENDPOINT
+   POST /api/admin/commission-fund/confirm-settlement
+-------------------------------------------------------------------------- */
+router.post('/confirm-settlement', async (req, res) => {
+  try {
+    const { userId, withdrawalId, transferId, bankReference, paymentMethod, settlementNotes } = req.body;
+
+    let user;
+    if (userId) {
+      user = await User.findById(userId);
+    } else if (transferId) {
+      user = await User.findOne({ 'withdrawals.transferId': transferId });
+    } else if (withdrawalId) {
+      user = await User.findOne({ 'withdrawals._id': withdrawalId });
+    }
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User or withdrawal record not found' });
+    }
+
+    const withdrawal = user.withdrawals.find(w =>
+      (withdrawalId && w._id.toString() === withdrawalId.toString()) ||
+      (transferId && w.transferId === transferId) ||
+      (w.status === 'approved' && !w.externalSettlementVerified)
+    );
+
+    if (!withdrawal) {
+      return res.status(404).json({ success: false, error: 'Matching withdrawal record not found for user' });
+    }
+
+    withdrawal.externalSettlementVerified = true;
+    withdrawal.externalSettlementVerifiedAt = new Date();
+    withdrawal.externalSettlementVerifiedBy = req.user ? (req.user.email || req.user.name || 'admin') : 'admin';
+    withdrawal.adminPaymentStatus = 'confirmed_paid';
+    if (bankReference) withdrawal.bankReference = bankReference;
+    if (paymentMethod) withdrawal.paymentMethod = paymentMethod;
+    if (settlementNotes) withdrawal.settlementNotes = settlementNotes;
+
+    await user.save();
+
+    console.log(`✅ [COMMISSION FUND] Confirmed external settlement for user ${user.email}, amount ₹${withdrawal.amount}, ref: ${bankReference || withdrawal.transferId}`);
+
+    const updatedLiabilities = await calculateAuthoritativeLiabilitiesAndSettlements();
+
+    res.json({
+      success: true,
+      message: 'External settlement verified and confirmed paid successfully',
+      withdrawal: {
+        id: withdrawal._id,
+        amount: withdrawal.amount,
+        transferId: withdrawal.transferId,
+        externalSettlementVerified: withdrawal.externalSettlementVerified,
+        externalSettlementVerifiedAt: withdrawal.externalSettlementVerifiedAt,
+        adminPaymentStatus: withdrawal.adminPaymentStatus
+      },
+      updatedLiabilities
+    });
+  } catch (error) {
+    console.error('❌ [COMMISSION FUND] Error confirming settlement:', error);
+    res.status(500).json({ success: false, error: 'Internal server error confirming settlement' });
   }
 });
 

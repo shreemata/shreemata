@@ -202,7 +202,16 @@ const userSchema = new mongoose.Schema({
       transferDate: Date,        // When transfer was initiated
       transferMethod: String,    // UPI, Bank Transfer, etc.
       transferError: String,     // Error message if transfer failed
-      transferStatus: String     // queued, processing, processed, failed
+      transferStatus: String,    // queued, processing, processed, failed
+
+      // Authoritative Settlement Verification fields
+      externalSettlementVerified: { type: Boolean, default: false },
+      externalSettlementVerifiedAt: Date,
+      externalSettlementVerifiedBy: String,
+      bankReference: String,     // Bank UTR or payout reference
+      paymentMethod: String,     // Transfer channel
+      settlementNotes: String,   // Audit notes
+      adminPaymentStatus: String // pending_withdrawal, settlement_unverified, confirmed_paid, failed_refunded
     }
   ],
 

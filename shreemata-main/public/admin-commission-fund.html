@@ -720,12 +720,56 @@
             </div>
         </div>
 
+        <!-- 4. Simple Admin Summary Banner: Commission Payment Position -->
+        <div class="payment-position-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border-radius: 16px; padding: 22px 26px; margin-bottom: 24px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 14px;">
+                <div>
+                    <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+                        <span>🏛️</span> Commission Payment Position
+                    </h2>
+                    <p style="margin: 4px 0 0 0; font-size: 13px; color: #94a3b8;">Authoritative overview of customer money owed, approved paid withdrawals, and pending payouts.</p>
+                </div>
+                <div>
+                    <span class="badge-pill" style="background: rgba(255,255,255,0.1); color: #818cf8; border: 1px solid rgba(129,140,248,0.3); font-size: 12px; padding: 6px 12px;">Live Financial Ledger</span>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 700; margin-bottom: 6px;">Money Currently Owed to Users</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #f87171;" id="posOwedToUsers">₹0.00</div>
+                    <div style="font-size: 11px; color: #cbd5e1; margin-top: 4px;">Total Need to Pay (Wallets + Virtual + VIP + Pending)</div>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 700; margin-bottom: 6px;">Confirmed Already Paid</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #34d399;" id="posConfirmedPaid">₹0.00</div>
+                    <div style="font-size: 11px; color: #cbd5e1; margin-top: 4px;">Total approved withdrawals paid to users</div>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 700; margin-bottom: 6px;">Pending Withdrawals</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #fbbf24;" id="posPendingWithdrawals">₹0.00</div>
+                    <div style="font-size: 11px; color: #cbd5e1; margin-top: 4px;">Queued requests awaiting admin processing</div>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 700; margin-bottom: 6px;">Available Commission Reserve</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #fbbf24;" id="posAvailableReserve">Not Established</div>
+                    <div style="font-size: 11px; color: #cbd5e1; margin-top: 4px;" id="posReserveSubtext">Verified cash reserve balance</div>
+                </div>
+            </div>
+        </div>
+
         <!-- 6 Executive KPI Cards -->
         <div class="kpi-grid">
             <!-- 1. Total Commission Generated -->
             <div class="kpi-card kpi-generated">
                 <div class="kpi-card-header">
-                    <span class="kpi-title">Total Commission Generated</span>
+                    <span class="kpi-title" style="display: flex; align-items: center; gap: 4px;">
+                        Total Commission Generated
+                        <span style="cursor: help; color: #4f46e5; font-size: 14px;" title="Total Commission Generated reflects verified order commission allocations. Customer Balances & Need to Pay represent present outstanding customer liabilities including historical balance records.">ℹ️</span>
+                    </span>
                     <div class="kpi-icon">📊</div>
                 </div>
                 <div class="kpi-value" id="kpiTotalGenerated">₹0.00</div>
@@ -749,17 +793,21 @@
                     <div class="kpi-icon">⚠️</div>
                 </div>
                 <div class="kpi-value" id="kpiNeedToPay">₹0.00</div>
-                <div class="kpi-subtext" id="kpiNeedToPaySubtext">Active balances + Pending + Unresolved Exposure</div>
+                <div class="kpi-subtext" id="kpiNeedToPayFormula" style="font-size: 11px; line-height: 1.4; color: #475569;">
+                    Loading formula breakdown...
+                </div>
             </div>
 
             <!-- 4. Paid Amount -->
             <div class="kpi-card kpi-paid">
                 <div class="kpi-card-header">
-                    <span class="kpi-title">Paid Amount (Settled)</span>
+                    <span class="kpi-title">Paid Amount (Approved)</span>
                     <div class="kpi-icon">✅</div>
                 </div>
                 <div class="kpi-value" id="kpiPaidAmount">₹0.00</div>
-                <div class="kpi-subtext">Confirmed externally settled payouts</div>
+                <div class="kpi-subtext" id="kpiPaidSubtext">
+                    Total approved withdrawals paid to users
+                </div>
             </div>
 
             <!-- 5. Available Reserve -->
@@ -783,6 +831,162 @@
                 </div>
                 <div class="kpi-value" style="color: #dc2626;" id="kpiFundingRequired">Unknown</div>
                 <div class="kpi-subtext" id="kpiFundingSubtext">Solvency shortfall vs Need to Pay</div>
+            </div>
+        </div>
+
+        <!-- 1 & 6. Customer Money / Outstanding Liability Breakdown Section -->
+        <div class="section-card" style="margin-bottom: 28px;">
+            <div class="section-header">
+                <div>
+                    <h2>💰 Customer Money / Outstanding Liability Breakdown</h2>
+                    <p>Real-time breakdown of customer wallet balances, virtual node earnings, VIP cards, and pending withdrawal obligations.</p>
+                </div>
+                <div>
+                    <span class="badge-pill" style="background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe;">Live Backend Reconciled</span>
+                </div>
+            </div>
+
+            <div style="padding: 24px;">
+                <!-- 5 Display Cards -->
+                <div class="kpi-grid" style="margin-bottom: 24px;">
+                    <!-- 1. Customer Wallet Balance -->
+                    <div class="kpi-card" style="border-left: 5px solid #4f46e5;">
+                        <div class="kpi-card-header">
+                            <span class="kpi-title">Customer Wallet Balance</span>
+                            <div class="kpi-icon" style="background:#eef2ff; color:#4f46e5;">👛</div>
+                        </div>
+                        <div class="kpi-value" id="lbCustomerWallet" style="color: #1e293b;">₹0.00</div>
+                        <div class="kpi-subtext">Money currently held in normal customer wallets</div>
+                    </div>
+
+                    <!-- 2. Virtual Referral Balance -->
+                    <div class="kpi-card" style="border-left: 5px solid #8b5cf6;">
+                        <div class="kpi-card-header">
+                            <span class="kpi-title">Virtual Referral Balance</span>
+                            <div class="kpi-icon" style="background:#f5f3ff; color:#7c3aed;">🌳</div>
+                        </div>
+                        <div class="kpi-value" id="lbVirtualBalance" style="color: #6d28d9;">₹0.00</div>
+                        <div class="kpi-subtext">Unclaimed earnings held by virtual referral positions</div>
+                    </div>
+
+                    <!-- 3. VIP Master Card Balance -->
+                    <div class="kpi-card" style="border-left: 5px solid #0284c7;">
+                        <div class="kpi-card-header">
+                            <span class="kpi-title">VIP Master Card Balance</span>
+                            <div class="kpi-icon" style="background:#f0f9ff; color:#0284c7;">💳</div>
+                        </div>
+                        <div class="kpi-value" id="lbVipBalance" style="color: #0369a1;">₹0.00</div>
+                        <div class="kpi-subtext">Customer earnings currently held in VIP Master Cards</div>
+                    </div>
+
+                    <!-- 4. Pending Withdrawals -->
+                    <div class="kpi-card" style="border-left: 5px solid #f59e0b;">
+                        <div class="kpi-card-header">
+                            <span class="kpi-title">Pending Withdrawals</span>
+                            <div class="kpi-icon" style="background:#fffbeb; color:#d97706;">⏳</div>
+                        </div>
+                        <div class="kpi-value" id="lbPendingWithdrawals" style="color: #d97706;">₹0.00</div>
+                        <div class="kpi-subtext">Withdrawal requests queued and pending processing</div>
+                    </div>
+
+                    <!-- 5. Total Need to Pay -->
+                    <div class="kpi-card" style="border-left: 5px solid #ef4444; background: #fff5f5;">
+                        <div class="kpi-card-header">
+                            <span class="kpi-title" style="color:#991b1b;">Total Need to Pay</span>
+                            <div class="kpi-icon" style="background:#fee2e2; color:#dc2626;">🚨</div>
+                        </div>
+                        <div class="kpi-value" id="lbTotalNeedToPay" style="color: #dc2626;">₹0.00</div>
+                        <div class="kpi-subtext" style="color:#991b1b; font-weight:600;">Total outstanding customer money & pending payouts</div>
+                    </div>
+                </div>
+
+                <!-- 2. Need to Pay Visible Formula Callout Box -->
+                <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #cbd5e1; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                        <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                            <span>🧮</span> Need to Pay Formula Calculation
+                        </h3>
+                        <span class="badge-pill" style="background: #ffffff; color: #475569; border: 1px solid #cbd5e1;">Strict Additive Reconciliation</span>
+                    </div>
+                    
+                    <div style="font-family: monospace; font-size: 14px; background: white; border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; color: #1e293b; line-height: 1.8;">
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px;">
+                            <span>&nbsp;&nbsp;Normal Customer Wallets</span>
+                            <strong id="fmNormalWallets">₹0.00</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding: 4px 0;">
+                            <span>+ Virtual Referral Balances</span>
+                            <strong id="fmVirtualBalance">₹0.00</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding: 4px 0;">
+                            <span>+ VIP Master Card Balances</span>
+                            <strong id="fmVipBalance">₹0.00</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding: 4px 0;">
+                            <span>+ Pending Withdrawals</span>
+                            <strong id="fmPendingWithdrawals">₹0.00</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-top: 8px; font-size: 16px; color: #dc2626; font-weight: 800;">
+                            <span>= Total Need to Pay</span>
+                            <strong id="fmTotalNeedToPay">₹0.00</strong>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 12px; color: #64748b; display: flex; align-items: center; gap: 6px;">
+                        <span>ℹ️</span> 
+                        <span>This formula dynamically sums all live customer balance accounts and queued pending withdrawal requests.</span>
+                    </div>
+                </div>
+
+                <!-- 6. Liability Detail Table -->
+                <div>
+                    <h3 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                        <span>📑</span> Liability Detail Table
+                    </h3>
+                    <div class="matrix-table-wrap">
+                        <table class="matrix-table">
+                            <thead>
+                                <tr>
+                                    <th>Liability Source</th>
+                                    <th style="text-align: right;">Amount</th>
+                                    <th>Status</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Normal Customer Wallets</strong></td>
+                                    <td style="text-align: right;" class="amount-num" id="tblNormalWallets">₹0.00</td>
+                                    <td><span class="status-badge status-credited">Outstanding</span></td>
+                                    <td style="font-size: 12px; color: #64748b;">Money currently held in normal customer wallets</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Virtual Referral</strong></td>
+                                    <td style="text-align: right;" class="amount-num" id="tblVirtualBalance">₹0.00</td>
+                                    <td><span class="status-badge status-virtual">Outstanding</span></td>
+                                    <td style="font-size: 12px; color: #64748b;">Unclaimed earnings held by virtual referral positions</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>VIP Master Card</strong></td>
+                                    <td style="text-align: right;" class="amount-num" id="tblVipBalance">₹0.00</td>
+                                    <td><span class="status-badge status-credited">Outstanding</span></td>
+                                    <td style="font-size: 12px; color: #64748b;">Customer earnings currently held in VIP Master Cards</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Pending Withdrawals</strong></td>
+                                    <td style="text-align: right;" class="amount-num" id="tblPendingWithdrawals">₹0.00</td>
+                                    <td><span class="status-badge status-pending">Pending</span></td>
+                                    <td style="font-size: 12px; color: #64748b;">Withdrawal requests queued and pending processing</td>
+                                </tr>
+                                <tr style="background: #f8fafc; font-weight: 800; border-top: 2px solid #cbd5e1;">
+                                    <td><strong style="font-size: 15px; color: #0f172a;">Total Need to Pay</strong></td>
+                                    <td style="text-align: right; font-size: 16px; color: #dc2626;" class="amount-num" id="tblTotalNeedToPay">₹0.00</td>
+                                    <td><span class="status-badge status-reversed" style="background:#fef2f2; color:#dc2626;">Total Obligation</span></td>
+                                    <td style="font-size: 12px; color: #1e293b; font-weight: 600;">Sum of all active customer holdings + pending payouts</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
