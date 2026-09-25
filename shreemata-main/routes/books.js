@@ -175,6 +175,67 @@ async function uploadToCloudinary(buffer, filename) {
 
 const jwt = require('jsonwebtoken');
 
+// Helper for parsing & validating offer discount parameters
+function parseOfferDiscount(body, fallbackPhysicalPrice = 0) {
+  const isEnabled = body.discountEnabled === 'true' || body.discountEnabled === true;
+  const rawPhysicalPrice = (body.physicalPrice !== undefined && body.physicalPrice !== '' && !isNaN(Number(body.physicalPrice)))
+    ? Number(body.physicalPrice)
+    : ((body.price !== undefined && body.price !== '' && !isNaN(Number(body.price))) ? Number(body.price) : fallbackPhysicalPrice);
+  const physicalPrice = isNaN(rawPhysicalPrice) ? 0 : Math.max(0, rawPhysicalPrice);
+  
+  const discountType = body.discountType === 'percentage' ? 'percentage' : 'flat';
+  const rawDiscountValue = Number(body.discountValue) || 0;
+  const discountValue = Math.max(0, rawDiscountValue);
+
+  if (!isEnabled) {
+    return {
+      discountEnabled: false,
+      discountType: 'flat',
+      discountValue: 0,
+      physicalPrice,
+      sellingPrice: physicalPrice,
+      error: null
+    };
+  }
+
+  if (physicalPrice <= 0) {
+    return { error: 'Physical price must be greater than 0 to enable offer' };
+  }
+
+  if (discountValue <= 0) {
+    return { error: 'Discount value must be greater than 0' };
+  }
+
+  if (discountType === 'flat') {
+    if (discountValue >= physicalPrice) {
+      return { error: 'Flat discount amount must be less than the physical price' };
+    }
+    const sellingPrice = Number((physicalPrice - discountValue).toFixed(2));
+    return {
+      discountEnabled: true,
+      discountType: 'flat',
+      discountValue,
+      physicalPrice,
+      sellingPrice,
+      error: null
+    };
+  } else {
+    if (discountValue >= 100) {
+      return { error: 'Discount percentage must be less than 100%' };
+    }
+    const discountAmount = (physicalPrice * discountValue) / 100;
+    const sellingPrice = Number(Math.max(0, physicalPrice - discountAmount).toFixed(2));
+    return {
+      discountEnabled: true,
+      discountType: 'percentage',
+      discountValue,
+      physicalPrice,
+      sellingPrice,
+      error: null
+    };
+  }
+}
+
 // Helper to check if request is from an authenticated admin
 function isAdminRequest(req) {
   try {
@@ -356,6 +417,11 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
     }
 
     const numPrice = Number(price);
+    const offerResult = parseOfferDiscount(req.body, numPrice);
+    if (offerResult.error) {
+      return res.status(400).json({ error: offerResult.error });
+    }
+
     let parsedProfitType = profitType === 'percentage' ? 'percentage' : 'fixed';
     let parsedProfitValue = profitValue !== undefined ? Number(profitValue) : 0;
     let isProfitConfigured = profitConfigured === true || profitConfigured === 'true' || profitValue !== undefined;
@@ -364,7 +430,7 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
       if (isNaN(parsedProfitValue) || parsedProfitValue < 0) {
         return res.status(400).json({ error: "Profit value must be a non-negative number" });
       }
-      if (parsedProfitType === 'fixed' && parsedProfitValue > numPrice) {
+      if (parsedProfitType === 'fixed' && parsedProfitValue > offerResult.sellingPrice) {
         return res.status(400).json({ error: "Book profit cannot exceed the eligible selling price." });
       }
       if (parsedProfitType === 'percentage' && parsedProfitValue > 100) {
@@ -462,7 +528,12 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
     const book = await Book.create({
       title,
       author,
-      price,
+      price: offerResult.sellingPrice,
+      physicalPrice: offerResult.physicalPrice,
+      discountEnabled: offerResult.discountEnabled,
+      discountType: offerResult.discountType,
+      discountValue: offerResult.discountValue,
+      sellingPrice: offerResult.sellingPrice,
       description: description || "",
       cover_image: coverImage,
       preview_images: previewImages,
@@ -536,13 +607,25 @@ router.put("/:id", authenticateToken, isAdmin, (req, res, next) => {
     console.log('📝 Updating book fields...');
     if (req.body.title !== undefined) book.title = req.body.title;
     if (req.body.author !== undefined) book.author = req.body.author;
-    if (req.body.price !== undefined) book.price = Number(req.body.price);
     if (req.body.description !== undefined) book.description = req.body.description;
     if (req.body.category !== undefined) book.category = req.body.category;
     if (req.body.class !== undefined) book.class = req.body.class;
     if (req.body.subject !== undefined) book.subject = req.body.subject;
     if (req.body.weight !== undefined) book.weight = Number(req.body.weight);
     if (req.body.rewardPoints !== undefined) book.rewardPoints = Math.max(0, parseInt(req.body.rewardPoints, 10) || 0);
+
+    // Process offer discount fields
+    const fallbackPhysical = book.physicalPrice !== undefined ? book.physicalPrice : book.price;
+    const offerResult = parseOfferDiscount(req.body, fallbackPhysical);
+    if (offerResult.error) {
+      return res.status(400).json({ error: offerResult.error });
+    }
+    book.discountEnabled = offerResult.discountEnabled;
+    book.discountType = offerResult.discountType;
+    book.discountValue = offerResult.discountValue;
+    book.physicalPrice = offerResult.physicalPrice;
+    book.sellingPrice = offerResult.sellingPrice;
+    book.price = offerResult.sellingPrice;
 
     if (req.body.cashbackAmount !== undefined || req.body.cashbackPercentage !== undefined) {
       const targetCashbackAmount = req.body.cashbackAmount !== undefined ? Number(req.body.cashbackAmount) : Number(book.cashbackAmount || 0);
@@ -564,7 +647,7 @@ router.put("/:id", authenticateToken, isAdmin, (req, res, next) => {
 
     // Handle profit fields update & validation
     if (req.body.profitType !== undefined || req.body.profitValue !== undefined || req.body.profitConfigured !== undefined) {
-      const targetPrice = req.body.price !== undefined ? Number(req.body.price) : Number(book.price);
+      const targetPrice = offerResult.sellingPrice;
       const targetProfitType = req.body.profitType !== undefined ? req.body.profitType : (book.profitType || 'fixed');
       const targetProfitValue = req.body.profitValue !== undefined ? Number(req.body.profitValue) : Number(book.profitValue || 0);
 

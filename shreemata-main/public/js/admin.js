@@ -396,6 +396,133 @@ async function loadClassesAndSubjectsForFilters() {
     }
 }
 
+/* OFFER & DISCOUNT LIVE CALCULATION & PREVIEW */
+function updateOfferCalculation() {
+    const priceEl = document.getElementById('price');
+    const enabledEl = document.getElementById('discountEnabled');
+    const typeEl = document.getElementById('discountType');
+    const valEl = document.getElementById('discountValue');
+    const containerEl = document.getElementById('offerFieldsContainer');
+    const errorEl = document.getElementById('discountValidationError');
+    const previewContentEl = document.getElementById('offerPreviewContent');
+    const valLabelEl = document.getElementById('discountValueLabel');
+
+    if (!priceEl || !enabledEl || !typeEl || !valEl || !previewContentEl) {
+        return { valid: true, sellingPrice: 0, physicalPrice: 0, discountEnabled: false, discountType: 'flat', discountValue: 0 };
+    }
+
+    const physicalPrice = parseFloat(priceEl.value) || 0;
+    const isEnabled = enabledEl.checked;
+    const discountType = typeEl.value;
+    const discountVal = parseFloat(valEl.value) || 0;
+
+    if (valLabelEl) {
+        valLabelEl.textContent = discountType === 'percentage' ? 'Discount Value (%)' : 'Discount Value (₹)';
+    }
+
+    if (!isEnabled) {
+        if (containerEl) containerEl.style.display = 'none';
+        if (errorEl) {
+            errorEl.style.display = 'none';
+            errorEl.textContent = '';
+        }
+        
+        previewContentEl.innerHTML = `
+            <div style="font-size: 1.25rem; font-weight: 800; color: #1e293b;">
+                ₹${physicalPrice.toFixed(2)}
+            </div>
+            <div style="font-size: 0.85rem; color: #64748b;">(Standard Selling Price - No Offer Active)</div>
+        `;
+        return {
+            valid: true,
+            sellingPrice: physicalPrice,
+            discountEnabled: false,
+            discountType,
+            discountValue: 0,
+            physicalPrice
+        };
+    }
+
+    if (containerEl) containerEl.style.display = 'block';
+
+    let validationMessage = '';
+    if (physicalPrice <= 0) {
+        validationMessage = 'Physical Price / MRP must be greater than 0.';
+    } else if (discountVal <= 0) {
+        validationMessage = 'Discount Value must be greater than 0.';
+    } else if (discountType === 'flat' && discountVal >= physicalPrice) {
+        validationMessage = `Flat discount (₹${discountVal.toFixed(2)}) must be less than Physical Price (₹${physicalPrice.toFixed(2)}).`;
+    } else if (discountType === 'percentage' && discountVal >= 100) {
+        validationMessage = 'Discount percentage must be less than 100%.';
+    }
+
+    if (validationMessage) {
+        if (errorEl) {
+            errorEl.style.display = 'block';
+            errorEl.textContent = `⚠️ ${validationMessage}`;
+        }
+        previewContentEl.innerHTML = `
+            <div style="color: #ef4444; font-weight: 600; font-size: 0.9rem;">
+                Invalid Offer Configuration: ${validationMessage}
+            </div>
+        `;
+        return {
+            valid: false,
+            error: validationMessage,
+            sellingPrice: physicalPrice,
+            physicalPrice,
+            discountEnabled: true,
+            discountType,
+            discountValue: discountVal
+        };
+    }
+
+    if (errorEl) {
+        errorEl.style.display = 'none';
+        errorEl.textContent = '';
+    }
+
+    let discountAmount = 0;
+    let sellingPrice = 0;
+    let discountPct = 0;
+
+    if (discountType === 'flat') {
+        discountAmount = discountVal;
+        sellingPrice = Math.max(0, physicalPrice - discountVal);
+        discountPct = Math.round((discountVal / physicalPrice) * 100);
+    } else {
+        discountAmount = (physicalPrice * discountVal) / 100;
+        sellingPrice = Math.max(0, physicalPrice - discountAmount);
+        discountPct = Math.round(discountVal);
+    }
+
+    previewContentEl.innerHTML = `
+        <div style="font-size: 1.4rem; font-weight: 800; color: #15803d;">
+            ₹${sellingPrice.toFixed(2)}
+        </div>
+        <div style="font-size: 1.1rem; color: #94a3b8; text-decoration: line-through; font-weight: 600;">
+            ₹${physicalPrice.toFixed(2)}
+        </div>
+        <div style="background: #dcfce7; color: #166534; font-weight: 800; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; border: 1px solid #bbf7d0;">
+            ${discountPct}% OFF
+        </div>
+        <div style="color: #15803d; font-weight: 700; font-size: 0.9rem; margin-left: 4px;">
+            Save ₹${discountAmount.toFixed(2)}
+        </div>
+    `;
+
+    return {
+        valid: true,
+        sellingPrice,
+        discountAmount,
+        discountPct,
+        discountEnabled: true,
+        discountType,
+        discountValue: discountVal,
+        physicalPrice
+    };
+}
+
 /* EVENT LISTENERS */
 function setupEventListeners() {
     // Add null checks for all elements before adding event listeners
@@ -454,14 +581,27 @@ function setupEventListeners() {
         console.warn('Admin: trackStock element not found');
     }
 
-    // Auto-calculate online price when physical price changes
+    // Auto-calculate offer discount live calculations
     const priceInput = document.getElementById('price');
+    const discountEnabledInput = document.getElementById('discountEnabled');
+    const discountTypeInput = document.getElementById('discountType');
+    const discountValueInput = document.getElementById('discountValue');
+
     if (priceInput) {
-        priceInput.addEventListener('input', (e) => {
-            const physicalPrice = parseFloat(e.target.value) || 0;
-            // Remove digital content auto-calculation
-        });
+        priceInput.addEventListener('input', updateOfferCalculation);
+        priceInput.addEventListener('change', updateOfferCalculation);
     }
+    if (discountEnabledInput) {
+        discountEnabledInput.addEventListener('change', updateOfferCalculation);
+    }
+    if (discountTypeInput) {
+        discountTypeInput.addEventListener('change', updateOfferCalculation);
+    }
+    if (discountValueInput) {
+        discountValueInput.addEventListener('input', updateOfferCalculation);
+        discountValueInput.addEventListener('change', updateOfferCalculation);
+    }
+    updateOfferCalculation();
 
     // Auto-update stock status based on quantity
     const stockQuantityInput = document.getElementById('stockQuantity');
@@ -622,6 +762,25 @@ function displayBooks(books) {
             }
         };
 
+        // Get price display with discount badge
+        const getBookPriceDisplay = (b) => {
+            const pPrice = b.physicalPrice !== undefined ? parseFloat(b.physicalPrice) : parseFloat(b.price || 0);
+            const sPrice = b.sellingPrice !== undefined ? parseFloat(b.sellingPrice) : parseFloat(b.price || 0);
+            const hasDiscount = b.discountEnabled && pPrice > sPrice;
+
+            if (hasDiscount) {
+                const pct = b.discountType === 'percentage'
+                    ? Math.round(b.discountValue)
+                    : Math.round(((pPrice - sPrice) / pPrice) * 100);
+                return `<div>
+                    <span style="font-weight: 700; color: #15803d; font-size: 1.05em;">₹${sPrice.toFixed(2)}</span>
+                    <span style="text-decoration: line-through; color: #94a3b8; font-size: 0.85em; margin-left: 4px;">₹${pPrice.toFixed(2)}</span>
+                    <span style="background: #dcfce7; color: #15803d; font-size: 0.75em; font-weight: 800; padding: 1px 6px; border-radius: 10px; margin-left: 4px;">${pct}% OFF</span>
+                </div>`;
+            }
+            return `<span style="font-weight: 600;">₹${pPrice.toFixed(2)}</span>`;
+        };
+
         // Desktop table row
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -630,7 +789,7 @@ function displayBooks(books) {
             <td>${book.author}</td>
             <td>${book.class ? `Class ${book.class}` : 'N/A'}</td>
             <td>${book.subject || 'N/A'}</td>
-            <td>₹${parseFloat(book.price).toFixed(2)}</td>
+            <td>${getBookPriceDisplay(book)}</td>
             <td>${getStockStatusDisplay(book)}</td>
             <td>
                 <button class="btn-secondary edit-btn" data-id="${book._id}">Edit</button>
@@ -650,7 +809,7 @@ function displayBooks(books) {
                     <p><strong>Author:</strong> ${book.author}</p>
                     <p><strong>Class:</strong> ${book.class ? `Class ${book.class}` : 'N/A'}</p>
                     <p><strong>Subject:</strong> ${book.subject || 'N/A'}</p>
-                    <div class="mobile-book-price">₹${parseFloat(book.price).toFixed(2)}</div>
+                    <div class="mobile-book-price">${getBookPriceDisplay(book)}</div>
                     <div style="margin-top: 8px;">${getStockStatusDisplay(book)}</div>
                 </div>
             </div>
@@ -705,6 +864,8 @@ async function editBook(bookId) {
 
         isEditMode = true;
         editingBookId = bookId;
+        const bookIdEl = document.getElementById('bookId');
+        if (bookIdEl) bookIdEl.value = bookId;
         
         console.log('📝 Setting edit mode - bookId:', editingBookId);
 
@@ -728,7 +889,16 @@ async function editBook(bookId) {
         
         if (titleEl) titleEl.value = book.title || '';
         if (authorEl) authorEl.value = book.author || '';
-        if (priceEl) priceEl.value = book.price !== undefined ? book.price : '';
+        if (priceEl) priceEl.value = book.physicalPrice !== undefined ? book.physicalPrice : (book.price !== undefined ? book.price : '');
+
+        // Offer & Discount fields
+        const discountEnabledEl = document.getElementById('discountEnabled');
+        const discountTypeEl = document.getElementById('discountType');
+        const discountValueEl = document.getElementById('discountValue');
+        if (discountEnabledEl) discountEnabledEl.checked = book.discountEnabled === true;
+        if (discountTypeEl) discountTypeEl.value = book.discountType || 'flat';
+        if (discountValueEl) discountValueEl.value = book.discountValue !== undefined ? book.discountValue : 0;
+        updateOfferCalculation();
         if (weightEl) weightEl.value = book.weight !== undefined ? book.weight : 0.5;
         if (rewardPointsEl) rewardPointsEl.value = book.rewardPoints !== undefined ? book.rewardPoints : 0;
         if (cashbackAmountEl) cashbackAmountEl.value = book.cashbackAmount !== undefined ? book.cashbackAmount : 0;
@@ -881,6 +1051,15 @@ async function handleFormSubmit(e) {
         const bookClass = bookClassEl.value;
         const subject = subjectEl.value;
         
+        // Validate Offer & Discount configuration before submission
+        const offerData = updateOfferCalculation();
+        if (!offerData.valid) {
+            alert(`Cannot submit: ${offerData.error}`);
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
+        }
+        
         console.log('Form data being submitted:');
         console.log('Title:', title);
         console.log('Author:', author);
@@ -975,7 +1154,12 @@ async function handleFormSubmit(e) {
             const bookData = {
                 title,
                 author,
-                price: parseFloat(price) || 0,
+                price: offerData.sellingPrice,
+                physicalPrice: offerData.physicalPrice,
+                discountEnabled: offerData.discountEnabled,
+                discountType: offerData.discountType,
+                discountValue: offerData.discountValue,
+                sellingPrice: offerData.sellingPrice,
                 description,
                 class: bookClass,
                 subject,
@@ -1057,16 +1241,21 @@ async function handleFormSubmit(e) {
             const formData = new FormData();
             formData.append('title', title);
             formData.append('author', author);
-            formData.append('price', price);
+            formData.append('price', String(offerData.sellingPrice));
+            formData.append('physicalPrice', String(offerData.physicalPrice));
+            formData.append('discountEnabled', String(offerData.discountEnabled));
+            formData.append('discountType', offerData.discountType);
+            formData.append('discountValue', String(offerData.discountValue));
+            formData.append('sellingPrice', String(offerData.sellingPrice));
             formData.append('description', description);
             formData.append('class', bookClass);
             formData.append('subject', subject);
-            formData.append('weight', weight);
-            formData.append('rewardPoints', rewardPoints);
-            formData.append('cashbackAmount', cashbackAmount);
-            formData.append('cashbackPercentage', cashbackPercentage);
+            formData.append('weight', String(weight));
+            formData.append('rewardPoints', String(rewardPoints));
+            formData.append('cashbackAmount', String(cashbackAmount));
+            formData.append('cashbackPercentage', String(cashbackPercentage));
             formData.append('profitType', profitType);
-            formData.append('profitValue', profitValue);
+            formData.append('profitValue', String(profitValue));
             formData.append('profitConfigured', 'true');
 
             // Add stock management fields
@@ -1082,9 +1271,9 @@ async function handleFormSubmit(e) {
                 stockStatus: stockStatusEl ? stockStatusEl.value : 'element not found'
             });
             
-            if (trackStockEl) formData.append('trackStock', trackStockEl.checked);
-            if (stockQuantityEl) formData.append('stockQuantity', stockQuantityEl.value || 0);
-            if (lowStockThresholdEl) formData.append('lowStockThreshold', lowStockThresholdEl.value || 5);
+            if (trackStockEl) formData.append('trackStock', String(trackStockEl.checked));
+            if (stockQuantityEl) formData.append('stockQuantity', String(stockQuantityEl.value || 0));
+            if (lowStockThresholdEl) formData.append('lowStockThreshold', String(lowStockThresholdEl.value || 5));
             if (stockStatusEl) formData.append('stockStatus', stockStatusEl.value || 'in_stock');
 
             const retainedPreviewImages = existingPreviewImages.filter(url => !existingPreviewImagesRemoved.includes(url));
@@ -1157,11 +1346,17 @@ async function handleFormSubmit(e) {
             const stockQuantityEl = document.getElementById('stockQuantity');
             const lowStockThresholdEl = document.getElementById('lowStockThreshold');
             const stockStatusEl = document.getElementById('stockStatus');
+            const retainedPreviewImages = existingPreviewImages.filter(url => !existingPreviewImagesRemoved.includes(url));
             
             const bookData = {
                 title,
                 author,
-                price: parseFloat(price) || 0,
+                price: offerData.sellingPrice,
+                physicalPrice: offerData.physicalPrice,
+                discountEnabled: offerData.discountEnabled,
+                discountType: offerData.discountType,
+                discountValue: offerData.discountValue,
+                sellingPrice: offerData.sellingPrice,
                 description,
                 class: bookClass,
                 subject,
@@ -1172,6 +1367,8 @@ async function handleFormSubmit(e) {
                 profitType,
                 profitValue,
                 profitConfigured,
+                existingCoverRemoved,
+                retainedPreviewImages,
                 // Add stock fields to JSON submission
                 trackStock: trackStockEl ? trackStockEl.checked : true,
                 stockQuantity: stockQuantityEl ? parseInt(stockQuantityEl.value) || 0 : 10,
@@ -1271,6 +1468,8 @@ function showAdminNotification(message, isError = true) {
 function resetForm() {
     isEditMode = false;
     editingBookId = null;
+    const bookIdEl = document.getElementById('bookId');
+    if (bookIdEl) bookIdEl.value = '';
     selectedCoverFile = null;
     existingCoverImage = null;
     existingCoverRemoved = false;
@@ -1308,6 +1507,15 @@ function resetForm() {
     if (cashbackAmountEl) cashbackAmountEl.value = 0;
     if (cashbackPercentageEl) cashbackPercentageEl.value = 0;
     if (typeof updateProfitPreview === 'function') updateProfitPreview();
+
+    // Reset offer & discount fields
+    const discountEnabledEl = document.getElementById('discountEnabled');
+    const discountTypeEl = document.getElementById('discountType');
+    const discountValueEl = document.getElementById('discountValue');
+    if (discountEnabledEl) discountEnabledEl.checked = false;
+    if (discountTypeEl) discountTypeEl.value = 'flat';
+    if (discountValueEl) discountValueEl.value = 0;
+    updateOfferCalculation();
     
     document.getElementById('submitBtn').textContent = "Add Book";
 }

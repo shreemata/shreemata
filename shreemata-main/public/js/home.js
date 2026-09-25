@@ -656,11 +656,13 @@ function createBookCard(book) {
     // Create cashback sticker
     const getCashbackSticker = (book) => {
         let cashbackAmount = 0;
+        const pricing = window.getBookDisplayPricing ? window.getBookDisplayPricing(book) : { sellingPrice: parseFloat(book.price) || 0 };
+        const sellingPrice = pricing.sellingPrice;
         
         if (book.cashbackAmount > 0) {
             cashbackAmount = book.cashbackAmount;
         } else if (book.cashbackPercentage > 0) {
-            cashbackAmount = (book.price * book.cashbackPercentage) / 100;
+            cashbackAmount = (sellingPrice * book.cashbackPercentage) / 100;
         }
         
         if (cashbackAmount > 0) {
@@ -676,6 +678,24 @@ function createBookCard(book) {
     const cashbackSticker = getCashbackSticker(book);
     const isOutOfStock = book.trackStock && book.stockStatus === 'out_of_stock';
 
+    const pricing = window.getBookDisplayPricing ? window.getBookDisplayPricing(book) : { hasOffer: false, sellingPrice: parseFloat(book.price) || 0, mrp: parseFloat(book.price) || 0, discountAmount: 0, discountPercentage: 0 };
+    
+    let priceDisplayHtml = '';
+    if (pricing.hasOffer) {
+        priceDisplayHtml = `
+            <div class="book-price-offer">
+                <div class="offer-price-row">
+                    <span class="offer-selling-price">₹${pricing.sellingPrice.toFixed(2)}</span>
+                    <span class="offer-mrp">₹${pricing.mrp.toFixed(2)}</span>
+                    <span class="offer-discount-badge">${pricing.discountPercentage}% OFF</span>
+                </div>
+                <div class="offer-saving">Save ₹${pricing.discountAmount.toFixed(0)}</div>
+            </div>
+        `;
+    } else {
+        priceDisplayHtml = `<p class="book-price">₹${pricing.sellingPrice.toFixed(2)}</p>`;
+    }
+
     card.innerHTML = `
         <div class="book-image-container">
             <img src="${coverImage}" class="book-cover" />
@@ -684,7 +704,7 @@ function createBookCard(book) {
         </div>
         <h3>${book.title}</h3>
         <p class="book-author">by ${book.author}</p>
-        <p class="book-price">₹${parseFloat(book.price).toFixed(2)}</p>
+        ${priceDisplayHtml}
         ${pointsBadge}
         <div class="book-actions">
             <button class="btn-secondary" onclick="previewBook('${book._id}')">Preview</button>

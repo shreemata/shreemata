@@ -5,6 +5,14 @@ const bookSchema = new mongoose.Schema({
   title: { type: String, required: true },
   author: { type: String, required: true },
   price: { type: Number, required: true, min: 0 },
+  
+  // Pricing & Offer / Discount Fields
+  physicalPrice: { type: Number, min: 0 }, // Original MRP / Physical Price
+  discountEnabled: { type: Boolean, default: false },
+  discountType: { type: String, enum: ['flat', 'percentage'], default: 'flat' },
+  discountValue: { type: Number, default: 0, min: 0 },
+  sellingPrice: { type: Number, min: 0 }, // Calculated Final Selling Price
+  
   description: { type: String, default: '' },
   cover_image: { type: String, default: '' },
   preview_images: { type: [String], default: [] },

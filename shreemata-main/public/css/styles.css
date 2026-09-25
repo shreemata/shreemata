@@ -2750,4 +2750,99 @@ img, video, canvas, svg {
     -webkit-overflow-scrolling: touch !important;
     box-sizing: border-box !important;
 }
+
+/* ── 12. CUSTOMER OFFER & DISCOUNT PRICING ── */
+.book-price-offer {
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.offer-price-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.offer-selling-price {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #15803d;
+}
+
+.offer-mrp {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    text-decoration: line-through;
+    font-weight: 600;
+}
+
+.offer-discount-badge {
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 12px;
+    border: 1px solid #bbf7d0;
+    line-height: 1.2;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.offer-saving {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #15803d;
+}
+
+/* Book Details Page Offer Container */
+.details-offer-container {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 15px 0;
+    box-shadow: 0 1px 3px rgba(21, 128, 61, 0.08);
+}
+
+.details-offer-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.details-selling-price {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #15803d;
+}
+
+.details-mrp {
+    font-size: 1.1rem;
+    color: #94a3b8;
+    text-decoration: line-through;
+    font-weight: 600;
+}
+
+.details-badge {
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 0.85rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 16px;
+    border: 1px solid #86efac;
+}
+
+.details-savings {
+    color: #15803d;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
 

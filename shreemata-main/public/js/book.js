@@ -173,7 +173,8 @@ async function updatePricing() {
     if (!window.currentBook) return;
     
     const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
-    const basePrice = parseFloat(window.currentBook.price);
+    const pricing = window.getBookDisplayPricing ? window.getBookDisplayPricing(window.currentBook) : { sellingPrice: parseFloat(window.currentBook.price) || 0 };
+    const basePrice = pricing.sellingPrice;
     const weight = window.currentBook.weight || 0.5;
     
     // Calculate total weight and courier charge
@@ -392,9 +393,32 @@ async function displayBookDetails(book, hidePrice = false) {
     }
     
     // Calculate pricing
-    const basePrice = parseFloat(book.price);
+    const pricing = window.getBookDisplayPricing ? window.getBookDisplayPricing(book) : { hasOffer: false, sellingPrice: parseFloat(book.price) || 0, mrp: parseFloat(book.price) || 0, discountAmount: 0, discountPercentage: 0 };
+    const basePrice = pricing.sellingPrice;
     const weight = book.weight || 0.5;
     let courierCharge = 0; // Declare outside try block
+
+    // Render offer banner if offer is active
+    const existingOfferBanner = document.getElementById("detailsOfferBanner");
+    if (existingOfferBanner) existingOfferBanner.remove();
+
+    if (pricing.hasOffer) {
+        const offerBanner = document.createElement("div");
+        offerBanner.id = "detailsOfferBanner";
+        offerBanner.className = "details-offer-container";
+        offerBanner.innerHTML = `
+            <div class="details-offer-row">
+                <span class="details-selling-price">₹${pricing.sellingPrice.toFixed(2)}</span>
+                <span class="details-mrp">MRP ₹${pricing.mrp.toFixed(2)}</span>
+                <span class="details-badge">${pricing.discountPercentage}% OFF</span>
+            </div>
+            <div class="details-savings">You Save ₹${pricing.discountAmount.toFixed(2)}</div>
+        `;
+        const pricingSection = document.querySelector(".pricing-section");
+        if (pricingSection && pricingSection.parentNode) {
+            pricingSection.parentNode.insertBefore(offerBanner, pricingSection);
+        }
+    }
     
     try {
         courierCharge = await calculateCourierCharge(weight);
