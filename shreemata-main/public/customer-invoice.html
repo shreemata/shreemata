@@ -548,6 +548,231 @@
             transform: translateY(-1px);
         }
 
+        .btn-inv-share {
+            background: #25d366;
+            color: #ffffff;
+            border-color: #128c7e;
+        }
+
+        .btn-inv-share:hover {
+            background: #128c7e;
+            transform: translateY(-1px);
+        }
+
+        /* Quick Share Modal & Toast Styles */
+        .quick-share-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+
+        .quick-share-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .quick-share-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            transform: translateY(12px) scale(0.97);
+            transition: transform 0.25s ease;
+            border: 1px solid #e2e8f0;
+        }
+
+        .quick-share-overlay.active .quick-share-card {
+            transform: translateY(0) scale(1);
+        }
+
+        .quick-share-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 14px;
+            margin-bottom: 14px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .quick-share-title {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .quick-share-subtitle {
+            margin: 3px 0 0 0;
+            font-size: 12.5px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .quick-share-close-btn {
+            background: #f1f5f9;
+            border: none;
+            color: #64748b;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .quick-share-close-btn:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .quick-share-body {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .share-option-btn {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1.5px solid #e2e8f0;
+            background: #ffffff;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .share-option-btn:hover {
+            border-color: #cbd5e1;
+            background: #f8fafc;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .share-option-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .wa-icon-bg {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .wa-direct-icon-bg {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .copy-icon-bg {
+            background: #e0f2fe;
+            color: #0284c7;
+        }
+
+        .native-icon-bg {
+            background: #f3e8ff;
+            color: #9333ea;
+        }
+
+        .share-option-text {
+            flex: 1;
+        }
+
+        .share-option-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+
+        .share-option-desc {
+            font-size: 11.5px;
+            color: #64748b;
+            line-height: 1.25;
+        }
+
+        .share-option-arrow {
+            font-size: 14px;
+            color: #cbd5e1;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .share-option-btn:hover .share-option-arrow {
+            color: #0f172a;
+            transform: translateX(2px);
+        }
+
+        /* Toast Notification */
+        .quick-share-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #0f172a;
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+            z-index: 10001;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .quick-share-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .toast-icon {
+            background: #10b981;
+            color: white;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+
         .inv-badge-tag {
             font-size: 12px;
             font-weight: 700;
@@ -591,6 +816,9 @@
             </button>
             <button onclick="window.print()" class="btn-invoice-action btn-inv-download">
                 <span>⬇️</span> Download PDF
+            </button>
+            <button onclick="openQuickShareModal()" class="btn-invoice-action btn-inv-share" title="Quick Share Invoice">
+                <span>📤</span> Quick Share
             </button>
         </div>
     </div>
@@ -1205,9 +1433,249 @@
             }
         }
 
+        // Quick Share Implementation
+        function getWhatsAppShareText() {
+            const invNumberEl = document.getElementById('invoiceNumber');
+            const grandTotalEl = document.getElementById('grandTotal');
+            
+            let invoiceNo = invNumberEl ? invNumberEl.textContent.trim() : '';
+            if (!invoiceNo || invoiceNo === '-') {
+                invoiceNo = 'SM-HBL-00000001';
+            }
+
+            let amount = grandTotalEl ? grandTotalEl.textContent.trim() : '';
+            if (!amount || amount === '-') {
+                amount = '0.00';
+            }
+
+            let shareUrl = window.location.origin + window.location.pathname;
+            const searchParams = new URLSearchParams(window.location.search);
+            const currOrderId = searchParams.get('orderId') || searchParams.get('id');
+            if (currOrderId) {
+                shareUrl += `?orderId=${encodeURIComponent(currOrderId)}`;
+            } else {
+                shareUrl = window.location.href;
+            }
+
+            const message = `Shree Mata Invoice\n\n` +
+                `Invoice No: ${invoiceNo}\n` +
+                `Order Amount: ₹${amount}\n\n` +
+                `View Invoice:\n${shareUrl}\n\n` +
+                `Thank you for shopping with Shree Mata.`;
+
+            return { message, invoiceNo, amount, shareUrl };
+        }
+
+        function getCustomerPhoneNumber() {
+            const phoneEl = document.getElementById('customerPhone') || document.getElementById('shippingPhone');
+            let phoneText = phoneEl ? phoneEl.textContent.trim() : '';
+            if (!phoneText || phoneText === '-') return null;
+            
+            const digits = phoneText.replace(/\D/g, '');
+            if (digits.length === 10) {
+                return '91' + digits;
+            } else if (digits.length === 12 && digits.startsWith('91')) {
+                return digits;
+            } else if (digits.length >= 10) {
+                return digits;
+            }
+            return null;
+        }
+
+        function openQuickShareModal() {
+            const { invoiceNo } = getWhatsAppShareText();
+            const subNoEl = document.getElementById('quickShareSubNo');
+            if (subNoEl) {
+                subNoEl.textContent = `Invoice #${invoiceNo}`;
+            }
+
+            const custPhone = getCustomerPhoneNumber();
+            const btnCustWa = document.getElementById('btnShareCustomerWhatsApp');
+            const textCustPhone = document.getElementById('shareCustomerPhoneText');
+            if (btnCustWa) {
+                if (custPhone) {
+                    btnCustWa.style.display = 'flex';
+                    if (textCustPhone) {
+                        const formattedPhone = custPhone.startsWith('91') && custPhone.length === 12
+                            ? `+91 ${custPhone.slice(2, 7)} ${custPhone.slice(7)}`
+                            : `+${custPhone}`;
+                        textCustPhone.textContent = `Send message directly to ${formattedPhone}`;
+                    }
+                } else {
+                    btnCustWa.style.display = 'none';
+                }
+            }
+
+            const btnNative = document.getElementById('btnNativeShare');
+            if (btnNative) {
+                if (navigator.share) {
+                    btnNative.style.display = 'flex';
+                } else {
+                    btnNative.style.display = 'none';
+                }
+            }
+
+            const modal = document.getElementById('quickShareModal');
+            if (modal) {
+                modal.classList.add('active');
+            }
+        }
+
+        function closeQuickShareModal() {
+            const modal = document.getElementById('quickShareModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
+        function handleQuickShareOverlayClick(event) {
+            if (event.target.id === 'quickShareModal') {
+                closeQuickShareModal();
+            }
+        }
+
+        function shareViaWhatsApp() {
+            const { message } = getWhatsAppShareText();
+            const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            window.open(waUrl, '_blank');
+            closeQuickShareModal();
+        }
+
+        function shareDirectToCustomerWhatsApp() {
+            const custPhone = getCustomerPhoneNumber();
+            const { message } = getWhatsAppShareText();
+            if (custPhone) {
+                const waUrl = `https://wa.me/${custPhone}?text=${encodeURIComponent(message)}`;
+                window.open(waUrl, '_blank');
+            } else {
+                shareViaWhatsApp();
+            }
+            closeQuickShareModal();
+        }
+
+        async function copyInvoiceLink() {
+            const { shareUrl } = getWhatsAppShareText();
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(shareUrl);
+                } else {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = shareUrl;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                }
+                showQuickShareToast("Invoice link copied");
+            } catch (err) {
+                console.error("Copy link error:", err);
+                showQuickShareToast("Failed to copy link");
+            }
+            closeQuickShareModal();
+        }
+
+        async function triggerNativeShare() {
+            const { message, invoiceNo, amount, shareUrl } = getWhatsAppShareText();
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'Shree Mata Invoice',
+                        text: `Shree Mata Invoice: ${invoiceNo} (Amount: ₹${amount})`,
+                        url: shareUrl
+                    });
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error("Native share error:", err);
+                    }
+                }
+            }
+            closeQuickShareModal();
+        }
+
+        function showQuickShareToast(msg) {
+            const toast = document.getElementById('quickShareToast');
+            const toastMsg = document.getElementById('quickShareToastMsg');
+            if (toast && toastMsg) {
+                toastMsg.textContent = msg;
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeQuickShareModal();
+            }
+        });
+
         // Load data on page load
         loadInvoiceData();
         setDigitalSignature();
     </script>
+
+    <!-- Quick Share Modal -->
+    <div id="quickShareModal" class="quick-share-overlay no-print" onclick="handleQuickShareOverlayClick(event)">
+        <div class="quick-share-card">
+            <div class="quick-share-header">
+                <div class="quick-share-title-box">
+                    <h3 class="quick-share-title">📤 Quick Share Invoice</h3>
+                    <p class="quick-share-subtitle" id="quickShareSubNo">Invoice #SM-HBL-00000001</p>
+                </div>
+                <button type="button" class="quick-share-close-btn" onclick="closeQuickShareModal()">✕</button>
+            </div>
+
+            <div class="quick-share-body">
+                <!-- Share on WhatsApp (General) -->
+                <button type="button" class="share-option-btn btn-share-whatsapp" onclick="shareViaWhatsApp()">
+                    <div class="share-option-icon wa-icon-bg">💬</div>
+                    <div class="share-option-text">
+                        <div class="share-option-title">Share on WhatsApp</div>
+                        <div class="share-option-desc">Share link & summary directly via WhatsApp</div>
+                    </div>
+                    <span class="share-option-arrow">➔</span>
+                </button>
+
+                <!-- Share to Customer WhatsApp (If phone available) -->
+                <button type="button" id="btnShareCustomerWhatsApp" class="share-option-btn btn-share-customer-wa" style="display: none;" onclick="shareDirectToCustomerWhatsApp()">
+                    <div class="share-option-icon wa-direct-icon-bg">👤</div>
+                    <div class="share-option-text">
+                        <div class="share-option-title">Share to Customer WhatsApp</div>
+                        <div class="share-option-desc" id="shareCustomerPhoneText">Send directly to customer</div>
+                    </div>
+                    <span class="share-option-arrow">➔</span>
+                </button>
+
+                <!-- Copy Link -->
+                <button type="button" class="share-option-btn btn-share-copy" onclick="copyInvoiceLink()">
+                    <div class="share-option-icon copy-icon-bg">🔗</div>
+                    <div class="share-option-text">
+                        <div class="share-option-title">Copy Invoice Link</div>
+                        <div class="share-option-desc">Copy page link to clipboard</div>
+                    </div>
+                    <span class="share-option-arrow">➔</span>
+                </button>
+
+                <!-- Native Share (If navigator.share supported) -->
+                <button type="button" id="btnNativeShare" class="share-option-btn btn-share-native" style="display: none;" onclick="triggerNativeShare()">
+                    <div class="share-option-icon native-icon-bg">📱</div>
+                    <div class="share-option-text">
+                        <div class="share-option-title">Share...</div>
+                        <div class="share-option-desc">Use system share sheet for apps, email & messages</div>
+                    </div>
+                    <span class="share-option-arrow">➔</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Copy Link Toast Notification -->
+    <div id="quickShareToast" class="quick-share-toast no-print">
+        <span class="toast-icon">✓</span>
+        <span id="quickShareToastMsg">Invoice link copied</span>
+    </div>
 </body>
 </html>
