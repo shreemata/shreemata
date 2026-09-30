@@ -82,7 +82,7 @@ const userSchema = new mongoose.Schema({
   },
   treePosition: { 
     type: Number, 
-    default: 0 
+    default: null 
   },
 
   // Commission Tracking

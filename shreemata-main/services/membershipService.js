@@ -123,6 +123,16 @@ async function checkAndActivateMembership(orderOrId, options = {}) {
 
     console.log(`🎉 Membership Activated! User ${user.email} is now a Member (Member = YES) via Order #${order._id} (Product Subtotal: ₹${productSubtotal.toFixed(2)} >= ₹${MEMBERSHIP_THRESHOLD})`);
 
+    // Place user in physical tree NOW upon qualification if not already placed
+    if (user.treeLevel === 0 || !user.treeParent) {
+      try {
+        const { createTreePlacementOnFirstPurchase } = require('./treePlacement');
+        await createTreePlacementOnFirstPurchase(user._id, options.session || null);
+      } catch (treeErr) {
+        console.error(`❌ Error placing user ${user.email} in tree upon membership activation:`, treeErr);
+      }
+    }
+
     return {
       success: true,
       isMember: true,

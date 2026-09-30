@@ -55,7 +55,13 @@ async function findAvailableSpotInTree(root) {
     // Query real placed User documents under this parent (positions 0..4)
     const children = await User.find({
       treeParent: parent._id,
-      treePosition: { $gte: 0, $lte: 4 }
+      treePosition: { $gte: 0, $lte: 4 },
+      $or: [
+        { isMember: true },
+        { firstPurchaseDone: true },
+        { treeLevel: { $gt: 0 } },
+        { isVirtual: true }
+      ]
     }).sort({ treePosition: 1, firstPurchaseDate: 1, createdAt: 1, _id: 1 });
 
     const occupiedPositions = new Set(children.map(c => c.treePosition));
@@ -156,7 +162,7 @@ async function createTreePlacementOnFirstPurchase(userId, session = null) {
         // Reset local placement properties before retrying
         user.treeParent = null;
         user.treeLevel = 0;
-        user.treePosition = 0;
+        user.treePosition = null;
         continue;
       }
       throw saveError;

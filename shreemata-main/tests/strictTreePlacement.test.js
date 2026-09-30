@@ -40,8 +40,20 @@ describe('Strict 5-Wide Serial Tree Placement & Commission Tests', () => {
     await User.deleteMany({ email: { $regex: /^test_strict_tree_/ } });
 
     // 2. Find Root User (Shakuntaladevi / Admin)
-    const rootUser = await User.findOne({ role: 'admin', treeLevel: 1 }) || 
-                     await User.findOne({ treeLevel: 1, firstPurchaseDone: true });
+    let rootUser = await User.findOne({ role: 'admin', treeLevel: 1 }) || 
+                   await User.findOne({ treeLevel: 1, firstPurchaseDone: true }) ||
+                   await User.findOne({ role: 'admin' });
+    if (!rootUser) {
+      rootUser = await User.create({
+        name: 'Test Admin Root',
+        email: 'test_strict_tree_root_admin@example.com',
+        role: 'admin',
+        treeLevel: 1,
+        treePosition: 0,
+        firstPurchaseDone: true,
+        isMember: true
+      });
+    }
     expect(rootUser).not.toBeNull();
 
     // Query active root children before test

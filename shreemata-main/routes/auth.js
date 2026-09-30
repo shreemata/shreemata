@@ -528,7 +528,7 @@ router.post("/signup", async (req, res) => {
       // Tree placement fields - will be set on first purchase
       treeParent: null,
       treeLevel: 0, // 0 means not yet placed in tree
-      treePosition: 0,
+      treePosition: null,
       treeChildren: [],
       referralJoinedAt: referredBy ? new Date() : null
     });

@@ -365,29 +365,22 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
       console.error(`⚠️ Error checking membership in commission distribution:`, memErr.message);
     }
     
-    // 🌳 CREATE TREE PLACEMENT ON FIRST PURCHASE IF ELIGIBLE
-    if (purchaser.treeLevel === 0 || !purchaser.treeParent) {
-      console.log(`🌳 Checking tree placement eligibility for ${purchaser.email} on first purchase`);
-      
-      if (validOrderAmount >= settings.minimumTreePlacementAmount) {
-        try {
-          await createTreePlacementOnFirstPurchase(purchaser._id, null);
-          purchaser.firstPurchaseDone = true;
-          if (!purchaser.firstPurchaseDate) purchaser.firstPurchaseDate = new Date();
-          await purchaser.save();
-          
-          const updatedPurchaser = await User.findById(purchaserId);
-          if (updatedPurchaser) {
-            Object.assign(purchaser, updatedPurchaser.toObject());
-          }
-          console.log(`✅ Tree placement created for ${purchaser.email}: Level ${purchaser.treeLevel}, Parent: ${purchaser.treeParent}`);
-        } catch (treePlacementError) {
-          console.error(`❌ Error creating tree placement for ${purchaser.email}:`, treePlacementError);
+    // 🌳 CREATE TREE PLACEMENT ON FIRST QUALIFYING PURCHASE IF ELIGIBLE
+    const refreshedPurchaser = await User.findById(purchaserId);
+    if (refreshedPurchaser) {
+      Object.assign(purchaser, refreshedPurchaser.toObject());
+    }
+    if (purchaser.isMember && (purchaser.treeLevel === 0 || !purchaser.treeParent)) {
+      console.log(`🌳 Checking tree placement eligibility for ${purchaser.email} on qualifying purchase`);
+      try {
+        await createTreePlacementOnFirstPurchase(purchaser._id, null);
+        const updatedPurchaser = await User.findById(purchaserId);
+        if (updatedPurchaser) {
+          Object.assign(purchaser, updatedPurchaser.toObject());
         }
-      } else {
-        purchaser.firstPurchaseDone = true;
-        if (!purchaser.firstPurchaseDate) purchaser.firstPurchaseDate = new Date();
-        await purchaser.save();
+        console.log(`✅ Tree placement created for ${purchaser.email}: Level ${purchaser.treeLevel}, Parent: ${purchaser.treeParent}`);
+      } catch (treePlacementError) {
+        console.error(`❌ Error creating tree placement for ${purchaser.email}:`, treePlacementError);
       }
     }
 

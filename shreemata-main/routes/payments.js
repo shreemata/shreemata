@@ -642,23 +642,15 @@ router.post("/verify", authenticateToken, async (req, res) => {
       console.error("⚠️ Error checking/activating membership:", memErr.message);
     }
 
-    // Mark user's first purchase as done upon successful order completion and create tree placement
+    // Check user membership status after checkAndActivateMembership
     try {
       const user = await User.findById(order.user_id);
-      if (user) {
-        if (!user.firstPurchaseDone) {
-          user.firstPurchaseDone = true;
-          user.firstPurchaseDate = new Date();
-          await user.save();
-          console.log(`✅ Marked first purchase as done for user: ${user.email} at ${user.firstPurchaseDate}`);
-        }
-        if (user.treeLevel === 0 || !user.treeParent) {
-          await createTreePlacementOnFirstPurchase(user._id);
-          console.log(`🌳 Created tree placement on purchase for user: ${user.email}`);
-        }
+      if (user && user.isMember && (user.treeLevel === 0 || !user.treeParent)) {
+        await createTreePlacementOnFirstPurchase(user._id);
+        console.log(`🌳 Created tree placement on qualifying purchase for user: ${user.email}`);
       }
     } catch (userErr) {
-      console.error("⚠️ Error marking first purchase or placing in tree for user:", userErr.message);
+      console.error("⚠️ Error checking tree placement for user:", userErr.message);
     }
 
     // AWARD POINTS FOR PURCHASED ITEMS
