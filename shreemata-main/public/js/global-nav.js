@@ -226,8 +226,6 @@
                     </div>
                     <nav class="drawer-nav">
                         <a href="/#booksSection" class="drawer-link">📚 All Books</a>
-                        <a href="/bundles.html" class="drawer-link">🎁 Complete Book Sets</a>
-                        <a href="/#classSection" class="drawer-link">🎓 Class 10 Curriculum</a>
                         <a href="/#subjectSection" class="drawer-link">🏷️ Categories & Subjects</a>
                         <a href="/#notificationsSection" class="drawer-link">🎉 Offers & Deals</a>
                         <a href="/track-order.html" class="drawer-link">📦 Track Your Order</a>
