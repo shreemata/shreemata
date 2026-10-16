@@ -1689,8 +1689,8 @@ body.hero-stage-dragging * {
 
 /* Shop by Class Grid */
 .discovery-class-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 14px;
 }
 
@@ -3918,7 +3918,8 @@ footer {
     }
 
     .discovery-class-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
         gap: 10px;
     }
 
