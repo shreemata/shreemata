@@ -38,6 +38,13 @@ const adminSettingsSchema = new mongoose.Schema({
     maintenanceMode: { type: Boolean, default: false }
   },
   
+  // Read Notes Monthly Subscription Settings
+  readNotesSubscriptionSettings: {
+    monthlyPrice: { type: Number, default: 99, min: 1 },
+    enabled: { type: Boolean, default: true },
+    description: { type: String, default: 'Monthly unlimited access to all digital study notes' }
+  },
+  
   // Metadata
   lastUpdated: { type: Date, default: Date.now },
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
@@ -55,26 +62,78 @@ adminSettingsSchema.statics.getSettings = async function() {
   return settings;
 };
 
+// Safely resolve subscription configuration with defaults for legacy documents or lean queries
+adminSettingsSchema.statics.getSubscriptionConfig = function(settings) {
+  const sub = settings?.readNotesSubscriptionSettings;
+  return {
+    monthlyPrice: (sub && typeof sub.monthlyPrice === 'number' && sub.monthlyPrice >= 1) ? sub.monthlyPrice : 99,
+    enabled: (sub && typeof sub.enabled === 'boolean') ? sub.enabled : true,
+    description: (sub && typeof sub.description === 'string' && sub.description.trim()) ? sub.description : 'Monthly unlimited access to all digital study notes'
+  };
+};
+
+// Pure in-memory document method to apply partial updates cleanly
+adminSettingsSchema.methods.applyUpdates = function(updates) {
+  if (!updates || typeof updates !== 'object') {
+    return this;
+  }
+
+  // Merge updates for existing settings exactly as before
+  if (updates.virtualTreeSettings) {
+    if (!this.virtualTreeSettings) this.virtualTreeSettings = {};
+    Object.assign(this.virtualTreeSettings, updates.virtualTreeSettings);
+  }
+  if (updates.cashConversionSettings) {
+    if (!this.cashConversionSettings) this.cashConversionSettings = {};
+    Object.assign(this.cashConversionSettings, updates.cashConversionSettings);
+  }
+  if (updates.pointsEarningSettings) {
+    if (!this.pointsEarningSettings) this.pointsEarningSettings = {};
+    Object.assign(this.pointsEarningSettings, updates.pointsEarningSettings);
+  }
+  if (updates.commissionSettings) {
+    if (!this.commissionSettings) this.commissionSettings = {};
+    Object.assign(this.commissionSettings, updates.commissionSettings);
+  }
+  if (updates.systemSettings) {
+    if (!this.systemSettings) this.systemSettings = {};
+    Object.assign(this.systemSettings, updates.systemSettings);
+  }
+  if (updates.readNotesSubscriptionSettings) {
+    if (!this.readNotesSubscriptionSettings) {
+      this.readNotesSubscriptionSettings = {};
+    }
+    // Ensure baseline defaults exist for any unset fields
+    if (this.readNotesSubscriptionSettings.monthlyPrice === undefined) {
+      this.readNotesSubscriptionSettings.monthlyPrice = 99;
+    }
+    if (this.readNotesSubscriptionSettings.enabled === undefined) {
+      this.readNotesSubscriptionSettings.enabled = true;
+    }
+    if (!this.readNotesSubscriptionSettings.description) {
+      this.readNotesSubscriptionSettings.description = 'Monthly unlimited access to all digital study notes';
+    }
+
+    const subUpdates = updates.readNotesSubscriptionSettings;
+    if (subUpdates.monthlyPrice !== undefined) {
+      this.readNotesSubscriptionSettings.monthlyPrice = subUpdates.monthlyPrice;
+    }
+    if (subUpdates.enabled !== undefined) {
+      this.readNotesSubscriptionSettings.enabled = subUpdates.enabled;
+    }
+    if (subUpdates.description !== undefined) {
+      this.readNotesSubscriptionSettings.description = subUpdates.description;
+    }
+  }
+
+  return this;
+};
+
 // Update settings method
 adminSettingsSchema.statics.updateSettings = async function(updates, updatedBy) {
   const settings = await this.getSettings();
   
-  // Merge updates
-  if (updates.virtualTreeSettings) {
-    Object.assign(settings.virtualTreeSettings, updates.virtualTreeSettings);
-  }
-  if (updates.cashConversionSettings) {
-    Object.assign(settings.cashConversionSettings, updates.cashConversionSettings);
-  }
-  if (updates.pointsEarningSettings) {
-    Object.assign(settings.pointsEarningSettings, updates.pointsEarningSettings);
-  }
-  if (updates.commissionSettings) {
-    Object.assign(settings.commissionSettings, updates.commissionSettings);
-  }
-  if (updates.systemSettings) {
-    Object.assign(settings.systemSettings, updates.systemSettings);
-  }
+  settings.applyUpdates(updates);
   
   settings.lastUpdated = new Date();
   settings.updatedBy = updatedBy;

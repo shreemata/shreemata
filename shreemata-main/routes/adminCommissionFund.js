@@ -290,7 +290,7 @@ async function getVerifiedOrderIds(dateQuery = null) {
    1. GET /api/admin/commission-fund/summary
    Executive Dashboard Summary & Category Matrix
 -------------------------------------------------------------------------- */
-router.get('/summary', async (req, res) => {
+router.get(['/', '/summary'], async (req, res) => {
   try {
     const { period = 'all', startDate, endDate } = req.query;
     const { filterQuery } = parseDateFilter(period, startDate, endDate);

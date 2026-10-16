@@ -60,6 +60,11 @@ const walletTransactionSchema = new mongoose.Schema({
     ref: 'CommissionTransaction',
     default: null
   },
+  withdrawalId: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: null,
+    index: true
+  },
   balanceAfter: {
     type: Number,
     default: null
@@ -69,15 +74,24 @@ const walletTransactionSchema = new mongoose.Schema({
 // Compound indexes for efficient queries
 walletTransactionSchema.index({ userId: 1, createdAt: -1 });
 walletTransactionSchema.index({ orderId: 1 });
+walletTransactionSchema.index(
+  { withdrawalId: 1, category: 1 },
+  { 
+    unique: true, 
+    partialFilterExpression: { 
+      withdrawalId: { $type: "objectId" }, 
+      category: 'refund' 
+    } 
+  }
+);
 walletTransactionSchema.index({ userId: 1, category: 1 });
 walletTransactionSchema.index(
   { category: 1, referredUserId: 1 },
   { 
     unique: true, 
-    sparse: true, 
     partialFilterExpression: { 
       category: 'referral_registration_reward', 
-      referredUserId: { $ne: null } 
+      referredUserId: { $type: "objectId" } 
     } 
   }
 );

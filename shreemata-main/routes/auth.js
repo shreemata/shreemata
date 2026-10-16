@@ -26,19 +26,19 @@ router.post("/send-email-otp", async (req, res) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       console.warn(`⚠️ [EMAIL OTP] Invalid email format: ${rawEmail}`);
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false, 
         error: "Invalid email format" 
       });
     }
 
     // Check if email is already registered (case-insensitive)
-    const existingUser = await User.findOne({ 
-      email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } 
+    const existingUser = await User.findOne({
+      email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
     });
     if (existingUser) {
       console.warn(`⚠️ [EMAIL OTP] Email is already registered: ${email}`);
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false, 
         error: "Email is already registered" 
       });
@@ -98,12 +98,12 @@ router.post("/send-email-otp", async (req, res) => {
         } else {
           console.error(`❌ [EMAIL OTP] Transporter / SMTP send error for ${email}:`, errorDetail);
         }
-        
+
         // Remove unsent OTP from store to avoid dangling unverified codes
         global.emailOtpStore.delete(email);
         global.emailOtpStore.delete(rawEmail.trim());
 
-        return res.status(500).json({ 
+        return res.status(500).json({
           success: false, 
           error: "Failed to send verification email. Please try again." 
         });
@@ -113,7 +113,7 @@ router.post("/send-email-otp", async (req, res) => {
       global.emailOtpStore.delete(email);
       global.emailOtpStore.delete(rawEmail.trim());
 
-      return res.status(500).json({ 
+      return res.status(500).json({
         success: false, 
         error: "Failed to send verification email. Please try again." 
       });
@@ -121,7 +121,7 @@ router.post("/send-email-otp", async (req, res) => {
 
   } catch (error) {
     console.error("❌ [EMAIL OTP] Unexpected route error in send-email-otp:", error.message || error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false, 
       error: "Error sending verification code. Please try again." 
     });
@@ -158,7 +158,7 @@ router.post("/verify-email-otp", async (req, res) => {
     if (Date.now() > storedData.expiresAt) {
       global.emailOtpStore.delete(email);
       global.emailOtpStore.delete(String(rawEmail).trim());
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false, 
         error: "Verification code has expired. Please request a new code." 
       });
@@ -168,7 +168,7 @@ router.post("/verify-email-otp", async (req, res) => {
     if (storedData.attempts >= 3) {
       global.emailOtpStore.delete(email);
       global.emailOtpStore.delete(String(rawEmail).trim());
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false, 
         error: "Too many failed attempts. Please request a new code." 
       });
@@ -179,7 +179,7 @@ router.post("/verify-email-otp", async (req, res) => {
       storedData.attempts += 1;
       global.emailOtpStore.set(email, storedData);
       global.emailOtpStore.set(String(rawEmail).trim(), storedData);
-      
+
       return res.status(400).json({ 
         success: false, 
         error: `Invalid verification code. ${3 - storedData.attempts} attempts remaining.` 
@@ -280,7 +280,7 @@ const handleSendPasswordResetEmailOtp = async (req, res) => {
       } else {
         console.error('Email service error during password reset:', emailResult?.error || 'Unknown email error');
         global.passwordResetOtpStore.delete(email);
-        return res.status(500).json({ 
+        return res.status(500).json({
           success: false, 
           error: "Failed to send password reset email. Please try again." 
         });
@@ -288,7 +288,7 @@ const handleSendPasswordResetEmailOtp = async (req, res) => {
     } catch (emailError) {
       console.error("Email sending exception during password reset:", emailError.message || emailError);
       global.passwordResetOtpStore.delete(email);
-      return res.status(500).json({ 
+      return res.status(500).json({
         success: false, 
         error: "Failed to send password reset email. Please try again." 
       });
@@ -296,7 +296,7 @@ const handleSendPasswordResetEmailOtp = async (req, res) => {
 
   } catch (error) {
     console.error("Password reset OTP send error:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false, 
       error: "Error sending password reset code. Please try again." 
     });
@@ -355,9 +355,9 @@ const handleVerifyPasswordResetEmailOtp = async (req, res) => {
       global.passwordResetOtpStore.set(email, storedData);
       
       const remainingAttempts = 3 - storedData.attempts;
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false, 
-        error: `Invalid verification code. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.` 
+        error: `Invalid verification code. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.`
       });
     }
 
@@ -381,7 +381,7 @@ const handleVerifyPasswordResetEmailOtp = async (req, res) => {
 
   } catch (error) {
     console.error("Password reset OTP verify error:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false, 
       error: "Error verifying code. Please try again." 
     });
@@ -608,9 +608,24 @@ router.post("/login", async (req, res) => {
     if (!email || !password)
       return res.status(400).json({ error: "Email and password are required" });
 
-    const user = await User.findOne({ email });
+    const cleanEmail = typeof email === "string" ? email.trim() : "";
+    const user = await User.findOne({
+      $or: [
+        { email: cleanEmail },
+        { email: cleanEmail.toLowerCase() },
+        { email: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+      ]
+    });
     if (!user)
       return res.status(400).json({ error: "Invalid email or password" });
+
+    if (user.isVirtual) {
+      return res.status(400).json({ error: "Virtual accounts cannot log in directly" });
+    }
+
+    if (user.suspended) {
+      return res.status(403).json({ error: "Your account has been suspended" });
+    }
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword)
@@ -625,7 +640,7 @@ router.post("/login", async (req, res) => {
     res.json({
       message: "Login successful",
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+      user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role }
     });
 
   } catch (err) {
@@ -642,14 +657,35 @@ router.post("/login-phone", async (req, res) => {
     if (!phone || !password)
       return res.status(400).json({ error: "Phone number and password are required" });
 
+    let cleanPhone = String(phone).trim().replace(/\D/g, "");
+    if (cleanPhone.length === 12 && cleanPhone.startsWith("91")) {
+      cleanPhone = cleanPhone.substring(2);
+    } else if (cleanPhone.length === 11 && cleanPhone.startsWith("0")) {
+      cleanPhone = cleanPhone.substring(1);
+    }
+
     // Validate phone format
-    if (!/^[6-9]\d{9}$/.test(phone)) {
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
       return res.status(400).json({ error: "Invalid phone number format" });
     }
 
-    const user = await User.findOne({ phone });
+    const user = await User.findOne({
+      $or: [
+        { phone: cleanPhone },
+        { phone: `+91${cleanPhone}` },
+        { phone: `91${cleanPhone}` }
+      ]
+    });
     if (!user)
       return res.status(400).json({ error: "Invalid phone or password" });
+
+    if (user.isVirtual) {
+      return res.status(400).json({ error: "Virtual accounts cannot log in directly" });
+    }
+
+    if (user.suspended) {
+      return res.status(403).json({ error: "Your account has been suspended" });
+    }
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword)
@@ -664,7 +700,7 @@ router.post("/login-phone", async (req, res) => {
     res.json({
       message: "Login successful",
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+      user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role }
     });
 
   } catch (err) {

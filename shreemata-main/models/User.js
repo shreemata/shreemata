@@ -196,6 +196,18 @@ const userSchema = new mongoose.Schema({
       status: { type: String, default: "pending" }, // pending, approved, rejected
       requestedAt: { type: Date, default: Date.now },
       approvedAt: Date,
+      rejectionReason: { type: String, default: null },
+      rejectedAt: { type: Date, default: null },
+      refundTransactionId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'WalletTransaction', 
+        default: null 
+      },
+      refundStatus: { 
+        type: String, 
+        enum: ['none', 'pending', 'completed'], 
+        default: 'none' 
+      },
       
       // Transfer tracking fields
       transferId: String,        // Razorpay payout ID
@@ -265,6 +277,13 @@ const userSchema = new mongoose.Schema({
 
   // Soft-deleted / hidden transaction IDs for customer view
   hiddenTransactions: [{ type: String }],
+
+  // Native Push Notification Device Tokens (Capacitor FCM / APNs)
+  deviceTokens: [{
+    token: { type: String, required: true },
+    platform: { type: String, enum: ['android', 'ios', 'web'], default: 'android' },
+    updatedAt: { type: Date, default: Date.now }
+  }],
 
   // Permanently deleted transaction IDs by admin (excluded from history queries)
   adminDeletedTransactions: [{ type: String }]

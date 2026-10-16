@@ -21,6 +21,7 @@ router.get('/settings', authenticateToken, isAdmin, async (req, res) => {
         pointsEarningSettings: settings.pointsEarningSettings,
         commissionSettings: settings.commissionSettings,
         systemSettings: settings.systemSettings,
+        readNotesSubscriptionSettings: AdminSettings.getSubscriptionConfig(settings),
         lastUpdated: settings.lastUpdated,
         updatedBy: settings.updatedBy
       }
@@ -63,6 +64,35 @@ router.put('/settings', authenticateToken, isAdmin, async (req, res) => {
         return res.status(400).json({ error: 'Cash per conversion must be between ₹0.1 and ₹1,000' });
       }
     }
+
+    if (updates.readNotesSubscriptionSettings) {
+      if (typeof updates.readNotesSubscriptionSettings !== 'object' || updates.readNotesSubscriptionSettings === null) {
+        return res.status(400).json({ error: 'Subscription settings must be an object' });
+      }
+
+      const { monthlyPrice, enabled, description } = updates.readNotesSubscriptionSettings;
+
+      if (monthlyPrice !== undefined) {
+        if (typeof monthlyPrice !== 'number' || Number.isNaN(monthlyPrice) || monthlyPrice < 1 || monthlyPrice > 100000) {
+          return res.status(400).json({ error: 'Monthly subscription price must be between ₹1 and ₹1,00,000' });
+        }
+      }
+
+      if (enabled !== undefined && typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: 'Subscription enabled status must be a boolean' });
+      }
+
+      if (description !== undefined) {
+        if (typeof description !== 'string') {
+          return res.status(400).json({ error: 'Subscription description must be a text string' });
+        }
+        const trimmedDesc = description.trim();
+        if (trimmedDesc.length > 300) {
+          return res.status(400).json({ error: 'Subscription description cannot exceed 300 characters' });
+        }
+        updates.readNotesSubscriptionSettings.description = trimmedDesc;
+      }
+    }
     
     // Update settings
     const settings = await AdminSettings.updateSettings(updates, updatedBy);
@@ -76,6 +106,7 @@ router.put('/settings', authenticateToken, isAdmin, async (req, res) => {
         pointsEarningSettings: settings.pointsEarningSettings,
         commissionSettings: settings.commissionSettings,
         systemSettings: settings.systemSettings,
+        readNotesSubscriptionSettings: AdminSettings.getSubscriptionConfig(settings),
         lastUpdated: settings.lastUpdated
       }
     });

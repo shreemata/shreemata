@@ -159,7 +159,7 @@ async function loadClassesAndSubjects() {
                     return `
                         <div class="subject-real-card" onclick="selectSubjectChip('${subject}')">
                             <div class="subject-thumb-box">
-                                <img src="${repBook.cover_image || 'images/press.png'}" alt="${subject}" loading="lazy" />
+                                <img src="${repBook.cover_image || '/images/book-placeholder.png'}" alt="${subject}" loading="lazy" />
                             </div>
                             <div class="subject-title">${subject}</div>
                             <div class="subject-meta">${matchingBooks.length} Book${matchingBooks.length > 1 ? 's' : ''} • From ₹${minPrice.toFixed(0)}</div>
@@ -946,7 +946,7 @@ function displayBundles(bundles, totalCount, limit) {
         bundleCard.className = "bundle-hero-showcase";
         bundleCard.innerHTML = `
             <div class="bundle-3d-visual-wrap">
-                <img src="${bundle.image || 'images/press.png'}" alt="${bundle.name}" />
+                <img src="${bundle.image || '/images/book-placeholder.png'}" alt="${bundle.name}" />
             </div>
             <div class="bundle-details-wrap">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">

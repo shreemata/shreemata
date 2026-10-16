@@ -3694,3 +3694,20 @@ window.handleVipScannerFileSelected = handleVipScannerFileSelected;
 window.removeVipScannerFile = removeVipScannerFile;
 window.handleVipQrUpload = handleVipScannerFileSelected;
 window.handleGeneralQrUpload = handleGeneralScannerFileSelected;
+
+// Native Camera / Photo Picker support for Capacitor
+window.pickScannerImageNative = async function(targetType) {
+    if (window.isCapacitorNative && typeof window.nativeCapturePhoto === 'function') {
+        const photo = await window.nativeCapturePhoto();
+        if (photo && photo.dataUrl) {
+            const file = window.dataUrlToFile(photo.dataUrl, `scanner_${Date.now()}.${photo.format || 'png'}`);
+            if (targetType === 'vip') {
+                handleVipScannerFileSelected({ target: { files: [file] } });
+            } else {
+                handleGeneralScannerFileSelected({ target: { files: [file] } });
+            }
+            return true;
+        }
+    }
+    return false;
+};

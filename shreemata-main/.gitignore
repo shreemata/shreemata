@@ -23,3 +23,21 @@ backups/
 *.archive.gz
 *.mongodb.gz
 *.sha256
+
+# Private Digital Content Storage (READ NOTES PDFs)
+storage/
+
+# Mobile / Capacitor build outputs & secrets
+android/.gradle/
+android/build/
+android/app/build/
+android/**/*.apk
+android/**/*.aab
+*.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
+ios/Pods/
+ios/App/build/
+ios/App/Pods/
+ios/DerivedData/

@@ -2,6 +2,11 @@ const express = require("express");
 const User = require("../models/User");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 const sendMail = require("../utils/sendMail");
+const {
+    executeHardenedRejection,
+    recoverInterruptedWithdrawal,
+    recoverAllInterruptedWithdrawals
+} = require("../utils/withdrawalRecovery");
 
 const router = express.Router();
 
@@ -95,7 +100,7 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
     try {
         const users = await User.find({
             "withdrawals.0": { $exists: true }
-        }).select("name email withdrawals directCommissionEarned treeCommissionEarned wallet bankDetails");
+        }).select("name email phone withdrawals directCommissionEarned treeCommissionEarned wallet bankDetails");
 
         let list = [];
 
@@ -111,6 +116,8 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
                     name: user.name,
                     username: user.name,
                     email: user.email,
+                    phone: user.phone || null,
+                    userPhone: user.phone || null,
                     amount: w.amount,
                     source: w.source || 'wallet',
                     cardNumber: w.cardNumber || null,
@@ -119,6 +126,7 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
                     balanceAfter: w.balanceAfter || null,
                     mandatoryReserve: w.mandatoryReserve || (w.source === 'vip_master_card' ? 50 : 0),
                     date: w.date || w.requestedAt || null,
+                    requestedAt: w.requestedAt || w.date || null,
                     status: w.status,
                     withdrawId: w._id,
                     upi: w.upi || (w.paymentDetails && w.paymentDetails.upiId) || (user.bankDetails && user.bankDetails.upiId) || null,
@@ -138,6 +146,17 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
                         ifscCode: w.ifsc || (w.paymentDetails && w.paymentDetails.ifscCode) || (user.bankDetails && user.bankDetails.ifscCode) || null,
                         accountHolderName: (w.paymentDetails && w.paymentDetails.accountHolderName) || (user.bankDetails && user.bankDetails.accountHolderName) || user.name || null
                     },
+                    // Settlement, payout tracking, and rejection info
+                    transferId: w.transferId || null,
+                    transferDate: w.transferDate || null,
+                    transferMethod: w.transferMethod || null,
+                    transferStatus: w.transferStatus || null,
+                    transferError: w.transferError || null,
+                    bankReference: w.bankReference || null,
+                    externalSettlementVerified: Boolean(w.externalSettlementVerified),
+                    adminPaymentStatus: w.adminPaymentStatus || (w.status === 'approved' ? 'settlement_unverified' : w.status === 'rejected' ? 'failed_refunded' : 'pending_withdrawal'),
+                    rejectionReason: w.rejectionReason || null,
+                    rejectedAt: w.rejectedAt || null,
                     // Purchase earnings data for admin
                     purchaseEarnings: {
                         directCommission: user.directCommissionEarned || 0,
@@ -148,6 +167,9 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
                 });
             });
         });
+
+        // Sort by most recent date first
+        list.sort((a, b) => new Date(b.date || b.requestedAt || 0) - new Date(a.date || a.requestedAt || 0));
 
         res.json(list);
 
@@ -163,12 +185,46 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
 router.post("/approve", authenticateToken, isAdmin, async (req, res) => {
     try {
         const { userId, withdrawId } = req.body;
+        const targetWithdrawId = withdrawId || req.body.withdrawalId;
 
-        const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ error: "User not found" });
+        // Concurrency-safe atomic lock: transition from 'pending' to 'processing'
+        const lockedUser = await User.findOneAndUpdate(
+            {
+                _id: userId,
+                withdrawals: {
+                    $elemMatch: {
+                        _id: targetWithdrawId,
+                        status: "pending"
+                    }
+                }
+            },
+            {
+                $set: {
+                    "withdrawals.$.status": "processing"
+                }
+            },
+            { new: true }
+        );
 
-        const withdrawal = user.withdrawals.id(withdrawId);
-        if (!withdrawal) return res.status(404).json({ error: "Withdrawal not found" });
+        if (!lockedUser) {
+            const refreshed = await User.findById(userId);
+            if (!refreshed) return res.status(404).json({ error: "User not found" });
+            const refW = refreshed.withdrawals.id(targetWithdrawId);
+            if (!refW) return res.status(404).json({ error: "Withdrawal not found" });
+
+            if (refW.status === "processing") {
+                return res.status(409).json({ 
+                    error: `Withdrawal cannot be approved. It is currently '${refW.status}'` 
+                });
+            }
+
+            return res.status(400).json({ 
+                error: `Withdrawal cannot be approved because it is currently '${refW.status}'` 
+            });
+        }
+
+        const user = lockedUser;
+        const withdrawal = user.withdrawals.id(targetWithdrawId);
 
         // Process payment transfer
         let transferResult = null;
@@ -178,12 +234,17 @@ router.post("/approve", authenticateToken, isAdmin, async (req, res) => {
             transferResult = await processPaymentTransfer(withdrawal, user);
             
             // Update withdrawal with transfer details
-            withdrawal.status = "approved";
-            withdrawal.transferId = transferResult.transferId;
-            withdrawal.transferDate = new Date();
-            withdrawal.transferMethod = transferResult.method;
-            
-            await user.save();
+            await User.updateOne(
+                { _id: userId, "withdrawals._id": targetWithdrawId },
+                {
+                    $set: {
+                        "withdrawals.$.status": "approved",
+                        "withdrawals.$.transferId": transferResult.transferId,
+                        "withdrawals.$.transferDate": new Date(),
+                        "withdrawals.$.transferMethod": transferResult.method
+                    }
+                }
+            );
 
             // Send success email
             await sendMail(
@@ -216,10 +277,16 @@ router.post("/approve", authenticateToken, isAdmin, async (req, res) => {
             transferError = transferErr.message;
 
             // Mark as approved (simplified - no transfer integration)
-            withdrawal.status = "approved";
-            withdrawal.transferDate = new Date();
-            withdrawal.transferId = `manual_${Date.now()}`;
-            await user.save();
+            await User.updateOne(
+                { _id: userId, "withdrawals._id": targetWithdrawId },
+                {
+                    $set: {
+                        "withdrawals.$.status": "approved",
+                        "withdrawals.$.transferDate": new Date(),
+                        "withdrawals.$.transferId": `manual_${Date.now()}`
+                    }
+                }
+            );
 
             // Send email about manual transfer needed
             await sendMail(
@@ -353,53 +420,69 @@ async function processPaymentTransfer(withdrawal, user) {
 }
 
 /* -------------------------------------------
-   3️⃣ Admin — Reject withdrawal
+   3️⃣ Admin — Reject withdrawal (Crash-Hardened)
 --------------------------------------------*/
 router.post("/reject", authenticateToken, isAdmin, async (req, res) => {
     try {
         const { userId, withdrawId } = req.body;
+        const targetWithdrawId = withdrawId || req.body.withdrawalId;
+        const reason = req.body.reason || req.body.rejectionReason || "Rejected by Administrator";
 
-        const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ error: "User not found" });
-
-        const withdrawal = user.withdrawals.id(withdrawId);
-        if (!withdrawal) return res.status(404).json({ error: "Withdrawal not found" });
-
-        // refund amount
-        user.wallet += withdrawal.amount;
-
-        withdrawal.status = "rejected";
-        await user.save();
-
-        // Record refund in WalletTransaction ledger
-        const WalletTransaction = require("../models/WalletTransaction");
-        const refundTx = new WalletTransaction({
-            userId: user._id,
-            amount: withdrawal.amount,
-            type: 'credit',
-            category: 'refund',
-            description: `Refund for rejected ${withdrawal.source === 'vip_master_card' ? 'VIP Master Card' : 'wallet'} withdrawal`,
-            balanceAfter: user.wallet
+        const result = await executeHardenedRejection({
+            userId,
+            withdrawId: targetWithdrawId,
+            reason,
+            adminEmail: req.user?.email
         });
-        await refundTx.save();
 
-        await sendMail(
-            user.email,
-            "Withdrawal Rejected",
-            `
-            <h2>Hello ${user.name},</h2>
-            <p>Your withdrawal request of <b>₹${withdrawal.amount}</b> was rejected.</p>
-            <p>The amount has been refunded to your wallet.</p>
-            <br>
-            <p>Shree Mata Team</p>
-            `
-        );
-
-        res.json({ message: "Withdrawal rejected & refunded", remainingBalance: user.wallet });
-
+        return res.status(result.status).json(result.data);
     } catch (err) {
         console.error("Reject error:", err);
         res.status(500).json({ error: "Server error" });
+    }
+});
+
+/* -------------------------------------------
+   🔧 Admin — Scan Interrupted Withdrawals
+--------------------------------------------*/
+router.get("/interrupted", authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const WithdrawalOperation = require("../models/WithdrawalOperation");
+        const interrupted = await WithdrawalOperation.find({
+            status: { $in: ['initiated', 'wallet_credited', 'failed'] }
+        }).sort({ updatedAt: -1 });
+
+        res.json({
+            success: true,
+            count: interrupted.length,
+            interrupted
+        });
+    } catch (err) {
+        console.error("Error scanning interrupted withdrawals:", err);
+        res.status(500).json({ error: "Server error scanning interrupted operations" });
+    }
+});
+
+/* -------------------------------------------
+   🔧 Admin — Recover Interrupted Withdrawals
+--------------------------------------------*/
+router.post("/recover", authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { withdrawId } = req.body;
+        if (withdrawId) {
+            const recovery = await recoverInterruptedWithdrawal(withdrawId);
+            return res.json({ success: true, result: recovery });
+        }
+
+        const recoveries = await recoverAllInterruptedWithdrawals();
+        res.json({
+            success: true,
+            recoveredCount: recoveries.filter(r => r.recovered).length,
+            results: recoveries
+        });
+    } catch (err) {
+        console.error("Error running withdrawal recovery:", err);
+        res.status(500).json({ error: "Server error executing recovery" });
     }
 });
 

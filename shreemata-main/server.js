@@ -25,13 +25,27 @@ const PORT = process.env.PORT || 3000;
 // Connect DB
 connectDB();
 
-// CORS - Allow requests from main domain and API subdomain
+// Initialize withdrawal recovery & index verification once database is connected
+const mongoose = require("mongoose");
+const { initializeWithdrawalRecovery } = require("./utils/withdrawalRecovery");
+if (mongoose.connection.readyState === 1) {
+  initializeWithdrawalRecovery().catch(err => console.error("Startup recovery error:", err));
+} else {
+  mongoose.connection.once("open", () => {
+    initializeWithdrawalRecovery().catch(err => console.error("Startup recovery error:", err));
+  });
+}
+
+// CORS - Allow requests from main domain, API subdomain, and Capacitor native apps
 app.use(cors({
   origin: [
     'https://shreemata.com',
     'https://www.shreemata.com',
     'https://api.shreemata.com',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'https://localhost',
+    'capacitor://localhost',
+    'http://localhost'
   ],
   credentials: true
 }));
@@ -59,6 +73,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // =====================================
 // Routes
 // =====================================
+app.use("/api/subscriptions", require("./routes/subscriptions"));
+app.use("/api/notes", require("./routes/notes"));
 app.use("/api/payments", paymentRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/auth", authRoutes);

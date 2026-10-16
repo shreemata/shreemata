@@ -57,6 +57,38 @@ function formatDateTime(d) {
 }
 
 // =========================================================================
+// 0. REPORTS OVERVIEW & CATALOG
+// GET /api/admin/reports
+// =========================================================================
+router.get('/', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const [ordersCount, usersCount, vipCount] = await Promise.all([
+      Order.countDocuments(),
+      User.countDocuments({ isVirtual: { $ne: true } }),
+      VipCard.countDocuments({ status: 'Active' })
+    ]);
+
+    res.json({
+      success: true,
+      availableReports: [
+        { id: 'orders', name: 'Sales & Orders Report', path: '/api/admin/reports/orders' },
+        { id: 'commissions', name: 'Commission Distributions Report', path: '/api/admin/reports/commissions' },
+        { id: 'wallets', name: 'Wallet Ledgers & Liabilities Report', path: '/api/admin/reports/wallets' },
+        { id: 'users', name: 'Users & VIP Members Directory Report', path: '/api/admin/reports/users' }
+      ],
+      stats: {
+        totalOrders: ordersCount,
+        totalUsers: usersCount,
+        activeVipCards: vipCount
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching reports summary:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// =========================================================================
 // 1. ORDERS REPORT
 // GET /api/admin/reports/orders
 // =========================================================================

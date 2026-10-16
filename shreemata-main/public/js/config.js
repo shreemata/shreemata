@@ -4,14 +4,42 @@ const origin = window.location.origin;
 
 console.log('🔧 Config.js loading - origin:', origin);
 
+// Check if running inside Capacitor native platform
+const isCapacitorNative = Boolean(
+    (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) ||
+    origin.startsWith("capacitor:") ||
+    (origin.includes("localhost") && window.location.protocol === "https:" && !window.location.port)
+);
+
+if (isCapacitorNative) {
+    API_URL = 'https://shreemata.com/api';
+    console.log('📱 Capacitor native platform detected. Using API_URL:', API_URL);
+}
 // If not localhost → hosted mode
-if (!origin.includes("localhost")) {
+else if (!origin.includes("localhost")) {
     // Use main domain with /api path
     API_URL = origin + "/api";
 }
 // Local development
 else {
     API_URL = "http://localhost:3000/api";
+}
+
+// Ensure relative /api/ requests in WebView are automatically routed to API_URL
+if (isCapacitorNative && typeof window.fetch === 'function') {
+    const originalFetch = window.fetch;
+    window.fetch = function(resource, init) {
+        if (typeof resource === 'string') {
+            if (resource.startsWith('/api/')) {
+                resource = API_URL + resource.substring(4);
+            } else if (resource === '/api') {
+                resource = API_URL;
+            } else if (resource.startsWith('api/')) {
+                resource = API_URL + '/' + resource.substring(4);
+            }
+        }
+        return originalFetch.call(this, resource, init);
+    };
 }
 
 console.log("🔧 API_URL Loaded:", API_URL);
@@ -23,6 +51,15 @@ if (window.API_URL && window.API_URL !== API_URL) {
 
 window.API_URL = API_URL;
 window.RAZORPAY_KEY = window.RAZORPAY_KEY || "rzp_live_TYHRMUCCtwZWzQ";
+
+// Automatically include capacitor-bridge.js for native enhancements
+(function() {
+    if (!document.querySelector('script[src*="capacitor-bridge.js"]')) {
+        const bridgeScript = document.createElement('script');
+        bridgeScript.src = '/js/capacitor-bridge.js';
+        document.head.appendChild(bridgeScript);
+    }
+})();
 
 // Global HTML sanitization helper function
 function escapeHtml(str) {

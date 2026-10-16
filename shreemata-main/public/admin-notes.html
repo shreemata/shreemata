@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1e293b">
+    <title>Manage Study Notes - Shree Mata Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-hover: #1e293b;
+            --accent: #F68048;
+            --accent-hover: #e06d36;
+            --bg-page: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .main-container {
+            margin-top: 110px;
+            margin-bottom: 60px;
+        }
+
+        .page-header-band {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            background: #ffffff;
+            padding: 24px 28px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-subtle);
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .page-header-band h1 {
+            margin: 0 0 6px 0;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-header-band p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #F68048 0%, #e06d36 100%);
+            color: #ffffff;
+        }
+        .btn-primary:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid var(--border-color);
+        }
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: #ffffff;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12.5px;
+        }
+
+        .admin-section {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-card);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        /* Filter Controls */
+        .filter-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(246, 128, 72, 0.15);
+        }
+
+        /* Notes Table */
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
+
+        .admin-table th {
+            background: #f8fafc;
+            color: #475569;
+            text-align: left;
+            padding: 12px 16px;
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .admin-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .admin-table tr:hover {
+            background-color: #fbfcfe;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11.5px;
+            font-weight: 700;
+        }
+        .badge-published {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .badge-draft {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+        .badge-download {
+            background: #eff6ff;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        /* Modal Overlays */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background: #ffffff;
+            border-radius: 16px;
+            max-width: 650px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .modal-body {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            background: #f8fafc;
+            border-radius: 0 0 16px 16px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .form-help {
+            font-size: 11.5px;
+            color: var(--text-muted);
+        }
+
+        /* Progress Bar */
+        .progress-box {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
+
+        /* Alerts */
+        .alert-box {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13.5px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .alert-success {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .alert-danger {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        /* Pagination */
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .empty-placeholder {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav></nav>
+
+    <main class="container main-container">
+        <!-- Page Header -->
+        <div class="page-header-band">
+            <div>
+                <h1>📝 Study Notes Manager</h1>
+                <p>Upload, publish, and manage digital notes for monthly subscription readers</p>
+            </div>
+            <div>
+                <button class="btn btn-primary" onclick="openUploadModal()">
+                    <span>➕</span> Upload New Note
+                </button>
+            </div>
+        </div>
+
+        <div id="pageAlert" class="alert-box"></div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="admin-section">
+            <div class="filter-grid">
+                <div>
+                    <input type="text" id="searchInput" class="form-control" placeholder="🔍 Search notes by title, subject..." oninput="handleSearch()">
+                </div>
+                <div>
+                    <select id="classFilter" class="form-control" onchange="loadNotes(1)">
+                        <option value="">All Class Levels</option>
+                        <option value="Class 10">Class 10</option>
+                        <option value="Class 11">Class 11</option>
+                        <option value="Class 12">Class 12</option>
+                        <option value="Graduation">Graduation</option>
+                        <option value="Competitive Exams">Competitive Exams</option>
+                    </select>
+                </div>
+                <div>
+                    <select id="categoryFilter" class="form-control" onchange="loadNotes(1)">
+                        <option value="">All Categories</option>
+                        <option value="Study Notes">Study Notes</option>
+                        <option value="Question Bank">Question Bank</option>
+                        <option value="Formula Sheet">Formula Sheet</option>
+                        <option value="Summary Notes">Summary Notes</option>
+                    </select>
+                </div>
+                <div>
+                    <select id="publishFilter" class="form-control" onchange="loadNotes(1)">
+                        <option value="all">All Status</option>
+                        <option value="true">Published Only</option>
+                        <option value="false">Drafts Only</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="btn btn-secondary btn-sm" onclick="resetFilters()">Reset</button>
+                </div>
+            </div>
+
+            <!-- Notes Table -->
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Title & Subject</th>
+                            <th>Class Level</th>
+                            <th>Category</th>
+                            <th>Pages</th>
+                            <th>Size</th>
+                            <th>Status</th>
+                            <th>Download</th>
+                            <th>Views</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="notesTableBody">
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 30px;">Loading study notes...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="emptyCatalogState" class="empty-placeholder" style="display: none;">
+                <h3>📚 No Study Notes Found</h3>
+                <p>No digital notes matched your search criteria or none have been uploaded yet.</p>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="pagination-bar" id="paginationBar">
+                <span id="paginationInfo" style="font-size: 13px; color: var(--text-muted);">Page 1 of 1</span>
+                <div style="display: flex; gap: 8px;">
+                    <button id="prevPageBtn" class="btn btn-secondary btn-sm" onclick="changePage(-1)" disabled>← Previous</button>
+                    <button id="nextPageBtn" class="btn btn-secondary btn-sm" onclick="changePage(1)" disabled>Next →</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Upload Note Modal -->
+    <div id="uploadModal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Upload New Study Note</h3>
+                <button class="modal-close" onclick="closeUploadModal()">&times;</button>
+            </div>
+            <form id="uploadNoteForm" onsubmit="handleUploadSubmit(event)">
+                <div class="modal-body">
+                    <div id="uploadModalAlert" class="alert-box"></div>
+
+                    <div class="form-group">
+                        <label for="uploadTitle">Note Title *</label>
+                        <input type="text" id="uploadTitle" class="form-control" placeholder="e.g. Class 10 Mathematics - Trigonometry Notes" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="uploadSubject">Subject</label>
+                            <input type="text" id="uploadSubject" class="form-control" placeholder="e.g. Mathematics">
+                        </div>
+                        <div class="form-group">
+                            <label for="uploadClass">Class / Grade Level</label>
+                            <input type="text" id="uploadClass" class="form-control" placeholder="e.g. Class 10">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="uploadCategory">Category</label>
+                            <select id="uploadCategory" class="form-control">
+                                <option value="Study Notes">Study Notes</option>
+                                <option value="Question Bank">Question Bank</option>
+                                <option value="Formula Sheet">Formula Sheet</option>
+                                <option value="Summary Notes">Summary Notes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="uploadPages">Total Pages</label>
+                            <input type="number" id="uploadPages" class="form-control" min="0" value="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="uploadDescription">Description / Key Highlights</label>
+                        <textarea id="uploadDescription" class="form-control" rows="3" placeholder="Brief outline of chapters covered in this note..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="uploadPdfFile">Select PDF Document *</label>
+                        <input type="file" id="uploadPdfFile" class="form-control" accept=".pdf,application/pdf" required onchange="handleFileSelect(this)">
+                        <span class="form-help">Max 50MB. Files are verified for PDF binary content and securely stored in private storage.</span>
+                    </div>
+
+                    <div class="form-row" style="margin-top: 8px;">
+                        <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="uploadIsPublished" checked style="width: 18px; height: 18px;">
+                            <label for="uploadIsPublished" style="margin: 0; cursor: pointer;">Publish Immediately</label>
+                        </div>
+                        <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="uploadAllowDownload" style="width: 18px; height: 18px;">
+                            <label for="uploadAllowDownload" style="margin: 0; cursor: pointer;">Allow Offline PDF Download</label>
+                        </div>
+                    </div>
+
+                    <div class="progress-box" id="uploadProgressBox">
+                        <div class="progress-track">
+                            <div class="progress-bar" id="uploadProgressBar"></div>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px; text-align: right;" id="uploadProgressText">Uploading...</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
+                    <button type="submit" id="submitUploadBtn" class="btn btn-primary">Upload & Save Note</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Note Modal -->
+    <div id="editModal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Edit Study Note</h3>
+                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form id="editNoteForm" onsubmit="handleEditSubmit(event)">
+                <input type="hidden" id="editNoteId">
+                <div class="modal-body">
+                    <div id="editModalAlert" class="alert-box"></div>
+
+                    <div class="form-group">
+                        <label for="editTitle">Note Title *</label>
+                        <input type="text" id="editTitle" class="form-control" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editSubject">Subject</label>
+                            <input type="text" id="editSubject" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="editClass">Class Level</label>
+                            <input type="text" id="editClass" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editCategory">Category</label>
+                            <select id="editCategory" class="form-control">
+                                <option value="Study Notes">Study Notes</option>
+                                <option value="Question Bank">Question Bank</option>
+                                <option value="Formula Sheet">Formula Sheet</option>
+                                <option value="Summary Notes">Summary Notes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editPages">Total Pages</label>
+                            <input type="number" id="editPages" class="form-control" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editDescription">Description</label>
+                        <textarea id="editDescription" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editPdfFile">Replace PDF Document (Optional)</label>
+                        <input type="file" id="editPdfFile" class="form-control" accept=".pdf,application/pdf">
+                        <span class="form-help">Leave blank to retain current PDF. Uploading replaces existing file safely.</span>
+                    </div>
+
+                    <div class="form-row" style="margin-top: 8px;">
+                        <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="editIsPublished" style="width: 18px; height: 18px;">
+                            <label for="editIsPublished" style="margin: 0; cursor: pointer;">Published</label>
+                        </div>
+                        <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="editAllowDownload" style="width: 18px; height: 18px;">
+                            <label for="editAllowDownload" style="margin: 0; cursor: pointer;">Allow PDF Download</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" id="submitEditBtn" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div id="deleteModal" class="modal-overlay" style="display: none;">
+        <div class="modal-card" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 style="color: var(--danger);">Confirm Note Deletion</h3>
+                <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="deleteNoteTitle"></strong>?</p>
+                <p style="font-size: 13px; color: var(--danger);">This will permanently remove the record and delete the associated PDF from private disk storage.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button type="button" id="confirmDeleteBtn" class="btn btn-danger" onclick="executeDelete()">Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/admin-navigation.js"></script>
+    <script>
+        // Authentication & Role Gate
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+        if (!token || !user || user.role !== 'admin') {
+            alert('Access denied. Administrator privileges required.');
+            window.location.href = '/';
+        }
+
+        // Global State
+        let currentPage = 1;
+        let totalPages = 1;
+        let searchTimeout = null;
+        let pendingDeleteId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof initAdminNavigation === 'function') {
+                initAdminNavigation('notes');
+            }
+            loadNotes(1);
+        });
+
+        function formatBytes(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function showAlert(elementId, message, isSuccess = true) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.className = `alert-box ${isSuccess ? 'alert-success' : 'alert-danger'}`;
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => {
+                el.style.display = 'none';
+            }, 5000);
+        }
+
+        async function loadNotes(page = 1) {
+            currentPage = page;
+            const tbody = document.getElementById('notesTableBody');
+            const emptyState = document.getElementById('emptyCatalogState');
+
+            const search = document.getElementById('searchInput').value.trim();
+            const classLevel = document.getElementById('classFilter').value;
+            const category = document.getElementById('categoryFilter').value;
+            const isPublished = document.getElementById('publishFilter').value;
+
+            const params = new URLSearchParams({
+                page: page,
+                limit: 12
+            });
+
+            if (search) params.append('search', search);
+            if (classLevel) params.append('classLevel', classLevel);
+            if (category) params.append('category', category);
+            if (isPublished) params.append('isPublished', isPublished);
+
+            try {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px;">Loading study notes...</td></tr>';
+
+                const response = await fetch(`${window.API_URL}/notes?${params.toString()}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to load notes: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const notes = data.notes || [];
+                totalPages = data.pagination?.totalPages || 1;
+
+                document.getElementById('paginationInfo').textContent = `Page ${data.pagination?.page || 1} of ${totalPages} (${data.pagination?.totalNotes || 0} total)`;
+                document.getElementById('prevPageBtn').disabled = currentPage <= 1;
+                document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+
+                if (notes.length === 0) {
+                    tbody.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                tbody.innerHTML = notes.map(note => `
+                    <tr>
+                        <td>
+                            <div style="font-weight: 700; color: #1e293b;">${escapeHtml(note.title)}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">${escapeHtml(note.subject || 'General')}</div>
+                        </td>
+                        <td>${escapeHtml(note.classLevel || 'All Levels')}</td>
+                        <td><span class="status-badge" style="background:#f1f5f9; color:#334155;">${escapeHtml(note.category || 'Study Notes')}</span></td>
+                        <td>${note.totalPages || '-'}</td>
+                        <td>${formatBytes(note.fileSize)}</td>
+                        <td>
+                            <span class="status-badge ${note.isPublished ? 'badge-published' : 'badge-draft'}">
+                                ${note.isPublished ? '● Published' : '○ Draft'}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge ${note.allowDownload ? 'badge-download' : ''}" style="${!note.allowDownload ? 'background:#f8fafc; color:#94a3b8;' : ''}">
+                                ${note.allowDownload ? 'Allowed' : 'Disabled'}
+                            </span>
+                        </td>
+                        <td>${note.viewCount || 0}</td>
+                        <td>
+                            <div class="action-group">
+                                <button class="btn btn-secondary btn-sm" onclick="togglePublish('${note.id}', ${!note.isPublished})">
+                                    ${note.isPublished ? 'Unpublish' : 'Publish'}
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="openEditModal('${note.id}')">
+                                    Edit
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${note.id}', '${escapeHtml(note.title)}')">
+                                    Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (err) {
+                console.error("Error loading notes:", err);
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--danger); padding: 30px;">Error: ${escapeHtml(err.message)}</td></tr>`;
+            }
+        }
+
+        function handleSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                loadNotes(1);
+            }, 300);
+        }
+
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('classFilter').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('publishFilter').value = 'all';
+            loadNotes(1);
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                loadNotes(newPage);
+            }
+        }
+
+        // Upload Handling
+        function openUploadModal() {
+            document.getElementById('uploadNoteForm').reset();
+            document.getElementById('uploadModalAlert').style.display = 'none';
+            document.getElementById('uploadProgressBox').style.display = 'none';
+            document.getElementById('uploadModal').style.display = 'flex';
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').style.display = 'none';
+        }
+
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+                alert('Only PDF documents are allowed.');
+                input.value = '';
+                return;
+            }
+
+            if (file.size > 50 * 1024 * 1024) {
+                alert('File size exceeds the 50MB limit.');
+                input.value = '';
+                return;
+            }
+        }
+
+        async function handleUploadSubmit(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitUploadBtn');
+            const fileInput = document.getElementById('uploadPdfFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showAlert('uploadModalAlert', 'Please select a PDF file to upload.', false);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('title', document.getElementById('uploadTitle').value.trim());
+            formData.append('subject', document.getElementById('uploadSubject').value.trim());
+            formData.append('classLevel', document.getElementById('uploadClass').value.trim());
+            formData.append('category', document.getElementById('uploadCategory').value);
+            formData.append('totalPages', document.getElementById('uploadPages').value);
+            formData.append('description', document.getElementById('uploadDescription').value.trim());
+            formData.append('isPublished', document.getElementById('uploadIsPublished').checked);
+            formData.append('allowDownload', document.getElementById('uploadAllowDownload').checked);
+            formData.append('pdf', file);
+
+            const progressBox = document.getElementById('uploadProgressBox');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const progressText = document.getElementById('uploadProgressText');
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Uploading...';
+            progressBox.style.display = 'block';
+            progressBar.style.width = '30%';
+            progressText.textContent = 'Uploading PDF document...';
+
+            try {
+                const response = await fetch(`${window.API_URL}/notes`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                progressBar.style.width = '100%';
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to upload note');
+                }
+
+                closeUploadModal();
+                showAlert('pageAlert', 'Note uploaded and saved successfully!', true);
+                loadNotes(1);
+
+            } catch (err) {
+                console.error("Upload error:", err);
+                showAlert('uploadModalAlert', err.message, false);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Upload & Save Note';
+            }
+        }
+
+        // Edit Handling
+        async function openEditModal(noteId) {
+            try {
+                const response = await fetch(`${window.API_URL}/notes/${noteId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Could not fetch note details');
+                const data = await response.json();
+                const note = data.note;
+
+                document.getElementById('editNoteId').value = note.id;
+                document.getElementById('editTitle').value = note.title || '';
+                document.getElementById('editSubject').value = note.subject || '';
+                document.getElementById('editClass').value = note.classLevel || '';
+                document.getElementById('editCategory').value = note.category || 'Study Notes';
+                document.getElementById('editPages').value = note.totalPages || 0;
+                document.getElementById('editDescription').value = note.description || '';
+                document.getElementById('editIsPublished').checked = !!note.isPublished;
+                document.getElementById('editAllowDownload').checked = !!note.allowDownload;
+                document.getElementById('editPdfFile').value = '';
+                document.getElementById('editModalAlert').style.display = 'none';
+
+                document.getElementById('editModal').style.display = 'flex';
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        async function handleEditSubmit(e) {
+            e.preventDefault();
+            const noteId = document.getElementById('editNoteId').value;
+            const submitBtn = document.getElementById('submitEditBtn');
+
+            const formData = new FormData();
+            formData.append('title', document.getElementById('editTitle').value.trim());
+            formData.append('subject', document.getElementById('editSubject').value.trim());
+            formData.append('classLevel', document.getElementById('editClass').value.trim());
+            formData.append('category', document.getElementById('editCategory').value);
+            formData.append('totalPages', document.getElementById('editPages').value);
+            formData.append('description', document.getElementById('editDescription').value.trim());
+            formData.append('isPublished', document.getElementById('editIsPublished').checked);
+            formData.append('allowDownload', document.getElementById('editAllowDownload').checked);
+
+            const file = document.getElementById('editPdfFile').files[0];
+            if (file) {
+                formData.append('pdf', file);
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+
+            try {
+                const response = await fetch(`${window.API_URL}/notes/${noteId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to update note');
+                }
+
+                closeEditModal();
+                showAlert('pageAlert', 'Note updated successfully!', true);
+                loadNotes(currentPage);
+
+            } catch (err) {
+                console.error("Edit error:", err);
+                showAlert('editModalAlert', err.message, false);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Save Changes';
+            }
+        }
+
+        async function togglePublish(noteId, newStatus) {
+            try {
+                const response = await fetch(`${window.API_URL}/notes/${noteId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ isPublished: newStatus })
+                });
+
+                if (!response.ok) throw new Error('Failed to update publication status');
+                showAlert('pageAlert', `Note status changed to ${newStatus ? 'Published' : 'Draft'}`, true);
+                loadNotes(currentPage);
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        // Delete Handling
+        function openDeleteModal(noteId, title) {
+            pendingDeleteId = noteId;
+            document.getElementById('deleteNoteTitle').textContent = `"${title}"`;
+            document.getElementById('deleteModal').style.display = 'flex';
+        }
+
+        function closeDeleteModal() {
+            pendingDeleteId = null;
+            document.getElementById('deleteModal').style.display = 'none';
+        }
+
+        async function executeDelete() {
+            if (!pendingDeleteId) return;
+            const btn = document.getElementById('confirmDeleteBtn');
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+
+            try {
+                const response = await fetch(`${window.API_URL}/notes/${pendingDeleteId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to delete note');
+
+                closeDeleteModal();
+                showAlert('pageAlert', 'Note deleted successfully!', true);
+                loadNotes(currentPage);
+
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Delete Permanently';
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>

@@ -334,6 +334,34 @@
             </div>
         </div>
         
+        <!-- READ NOTES Subscription Settings -->
+        <div class="settings-section" style="border-left-color: #F68048;">
+            <h2>📖 READ NOTES Subscription Settings</h2>
+            <div class="setting-group">
+                <h3>Digital Note Monthly Subscription Plan</h3>
+                
+                <div class="setting-item" style="flex-direction: row; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="readNotesSubscriptionEnabled" style="width: 20px; height: 20px; cursor: pointer;">
+                    <label for="readNotesSubscriptionEnabled" style="margin-bottom: 0; cursor: pointer;">
+                        Enable READ NOTES Subscriptions
+                    </label>
+                </div>
+                <div class="help-text" style="margin-bottom: 18px;">When enabled, customers can subscribe monthly for unlimited digital note reading.</div>
+
+                <div class="setting-item">
+                    <label for="readNotesMonthlyPrice">Monthly Subscription Price (₹ INR):</label>
+                    <input type="number" id="readNotesMonthlyPrice" value="99" min="1" max="100000" step="1" required>
+                    <span class="help-text">Server-authoritative monthly price charged via Razorpay (e.g. ₹99)</span>
+                </div>
+
+                <div class="setting-item">
+                    <label for="readNotesDescription">Plan Description / Promotional Subtitle:</label>
+                    <input type="text" id="readNotesDescription" value="Unlimited online access to all digital study notes" maxlength="300" placeholder="Unlimited online access to all digital study notes">
+                    <span class="help-text">Description shown on subscription cards and checkout modals</span>
+                </div>
+            </div>
+        </div>
+        
         <!-- System Example -->
         <div class="settings-section">
             <h2>📋 System Example</h2>
@@ -439,6 +467,12 @@
             document.getElementById('pointsPerRupeeSpent').value = settings.pointsEarningSettings.pointsPerRupeeSpent;
             document.getElementById('bonusPointsOnFirstPurchase').value = settings.pointsEarningSettings.bonusPointsOnFirstPurchase;
             document.getElementById('bonusPointsOnReferral').value = settings.pointsEarningSettings.bonusPointsOnReferral;
+            
+            // READ NOTES Subscription Settings
+            const readNotesConfig = settings.readNotesSubscriptionSettings || { enabled: true, monthlyPrice: 99, description: 'Unlimited online access to all digital study notes' };
+            document.getElementById('readNotesSubscriptionEnabled').checked = readNotesConfig.enabled !== false;
+            document.getElementById('readNotesMonthlyPrice').value = readNotesConfig.monthlyPrice || 99;
+            document.getElementById('readNotesDescription').value = readNotesConfig.description || '';
         }
         
         function displayStats(stats) {
@@ -518,8 +552,15 @@
             try {
                 const saveBtn = document.querySelector('.save-btn');
                 saveBtn.classList.add('loading');
-                saveBtn.textContent = 'Saving...';
-                
+                const priceInput = document.getElementById('readNotesMonthlyPrice').value.trim();
+                const monthlyPrice = parseFloat(priceInput);
+                if (!priceInput || isNaN(monthlyPrice) || monthlyPrice < 1 || monthlyPrice > 100000) {
+                    showMessage('Monthly subscription price must be between ₹1 and ₹1,00,000', 'error');
+                    saveBtn.classList.remove('loading');
+                    saveBtn.textContent = 'Save All Settings';
+                    return;
+                }
+
                 const settings = {
                     virtualTreeSettings: {
                         enabled: document.getElementById('virtualTreeEnabled').checked,
@@ -536,6 +577,11 @@
                         pointsPerRupeeSpent: parseFloat(document.getElementById('pointsPerRupeeSpent').value),
                         bonusPointsOnFirstPurchase: parseInt(document.getElementById('bonusPointsOnFirstPurchase').value),
                         bonusPointsOnReferral: parseInt(document.getElementById('bonusPointsOnReferral').value)
+                    },
+                    readNotesSubscriptionSettings: {
+                        enabled: document.getElementById('readNotesSubscriptionEnabled').checked,
+                        monthlyPrice: monthlyPrice,
+                        description: document.getElementById('readNotesDescription').value.trim()
                     }
                 };
                 

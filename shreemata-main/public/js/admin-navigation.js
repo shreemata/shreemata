@@ -11,6 +11,7 @@ const adminNavConfig = {
         { href: "/", icon: "🚪", text: "Public Site", id: "public-site", title: "Visit Public Site" },
         { href: "/admin.html", icon: "📚", text: "Books", id: "books", title: "Manage Books" },
         { href: "/admin-bundles.html", icon: "📦", text: "Bundles", id: "bundles", title: "Manage Bundles" },
+        { href: "/admin-notes.html", icon: "📝", text: "Study Notes", id: "notes", title: "Manage Study Notes & PDFs" },
         { href: "/admin-orders.html", icon: "🛒", text: "Orders", id: "orders", title: "Manage Orders" },
         { href: "/admin-check-payments.html", icon: "📋", text: "Cheque Payments", id: "cheque-payments", title: "Cheque Payment Approvals" },
         { href: "/admin-invoices.html", icon: "🧾", text: "Invoices", id: "invoices", title: "Manage Invoices" },
@@ -178,6 +179,7 @@ function createAdminNavHTML(currentPageId) {
                             <div class="popup-group-title">Content Management</div>
                             <a href="/admin.html" class="${currentPageId === 'books' ? 'active' : ''}"><span class="icon">📚</span> Manage Books</a>
                             <a href="/admin-bundles.html" class="${currentPageId === 'bundles' ? 'active' : ''}"><span class="icon">📦</span> Manage Bundles</a>
+                            <a href="/admin-notes.html" class="${currentPageId === 'notes' ? 'active' : ''}"><span class="icon">📝</span> Study Notes</a>
                         </div>
                         
                         <div class="popup-menu-group">

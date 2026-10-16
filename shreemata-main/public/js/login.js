@@ -102,6 +102,14 @@ function setupInputValidation() {
     }
 }
 
+function getApiUrl() {
+    let url = window.API_URL || (typeof API_URL !== 'undefined' ? API_URL : '');
+    if (!url || url === 'undefined') {
+        url = window.location.origin + '/api';
+    }
+    return url;
+}
+
 function setupEmailLoginForm() {
     const form = document.getElementById("emailLoginForm");
     const errorMessage = document.getElementById("emailErrorMessage");
@@ -114,7 +122,8 @@ function setupEmailLoginForm() {
 
         const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value.trim();
-        const rememberMe = document.getElementById("rememberMe").checked;
+        const rememberMeInput = document.getElementById("rememberMe");
+        const rememberMe = rememberMeInput ? rememberMeInput.checked : false;
 
         errorMessage.style.display = "none";
 
@@ -135,7 +144,8 @@ function setupEmailLoginForm() {
         loginBtn.textContent = 'Signing in...';
 
         try {
-            const response = await fetch(`${API_URL}/login`, {
+            const apiUrl = getApiUrl();
+            const response = await fetch(`${apiUrl}/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -143,7 +153,13 @@ function setupEmailLoginForm() {
                 body: JSON.stringify({ email, password })
             });
 
-            const data = await response.json();
+            let data;
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                data = await response.json();
+            } else {
+                throw new Error("Server returned non-JSON response");
+            }
 
             if (!response.ok) {
                 let errorMsg = data.error || "Login failed.";
@@ -157,7 +173,7 @@ function setupEmailLoginForm() {
                 errorMessage.textContent = errorMsg;
                 errorMessage.style.display = "block";
                 loginBtn.disabled = false;
-                loginBtn.textContent = "Login with Email";
+                loginBtn.textContent = "Login with Email →";
                 return;
             }
 
@@ -192,10 +208,10 @@ function setupEmailLoginForm() {
 
         } catch (err) {
             console.error("Login error:", err);
-            errorMessage.textContent = "Network error. Please check your connection and try again.";
+            errorMessage.textContent = "Unable to reach server. Please check your connection and try again.";
             errorMessage.style.display = "block";
             loginBtn.disabled = false;
-            loginBtn.textContent = "Login with Email";
+            loginBtn.textContent = "Login with Email →";
         }
     });
 }
@@ -212,7 +228,8 @@ function setupPhoneLoginForm() {
 
         const phone = document.getElementById("phoneNumber").value.trim();
         const password = document.getElementById("phonePassword").value.trim();
-        const rememberMe = document.getElementById("rememberMePhone").checked;
+        const rememberMeInput = document.getElementById("rememberMePhone");
+        const rememberMe = rememberMeInput ? rememberMeInput.checked : false;
 
         errorMessage.style.display = "none";
 
@@ -233,7 +250,8 @@ function setupPhoneLoginForm() {
         loginBtn.textContent = 'Signing in...';
 
         try {
-            const response = await fetch(`${API_URL}/login-phone`, {
+            const apiUrl = getApiUrl();
+            const response = await fetch(`${apiUrl}/login-phone`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -241,7 +259,13 @@ function setupPhoneLoginForm() {
                 body: JSON.stringify({ phone, password })
             });
 
-            const data = await response.json();
+            let data;
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                data = await response.json();
+            } else {
+                throw new Error("Server returned non-JSON response");
+            }
 
             if (!response.ok) {
                 let errorMsg = data.error || "Login failed.";
@@ -255,7 +279,7 @@ function setupPhoneLoginForm() {
                 errorMessage.textContent = errorMsg;
                 errorMessage.style.display = "block";
                 loginBtn.disabled = false;
-                loginBtn.textContent = "Login with Phone";
+                loginBtn.textContent = "Login with Phone →";
                 return;
             }
 
@@ -290,10 +314,10 @@ function setupPhoneLoginForm() {
 
         } catch (err) {
             console.error("Phone login error:", err);
-            errorMessage.textContent = "Network error. Please check your connection and try again.";
+            errorMessage.textContent = "Unable to reach server. Please check your connection and try again.";
             errorMessage.style.display = "block";
             loginBtn.disabled = false;
-            loginBtn.textContent = "Login with Phone";
+            loginBtn.textContent = "Login with Phone →";
         }
     });
 }

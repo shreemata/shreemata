@@ -181,4 +181,38 @@ router.delete("/admin/delete/:id", authenticateToken, isAdmin, async (req, res) 
     }
 });
 
+// Register device token for native push notifications
+router.post("/device-token", authenticateToken, async (req, res) => {
+    try {
+        const { token, platform } = req.body;
+        if (!token) {
+            return res.status(400).json({ error: "Device token is required" });
+        }
+        const User = require("../models/User");
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        if (!Array.isArray(user.deviceTokens)) {
+            user.deviceTokens = [];
+        }
+        const existingIdx = user.deviceTokens.findIndex((d) => d.token === token);
+        if (existingIdx >= 0) {
+            user.deviceTokens[existingIdx].platform = platform || user.deviceTokens[existingIdx].platform || 'android';
+            user.deviceTokens[existingIdx].updatedAt = new Date();
+        } else {
+            user.deviceTokens.push({
+                token,
+                platform: platform || 'android',
+                updatedAt: new Date()
+            });
+        }
+        await user.save();
+        res.json({ success: true, message: "Device token registered successfully" });
+    } catch (err) {
+        console.error("Error registering device token:", err);
+        res.status(500).json({ error: "Failed to register device token" });
+    }
+});
+
 module.exports = router;

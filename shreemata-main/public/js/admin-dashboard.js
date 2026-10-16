@@ -363,7 +363,7 @@
             const cardClass = isOut ? 'out-of-stock' : 'low-stock';
             const badgeText = isOut ? 'OUT OF STOCK' : `LOW STOCK (${item.stock} left)`;
             const badgeClass = isOut ? 'danger' : 'warning';
-            const fallbackImg = '/images/press.png';
+            const fallbackImg = '/images/book-placeholder.png';
             const imgUrl = item.coverImage || fallbackImg;
 
             html += `

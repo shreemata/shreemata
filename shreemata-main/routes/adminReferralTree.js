@@ -227,7 +227,7 @@ async function buildCompleteTree(rootUsers, currentDepth = 0, maxDepth = 20) {
  * Implement pagination for large trees
  * Requirements: 11.1, 11.2, 11.3
  */
-router.get("/complete", authenticateToken, isAdmin, async (req, res) => {
+router.get(["/", "/complete"], authenticateToken, isAdmin, async (req, res) => {
     try {
         // Audit log for admin access
         console.log(`🔍 ADMIN AUDIT: User ${req.user.name} (${req.user.email}) accessed complete referral tree at ${new Date().toISOString()}`);
