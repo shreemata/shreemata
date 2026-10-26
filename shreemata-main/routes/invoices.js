@@ -6,6 +6,17 @@ const QRCode = require('qrcode');
 const Order = require('../models/Order');
 const User = require('../models/User');
 const { isPaymentVerified } = require('../utils/paymentHelper');
+const { generateInvoicePdf } = require('../utils/invoicePdf');
+
+// Local helper: check if an existing invoice is eligible for PDF download
+function isEligibleForExistingInvoicePdf(order) {
+  if (!order) return false;
+  if (isPaymentVerified(order)) return true;
+  if (order.status === 'completed' && order.paymentType === 'online' && Boolean(order.razorpay_payment_id && String(order.razorpay_payment_id).trim())) {
+    return true;
+  }
+  return false;
+}
 
 // Document Types Configuration
 const DOCUMENT_CONFIG = {
@@ -466,6 +477,7 @@ const handleQRCodeRequest = async (req, res) => {
 
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.send(qrBuffer);
   } catch (error) {
     console.error('Error in GET /invoices/qr:', error);
@@ -529,6 +541,72 @@ router.get('/by-order/:orderId', authenticateToken, async (req, res) => {
     res.json(invoiceObj);
   } catch (error) {
     console.error('Error in GET /invoices/by-order/:orderId:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// GET /api/invoices/by-order/:orderId/pdf - Generate server-side tax invoice PDF
+router.get('/by-order/:orderId/pdf', authenticateToken, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    if (!orderId || !mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ message: 'Invalid order ID' });
+    }
+
+    const order = await Order.findById(orderId).populate('user_id', 'name email phone');
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Check ownership: requesting user must be the order owner or an admin
+    const orderUserId = order.user_id ? (order.user_id._id ? order.user_id._id.toString() : order.user_id.toString()) : '';
+    const isOwner = orderUserId === req.user.id.toString();
+    const isAdminUser = req.user.role === 'admin';
+
+    if (!isOwner && !isAdminUser) {
+      return res.status(403).json({ message: "You don't have access to this invoice." });
+    }
+
+    if (order.status === 'cancelled' || order.status === 'failed') {
+      return res.status(400).json({ message: 'Cannot generate invoice for a cancelled or failed order.' });
+    }
+
+    let invoice = await Invoice.findOne({ orderId: order._id });
+
+    if (!invoice) {
+      if (!isPaymentVerified(order)) {
+        return res.status(404).json({ message: 'Invoice is being generated - please check back shortly' });
+      }
+      invoice = await autoGenerateInvoiceForOrder(order);
+    }
+
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice is being generated - please check back shortly' });
+    }
+
+    if (!isEligibleForExistingInvoicePdf(order)) {
+      return res.status(400).json({ message: 'Payment must be verified before generating a final tax invoice.' });
+    }
+
+    // Customer view strict enforcement: Ensure Tax Invoice number is used
+    const invoiceObj = invoice.toObject ? invoice.toObject() : { ...invoice };
+    if (invoiceObj.documentNumbers && invoiceObj.documentNumbers.tax_invoice) {
+      invoiceObj.invoiceNumber = invoiceObj.documentNumbers.tax_invoice;
+    }
+    invoiceObj.documentType = 'tax_invoice';
+
+    const pdfBuffer = await generateInvoicePdf(invoiceObj, { req });
+    const cleanInvoiceNum = (invoiceObj.invoiceNumber || 'tax-invoice').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="' + cleanInvoiceNum + '.pdf"');
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(pdfBuffer);
+  } catch (error) {
+    if (error.statusCode === 422 || error.name === 'InvoiceValidationError') {
+      return res.status(422).json({ message: error.message, field: error.field });
+    }
+    console.error('Error in GET /invoices/by-order/:orderId/pdf:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -649,6 +727,87 @@ router.post('/:id/document-number', authenticateToken, isAdmin, async (req, res)
     });
   } catch (error) {
     console.error('Error in POST /invoices/:id/document-number:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// GET /api/invoices/:id/pdf - Generate server-side tax invoice PDF for invoice owner or admin
+router.get('/:id/pdf', authenticateToken, async (req, res) => {
+  try {
+    const rawId = req.params.id;
+    const query = mongoose.Types.ObjectId.isValid(rawId)
+      ? {
+          $or: [
+            { _id: rawId },
+            { invoiceNumber: rawId },
+            { 'documentNumbers.tax_invoice': rawId },
+            { 'documentNumbers.delivery_challan': rawId },
+            { 'documentNumbers.quotation': rawId },
+            { 'documentNumbers.proforma_invoice': rawId },
+            { 'documentNumbers.cash_challan': rawId }
+          ]
+        }
+      : {
+          $or: [
+            { invoiceNumber: rawId },
+            { 'documentNumbers.tax_invoice': rawId },
+            { 'documentNumbers.delivery_challan': rawId },
+            { 'documentNumbers.quotation': rawId },
+            { 'documentNumbers.proforma_invoice': rawId },
+            { 'documentNumbers.cash_challan': rawId }
+          ]
+        };
+
+    const invoice = await Invoice.findOne(query);
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    if (invoice.orderId) {
+      const linkedOrder = await Order.findById(invoice.orderId).populate('user_id', 'name email phone');
+      if (!linkedOrder) {
+        if (req.user.role !== 'admin') {
+          return res.status(403).json({ message: "You don't have access to this invoice." });
+        }
+      } else {
+        const orderUserId = linkedOrder.user_id ? (linkedOrder.user_id._id ? linkedOrder.user_id._id.toString() : linkedOrder.user_id.toString()) : '';
+        const isOwner = orderUserId === req.user.id.toString();
+        const isAdminUser = req.user.role === 'admin';
+
+        if (!isOwner && !isAdminUser) {
+          return res.status(403).json({ message: "You don't have access to this invoice." });
+        }
+
+        if (linkedOrder.status === 'cancelled' || linkedOrder.status === 'failed') {
+          return res.status(400).json({ message: 'Cannot generate invoice for a cancelled or failed order.' });
+        }
+
+        if (!isEligibleForExistingInvoicePdf(linkedOrder)) {
+          return res.status(400).json({ message: 'Payment must be verified before generating a final tax invoice.' });
+        }
+      }
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: "You don't have access to this invoice." });
+    }
+
+    const invoiceObj = invoice.toObject ? invoice.toObject() : { ...invoice };
+    if (invoiceObj.documentNumbers && invoiceObj.documentNumbers.tax_invoice) {
+      invoiceObj.invoiceNumber = invoiceObj.documentNumbers.tax_invoice;
+    }
+    invoiceObj.documentType = 'tax_invoice';
+
+    const pdfBuffer = await generateInvoicePdf(invoiceObj, { req });
+    const cleanInvoiceNum = (invoiceObj.invoiceNumber || 'tax-invoice').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="' + cleanInvoiceNum + '.pdf"');
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(pdfBuffer);
+  } catch (error) {
+    if (error.statusCode === 422 || error.name === 'InvoiceValidationError') {
+      return res.status(422).json({ message: error.message, field: error.field });
+    }
+    console.error('Error in GET /invoices/:id/pdf:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
