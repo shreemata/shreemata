@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#F7F3EA">
+    <title>Terms & Conditions — Shree Mata</title>
+    <meta name="description" content="Terms and conditions governing the use of Shree Mata website, mobile application, textbook ordering, store pickup, digital notes, and referral features.">
+    <link rel="icon" href="/images/press.png" type="image/png">
+
+    <!-- Premium Google Fonts: Playfair Display + Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
+
+    <!-- Design System & Customer Shell Stylesheets -->
+    <link rel="stylesheet" href="/css/design-system.css">
+    <link rel="stylesheet" href="/css/customer-layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+
+    <style>
+        /* Editorial Legal Layout Styles */
+        .legal-page-shell {
+            background-color: var(--sm-bg, #F7F3EA);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .legal-header-hero {
+            background: linear-gradient(180deg, #FFFFFF 0%, #FAF7F1 100%);
+            border-bottom: 1px solid var(--sm-border, #E7E1D6);
+            padding: 44px 0 36px;
+        }
+
+        .legal-title-wrap {
+            max-width: 860px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .legal-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(212, 167, 44, 0.15);
+            color: #946E19;
+            border: 1px solid rgba(212, 167, 44, 0.35);
+            font-size: 11.5px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: var(--radius-full, 9999px);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 14px;
+        }
+
+        .legal-main-heading {
+            font-family: var(--font-serif, 'Playfair Display', serif);
+            font-size: 38px;
+            font-weight: 700;
+            color: var(--sm-ink, #101820);
+            line-height: 1.2;
+            margin-bottom: 12px;
+        }
+
+        .legal-meta-sub {
+            font-size: 14px;
+            color: var(--sm-muted, #667085);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .legal-content-container {
+            max-width: 960px;
+            margin: -24px auto 64px;
+            padding: 0 20px;
+            width: 100%;
+        }
+
+        .legal-card {
+            background: var(--sm-surface-pure, #FFFFFF);
+            border: 1px solid var(--sm-border, #E7E1D6);
+            border-radius: var(--radius-lg, 16px);
+            box-shadow: var(--shadow-card, 0 10px 30px -5px rgba(16, 24, 32, 0.06));
+            padding: 48px;
+        }
+
+        @media (max-width: 768px) {
+            .legal-card {
+                padding: 24px 18px;
+                border-radius: var(--radius-md, 10px);
+            }
+            .legal-main-heading {
+                font-size: 28px;
+            }
+            .legal-content-container {
+                margin-top: 16px;
+                padding: 0 14px;
+            }
+        }
+
+        /* Review Notice Banner */
+        .legal-review-callout {
+            background: #FFFBEB;
+            border: 1px solid #FCD34D;
+            border-left: 5px solid #D97706;
+            border-radius: var(--radius-sm, 6px);
+            padding: 18px 20px;
+            margin-bottom: 36px;
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: #92400E;
+        }
+
+        .legal-review-callout strong {
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #78350F;
+        }
+
+        .flag-box {
+            background: #EFF6FF;
+            border: 1px solid #BFDBFE;
+            border-radius: var(--radius-sm, 6px);
+            padding: 14px 16px;
+            margin: 16px 0;
+            font-size: 13px;
+            color: #1E40AF;
+            line-height: 1.5;
+        }
+
+        /* Legal Content Hierarchy */
+        .legal-section {
+            margin-bottom: 40px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid var(--sm-border-light, #F0EAE0);
+        }
+
+        .legal-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .legal-sec-title {
+            font-family: var(--font-serif, 'Playfair Display', serif);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--sm-navy, #102A43);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legal-sec-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: var(--sm-gold-pale, #FAF5E8);
+            color: #946E19;
+            font-family: var(--sm-font-ui, 'Inter', sans-serif);
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: var(--radius-full, 9999px);
+            border: 1px solid var(--sm-gold-border, rgba(212, 167, 44, 0.35));
+            flex-shrink: 0;
+        }
+
+        .legal-text {
+            font-size: 15px;
+            color: var(--sm-body, #2B3642);
+            line-height: 1.75;
+            margin-bottom: 14px;
+        }
+
+        .legal-sub-heading {
+            font-family: var(--sm-font-ui, 'Inter', sans-serif);
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--sm-ink, #101820);
+            margin: 20px 0 10px;
+        }
+
+        .legal-list {
+            margin: 12px 0 18px 24px;
+            padding: 0;
+            color: var(--sm-body, #2B3642);
+            font-size: 14.5px;
+            line-height: 1.7;
+        }
+
+        .legal-list li {
+            margin-bottom: 8px;
+        }
+
+        .legal-list strong {
+            color: var(--sm-ink, #101820);
+        }
+
+        .contact-box {
+            background: #FAF7F1;
+            border: 1px solid var(--sm-border, #E7E1D6);
+            border-radius: var(--radius-sm, 6px);
+            padding: 20px 24px;
+            margin-top: 16px;
+        }
+
+        .contact-box p {
+            margin-bottom: 8px;
+            font-size: 14.5px;
+            color: var(--sm-body, #2B3642);
+        }
+
+        .contact-box a {
+            color: #102A43;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        .contact-box a:hover {
+            color: #D4A72C;
+        }
+    </style>
+</head>
+
+<body class="legal-page-shell">
+
+    <!-- 1. ANNOUNCEMENT BAR -->
+    <div class="top-bar" role="region" aria-label="Notice">
+        <div class="top-bar-inner">
+            <div class="top-bar-left">
+                <span class="badge-gold-pill">Store Notice</span>
+                <span>Store pickup & doorstep courier delivery available across Karnataka</span>
+            </div>
+            <div class="top-bar-right">
+                <a href="/track-order.html" class="top-bar-link">📦 Track Your Order</a>
+                <a href="/#trustSection" class="top-bar-link">🛡️ Genuine Curriculum Books</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. GLOBAL MAIN HEADER -->
+    <header class="main-header" role="banner">
+        <div class="container">
+            <div class="header-inner">
+                <!-- Mobile Menu Hamburger Button -->
+                <button type="button" id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="Open Navigation Menu">☰</button>
+
+                <!-- Brand Logo & Identity -->
+                <a href="/" class="brand-logo" aria-label="Shree Mata Home">
+                    <img src="/images/press.png" alt="Shree Mata Logo" width="44" height="44">
+                    <div class="brand-text">
+                        <span class="brand-title">Shree Mata</span>
+                        <span class="brand-sub">Disseminating Knowledge</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Primary Navigation Links -->
+                <nav class="header-nav-links" aria-label="Primary Navigation">
+                    <a href="/#booksSection" class="nav-item-link">Books</a>
+                    <a href="/#bundlesSection" class="nav-item-link">Book Sets</a>
+                    <a href="/#subjectSection" class="nav-item-link">Categories</a>
+                    <a href="/#notificationsSection" class="nav-item-link">Offers</a>
+                </nav>
+
+                <!-- Wide Search Field -->
+                <div class="header-search">
+                    <div class="search-box" role="search">
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                        <input
+                            type="search"
+                            id="searchInput"
+                            class="search-input"
+                            placeholder="Search books, subjects, class..."
+                            aria-label="Search catalog"
+                            autocomplete="off"
+                        >
+                        <button type="button" id="searchBtn" class="search-btn" aria-label="Search">Search</button>
+                    </div>
+                </div>
+
+                <!-- User & Cart Actions -->
+                <div class="header-actions">
+                    <!-- Guest Auth Links -->
+                    <div id="authLinks" class="auth-group">
+                        <a href="/login.html" class="btn-login">Log In</a>
+                        <a href="/signup.html" class="btn-signup">Sign Up</a>
+                    </div>
+
+                    <!-- Logged-in User Navigation Dropdown -->
+                    <div id="userLinks" class="user-nav-wrap" style="display: none;">
+                        <button type="button" class="user-name-badge" id="userMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-label="User Account Menu">
+                            <span class="user-avatar-icon" aria-hidden="true">👤</span>
+                            <span id="userName" class="user-name-text">Account</span>
+                            <span class="dropdown-chevron" aria-hidden="true">▾</span>
+                        </button>
+                        <div class="user-dropdown-menu" id="userDropdownMenu" role="menu" aria-labelledby="userMenuBtn">
+                            <div class="dropdown-header">
+                                <div class="dropdown-user-profile">
+                                    <div class="dropdown-user-avatar">👤</div>
+                                    <div class="dropdown-user-info">
+                                        <span class="dropdown-user-name" id="dropdownUserName">User</span>
+                                        <span class="dropdown-user-email" id="dropdownUserEmail"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="/account.html" class="dropdown-item-link" id="accountLink" role="menuitem">
+                                <span class="dropdown-item-icon">👤</span> <span>My Account</span>
+                            </a>
+                            <a href="/orders.html" class="dropdown-item-link" id="ordersLink" role="menuitem">
+                                <span class="dropdown-item-icon">📦</span> <span>My Orders</span>
+                            </a>
+                            <a href="/referral.html" class="dropdown-item-link" id="referralLink" role="menuitem">
+                                <span class="dropdown-item-icon">💰</span> <span>Referral Network</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button type="button" id="logoutBtn" class="btn-logout-item" role="menuitem">
+                                <span class="dropdown-item-icon">🚪</span> <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Orders Quick Link -->
+                    <a href="/orders.html" class="nav-item-link" style="display: inline-flex; align-items: center; gap: 4px;">Orders</a>
+
+                    <!-- Shopping Cart Button -->
+                    <a href="/cart.html" id="cartLink" class="btn-cart-header" title="Shopping Cart">
+                        <span aria-hidden="true">🛒</span>
+                        <span>Cart</span>
+                        <span id="cartCount" class="cart-badge-count" style="background: var(--sm-gold); color: #101820; font-weight: 700; border-radius: 999px; padding: 2px 7px; font-size: 11px; margin-left: 4px;">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 3. PAGE HERO & BREADCRUMBS -->
+    <section class="legal-header-hero">
+        <div class="container">
+            <nav class="breadcrumb-nav" aria-label="Breadcrumbs">
+                <a href="/" class="breadcrumb-link">Home</a>
+                <span class="breadcrumb-sep">/</span>
+                <span class="breadcrumb-link">Legal & Policies</span>
+                <span class="breadcrumb-sep">/</span>
+                <span class="breadcrumb-current" aria-current="page">Terms & Conditions</span>
+            </nav>
+
+            <div class="legal-title-wrap">
+                <span class="legal-badge">E-Commerce & Service Agreement</span>
+                <h1 class="legal-main-heading">Terms & Conditions</h1>
+                <div class="legal-meta-sub">
+                    <span><strong>Effective Date:</strong> October 28, 2026</span>
+                    <span>•</span>
+                    <span><strong>Jurisdiction:</strong> Hubballi, Karnataka, India</span>
+                    <span>•</span>
+                    <span><strong>Draft Status:</strong> Draft for Qualified Legal Review</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. MAIN LEGAL DOCUMENT BODY -->
+    <main class="legal-content-container">
+        <article class="legal-card">
+
+            <!-- Formal Legal Review Advisory Banner -->
+            <div class="legal-review-callout" role="note">
+                <strong>Notice & Disclaimer Regarding Legal Review</strong>
+                These Terms and Conditions have been drafted to reflect the actual operational model, customer account functions, order handling, store pickup, digital notes security, and referral rewards logic implemented across the Shree Mata platform. This document is published as a working draft prepared for formal evaluation by qualified Indian legal counsel under the Indian Contract Act, 1872, the Information Technology Act, 2000, and the Consumer Protection Act, 2019 (including the Consumer Protection (E-Commerce) Rules, 2020). Mere publication of this draft does not constitute legal counsel, nor does it guarantee absolute legal immunity.
+            </div>
+
+            <!-- Section 1 -->
+            <section class="legal-section" id="eligibility">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">1</span>
+                    Acceptance of Terms & Eligibility
+                </h2>
+                <p class="legal-text">
+                    These Terms and Conditions ("Terms") constitute a legally binding agreement between you ("Customer", "User", or "You") and <strong>Shree Mata</strong> ("Shree Mata", "we", "us", or "our"), operating as Shree Mata Book Agency / Publication Center, Hubballi, Karnataka - 580031 (GSTIN: <code>29GZTPP0335K1ZL</code>).
+                </p>
+                <p class="legal-text">
+                    By browsing our website (<a href="https://shreemata.com">https://shreemata.com</a>), registering an account, purchasing educational books or curriculum packages, or using the Shree Mata Android mobile application, you agree to be bound by these Terms. If you do not agree to these Terms, you must refrain from using the platform and services.
+                </p>
+                <p class="legal-text">
+                    <strong>Capacity to Contract:</strong> You affirm that you are at least 18 years of age and competent to enter into a binding contract under the Indian Contract Act, 1872. If you are accessing this platform on behalf of a minor student, you represent that you are the minor's parent, legal guardian, or authorized school authority, and you assume full responsibility for all activities, purchases, and payments executed under the account.
+                </p>
+            </section>
+
+            <!-- Section 2 -->
+            <section class="legal-section" id="account-responsibilities">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">2</span>
+                    Account Registration & Security
+                </h2>
+                <p class="legal-text">
+                    To access features such as order tracking, order history, wallet rewards, digital curriculum notes, and referral earnings, customers must register for an account using a valid mobile number and email address.
+                </p>
+                <ul class="legal-list">
+                    <li><strong>Account Confidentiality:</strong> You are solely responsible for maintaining the confidentiality of your account credentials, login password, and sessions. You agree not to disclose your password to third parties.</li>
+                    <li><strong>Accurate Details:</strong> You agree to provide true, accurate, current, and complete contact and shipping information during registration and checkout. Shree Mata is not liable for delayed dispatches, courier misroutings, or missed notifications arising from incorrect recipient details or telephone numbers provided by the customer.</li>
+                    <li><strong>Account Security:</strong> You agree to notify us immediately at <a href="mailto:shree.mata.hbl@gmail.com">shree.mata.hbl@gmail.com</a> if you suspect any unauthorized access to or compromise of your account.</li>
+                </ul>
+            </section>
+
+            <!-- Section 3 -->
+            <section class="legal-section" id="products-and-pricing">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">3</span>
+                    Curriculum Products, Descriptions & Pricing
+                </h2>
+                <p class="legal-text">
+                    Shree Mata specializes in the distribution and publication of educational textbooks, Karnataka State Syllabus materials, CBSE curriculum guides, complete grade book sets, and supplementary study aids.
+                </p>
+                <ul class="legal-list">
+                    <li><strong>Descriptions & Academic Editions:</strong> We endeavor to describe all textbooks, grade sets, and study guides as accurately as possible. However, educational publishers and syllabus boards periodically revise contents, editions, and cover illustrations. Minor packaging or edition variances consistent with the prescribed curriculum do not constitute a defect.</li>
+                    <li><strong>Pricing in Indian Rupees:</strong> All prices listed on the website are displayed in Indian Rupees (INR) and are inclusive of applicable taxes unless stated otherwise. Shipping or courier delivery charges, where applicable, are calculated and presented during checkout before final payment confirmation.</li>
+                    <li><strong>Pricing Corrections:</strong> In the rare event that a book, bundle, or service is listed at an incorrect price due to a typographical error or technical glitch, Shree Mata reserves the right to contact the customer, provide the option to proceed at the correct price, or cancel the affected order prior to dispatch with a prompt notification.</li>
+                </ul>
+            </section>
+
+            <!-- Section 4 -->
+            <section class="legal-section" id="ordering-and-cancellation">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">4</span>
+                    Ordering, Order Confirmation, Cancellations & Return Policy
+                </h2>
+                <p class="legal-text">
+                    The placement of an order through our website or mobile application operates under the following conditions:
+                </p>
+                <ul class="legal-list">
+                    <li><strong>Order Submission:</strong> Adding books or bundles to your shopping cart does not reserve inventory. An order is submitted when you complete the checkout process and authorize payment (or select an authorized offline payment method for institutional orders).</li>
+                    <li><strong>Order Acceptance:</strong> Upon receiving your order, the system generates an order identification number. The automated order confirmation email or screen indicates receipt of your request and does not signify formal acceptance until physical stock is verified and prepared for fulfillment.</li>
+                    <li><strong>Order Cancellations:</strong> Because book bundles and curriculum sets are prepared rapidly for dispatch, order cancellation requests must be communicated to our customer care team (<a href="tel:+919986086278">+91 9986086278</a> / <a href="mailto:shree.mata.hbl@gmail.com">shree.mata.hbl@gmail.com</a>) prior to physical parcel handover to courier partners or before order assembly for store pickup.</li>
+                </ul>
+
+                <h3 class="legal-sub-heading">Return and Refund Policy</h3>
+                <p class="legal-text">
+                    Once an order has been delivered to the customer, returns and refunds will not be accepted for reasons such as a change of mind or ordering the wrong product.
+                </p>
+                <p class="legal-text">
+                    <strong>Exception for Damaged Products:</strong> If a product arrives damaged, the customer may contact Shree Mata customer support (<a href="tel:+919986086278">+91 9986086278</a> / <a href="mailto:shree.mata.hbl@gmail.com">shree.mata.hbl@gmail.com</a>) to report the damage and request a return, replacement, or refund, subject to verification and applicable consumer protection laws.
+                </p>
+                <p class="legal-text">
+                    Customers should report any damage as soon as reasonably possible and provide the order details and supporting photographs, where available. Shree Mata will review the complaint and communicate the appropriate resolution in accordance with applicable law.
+                </p>
+            </section>
+
+            <!-- Section 5 -->
+            <section class="legal-section" id="payments">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">5</span>
+                    Payment Terms & Gateway Integration
+                </h2>
+                <p class="legal-text">
+                    Payment for textbook orders and services on Shree Mata is governed by the following terms:
+                </p>
+                <ul class="legal-list">
+                    <li><strong>Authorized Payment Gateway:</strong> Online electronic transactions are processed via <strong>Razorpay</strong>. Customers may select authorized payment modes including UPI, Debit Cards, Credit Cards, Netbanking, or mobile wallets through Razorpay's interface.</li>
+                    <li><strong>Payment Security:</strong> Shree Mata does not collect, handle, or store debit/credit card credentials, CVVs, or UPI PINs on its own infrastructure. All sensitive financial transaction information is processed directly by Razorpay under its applicable regulatory standards.</li>
+                    <li><strong>School & Institutional Bulk Transfers:</strong> For educational institutions and schools ordering bulk curriculum bundles with approved offline settlement terms (such as direct bank transfer or school cheque), orders are released only upon administrative banking reconciliation and verified payment clearance.</li>
+                </ul>
+            </section>
+
+            <!-- Section 6 -->
+            <section class="legal-section" id="fulfillment-delivery">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">6</span>
+                    Fulfillment: Courier Delivery & Store Pickup
+                </h2>
+                <p class="legal-text">
+                    Customers may choose between two fulfillment methods at checkout, depending on location and preference:
+                </p>
+                <ul class="legal-list">
+                    <li><strong>Doorstep Courier Delivery:</strong> Physical book parcels are dispatched through commercial courier services (such as TPC India or postal/courier partners) to the delivery address provided during checkout. Estimated delivery timeframes are subject to courier transit operations, seasonal demand (e.g., academic school reopening rushes), and regional transit factors. Tracking numbers are provided via the Order Tracking page upon dispatch.</li>
+                    <li><strong>Store Pickup (Hubballi Branch):</strong> Customers who elect store pickup can collect their prepared order directly from our Hubballi location:
+                        <div style="margin: 8px 0; padding: 10px 14px; background: #FAF7F1; border-radius: 4px; font-size: 13.5px;">
+                            <strong>Pickup Location:</strong> Shree Mata Book Agency / Publication Center, Hubballi, Karnataka - 580031.<br>
+                            <strong>Collection Requirement:</strong> Customers must present their confirmed Order ID and registered contact phone number to store staff upon collection.
+                        </div>
+                    </li>
+                    <li><strong>Inspection Upon Receipt:</strong> Customers are advised to examine delivered parcels or store pickup packages upon receipt to confirm that the package is sealed and that book titles match the order confirmation.</li>
+                </ul>
+            </section>
+
+            <!-- Section 7 -->
+            <section class="legal-section" id="digital-notes">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">7</span>
+                    Digital Study Passes & Curriculum Notes
+                </h2>
+                <p class="legal-text">
+                    Where Shree Mata provides digital study passes, digital curriculum notes, or online educational guides (accessible via <code>/notes.html</code> or through our official Android mobile application), access is governed by strict intellectual property terms:
+                </p>
+                <ul class="legal-list">
+                    <li><strong>Limited Reading License:</strong> Shree Mata grants authorized customers a personal, revocable, non-exclusive, non-transferable, limited license to view protected digital notes strictly within the official Shree Mata web reader or Android application for personal educational study.</li>
+                    <li><strong>Screen Protection & Security:</strong> In accordance with native security measures implemented in our Android application (`ScreenSecurityPlugin` applying Android's <code>FLAG_SECURE</code>), screenshots, screen recording, and external capture mechanisms are technically blocked. Any attempt to circumvent, disable, or tamper with these security mechanisms is a material breach of these Terms.</li>
+                    <li><strong>Prohibited Exploitation:</strong> Customers may not download, scrape, print, copy, distribute, sublicense, sell, rent, decompile, or upload Shree Mata proprietary study notes, solutions, or materials to third-party file repositories, study portals, or social media platforms.</li>
+                </ul>
+            </section>
+
+            <!-- Section 8 -->
+            <section class="legal-section" id="wallet-and-referral">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">8</span>
+                    Wallet Balances, Cashback & Referral Network
+                </h2>
+                <p class="legal-text">
+                    Shree Mata operates customer loyalty features including an in-app wallet and a structured referral network:
+                </p>
+                <ul class="legal-list">
+                    <li><strong>Wallet & Cashback:</strong> Promotional cashback earned on qualifying book purchases is credited to the customer's Shree Mata wallet. Wallet balances may be redeemed toward eligible future purchases made through the Shree Mata platform. Wallet balances are non-transferable and do not accrue interest.</li>
+                    <li><strong>Multi-Tier Referral Network:</strong> Shree Mata features a multi-level referral reward mechanism (allocating commissions across qualifying levels as configured in platform commission settings). Referral commissions accrue only upon verified, completed, and delivered customer orders that are not returned or cancelled.</li>
+                    <li><strong>Prohibited Referral Manipulation:</strong> Customers may not engage in fraudulent, manipulative, or abusive referral activities, including creating duplicate or fake accounts, self-referring through multiple phone numbers, utilizing automated bots, or spamming public forums with unauthorized promotional scripts. Shree Mata reserves the right to review irregular accounts and withhold rewards derived from fraudulent activities.</li>
+                </ul>
+                <div class="flag-box" role="alert">
+                    <strong>Business Action Required:</strong>
+                    Specific minimum bank withdrawal amounts, disbursement processing schedules, and statutory Tax Deducted at Source (TDS) thresholds for referral earnings must be verified with Shree Mata's accounting team prior to publication.
+                </div>
+            </section>
+
+            <!-- Section 9 -->
+            <section class="legal-section" id="intellectual-property">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">9</span>
+                    Intellectual Property Rights
+                </h2>
+                <p class="legal-text">
+                    All website designs, logos, graphics, icons, text compilations, original study notes, software code, and brand identifiers (including "Shree Mata" and "Disseminating Knowledge") are the proprietary intellectual property of Shree Mata or are utilized under license.
+                </p>
+                <p class="legal-text">
+                    Curriculum textbooks, board-specific syllabi, publisher emblems, and third-party trademarks referenced on the platform remain the intellectual property of their respective educational boards and commercial publishers. Their mention on this platform is solely for accurate identification of curriculum materials distributed by Shree Mata.
+                </p>
+            </section>
+
+            <!-- Section 10 -->
+            <section class="legal-section" id="prohibited-use">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">10</span>
+                    Permitted Platform Use & Prohibited Conduct
+                </h2>
+                <p class="legal-text">
+                    When accessing or using the Shree Mata website or application, you agree not to:
+                </p>
+                <ul class="legal-list">
+                    <li>Use the platform for any unlawful purpose or in violation of applicable local, state, or national laws of India.</li>
+                    <li>Attempt to gain unauthorized access to our servers, user accounts, databases, or network infrastructure.</li>
+                    <li>Use web spiders, scrapers, data-mining tools, or automated scripts to harvest catalog pricing, user details, or proprietary notes.</li>
+                    <li>Introduce viruses, trojans, worms, or other malicious software intended to damage, interrupt, or compromise our platform operations.</li>
+                    <li>Engage in abusive, harassing, or fraudulent behavior toward our support staff, delivery partners, or fellow customers.</li>
+                </ul>
+            </section>
+
+            <!-- Section 11 -->
+            <section class="legal-section" id="disclaimer-liability">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">11</span>
+                    Disclaimers & Limitation of Liability
+                </h2>
+                <p class="legal-text">
+                    To the maximum extent permitted by applicable Indian law:
+                </p>
+                <ul class="legal-list">
+                    <li><strong>Service Provision:</strong> The website, mobile application, catalog, and digital study tools are provided on an "as is" and "as available" basis without warranties of any kind, either express or implied, other than those that cannot be excluded under applicable consumer protection legislation.</li>
+                    <li><strong>Third-Party Operations:</strong> Shree Mata is not liable for indirect, incidental, or consequential delays arising from external courier transit disruptions, regional transport strikes, server outages beyond reasonable operational control, or gateway technical failures encountered by third-party payment providers like Razorpay.</li>
+                    <li><strong>Liability Cap:</strong> In all circumstances, Shree Mata's total aggregate liability arising out of or related to any order shall not exceed the total amount actually paid by the customer for the specific order giving rise to the claim.</li>
+                </ul>
+            </section>
+
+            <!-- Section 12 -->
+            <section class="legal-section" id="governing-law">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">12</span>
+                    Governing Law & Jurisdiction
+                </h2>
+                <p class="legal-text">
+                    These Terms, and any dispute, controversy, or claim arising out of or relating to your use of the website, mobile app, or orders placed with Shree Mata, shall be governed by, construed, and enforced in accordance with the <strong>laws of the Republic of India</strong>.
+                </p>
+                <p class="legal-text">
+                    Subject to mandatory consumer protection dispute resolution forums provided under the Consumer Protection Act, 2019, the <strong>courts of competent jurisdiction situated at Hubballi, Karnataka, India</strong> shall have exclusive jurisdiction over all legal disputes arising out of these Terms.
+                </p>
+            </section>
+
+            <!-- Section 13 -->
+            <section class="legal-section" id="changes-and-contact">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">13</span>
+                    Modifications & Contact Details
+                </h2>
+                <p class="legal-text">
+                    Shree Mata reserves the right to modify these Terms periodically. Any revised terms will be published on this page with an updated "Effective Date". Your continued use of the platform after updates have been posted constitutes acceptance of the amended terms.
+                </p>
+                <p class="legal-text">
+                    For questions, inquiries, or official notices concerning these Terms and Conditions, please contact us at:
+                </p>
+                <div class="contact-box">
+                    <p><strong>Business Name:</strong> Shree Mata (Shree Mata Book Agency / Publication Center)</p>
+                    <p><strong>Registered Address:</strong> Hubballi, Karnataka - 580031, India</p>
+                    <p><strong>Customer Support Phone:</strong> <a href="tel:+919986086278">+91 9986086278</a></p>
+                    <p><strong>Support Helpline:</strong> <a href="tel:+919845163604">+91 98451 63604</a></p>
+                    <p><strong>Official Inquiries & Support Email:</strong> <a href="mailto:shree.mata.hbl@gmail.com">shree.mata.hbl@gmail.com</a></p>
+                    <p><strong>GSTIN:</strong> <code>29GZTPP0335K1ZL</code></p>
+                    <p><strong>Business Hours:</strong> Monday – Saturday, 10:00 AM to 7:00 PM IST</p>
+                </div>
+            </section>
+
+        </article>
+    </main>
+
+    <!-- 5. GLOBAL SITE FOOTER -->
+    <footer class="site-footer" role="contentinfo">
+        <div class="container">
+            <div class="footer-grid">
+                <!-- Brand Column -->
+                <div class="footer-brand-col">
+                    <a href="/" class="footer-brand-logo" aria-label="Shree Mata Home">
+                        <img src="/images/press.png" alt="Shree Mata Logo" width="42" height="42" style="background: white; padding: 2px; border-radius: 4px;">
+                        <span class="footer-brand-title">Shree Mata</span>
+                    </a>
+                    <div style="margin-top: 4px; margin-bottom: 8px;">
+                        <div style="font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #D4A72C; letter-spacing: 0.04em;">Disseminating Knowledge</div>
+                        <div style="font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; color: #102A43; margin-top: 4px;">Empower Us. <span style="color: #D4A72C;">We Empower You.</span></div>
+                    </div>
+                    <p class="footer-desc">
+                        Your trusted destination for school textbooks, curriculum packages, and authentic study guides with store pickup and Karnataka-wide courier delivery.
+                    </p>
+                    <div class="footer-contact-info">
+                        <a href="tel:+919986086278" class="footer-phone-link" style="display: inline-flex; align-items: center; gap: 8px; color: #102A43; font-weight: 600; text-decoration: none; margin-bottom: 6px;">
+                            <span aria-hidden="true">📞</span>
+                            <span>+91 9986086278</span>
+                        </a>
+                        <div style="font-size: 13px; color: #667085;">Helpline: +91 98451 63604</div>
+                    </div>
+                </div>
+
+                <!-- SHOP Column -->
+                <div>
+                    <h4 class="footer-col-title">SHOP & CATEGORIES</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="/#booksSection">Textbooks Catalog</a></li>
+                        <li><a href="/#bundlesSection">Complete Book Sets</a></li>
+                        <li><a href="/#classSection">Class Curriculum</a></li>
+                        <li><a href="/#subjectSection">Subjects & Guides</a></li>
+                    </ul>
+                </div>
+
+                <!-- CUSTOMER CARE Column -->
+                <div>
+                    <h4 class="footer-col-title">CUSTOMER CARE</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="tel:+919845163604" class="footer-care-phone"><span aria-hidden="true">📞</span> +91 98451 63604</a></li>
+                        <li><a href="/track-order.html">Track Your Order</a></li>
+                        <li><a href="/account.html">My Account</a></li>
+                        <li><a href="/#trustSection">Shipping & Pickup</a></li>
+                        <li><a href="/privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="/terms-and-conditions.html" style="color: #D4A72C; font-weight: 600;">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+
+                <!-- ACCOUNT Column -->
+                <div>
+                    <h4 class="footer-col-title">ACCOUNT & REWARDS</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="/account.html">Profile Overview</a></li>
+                        <li><a href="/orders.html">My Orders</a></li>
+                        <li><a href="/referral.html">Referral & Rewards</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer Bottom Bar -->
+            <div class="footer-bottom">
+                <span>© 2026 Shree Mata. All rights reserved. Hubballi, Karnataka.</span>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+                    <a href="/privacy-policy.html">Privacy Policy</a>
+                    <span>•</span>
+                    <a href="/terms-and-conditions.html">Terms & Conditions</a>
+                    <span>•</span>
+                    <span>Store Pickup & Delivery</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 6. MOBILE NAVIGATION DRAWER -->
+    <div id="mobileNavDrawer" class="mobile-nav-drawer" aria-hidden="true">
+        <div id="drawerBackdrop" class="drawer-backdrop"></div>
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <a href="/" class="brand-logo" aria-label="Shree Mata">
+                    <img src="/images/press.png" alt="Shree Mata" width="36" height="36">
+                    <span class="brand-title" style="font-size: 18px;">Shree Mata</span>
+                </a>
+                <button type="button" id="drawerCloseBtn" class="drawer-close-btn" aria-label="Close menu">&times;</button>
+            </div>
+            <nav class="drawer-nav">
+                <a href="/#booksSection" class="drawer-link">📚 All Books</a>
+                <a href="/#bundlesSection" class="drawer-link">📦 Book Sets</a>
+                <a href="/#subjectSection" class="drawer-link">🏷️ Categories</a>
+                <a href="/#notificationsSection" class="drawer-link">🎉 Offers</a>
+                <a href="/track-order.html" class="drawer-link">📦 Track Your Order</a>
+                <a href="/cart.html" class="drawer-link">🛒 Shopping Cart</a>
+                <a href="/privacy-policy.html" class="drawer-link">🛡️ Privacy Policy</a>
+                <a href="/terms-and-conditions.html" class="drawer-link" style="color: var(--sm-gold); font-weight: 700;">📜 Terms & Conditions</a>
+            </nav>
+            <div id="drawerAuthSection" class="drawer-auth">
+                <div id="drawerGuestAuth" class="drawer-auth-buttons">
+                    <a href="/login.html" class="btn-secondary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">Log In</a>
+                    <a href="/signup.html" class="btn-primary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center;">Sign Up</a>
+                </div>
+                <div id="drawerUserAuth" class="drawer-user-menu" style="display: none;">
+                    <div class="drawer-user-info" style="display: flex; align-items: center; gap: 10px; padding: 8px 0 14px; border-bottom: 1px solid var(--sm-border-light); margin-bottom: 10px;">
+                        <span class="user-avatar-icon" style="font-size: 20px;">👤</span>
+                        <div>
+                            <span style="font-size: 11px; color: var(--sm-muted); text-transform: uppercase; display: block;">Signed in as</span>
+                            <span id="drawerUserName" style="font-size: 14.5px; font-weight: 700; color: var(--sm-ink);">User</span>
+                        </div>
+                    </div>
+                    <div class="drawer-user-links" style="display: flex; flex-direction: column; gap: 4px;">
+                        <a href="/account.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">👤 My Account</a>
+                        <a href="/orders.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">📦 My Orders</a>
+                        <button type="button" id="drawerLogoutBtn" class="btn-logout-item" style="padding: 10px 12px; margin-top: 6px;">🚪 Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/config.js"></script>
+    <script src="/js/global-nav.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#F7F3EA">
+    <title>Privacy Policy — Shree Mata</title>
+    <meta name="description" content="Learn how Shree Mata collects, uses, handles, and protects customer information across our website and mobile application in accordance with applicable Indian law.">
+    <link rel="icon" href="/images/press.png" type="image/png">
+
+    <!-- Premium Google Fonts: Playfair Display + Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
+
+    <!-- Design System & Customer Shell Stylesheets -->
+    <link rel="stylesheet" href="/css/design-system.css">
+    <link rel="stylesheet" href="/css/customer-layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+
+    <style>
+        /* Editorial Legal Layout Styles */
+        .legal-page-shell {
+            background-color: var(--sm-bg, #F7F3EA);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .legal-header-hero {
+            background: linear-gradient(180deg, #FFFFFF 0%, #FAF7F1 100%);
+            border-bottom: 1px solid var(--sm-border, #E7E1D6);
+            padding: 44px 0 36px;
+        }
+
+        .legal-title-wrap {
+            max-width: 860px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .legal-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(212, 167, 44, 0.15);
+            color: #946E19;
+            border: 1px solid rgba(212, 167, 44, 0.35);
+            font-size: 11.5px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: var(--radius-full, 9999px);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 14px;
+        }
+
+        .legal-main-heading {
+            font-family: var(--font-serif, 'Playfair Display', serif);
+            font-size: 38px;
+            font-weight: 700;
+            color: var(--sm-ink, #101820);
+            line-height: 1.2;
+            margin-bottom: 12px;
+        }
+
+        .legal-meta-sub {
+            font-size: 14px;
+            color: var(--sm-muted, #667085);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .legal-content-container {
+            max-width: 960px;
+            margin: -24px auto 64px;
+            padding: 0 20px;
+            width: 100%;
+        }
+
+        .legal-card {
+            background: var(--sm-surface-pure, #FFFFFF);
+            border: 1px solid var(--sm-border, #E7E1D6);
+            border-radius: var(--radius-lg, 16px);
+            box-shadow: var(--shadow-card, 0 10px 30px -5px rgba(16, 24, 32, 0.06));
+            padding: 48px;
+        }
+
+        @media (max-width: 768px) {
+            .legal-card {
+                padding: 24px 18px;
+                border-radius: var(--radius-md, 10px);
+            }
+            .legal-main-heading {
+                font-size: 28px;
+            }
+            .legal-content-container {
+                margin-top: 16px;
+                padding: 0 14px;
+            }
+        }
+
+        /* Review Notice Banner */
+        .legal-review-callout {
+            background: #FFFBEB;
+            border: 1px solid #FCD34D;
+            border-left: 5px solid #D97706;
+            border-radius: var(--radius-sm, 6px);
+            padding: 18px 20px;
+            margin-bottom: 36px;
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: #92400E;
+        }
+
+        .legal-review-callout strong {
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #78350F;
+        }
+
+        .flag-box {
+            background: #EFF6FF;
+            border: 1px solid #BFDBFE;
+            border-radius: var(--radius-sm, 6px);
+            padding: 14px 16px;
+            margin: 16px 0;
+            font-size: 13px;
+            color: #1E40AF;
+            line-height: 1.5;
+        }
+
+        /* Legal Content Hierarchy */
+        .legal-section {
+            margin-bottom: 40px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid var(--sm-border-light, #F0EAE0);
+        }
+
+        .legal-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .legal-sec-title {
+            font-family: var(--font-serif, 'Playfair Display', serif);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--sm-navy, #102A43);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legal-sec-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: var(--sm-gold-pale, #FAF5E8);
+            color: #946E19;
+            font-family: var(--sm-font-ui, 'Inter', sans-serif);
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: var(--radius-full, 9999px);
+            border: 1px solid var(--sm-gold-border, rgba(212, 167, 44, 0.35));
+            flex-shrink: 0;
+        }
+
+        .legal-text {
+            font-size: 15px;
+            color: var(--sm-body, #2B3642);
+            line-height: 1.75;
+            margin-bottom: 14px;
+        }
+
+        .legal-sub-heading {
+            font-family: var(--sm-font-ui, 'Inter', sans-serif);
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--sm-ink, #101820);
+            margin: 20px 0 10px;
+        }
+
+        .legal-list {
+            margin: 12px 0 18px 24px;
+            padding: 0;
+            color: var(--sm-body, #2B3642);
+            font-size: 14.5px;
+            line-height: 1.7;
+        }
+
+        .legal-list li {
+            margin-bottom: 8px;
+        }
+
+        .legal-list strong {
+            color: var(--sm-ink, #101820);
+        }
+
+        .legal-table-wrap {
+            overflow-x: auto;
+            margin: 18px 0;
+            border: 1px solid var(--sm-border, #E7E1D6);
+            border-radius: var(--radius-sm, 6px);
+        }
+
+        .legal-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+            text-align: left;
+        }
+
+        .legal-table th {
+            background: #FAF7F1;
+            padding: 12px 16px;
+            font-weight: 700;
+            color: var(--sm-ink, #101820);
+            border-bottom: 1px solid var(--sm-border, #E7E1D6);
+            border-right: 1px solid var(--sm-border, #E7E1D6);
+        }
+
+        .legal-table th:last-child {
+            border-right: none;
+        }
+
+        .legal-table td {
+            padding: 12px 16px;
+            color: var(--sm-body, #2B3642);
+            border-bottom: 1px solid var(--sm-border-light, #F0EAE0);
+            border-right: 1px solid var(--sm-border, #E7E1D6);
+            vertical-align: top;
+            line-height: 1.5;
+        }
+
+        .legal-table td:last-child {
+            border-right: none;
+        }
+
+        .legal-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .contact-box {
+            background: #FAF7F1;
+            border: 1px solid var(--sm-border, #E7E1D6);
+            border-radius: var(--radius-sm, 6px);
+            padding: 20px 24px;
+            margin-top: 16px;
+        }
+
+        .contact-box p {
+            margin-bottom: 8px;
+            font-size: 14.5px;
+            color: var(--sm-body, #2B3642);
+        }
+
+        .contact-box a {
+            color: #102A43;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        .contact-box a:hover {
+            color: #D4A72C;
+        }
+    </style>
+</head>
+
+<body class="legal-page-shell">
+
+    <!-- 1. ANNOUNCEMENT BAR -->
+    <div class="top-bar" role="region" aria-label="Notice">
+        <div class="top-bar-inner">
+            <div class="top-bar-left">
+                <span class="badge-gold-pill">Store Notice</span>
+                <span>Store pickup & doorstep courier delivery available across Karnataka</span>
+            </div>
+            <div class="top-bar-right">
+                <a href="/track-order.html" class="top-bar-link">📦 Track Your Order</a>
+                <a href="/#trustSection" class="top-bar-link">🛡️ Genuine Curriculum Books</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. GLOBAL MAIN HEADER -->
+    <header class="main-header" role="banner">
+        <div class="container">
+            <div class="header-inner">
+                <!-- Mobile Menu Hamburger Button -->
+                <button type="button" id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="Open Navigation Menu">☰</button>
+
+                <!-- Brand Logo & Identity -->
+                <a href="/" class="brand-logo" aria-label="Shree Mata Home">
+                    <img src="/images/press.png" alt="Shree Mata Logo" width="44" height="44">
+                    <div class="brand-text">
+                        <span class="brand-title">Shree Mata</span>
+                        <span class="brand-sub">Disseminating Knowledge</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Primary Navigation Links -->
+                <nav class="header-nav-links" aria-label="Primary Navigation">
+                    <a href="/#booksSection" class="nav-item-link">Books</a>
+                    <a href="/#bundlesSection" class="nav-item-link">Book Sets</a>
+                    <a href="/#subjectSection" class="nav-item-link">Categories</a>
+                    <a href="/#notificationsSection" class="nav-item-link">Offers</a>
+                </nav>
+
+                <!-- Wide Search Field -->
+                <div class="header-search">
+                    <div class="search-box" role="search">
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                        <input
+                            type="search"
+                            id="searchInput"
+                            class="search-input"
+                            placeholder="Search books, subjects, class..."
+                            aria-label="Search catalog"
+                            autocomplete="off"
+                        >
+                        <button type="button" id="searchBtn" class="search-btn" aria-label="Search">Search</button>
+                    </div>
+                </div>
+
+                <!-- User & Cart Actions -->
+                <div class="header-actions">
+                    <!-- Guest Auth Links -->
+                    <div id="authLinks" class="auth-group">
+                        <a href="/login.html" class="btn-login">Log In</a>
+                        <a href="/signup.html" class="btn-signup">Sign Up</a>
+                    </div>
+
+                    <!-- Logged-in User Navigation Dropdown -->
+                    <div id="userLinks" class="user-nav-wrap" style="display: none;">
+                        <button type="button" class="user-name-badge" id="userMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-label="User Account Menu">
+                            <span class="user-avatar-icon" aria-hidden="true">👤</span>
+                            <span id="userName" class="user-name-text">Account</span>
+                            <span class="dropdown-chevron" aria-hidden="true">▾</span>
+                        </button>
+                        <div class="user-dropdown-menu" id="userDropdownMenu" role="menu" aria-labelledby="userMenuBtn">
+                            <div class="dropdown-header">
+                                <div class="dropdown-user-profile">
+                                    <div class="dropdown-user-avatar">👤</div>
+                                    <div class="dropdown-user-info">
+                                        <span class="dropdown-user-name" id="dropdownUserName">User</span>
+                                        <span class="dropdown-user-email" id="dropdownUserEmail"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="/account.html" class="dropdown-item-link" id="accountLink" role="menuitem">
+                                <span class="dropdown-item-icon">👤</span> <span>My Account</span>
+                            </a>
+                            <a href="/orders.html" class="dropdown-item-link" id="ordersLink" role="menuitem">
+                                <span class="dropdown-item-icon">📦</span> <span>My Orders</span>
+                            </a>
+                            <a href="/referral.html" class="dropdown-item-link" id="referralLink" role="menuitem">
+                                <span class="dropdown-item-icon">💰</span> <span>Referral Network</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button type="button" id="logoutBtn" class="btn-logout-item" role="menuitem">
+                                <span class="dropdown-item-icon">🚪</span> <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Orders Quick Link -->
+                    <a href="/orders.html" class="nav-item-link" style="display: inline-flex; align-items: center; gap: 4px;">Orders</a>
+
+                    <!-- Shopping Cart Button -->
+                    <a href="/cart.html" id="cartLink" class="btn-cart-header" title="Shopping Cart">
+                        <span aria-hidden="true">🛒</span>
+                        <span>Cart</span>
+                        <span id="cartCount" class="cart-badge-count" style="background: var(--sm-gold); color: #101820; font-weight: 700; border-radius: 999px; padding: 2px 7px; font-size: 11px; margin-left: 4px;">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 3. PAGE HERO & BREADCRUMBS -->
+    <section class="legal-header-hero">
+        <div class="container">
+            <nav class="breadcrumb-nav" aria-label="Breadcrumbs">
+                <a href="/" class="breadcrumb-link">Home</a>
+                <span class="breadcrumb-sep">/</span>
+                <span class="breadcrumb-link">Legal & Policies</span>
+                <span class="breadcrumb-sep">/</span>
+                <span class="breadcrumb-current" aria-current="page">Privacy Policy</span>
+            </nav>
+
+            <div class="legal-title-wrap">
+                <span class="legal-badge">Customer Trust & Data Protection</span>
+                <h1 class="legal-main-heading">Privacy Policy</h1>
+                <div class="legal-meta-sub">
+                    <span><strong>Effective Date:</strong> October 28, 2026</span>
+                    <span>•</span>
+                    <span><strong>Jurisdiction:</strong> Republic of India</span>
+                    <span>•</span>
+                    <span><strong>Draft Status:</strong> Draft for Qualified Legal Review</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. MAIN LEGAL DOCUMENT BODY -->
+    <main class="legal-content-container">
+        <article class="legal-card">
+
+            <!-- Formal Legal Review Advisory Banner -->
+            <div class="legal-review-callout" role="note">
+                <strong>Notice & Disclaimer Regarding Legal Review</strong>
+                This Privacy Policy has been formulated to accurately reflect the actual technical architecture, database schemas, payment workflows, and administrative processes implemented in the Shree Mata e-commerce website and mobile application. This text is published as a working draft prepared for formal review by qualified Indian legal counsel under the Information Technology Act, 2000, the Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011, the Consumer Protection (E-Commerce) Rules, 2020, and the Digital Personal Data Protection Act, 2023. Publication of this draft does not constitute legal counsel, nor does it guarantee absolute immunity or statutory compliance.
+            </div>
+
+            <!-- Section 1 -->
+            <section class="legal-section" id="scope">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">1</span>
+                    Overview & Scope
+                </h2>
+                <p class="legal-text">
+                    This Privacy Policy explains how <strong>Shree Mata</strong> ("Shree Mata", "we", "us", or "our"), operating as Shree Mata Book Agency and Publication Center from Hubballi, Karnataka - 580031 (GSTIN: <code>29GZTPP0335K1ZL</code>), collects, receives, stores, uses, and handles customer information when you visit or make a purchase on our website (<a href="https://shreemata.com">https://shreemata.com</a>) or use our official Android mobile application.
+                </p>
+                <p class="legal-text">
+                    By accessing our website, creating a customer account, ordering educational books or curriculum packages, or downloading our mobile application, you acknowledge that you have read this policy and understand our personal information handling practices as described herein.
+                </p>
+            </section>
+
+            <!-- Section 2 -->
+            <section class="legal-section" id="information-collected">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">2</span>
+                    Personal Information Handled
+                </h2>
+                <p class="legal-text">
+                    We collect only the information necessary to maintain customer accounts, fulfill orders for physical books and digital study materials, calculate eligible referral rewards, process transactions, and provide customer support.
+                </p>
+
+                <h3 class="legal-sub-heading">A. Information Provided Directly by Customers</h3>
+                <ul class="legal-list">
+                    <li><strong>Account & Contact Data:</strong> When registering on our website or mobile application, we collect your full name, mobile telephone number, email address, and account password. Passwords are cryptographically hashed using the <code>bcrypt</code> algorithm before storage in our database; plaintext passwords are never stored, logged, or accessible to our staff.</li>
+                    <li><strong>Delivery & Shipping Details:</strong> To fulfill physical book orders and grade bundles, we collect recipient contact details including delivery address, street/locality, landmark, city, state, postal PIN code, and contact telephone number.</li>
+                    <li><strong>Order & Purchase History:</strong> Details of items purchased, textbook bundles, quantities, order status, total price, selected fulfillment mode (courier delivery or physical store pickup), and shipping carrier tracking identifiers.</li>
+                    <li><strong>Customer Support Correspondence:</strong> Information you provide when contacting our support channels via telephone, WhatsApp, or email regarding order inquiries, dispatch status, or account questions.</li>
+                </ul>
+
+                <h3 class="legal-sub-heading">B. Technical & Device Information Handled by the Application</h3>
+                <ul class="legal-list">
+                    <li><strong>Mobile App Screen Protection:</strong> In our official Android mobile application, the app technical shell utilizes Android's <code>FLAG_SECURE</code> security controls (via our native <code>ScreenSecurityPlugin</code>) when viewing protected curriculum notes. This technical restriction prevents unauthorized screenshots and third-party screen recordings of protected educational materials.</li>
+                    <li><strong>Camera & Photo Storage Access:</strong> In the Android application, camera and photo media storage permissions (such as <code>CAMERA</code>, <code>READ_MEDIA_IMAGES</code>, or storage access) are requested solely if and when you choose to use the in-app scanner to take a photo of or select an existing image of your UPI QR code during account payout or withdrawal setup. The image is processed to decode your UPI ID. Camera or photo access is never initiated in the background or for unrelated purposes.</li>
+                    <li><strong>UPI & Messaging App Interactions:</strong> To facilitate seamless checkout and support, the Android application declares queries for installed UPI payment applications (such as Google Pay, PhonePe, and Paytm) to allow Razorpay's checkout interface to initiate direct UPI payment intent transactions, as well as WhatsApp for customer support inquiries and sharing referral links.</li>
+                    <li><strong>Network & Session Requests:</strong> Standard HTTP server request metadata transmitted during API communication over HTTPS, such as client IP address and user-agent strings, used for session validation and system stability.</li>
+                </ul>
+            </section>
+
+            <!-- Section 3 -->
+            <section class="legal-section" id="cookies-and-storage">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">3</span>
+                    Browser Storage & Local Technologies
+                </h2>
+                <p class="legal-text">
+                    Our website and mobile application utilize client-side <code>localStorage</code> within your device browser to enable essential website operations. We do not use third-party behavioral advertising trackers.
+                </p>
+                <div class="legal-table-wrap">
+                    <table class="legal-table">
+                        <thead>
+                            <tr>
+                                <th>Storage Key</th>
+                                <th>Storage Type</th>
+                                <th>Operational Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>token</code></td>
+                                <td>HTML5 localStorage</td>
+                                <td>Stores a JSON Web Token (JWT) issued upon successful login to verify your identity across account and order pages.</td>
+                            </tr>
+                            <tr>
+                                <td><code>user</code></td>
+                                <td>HTML5 localStorage</td>
+                                <td>Caches basic customer profile information (name, email, role) to personalize header greetings and navigation menus.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cart</code></td>
+                                <td>HTML5 localStorage</td>
+                                <td>Retains selected textbooks, bundles, and quantities on your local browser so items remain in your cart across page visits.</td>
+                            </tr>
+                            <tr>
+                                <td><code>recentOrders</code></td>
+                                <td>HTML5 localStorage</td>
+                                <td>Stores recent order identifiers locally on your device for rapid lookup on the order tracking interface.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="legal-text">
+                    You can clear local storage at any time through your browser's history and site data settings. Clearing this storage will sign you out and empty any unsubmitted items in your shopping cart.
+                </p>
+            </section>
+
+            <!-- Section 4 -->
+            <section class="legal-section" id="payment-processing">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">4</span>
+                    Payment Processing & Payment Service Providers
+                </h2>
+                <p class="legal-text">
+                    We take the confidentiality of financial transactions seriously. Our payment processing operates as follows:
+                </p>
+                <ul class="legal-list">
+                    <li><strong>Independent Payment Gateway:</strong> Online electronic transactions on Shree Mata are processed through <strong>Razorpay</strong> (Razorpay Software Private Limited), an independent payment aggregator authorized by the Reserve Bank of India (RBI).</li>
+                    <li><strong>Zero Sensitive Card / UPI Storage:</strong> Shree Mata does <strong>not</strong> collect, process, or store sensitive payment card numbers, CVVs, card expiration dates, netbanking credentials, or UPI PINs on its own servers. All interactive payment submissions occur directly on Razorpay's secure checkout interface.</li>
+                    <li><strong>Transaction Verification:</strong> Upon completion of a transaction, Razorpay securely transmits a cryptographic payment identifier (<code>razorpay_payment_id</code>) and order reference to our server to verify that the transaction was successfully settled before your order is processed for packing or dispatch.</li>
+                    <li><strong>Offline & School Bundle Payments:</strong> For bulk educational orders or institutional school sets where offline payment (such as direct bank transfer or cheque) is approved, customer billing records and payment confirmation references are reconciled manually by our accounts department against our bank accounts prior to delivery dispatch.</li>
+                </ul>
+            </section>
+
+            <!-- Section 5 -->
+            <section class="legal-section" id="purpose-of-processing">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">5</span>
+                    Purpose of Data Processing
+                </h2>
+                <p class="legal-text">
+                    Shree Mata uses personal data exclusively for lawful and explicit business purposes:
+                </p>
+                <ul class="legal-list">
+                    <li><strong>Order Processing & Fulfillment:</strong> Verifying order contents, packaging textbooks and grade sets, generating physical invoices, dispatching parcels, or preparing orders for store pickup at our Hubballi branch.</li>
+                    <li><strong>Logistics Communication:</strong> Transmitting order confirmation notices, courier tracking numbers, and delivery updates via SMS, telephone, or email.</li>
+                    <li><strong>Customer Support:</strong> Assisting customers with order inquiries, product availability, returns assessment, and address updates.</li>
+                    <li><strong>Wallet & Referral Program Administration:</strong> Calculating cashback allocations on qualifying purchases, maintaining customer wallet ledger balances, and calculating legitimate referral rewards within our multi-tier network in accordance with published terms.</li>
+                    <li><strong>Statutory Recordkeeping:</strong> Complying with mandatory legal obligations under Indian tax laws, including the Goods and Services Tax (GST) Act, commercial accounting standards, and other applicable statutory regulations.</li>
+                </ul>
+            </section>
+
+            <!-- Section 6 -->
+            <section class="legal-section" id="data-sharing">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">6</span>
+                    Third-Party Disclosures & Data Sharing
+                </h2>
+                <p class="legal-text">
+                    Shree Mata does <strong>not</strong> sell, rent, or trade your personal data to marketing aggregators or third-party advertising brokers. Data is shared strictly on a need-to-know basis with the following service providers:
+                </p>
+                <ul class="legal-list">
+                    <li><strong>Logistics & Courier Carriers:</strong> Customer name, shipping address, landmark, PIN code, and telephone number are shared with domestic logistics providers (such as TPC India or postal/courier partners) strictly to execute physical doorstep delivery of book packages.</li>
+                    <li><strong>Payment Aggregators:</strong> Order amounts and reference numbers are transmitted to Razorpay to facilitate payment processing.</li>
+                    <li><strong>Cloud Hosting & Database Infrastructure:</strong> Server and application data is maintained on cloud hosting environments (such as Amazon Web Services / cloud database servers) supporting our application.</li>
+                    <li><strong>Legal & Regulatory Authorities:</strong> Personal information may be disclosed if required to do so by applicable Indian law, court order, or written notice from law enforcement or tax authorities exercising lawful jurisdiction.</li>
+                </ul>
+            </section>
+
+            <!-- Section 7 -->
+            <section class="legal-section" id="data-security-retention">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">7</span>
+                    Data Storage, Security & Retention
+                </h2>
+                <p class="legal-text">
+                    We employ operational and technical precautions commensurate with an educational bookstore to safeguard personal data:
+                </p>
+                <ul class="legal-list">
+                    <li><strong>Network Encryption:</strong> Communications between customer web browsers or the mobile app and our backend servers are transmitted using HTTPS encryption.</li>
+                    <li><strong>Authentication Security:</strong> Accounts are secured via password hashes (using <code>bcrypt</code>) and authenticated sessions are validated through signed JSON Web Tokens (JWT).</li>
+                    <li><strong>Administrative Access Controls:</strong> Access to backend customer order records and customer contact details is restricted to authorized administrative personnel.</li>
+                    <li><strong>Data Retention:</strong> We retain customer account and order information for as long as your account remains active or as required to fulfill the purposes outlined in this policy. Transaction records, tax invoices, and payment histories are retained for mandatory statutory periods mandated under Indian taxation and corporate record-retention statutes.</li>
+                </ul>
+            </section>
+
+            <!-- Section 8 -->
+            <section class="legal-section" id="privacy-requests">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">8</span>
+                    Customer Privacy Rights & Deletion Requests
+                </h2>
+                <p class="legal-text">
+                    Subject to applicable Indian law, customers possess rights regarding their personal data:
+                </p>
+                <ul class="legal-list">
+                    <li><strong>Access & Correction:</strong> You may view and edit your profile details, phone number, and delivery addresses at any time by logging into your account at <a href="/account.html">https://shreemata.com/account.html</a>.</li>
+                    <li><strong>Account & Data Deletion Requests:</strong> If you wish to delete your account or request erasure of your personal data, you may submit a formal request from your registered email address or phone number to <a href="mailto:shree.mata.hbl@gmail.com">shree.mata.hbl@gmail.com</a>.</li>
+                    <li><strong>Statutory Retention Limitations:</strong> Upon receiving a verifiable deletion request, we will deactivate your account and delete personal identifiers where permitted. However, please note that completed order records, invoices, tax calculations, and accounting entries cannot be deleted prior to the expiration of mandatory retention periods prescribed under Indian tax laws (including GST regulations).</li>
+                </ul>
+            </section>
+
+            <!-- Section 9 -->
+            <section class="legal-section" id="childrens-privacy">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">9</span>
+                    Minor & Children's Privacy
+                </h2>
+                <p class="legal-text">
+                    Shree Mata distributes school curriculum textbooks, study guides, and grade packages intended for students, including minors. However, commercial e-commerce transactions, user registration, and financial payments must be conducted under the active supervision and with the express consent of a parent, legal guardian, or authorized educational institution.
+                </p>
+                <p class="legal-text">
+                    We do not knowingly collect personal information directly from children under 18 years of age without parental or guardian oversight. If a parent or guardian discovers that a minor has created an account without approval, please contact us at <a href="mailto:shree.mata.hbl@gmail.com">shree.mata.hbl@gmail.com</a> so we may take appropriate steps to manage or close the account.
+                </p>
+            </section>
+
+            <!-- Section 10 -->
+            <section class="legal-section" id="updates">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">10</span>
+                    Policy Updates & Revisions
+                </h2>
+                <p class="legal-text">
+                    We may update this Privacy Policy from time to time to reflect operational modifications, platform enhancements, or evolving legal requirements. When updates are published, the revised document will be posted on this page with an updated "Effective Date". Continued use of our website or mobile application following such updates signifies your acknowledgment of the revised policy.
+                </p>
+            </section>
+
+            <!-- Section 11 -->
+            <section class="legal-section" id="contact-grievance">
+                <h2 class="legal-sec-title">
+                    <span class="legal-sec-number">11</span>
+                    Grievance Redressal & Contact Information
+                </h2>
+                <p class="legal-text">
+                    In accordance with the Information Technology Act, 2000, the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, and the Consumer Protection (E-Commerce) Rules, 2020, questions, concerns, or grievances concerning data privacy should be addressed to our verified business contacts:
+                </p>
+
+                <div class="contact-box">
+                    <p><strong>Business Name:</strong> Shree Mata (Shree Mata Book Agency / Publication Center)</p>
+                    <p><strong>Registered Address:</strong> Hubballi, Karnataka - 580031, India</p>
+                    <p><strong>Customer Support Phone:</strong> <a href="tel:+919986086278">+91 9986086278</a></p>
+                    <p><strong>Support Helpline:</strong> <a href="tel:+919845163604">+91 98451 63604</a></p>
+                    <p><strong>Privacy Inquiries & Support Email:</strong> <a href="mailto:shree.mata.hbl@gmail.com">shree.mata.hbl@gmail.com</a></p>
+                    <p><strong>GSTIN:</strong> <code>29GZTPP0335K1ZL</code></p>
+                    <p><strong>Working Hours:</strong> Monday – Saturday, 10:00 AM to 7:00 PM IST</p>
+                </div>
+
+                <div class="flag-box" role="alert">
+                    <strong>Business Action Required Before Final Publication:</strong>
+                    Under Rule 5(9) of the Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011 and Rule 4(4) of the Consumer Protection (E-Commerce) Rules, 2020, an e-commerce entity operating in India must designate a specific Grievance Officer and publish their full name, official designation, and direct contact details. Management must formally appoint this individual and insert their details into this section prior to publishing this document as a binding legal instrument.
+                </div>
+            </section>
+
+        </article>
+    </main>
+
+    <!-- 5. GLOBAL SITE FOOTER -->
+    <footer class="site-footer" role="contentinfo">
+        <div class="container">
+            <div class="footer-grid">
+                <!-- Brand Column -->
+                <div class="footer-brand-col">
+                    <a href="/" class="footer-brand-logo" aria-label="Shree Mata Home">
+                        <img src="/images/press.png" alt="Shree Mata Logo" width="42" height="42" style="background: white; padding: 2px; border-radius: 4px;">
+                        <span class="footer-brand-title">Shree Mata</span>
+                    </a>
+                    <div style="margin-top: 4px; margin-bottom: 8px;">
+                        <div style="font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #D4A72C; letter-spacing: 0.04em;">Disseminating Knowledge</div>
+                        <div style="font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; color: #102A43; margin-top: 4px;">Empower Us. <span style="color: #D4A72C;">We Empower You.</span></div>
+                    </div>
+                    <p class="footer-desc">
+                        Your trusted destination for school textbooks, curriculum packages, and authentic study guides with store pickup and Karnataka-wide courier delivery.
+                    </p>
+                    <div class="footer-contact-info">
+                        <a href="tel:+919986086278" class="footer-phone-link" style="display: inline-flex; align-items: center; gap: 8px; color: #102A43; font-weight: 600; text-decoration: none; margin-bottom: 6px;">
+                            <span aria-hidden="true">📞</span>
+                            <span>+91 9986086278</span>
+                        </a>
+                        <div style="font-size: 13px; color: #667085;">Helpline: +91 98451 63604</div>
+                    </div>
+                </div>
+
+                <!-- SHOP Column -->
+                <div>
+                    <h4 class="footer-col-title">SHOP & CATEGORIES</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="/#booksSection">Textbooks Catalog</a></li>
+                        <li><a href="/#bundlesSection">Complete Book Sets</a></li>
+                        <li><a href="/#classSection">Class Curriculum</a></li>
+                        <li><a href="/#subjectSection">Subjects & Guides</a></li>
+                    </ul>
+                </div>
+
+                <!-- CUSTOMER CARE Column -->
+                <div>
+                    <h4 class="footer-col-title">CUSTOMER CARE</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="tel:+919845163604" class="footer-care-phone"><span aria-hidden="true">📞</span> +91 98451 63604</a></li>
+                        <li><a href="/track-order.html">Track Your Order</a></li>
+                        <li><a href="/account.html">My Account</a></li>
+                        <li><a href="/#trustSection">Shipping & Pickup</a></li>
+                        <li><a href="/privacy-policy.html" style="color: #D4A72C; font-weight: 600;">Privacy Policy</a></li>
+                        <li><a href="/terms-and-conditions.html">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+
+                <!-- ACCOUNT Column -->
+                <div>
+                    <h4 class="footer-col-title">ACCOUNT & REWARDS</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="/account.html">Profile Overview</a></li>
+                        <li><a href="/orders.html">My Orders</a></li>
+                        <li><a href="/referral.html">Referral & Rewards</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer Bottom Bar -->
+            <div class="footer-bottom">
+                <span>© 2026 Shree Mata. All rights reserved. Hubballi, Karnataka.</span>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+                    <a href="/privacy-policy.html">Privacy Policy</a>
+                    <span>•</span>
+                    <a href="/terms-and-conditions.html">Terms & Conditions</a>
+                    <span>•</span>
+                    <span>Store Pickup & Delivery</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 6. MOBILE NAVIGATION DRAWER -->
+    <div id="mobileNavDrawer" class="mobile-nav-drawer" aria-hidden="true">
+        <div id="drawerBackdrop" class="drawer-backdrop"></div>
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <a href="/" class="brand-logo" aria-label="Shree Mata">
+                    <img src="/images/press.png" alt="Shree Mata" width="36" height="36">
+                    <span class="brand-title" style="font-size: 18px;">Shree Mata</span>
+                </a>
+                <button type="button" id="drawerCloseBtn" class="drawer-close-btn" aria-label="Close menu">&times;</button>
+            </div>
+            <nav class="drawer-nav">
+                <a href="/#booksSection" class="drawer-link">📚 All Books</a>
+                <a href="/#bundlesSection" class="drawer-link">📦 Book Sets</a>
+                <a href="/#subjectSection" class="drawer-link">🏷️ Categories</a>
+                <a href="/#notificationsSection" class="drawer-link">🎉 Offers</a>
+                <a href="/track-order.html" class="drawer-link">📦 Track Your Order</a>
+                <a href="/cart.html" class="drawer-link">🛒 Shopping Cart</a>
+                <a href="/privacy-policy.html" class="drawer-link" style="color: var(--sm-gold); font-weight: 700;">🛡️ Privacy Policy</a>
+                <a href="/terms-and-conditions.html" class="drawer-link">📜 Terms & Conditions</a>
+            </nav>
+            <div id="drawerAuthSection" class="drawer-auth">
+                <div id="drawerGuestAuth" class="drawer-auth-buttons">
+                    <a href="/login.html" class="btn-secondary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">Log In</a>
+                    <a href="/signup.html" class="btn-primary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center;">Sign Up</a>
+                </div>
+                <div id="drawerUserAuth" class="drawer-user-menu" style="display: none;">
+                    <div class="drawer-user-info" style="display: flex; align-items: center; gap: 10px; padding: 8px 0 14px; border-bottom: 1px solid var(--sm-border-light); margin-bottom: 10px;">
+                        <span class="user-avatar-icon" style="font-size: 20px;">👤</span>
+                        <div>
+                            <span style="font-size: 11px; color: var(--sm-muted); text-transform: uppercase; display: block;">Signed in as</span>
+                            <span id="drawerUserName" style="font-size: 14.5px; font-weight: 700; color: var(--sm-ink);">User</span>
+                        </div>
+                    </div>
+                    <div class="drawer-user-links" style="display: flex; flex-direction: column; gap: 4px;">
+                        <a href="/account.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">👤 My Account</a>
+                        <a href="/orders.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">📦 My Orders</a>
+                        <button type="button" id="drawerLogoutBtn" class="btn-logout-item" style="padding: 10px 12px; margin-top: 6px;">🚪 Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/config.js"></script>
+    <script src="/js/global-nav.js"></script>
+</body>
+
+</html>

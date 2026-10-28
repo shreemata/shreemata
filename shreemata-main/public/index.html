@@ -145,7 +145,7 @@
                 <nav class="header-nav-links" aria-label="Primary Navigation">
                     <a href="#booksSection" class="nav-item-link">Books</a>
                     <a href="#subjectSection" class="nav-item-link">Categories</a>
-                    <a href="/notes.html" class="nav-item-link" style="color: #F68048; font-weight: 700;">Read Notes</a>
+                    <a href="/notes.html" class="nav-item-link" id="navReadNotesLink" style="display: none; color: #F68048; font-weight: 700;">Read Notes</a>
                     <a href="#notificationsSection" class="nav-item-link">Offers</a>
                 </nav>
 
@@ -200,7 +200,7 @@
                             <a href="/orders.html" class="dropdown-item-link" id="ordersLink" role="menuitem">
                                 <span class="dropdown-item-icon">📦</span> <span>My Orders</span>
                             </a>
-                            <a href="/notes.html" class="dropdown-item-link" id="userDropdownNotesLink" role="menuitem">
+                            <a href="/notes.html" class="dropdown-item-link" id="userDropdownNotesLink" role="menuitem" style="display: none;">
                                 <span class="dropdown-item-icon">📖</span> <span>Read Notes</span>
                             </a>
                             <a href="/account.html?section=wallet" class="dropdown-item-link" id="dropdownWalletLink" role="menuitem">
@@ -650,6 +650,8 @@
                         <li><a href="/account.html">Contact Us</a></li>
                         <li><a href="#trustSection">Shipping</a></li>
                         <li><a href="#trustSection">Returns</a></li>
+                        <li><a href="/privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="/terms-and-conditions.html">Terms & Conditions</a></li>
                     </ul>
                 </div>
 
@@ -667,10 +669,10 @@
             <!-- Footer Bottom Bar -->
             <div class="footer-bottom">
                 <span>© 2026 Shree Mata. All rights reserved.</span>
-                <div style="display: flex; gap: 16px;">
-                    <span>Curriculum Books</span>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+                    <a href="/privacy-policy.html">Privacy Policy</a>
                     <span>•</span>
-                    <span>Secure Checkout</span>
+                    <a href="/terms-and-conditions.html">Terms & Conditions</a>
                     <span>•</span>
                     <span>Store Pickup & Delivery</span>
                 </div>
