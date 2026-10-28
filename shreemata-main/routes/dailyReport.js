@@ -438,7 +438,7 @@ async function generatePDFContent(doc, data) {
   doc.font('Times-Roman')
      .fontSize(7.5)
      .fillColor(BRAND.textMuted)
-     .text('Phone: 9886086278 | Email: shree.mata.hbl@gmail.com | Website: www.shreemata.com', centerX, yPosition + 53, {
+     .text('Phone: 9986086278 | Email: shree.mata.hbl@gmail.com | Website: www.shreemata.com', centerX, yPosition + 53, {
        width: centerBoxWidth,
        align: 'center'
      });

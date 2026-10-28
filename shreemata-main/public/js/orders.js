@@ -488,7 +488,7 @@
             const store = window.STORE_DETAILS || {
                 name: 'Shree Mata Publication Center',
                 address: 'Main Branch, Hubballi, Karnataka',
-                phone: '+91 9886086278'
+                phone: '+91 9986086278'
             };
             deliveryBlockHtml = `
                 <div class="modal-info-card">

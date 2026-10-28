@@ -160,7 +160,7 @@ const commissionSettingsSchema = new mongoose.Schema({
   
   storePhone: {
     type: String,
-    default: '+91 9886086278'
+    default: '+91 9986086278'
   },
   
   storeHours: {
@@ -212,7 +212,7 @@ commissionSettingsSchema.statics.getSettings = async function() {
       freeShippingThreshold: 500,
       storeName: 'Shree Mata Publication Center',
       storeAddress: 'Main Branch, Hubballi, Karnataka',
-      storePhone: '+91 9886086278',
+      storePhone: '+91 9986086278',
       storeHours: 'Mon-Sat 10AM-8PM, Sun 11AM-6PM',
       pickupInstructions: "We'll call you when your order is ready for pickup!",
       treeCommissionLevels: [

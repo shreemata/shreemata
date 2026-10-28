@@ -84,7 +84,7 @@ window.STORE_DETAILS = {
     city: 'Hubballi',
     state: 'Karnataka',
     address: 'Main Branch, Hubballi, Karnataka',
-    phone: '+91 9886086278'
+    phone: '+91 9986086278'
 };
 
 // Customer-facing book offer & discount display pricing helper
