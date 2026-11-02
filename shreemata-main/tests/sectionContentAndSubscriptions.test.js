@@ -1580,4 +1580,64 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
       expect(res.headers['content-range']).toBe(`bytes */${actualFileSize}`);
     });
   });
+
+  // =========================================================================
+  // SCENARIO 25: optionalAuth User DB Verification & Guest Fallback (Defect 5)
+  // =========================================================================
+  describe('25. optionalAuth user verification (Defect 5)', () => {
+    let freeNote;
+    let paidNote;
+
+    beforeAll(async () => {
+      freeNote = await Note.create({
+        section: 'notes',
+        title: 'Free Note for optionalAuth test',
+        pdfUrl: samplePdfKey,
+        isPublished: true,
+        isFree: true,
+        uploadedBy: adminUser._id
+      });
+
+      paidNote = await Note.create({
+        section: 'notes',
+        title: 'Paid Note for optionalAuth test',
+        pdfUrl: samplePdfKey,
+        isPublished: true,
+        isFree: false,
+        uploadedBy: adminUser._id
+      });
+    });
+
+    it('treats token of a non-existent or deleted user as an unauthenticated guest', async () => {
+      const nonExistentUserId = new mongoose.Types.ObjectId();
+      const ghostToken = jwt.sign({ id: nonExistentUserId, role: 'user' }, JWT_SECRET);
+
+      // Free note stream succeeds as guest
+      const resFree = await client.get(`/api/notes/${freeNote._id}/stream`, {
+        headers: { Authorization: `Bearer ${ghostToken}` }
+      });
+      expect(resFree.status).toBe(200);
+
+      // Paid note stream fails as guest with 401
+      const resPaid = await client.get(`/api/notes/${paidNote._id}/stream`, {
+        headers: { Authorization: `Bearer ${ghostToken}` }
+      });
+      expect(resPaid.status).toBe(401);
+      expect(resPaid.data.error).toMatch(/Authentication required/i);
+    });
+
+    it('treats tokens with non-ObjectId payload or invalid signature as unauthenticated guest', async () => {
+      const stringIdToken = jwt.sign({ id: 'not-a-valid-object-id', role: 'user' }, JWT_SECRET);
+
+      const resFree = await client.get(`/api/notes/${freeNote._id}/stream`, {
+        headers: { Authorization: `Bearer ${stringIdToken}` }
+      });
+      expect(resFree.status).toBe(200);
+
+      const resPaid = await client.get(`/api/notes/${paidNote._id}/stream`, {
+        headers: { Authorization: `Bearer ${stringIdToken}` }
+      });
+      expect(resPaid.status).toBe(401);
+    });
+  });
 });

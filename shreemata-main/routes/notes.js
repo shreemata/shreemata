@@ -184,18 +184,21 @@ function validateVideoUrl(urlStr, isFree = false, provider = 'none') {
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers["authorization"];
-    if (authHeader && authHeader.startsWith("Bearer ")) {
+    if (authHeader && typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
       const token = authHeader.split(" ")[1];
       if (token && process.env.JWT_SECRET) {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.id).select("_id role name email").lean();
-        if (user) {
-          req.user = { id: user._id, role: user.role, name: user.name, email: user.email };
+        if (decoded && decoded.id && mongoose.Types.ObjectId.isValid(decoded.id)) {
+          const user = await User.findById(decoded.id).select("_id role name email").lean();
+          if (user) {
+            req.user = { id: user._id, role: user.role, name: user.name, email: user.email };
+          }
         }
       }
     }
   } catch (e) {
     // Treat invalid or expired token as guest
+    req.user = undefined;
   }
   next();
 };
