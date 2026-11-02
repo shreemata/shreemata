@@ -310,56 +310,55 @@ router.get("/", optionalAuth, async (req, res) => {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 12));
     const skip = (page - 1) * limit;
 
-    const query = {};
-    if (rawSection === 'notes') {
-      query.$or = [
-        { section: 'notes' },
-        { section: { $exists: false } },
-        { section: null }
-      ];
-    } else {
-      query.section = rawSection;
-    }
+    const sectionClause = (rawSection === 'notes')
+      ? { $or: [{ section: 'notes' }, { section: { $exists: false } }, { section: null }] }
+      : { section: rawSection };
+
+    const andConditions = [sectionClause];
 
     // Publication filter
     if (!isAdminUser) {
-      query.isPublished = true;
+      andConditions.push({ isPublished: true });
     } else if (req.query.isPublished !== undefined && req.query.isPublished !== "all") {
-      query.isPublished = req.query.isPublished === "true" || req.query.isPublished === true;
+      andConditions.push({ isPublished: req.query.isPublished === "true" || req.query.isPublished === true });
     }
 
     // Free filter
     if (req.query.isFree !== undefined && req.query.isFree !== "all") {
-      query.isFree = req.query.isFree === "true" || req.query.isFree === true;
+      andConditions.push({ isFree: req.query.isFree === "true" || req.query.isFree === true });
     }
 
     // Category filter
     if (req.query.category && typeof req.query.category === "string" && req.query.category.trim()) {
-      query.category = req.query.category.trim();
+      andConditions.push({ category: req.query.category.trim() });
     }
 
     // Class level filter
     if (req.query.classLevel && typeof req.query.classLevel === "string" && req.query.classLevel.trim()) {
-      query.classLevel = req.query.classLevel.trim();
+      andConditions.push({ classLevel: req.query.classLevel.trim() });
     }
 
     // Subject filter
     if (req.query.subject && typeof req.query.subject === "string" && req.query.subject.trim()) {
       const sanitizedSubject = req.query.subject.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      query.subject = { $regex: new RegExp(`^${sanitizedSubject}$`, "i") };
+      andConditions.push({ subject: { $regex: new RegExp(`^${sanitizedSubject}$`, "i") } });
     }
 
     // Search query
     if (req.query.search && typeof req.query.search === "string" && req.query.search.trim()) {
       const sanitizedSearch = req.query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       if (sanitizedSearch) {
-        query.$or = [
-          { title: { $regex: sanitizedSearch, $options: "i" } },
-          { subject: { $regex: sanitizedSearch, $options: "i" } },
-          { description: { $regex: sanitizedSearch, $options: "i" } }
-        ];
+        andConditions.push({
+          $or: [
+            { title: { $regex: sanitizedSearch, $options: "i" } },
+            { subject: { $regex: sanitizedSearch, $options: "i" } },
+            { description: { $regex: sanitizedSearch, $options: "i" } }
+          ]
+        });
       }
     }
+
+    const query = andConditions.length > 1 ? { $and: andConditions } : andConditions[0];
 
     // Projections strictly omit pdfUrl and videoUrl
     const [totalNotes, notes] = await Promise.all([
@@ -407,17 +406,14 @@ router.get("/subjects", optionalAuth, async (req, res) => {
       return res.status(404).json({ error: `Section ${rawSection} is currently disabled` });
     }
 
-    const filter = {};
-    if (rawSection === 'notes') {
-      filter.$or = [
-        { section: 'notes' },
-        { section: { $exists: false } },
-        { section: null }
-      ];
-    } else {
-      filter.section = rawSection;
-    }
-    if (!isAdminUser) filter.isPublished = true;
+    const sectionClause = (rawSection === 'notes')
+      ? { $or: [{ section: 'notes' }, { section: { $exists: false } }, { section: null }] }
+      : { section: rawSection };
+
+    const andConditions = [sectionClause];
+    if (!isAdminUser) andConditions.push({ isPublished: true });
+
+    const filter = andConditions.length > 1 ? { $and: andConditions } : andConditions[0];
 
     const rawSubjects = await Note.distinct("subject", filter);
     const subjects = rawSubjects

@@ -1200,4 +1200,71 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
       expect(foundBook.sellingPrice).toBe(180);
     });
   });
+
+  // =========================================================================
+  // SCENARIO 21: Search Block Section Isolation (Defect 1)
+  // =========================================================================
+  describe('21. search block section isolation (Defect 1)', () => {
+    it('search on ?section=notes never returns items from other sections even if matching keyword', async () => {
+      process.env.ENABLE_READ_NOTES = 'true';
+      process.env.ENABLE_QUESTION_PAPERS = 'false';
+      process.env.ENABLE_VIDEOS = 'false';
+
+      // Seed items in notes, question_papers, videos all with the keyword "TrigonometrySecret"
+      await Note.create([
+        {
+          section: 'notes',
+          title: 'Notes on TrigonometrySecret Board Review',
+          pdfUrl: samplePdfKey,
+          isPublished: true,
+          isFree: true,
+          uploadedBy: adminUser._id
+        },
+        {
+          section: 'question_papers',
+          title: 'Question Paper TrigonometrySecret Exam 2026',
+          pdfUrl: samplePdfKey,
+          isPublished: true,
+          isFree: true,
+          uploadedBy: adminUser._id
+        },
+        {
+          section: 'videos',
+          title: 'Video Lecture TrigonometrySecret Essentials',
+          videoUrl: 'https://iframe.mediadelivery.net/play/123/trig',
+          videoProvider: 'bunny',
+          isPublished: true,
+          isFree: true,
+          uploadedBy: adminUser._id
+        }
+      ]);
+
+      const res = await client.get('/api/notes?section=notes&search=TrigonometrySecret', {
+        headers: { Authorization: `Bearer ${guestToken}` }
+      });
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.data.notes)).toBe(true);
+      expect(res.data.notes.length).toBe(1);
+      // Every single returned item MUST belong to section 'notes'
+      for (const item of res.data.notes) {
+        expect(item.section).toBe('notes');
+        expect(item.title).not.toMatch(/Question Paper/i);
+        expect(item.title).not.toMatch(/Video Lecture/i);
+      }
+
+      // Check /subjects: disabled sections return 404 for non-admin
+      const subjDisabled = await client.get('/api/notes/subjects?section=question_papers', {
+        headers: { Authorization: `Bearer ${guestToken}` }
+      });
+      expect(subjDisabled.status).toBe(404);
+
+      // Enabled notes section returns subjects
+      const subjNotes = await client.get('/api/notes/subjects?section=notes', {
+        headers: { Authorization: `Bearer ${guestToken}` }
+      });
+      expect(subjNotes.status).toBe(200);
+      expect(Array.isArray(subjNotes.data.subjects)).toBe(true);
+    });
+  });
 });
