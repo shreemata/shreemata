@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0F172A">
+    <title>Online Note Reader — Shree Mata</title>
+    <link rel="icon" href="images/press.png" type="image/png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- PDF.js CDN (Standard Open Source Browser PDF Engine) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        :root {
+            --reader-bg: #1e293b;
+            --toolbar-bg: #0f172a;
+            --accent: #F68048;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-dark: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none; /* Discourage casual copying */
+            -webkit-user-select: none;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: var(--reader-bg);
+            color: var(--text-light);
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Reader Top Navigation Bar */
+        .reader-header {
+            height: 60px;
+            background: var(--toolbar-bg);
+            border-bottom: 1px solid var(--border-dark);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 50;
+            position: relative;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            border: 1px solid var(--border-dark);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .doc-title-box {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .doc-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .doc-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* Controls (Center & Right) */
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-ctrl {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-dark);
+            color: var(--text-light);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .btn-ctrl:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.18);
+        }
+        .btn-ctrl:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .page-indicator {
+            font-size: 13px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .page-indicator span {
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        /* Main Viewport Container */
+        .reader-viewport {
+            height: calc(100vh - 60px);
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 24px 16px;
+            position: relative;
+            background: #0b1329;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            background: #ffffff;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #pdfCanvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Subtle Security Watermark */
+        .watermark-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            opacity: 0.08;
+            font-size: 22px;
+            font-weight: 800;
+            color: #000000;
+            transform: rotate(-30deg);
+            z-index: 10;
+        }
+
+        /* State Modals / Full Screen Placeholders */
+        .state-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .state-card {
+            background: #1e293b;
+            border: 1px solid var(--border-dark);
+            border-radius: 16px;
+            max-width: 480px;
+            width: 100%;
+            padding: 32px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .state-card h2 {
+            font-size: 22px;
+            margin: 0 0 10px;
+            color: #ffffff;
+        }
+
+        .state-card p {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin: 0 0 24px;
+        }
+
+        .btn-action {
+            display: inline-block;
+            width: 100%;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #F68048 0%, #e06d36 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+
+        /* Spinner */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .reader-header {
+                padding: 0 10px;
+            }
+            .doc-subtitle {
+                display: none;
+            }
+            .reader-viewport {
+                padding: 12px 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. TOP READER TOOLBAR -->
+    <header class="reader-header" id="readerHeader">
+        <div class="header-left">
+            <a href="/notes.html" class="btn-back">← Notes</a>
+            <div class="doc-title-box">
+                <h1 class="doc-title" id="toolbarTitle">Loading Document...</h1>
+                <p class="doc-subtitle" id="toolbarSubtitle">Curriculum Revision Sheet</p>
+            </div>
+        </div>
+
+        <div class="header-controls">
+            <!-- Page Navigation -->
+            <button type="button" class="btn-ctrl" id="prevPageBtn" onclick="onPrevPage()" disabled title="Previous Page">◀</button>
+            <div class="page-indicator">
+                <span id="pageNum">1</span> / <span id="pageCount">--</span>
+            </div>
+            <button type="button" class="btn-ctrl" id="nextPageBtn" onclick="onNextPage()" disabled title="Next Page">▶</button>
+
+            <!-- Zoom Controls -->
+            <button type="button" class="btn-ctrl" onclick="onZoomOut()" title="Zoom Out">−</button>
+            <button type="button" class="btn-ctrl" onclick="onZoomIn()" title="Zoom In">+</button>
+
+            <!-- Optional Authorized Download -->
+            <a href="#" id="authDownloadBtn" class="btn-ctrl" style="display: none; color: #10B981;" title="Download PDF Document">⬇️</a>
+        </div>
+    </header>
+
+    <!-- 2. MAIN VIEWPORT -->
+    <main class="reader-viewport" id="readerViewport">
+        <div class="canvas-wrapper" id="canvasWrapper">
+            <canvas id="pdfCanvas"></canvas>
+            <div class="watermark-overlay" id="watermarkOverlay">
+                <div class="wm-line">SHREE MATA READ NOTES</div>
+                <div class="wm-line" id="userWatermark">LICENSED SUBSCRIBER</div>
+                <div class="wm-line">CONFIDENTIAL STUDY PASS</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 3. LOADING / ACCESS GATE MODALS -->
+    <div id="stateModal" class="state-modal" style="display: flex;">
+        <div class="state-card" id="stateCard">
+            <div class="spinner" id="stateSpinner"></div>
+            <div class="state-icon" id="stateIcon" style="display: none;">🔒</div>
+            <h2 id="stateTitle">Verifying Access...</h2>
+            <p id="stateMessage">Validating active READ NOTES subscription and preparing document pages.</p>
+            <div id="stateActionWrap" style="display: none;">
+                <a href="/notes.html" class="btn-action" id="stateActionBtn">Get Subscription Pass</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration -->
+    <script src="js/config.js"></script>
+
+    <script>
+        // PDF.js worker setup
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        // Reader State
+        let pdfDoc = null;
+        let pageNum = 1;
+        let pageRendering = false;
+        let pageNumPending = null;
+        let scale = 1.35;
+        let canvas = document.getElementById('pdfCanvas');
+        let ctx = canvas.getContext('2d');
+        let activeBlobUrl = null;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const noteId = urlParams.get('id');
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeReader();
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (activeBlobUrl) {
+                URL.revokeObjectURL(activeBlobUrl);
+            }
+        });
+
+        async function initializeReader() {
+            // 1. Parameter presence check
+            if (!noteId) {
+                showAccessDenied("Missing Document ID", "No study note was specified to read.", "Browse Notes Catalog", "/notes.html");
+                return;
+            }
+
+            // 2. Authentication check
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+            if (!token || !user) {
+                showAccessDenied(
+                    "Authentication Required",
+                    "Please log in with your Shree Mata account to access this study note.",
+                    "Log In to Continue",
+                    `/login.html?redirect=${encodeURIComponent(window.location.href)}`
+                );
+                return;
+            }
+
+            // Apply personalized watermark
+            const watermarkEl = document.getElementById('userWatermark');
+            if (watermarkEl) {
+                watermarkEl.textContent = `${user.email || user.name || 'Subscriber'} • ${new Date().toLocaleDateString('en-IN')}`;
+            }
+
+            try {
+                // 3. Fetch Note Metadata
+                const metaRes = await fetch(`${window.API_URL}/notes/${noteId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (metaRes.status === 404) {
+                    showAccessDenied("Document Not Found", "This note is no longer available or has been unpublished by administration.", "Back to Notes", "/notes.html");
+                    return;
+                }
+
+                if (!metaRes.ok) {
+                    throw new Error("Unable to retrieve document details");
+                }
+
+                const metaData = await metaRes.json();
+                const note = metaData.note;
+
+                document.getElementById('toolbarTitle').textContent = note.title;
+                document.getElementById('toolbarSubtitle').textContent = `${note.subject || 'Curriculum'} • ${note.classLevel || 'General'}`;
+
+                // 4. Fetch Protected Stream with Authorization Header
+                const streamRes = await fetch(`${window.API_URL}/notes/${noteId}/stream`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (streamRes.status === 403) {
+                    showAccessDenied(
+                        "Active Subscription Required",
+                        "Your READ NOTES subscription is either expired or inactive. Subscribe today for unlimited access to all digital study notes.",
+                        "Subscribe / Renew Pass",
+                        "/notes.html#subscriptionHero"
+                    );
+                    return;
+                }
+
+                if (!streamRes.ok) {
+                    throw new Error(`Failed to stream document (HTTP ${streamRes.status})`);
+                }
+
+                // 5. Parse and Render PDF in Canvas
+                const blob = await streamRes.blob();
+                const arrayBuffer = await blob.arrayBuffer();
+
+                // If note explicitly authorizes offline downloads, enable button
+                if (note.allowDownload) {
+                    activeBlobUrl = URL.createObjectURL(blob);
+                    const dlBtn = document.getElementById('authDownloadBtn');
+                    dlBtn.href = activeBlobUrl;
+                    dlBtn.download = `${note.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+                    dlBtn.style.display = 'inline-flex';
+                }
+
+                pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                document.getElementById('pageCount').textContent = pdfDoc.numPages;
+
+                // Close loading modal
+                document.getElementById('stateModal').style.display = 'none';
+
+                renderPage(pageNum);
+
+            } catch (err) {
+                console.error("Reader initialization error:", err);
+                showAccessDenied("Unable to Load Document", err.message || "An error occurred while loading document pages.", "Back to Notes", "/notes.html");
+            }
+        }
+
+        function renderPage(num) {
+            pageRendering = true;
+
+            pdfDoc.getPage(num).then(function(page) {
+                const viewport = page.getViewport({ scale: scale });
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+
+                const renderTask = page.render(renderContext);
+
+                renderTask.promise.then(function() {
+                    pageRendering = false;
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                });
+            });
+
+            document.getElementById('pageNum').textContent = num;
+            document.getElementById('prevPageBtn').disabled = num <= 1;
+            document.getElementById('nextPageBtn').disabled = num >= pdfDoc.numPages;
+        }
+
+        function queueRenderPage(num) {
+            if (pageRendering) {
+                pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+
+        function onPrevPage() {
+            if (pageNum <= 1) return;
+            pageNum--;
+            queueRenderPage(pageNum);
+        }
+
+        function onNextPage() {
+            if (pageNum >= pdfDoc.numPages) return;
+            pageNum++;
+            queueRenderPage(pageNum);
+        }
+
+        function onZoomIn() {
+            if (scale >= 2.5) return;
+            scale += 0.2;
+            queueRenderPage(pageNum);
+        }
+
+        function onZoomOut() {
+            if (scale <= 0.8) return;
+            scale -= 0.2;
+            queueRenderPage(pageNum);
+        }
+
+        function showAccessDenied(title, message, btnText, btnHref) {
+            document.getElementById('stateSpinner').style.display = 'none';
+            document.getElementById('stateIcon').style.display = 'block';
+            document.getElementById('stateTitle').textContent = title;
+            document.getElementById('stateMessage').textContent = message;
+
+            const actionWrap = document.getElementById('stateActionWrap');
+            const actionBtn = document.getElementById('stateActionBtn');
+            actionBtn.textContent = btnText;
+            actionBtn.href = btnHref;
+            actionWrap.style.display = 'block';
+
+            document.getElementById('stateModal').style.display = 'flex';
+        }
+
+        // Keyboard Shortcut Navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+                onNextPage();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                onPrevPage();
+            }
+        });
+    </script>
+</body>
+</html>
