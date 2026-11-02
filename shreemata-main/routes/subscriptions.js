@@ -291,12 +291,22 @@ router.get("/my-status", authenticateToken, async (req, res) => {
 
     const now = new Date();
 
-    const activeSub = await NoteSubscription.findOne({
+    const activeSubQuery = {
       userId: req.user.id,
-      section: rawSection,
       status: "active",
       expiresAt: { $gt: now }
-    }).sort({ expiresAt: -1 }).lean();
+    };
+    if (rawSection === 'notes') {
+      activeSubQuery.$or = [
+        { section: 'notes' },
+        { section: { $exists: false } },
+        { section: null }
+      ];
+    } else {
+      activeSubQuery.section = rawSection;
+    }
+
+    const activeSub = await NoteSubscription.findOne(activeSubQuery).sort({ expiresAt: -1 }).lean();
 
     if (activeSub) {
       const daysRemaining = Math.max(0, Math.ceil((new Date(activeSub.expiresAt).getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
@@ -305,7 +315,7 @@ router.get("/my-status", authenticateToken, async (req, res) => {
         hasActiveSubscription: true,
         subscription: {
           id: activeSub._id,
-          section: activeSub.section,
+          section: activeSub.section || 'notes',
           planType: activeSub.planType,
           status: activeSub.status,
           startDate: activeSub.startDate,
@@ -316,10 +326,18 @@ router.get("/my-status", authenticateToken, async (req, res) => {
     }
 
     // Check if user had a previous subscription that is now expired
-    const lastSub = await NoteSubscription.findOne({
-      userId: req.user.id,
-      section: rawSection
-    }).sort({ expiresAt: -1 }).lean();
+    const lastSubQuery = { userId: req.user.id };
+    if (rawSection === 'notes') {
+      lastSubQuery.$or = [
+        { section: 'notes' },
+        { section: { $exists: false } },
+        { section: null }
+      ];
+    } else {
+      lastSubQuery.section = rawSection;
+    }
+
+    const lastSub = await NoteSubscription.findOne(lastSubQuery).sort({ expiresAt: -1 }).lean();
 
     return res.json({
       success: true,

@@ -218,12 +218,22 @@ async function evaluateItemAccess(item, user) {
   const now = new Date();
   const targetSection = item.section || 'notes';
 
-  const activeSubscription = await NoteSubscription.findOne({
+  const subQuery = {
     userId: user.id,
-    section: targetSection,
     status: 'active',
     expiresAt: { $gt: now }
-  }).lean();
+  };
+  if (targetSection === 'notes') {
+    subQuery.$or = [
+      { section: 'notes' },
+      { section: { $exists: false } },
+      { section: null }
+    ];
+  } else {
+    subQuery.section = targetSection;
+  }
+
+  const activeSubscription = await NoteSubscription.findOne(subQuery).lean();
 
   if (!activeSubscription) {
     return {
@@ -300,7 +310,16 @@ router.get("/", optionalAuth, async (req, res) => {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 12));
     const skip = (page - 1) * limit;
 
-    const query = { section: rawSection };
+    const query = {};
+    if (rawSection === 'notes') {
+      query.$or = [
+        { section: 'notes' },
+        { section: { $exists: false } },
+        { section: null }
+      ];
+    } else {
+      query.section = rawSection;
+    }
 
     // Publication filter
     if (!isAdminUser) {
@@ -388,7 +407,16 @@ router.get("/subjects", optionalAuth, async (req, res) => {
       return res.status(404).json({ error: `Section ${rawSection} is currently disabled` });
     }
 
-    const filter = { section: rawSection };
+    const filter = {};
+    if (rawSection === 'notes') {
+      filter.$or = [
+        { section: 'notes' },
+        { section: { $exists: false } },
+        { section: null }
+      ];
+    } else {
+      filter.section = rawSection;
+    }
     if (!isAdminUser) filter.isPublished = true;
 
     const rawSubjects = await Note.distinct("subject", filter);

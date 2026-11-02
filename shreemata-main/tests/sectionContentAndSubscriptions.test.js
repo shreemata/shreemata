@@ -1,0 +1,1126 @@
+// tests/sectionContentAndSubscriptions.test.js
+// Comprehensive test suite for 4-Section platform: Content Access, Subscriptions, Security, and Migrations
+
+const express = require('express');
+const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const { setupTestDB, teardownTestDB } = require('./setup');
+const User = require('../models/User');
+const Note = require('../models/Note');
+const NoteSubscription = require('../models/NoteSubscription');
+const SubscriptionOrder = require('../models/SubscriptionOrder');
+const AdminSettings = require('../models/AdminSettings');
+const { FEATURES } = require('../config/features');
+
+// Mock Razorpay SDK before loading routes
+const mockRazorpayOrdersCreate = jest.fn();
+const mockRazorpayPaymentsFetch = jest.fn();
+
+jest.mock('razorpay', () => {
+  return jest.fn().mockImplementation(() => ({
+    orders: {
+      create: mockRazorpayOrdersCreate
+    },
+    payments: {
+      fetch: mockRazorpayPaymentsFetch
+    }
+  }));
+});
+
+describe('4-Section Platform: Content, Access Control, and Subscriptions', () => {
+  let server;
+  let client;
+  let testStorageDir;
+  let samplePdfKey = 'sample_test_note.pdf';
+
+  let adminUser, adminToken;
+  let guestUser, guestToken;
+  let notesUser, notesToken;
+  let qpUser, qpToken;
+  let videosUser, videosToken;
+  let allSubUser, allSubToken;
+  let expiredUser, expiredToken;
+
+  let freeNote, paidNote, unpublishedNote;
+  let freeQp, paidQp;
+  let freeVideo, paidVideo;
+  let legacyNote, legacySub;
+
+  const JWT_SECRET = 'test_jwt_secret_four_sections_42';
+  const RZP_KEY_ID = 'rzp_test_key_12345';
+  const RZP_KEY_SECRET = 'rzp_test_secret_67890';
+
+  beforeAll(async () => {
+    await setupTestDB();
+
+    process.env.JWT_SECRET = JWT_SECRET;
+    process.env.RAZORPAY_KEY_ID = RZP_KEY_ID;
+    process.env.RAZORPAY_KEY_SECRET = RZP_KEY_SECRET;
+
+    // Feature flags on by default for testing
+    process.env.ENABLE_READ_NOTES = 'true';
+    process.env.ENABLE_QUESTION_PAPERS = 'true';
+    process.env.ENABLE_VIDEOS = 'true';
+
+    // Prepare private storage directory and valid PDF fixture
+    testStorageDir = path.resolve(__dirname, '../storage/notes/private');
+    if (!fs.existsSync(testStorageDir)) {
+      fs.mkdirSync(testStorageDir, { recursive: true });
+    }
+    const samplePdfPath = path.resolve(testStorageDir, samplePdfKey);
+    const validPdfBytes = Buffer.from(
+      '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF'
+    );
+    fs.writeFileSync(samplePdfPath, validPdfBytes);
+
+    // Setup Express App with 4-Section routers
+    const app = express();
+    app.use(express.json());
+    app.get('/api/features', (req, res) => {
+      res.json({ success: true, features: FEATURES });
+    });
+    app.use('/api/subscriptions', require('../routes/subscriptions'));
+    app.use('/api/notes', require('../routes/notes'));
+    app.use('/api/admin', require('../routes/adminSettings'));
+
+    await new Promise((resolve) => {
+      server = app.listen(0, () => {
+        const port = server.address().port;
+        client = axios.create({
+          baseURL: `http://127.0.0.1:${port}`,
+          validateStatus: () => true
+        });
+        resolve();
+      });
+    });
+
+    // Seed test users
+    adminUser = await User.create({
+      name: 'Admin User',
+      email: 'admin@shreemata.test',
+      phone: '9000000001',
+      password: 'password123',
+      role: 'admin'
+    });
+    adminToken = jwt.sign({ id: adminUser._id, role: 'admin' }, JWT_SECRET);
+
+    guestUser = await User.create({
+      name: 'Guest User',
+      email: 'guest@shreemata.test',
+      phone: '9000000002',
+      password: 'password123',
+      role: 'user'
+    });
+    guestToken = jwt.sign({ id: guestUser._id, role: 'user' }, JWT_SECRET);
+
+    notesUser = await User.create({
+      name: 'Notes Only User',
+      email: 'notes@shreemata.test',
+      phone: '9000000003',
+      password: 'password123',
+      role: 'user'
+    });
+    notesToken = jwt.sign({ id: notesUser._id, role: 'user' }, JWT_SECRET);
+
+    qpUser = await User.create({
+      name: 'QP Only User',
+      email: 'qp@shreemata.test',
+      phone: '9000000004',
+      password: 'password123',
+      role: 'user'
+    });
+    qpToken = jwt.sign({ id: qpUser._id, role: 'user' }, JWT_SECRET);
+
+    videosUser = await User.create({
+      name: 'Videos Only User',
+      email: 'videos@shreemata.test',
+      phone: '9000000005',
+      password: 'password123',
+      role: 'user'
+    });
+    videosToken = jwt.sign({ id: videosUser._id, role: 'user' }, JWT_SECRET);
+
+    allSubUser = await User.create({
+      name: 'All Sections User',
+      email: 'allsub@shreemata.test',
+      phone: '9000000006',
+      password: 'password123',
+      role: 'user'
+    });
+    allSubToken = jwt.sign({ id: allSubUser._id, role: 'user' }, JWT_SECRET);
+
+    expiredUser = await User.create({
+      name: 'Expired User',
+      email: 'expired@shreemata.test',
+      phone: '9000000007',
+      password: 'password123',
+      role: 'user'
+    });
+    expiredToken = jwt.sign({ id: expiredUser._id, role: 'user' }, JWT_SECRET);
+
+    // Seed AdminSettings
+    await AdminSettings.deleteMany({});
+    await AdminSettings.create({
+      readNotesSubscriptionSettings: {
+        monthlyPrice: 99,
+        enabled: true,
+        description: 'Monthly notes subscription'
+      },
+      sectionSubscriptionPlans: {
+        notes: {
+          name: 'Study Notes Pass',
+          price: 99,
+          durationDays: 30,
+          active: true,
+          description: 'Unlimited notes access'
+        },
+        question_papers: {
+          name: 'Question Papers Pass',
+          price: 99,
+          durationDays: 30,
+          active: true,
+          description: 'Unlimited question papers'
+        },
+        videos: {
+          name: 'Video Lectures Pass',
+          price: 199,
+          durationDays: 30,
+          active: true,
+          description: 'Unlimited video lectures'
+        }
+      }
+    });
+
+    // Seed Notes: free, paid, unpublished
+    freeNote = await Note.create({
+      section: 'notes',
+      title: 'Free Trigonometry Notes',
+      subject: 'Mathematics',
+      classLevel: 'Class 10',
+      category: 'Formula Sheet',
+      pdfUrl: samplePdfKey,
+      fileSize: 1024,
+      totalPages: 2,
+      isFree: true,
+      order: 1,
+      isPublished: true,
+      uploadedBy: adminUser._id
+    });
+
+    paidNote = await Note.create({
+      section: 'notes',
+      title: 'Paid Algebra Mastery Notes',
+      subject: 'Mathematics',
+      classLevel: 'Class 10',
+      category: 'Study Notes',
+      pdfUrl: samplePdfKey,
+      fileSize: 2048,
+      totalPages: 10,
+      isFree: false,
+      order: 2,
+      isPublished: true,
+      uploadedBy: adminUser._id
+    });
+
+    unpublishedNote = await Note.create({
+      section: 'notes',
+      title: 'Draft Unreleased Physics Notes',
+      subject: 'Science',
+      classLevel: 'Class 10',
+      category: 'Study Notes',
+      pdfUrl: samplePdfKey,
+      fileSize: 2048,
+      totalPages: 10,
+      isFree: false,
+      order: 3,
+      isPublished: false,
+      uploadedBy: adminUser._id
+    });
+
+    // Seed Question Papers: free, paid
+    freeQp = await Note.create({
+      section: 'question_papers',
+      title: 'Free Model Paper 2025',
+      subject: 'Mathematics',
+      classLevel: 'Class 10',
+      category: 'Model Papers',
+      pdfUrl: samplePdfKey,
+      fileSize: 1024,
+      totalPages: 5,
+      isFree: true,
+      order: 1,
+      isPublished: true,
+      uploadedBy: adminUser._id
+    });
+
+    paidQp = await Note.create({
+      section: 'question_papers',
+      title: 'Paid 5-Year Solved Papers',
+      subject: 'Mathematics',
+      classLevel: 'Class 10',
+      category: 'Solved Papers',
+      pdfUrl: samplePdfKey,
+      fileSize: 5120,
+      totalPages: 40,
+      isFree: false,
+      order: 2,
+      isPublished: true,
+      uploadedBy: adminUser._id
+    });
+
+    // Seed Videos: free (Bunny), paid (Bunny)
+    freeVideo = await Note.create({
+      section: 'videos',
+      title: 'Free Intro to Geometry',
+      subject: 'Mathematics',
+      classLevel: 'Class 10',
+      category: 'Intro Video',
+      videoUrl: 'https://iframe.mediadelivery.net/play/100/free-geom',
+      videoProvider: 'bunny',
+      durationMinutes: 15,
+      pdfUrl: '',
+      isFree: true,
+      order: 1,
+      isPublished: true,
+      uploadedBy: adminUser._id
+    });
+
+    paidVideo = await Note.create({
+      section: 'videos',
+      title: 'Paid Full Geometry Masterclass',
+      subject: 'Mathematics',
+      classLevel: 'Class 10',
+      category: 'Masterclass',
+      videoUrl: 'https://iframe.mediadelivery.net/play/100/paid-geom',
+      videoProvider: 'bunny',
+      durationMinutes: 60,
+      pdfUrl: '',
+      isFree: false,
+      order: 2,
+      isPublished: true,
+      uploadedBy: adminUser._id
+    });
+
+    // Seed Subscriptions
+    const now = new Date();
+    const future = new Date(now.getTime() + 30 * 86400000);
+    const past = new Date(now.getTime() - 2 * 86400000);
+
+    // notesUser: active notes sub
+    await NoteSubscription.create({
+      userId: notesUser._id,
+      section: 'notes',
+      planType: 'standard',
+      durationDays: 30,
+      amountPaid: 99,
+      status: 'active',
+      startDate: now,
+      expiresAt: future,
+      razorpayOrderId: 'ord_notes_active',
+      razorpayPaymentId: 'pay_notes_active',
+      razorpaySignature: 'sig_notes_active',
+      subscriptionIndex: 1
+    });
+
+    // qpUser: active question_papers sub
+    await NoteSubscription.create({
+      userId: qpUser._id,
+      section: 'question_papers',
+      planType: 'standard',
+      durationDays: 30,
+      amountPaid: 99,
+      status: 'active',
+      startDate: now,
+      expiresAt: future,
+      razorpayOrderId: 'ord_qp_active',
+      razorpayPaymentId: 'pay_qp_active',
+      razorpaySignature: 'sig_qp_active',
+      subscriptionIndex: 1
+    });
+
+    // videosUser: active videos sub
+    await NoteSubscription.create({
+      userId: videosUser._id,
+      section: 'videos',
+      planType: 'standard',
+      durationDays: 30,
+      amountPaid: 199,
+      status: 'active',
+      startDate: now,
+      expiresAt: future,
+      razorpayOrderId: 'ord_vid_active',
+      razorpayPaymentId: 'pay_vid_active',
+      razorpaySignature: 'sig_vid_active',
+      subscriptionIndex: 1
+    });
+
+    // expiredUser: expired notes sub
+    await NoteSubscription.create({
+      userId: expiredUser._id,
+      section: 'notes',
+      planType: 'standard',
+      durationDays: 30,
+      amountPaid: 99,
+      status: 'expired',
+      startDate: new Date(now.getTime() - 32 * 86400000),
+      expiresAt: past,
+      razorpayOrderId: 'ord_exp_active',
+      razorpayPaymentId: 'pay_exp_active',
+      razorpaySignature: 'sig_exp_active',
+      subscriptionIndex: 1
+    });
+  });
+
+  afterAll(async () => {
+    if (server) await new Promise((res) => server.close(res));
+    const samplePdfPath = path.resolve(testStorageDir, samplePdfKey);
+    if (fs.existsSync(samplePdfPath)) {
+      try { fs.unlinkSync(samplePdfPath); } catch (_) {}
+    }
+    await teardownTestDB();
+  });
+
+  // Helper for generating valid Razorpay HMAC signatures
+  function generateSignature(orderId, paymentId) {
+    return crypto
+      .createHmac('sha256', RZP_KEY_SECRET)
+      .update(`${orderId}|${paymentId}`)
+      .digest('hex');
+  }
+
+  // =========================================================================
+  // SCENARIO 1: Guest + Free item -> 200 OK
+  // =========================================================================
+  describe('1. guest + free ok', () => {
+    it('allows unauthenticated guest to stream a free note PDF', async () => {
+      const res = await client.get(`/api/notes/${freeNote._id}/stream`, {
+        responseType: 'arraybuffer'
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toBe('application/pdf');
+      expect(res.data.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+    });
+
+    it('allows unauthenticated guest to get media-url for a free video', async () => {
+      const res = await client.get(`/api/notes/${freeVideo._id}/media-url`);
+      expect(res.status).toBe(200);
+      expect(res.data).toHaveProperty('provider', 'bunny');
+      expect(res.data).toHaveProperty('url', 'https://iframe.mediadelivery.net/play/100/free-geom');
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 2: Guest + Paid item -> 401 Unauthorized
+  // =========================================================================
+  describe('2. guest + paid 401', () => {
+    it('returns 401 Unauthorized when guest attempts to stream paid PDF', async () => {
+      const res = await client.get(`/api/notes/${paidNote._id}/stream`);
+      expect(res.status).toBe(401);
+      expect(res.data.error).toMatch(/Authentication required/i);
+    });
+
+    it('returns 401 Unauthorized when guest attempts to get media-url for paid video', async () => {
+      const res = await client.get(`/api/notes/${paidVideo._id}/media-url`);
+      expect(res.status).toBe(401);
+      expect(res.data.error).toMatch(/Authentication required/i);
+    });
+
+    it('returns 401 when invalid Bearer token is provided for paid item (treated as guest)', async () => {
+      const res = await client.get(`/api/notes/${paidNote._id}/stream`, {
+        headers: { Authorization: 'Bearer totally_invalid_token' }
+      });
+      expect(res.status).toBe(401);
+      expect(res.data.error).toMatch(/Authentication required/i);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 3: Expired subscription -> 403 Forbidden
+  // =========================================================================
+  describe('3. expired 403', () => {
+    it('returns 403 SUBSCRIPTION_REQUIRED for user with expired subscription', async () => {
+      const res = await client.get(`/api/notes/${paidNote._id}/stream`, {
+        headers: { Authorization: `Bearer ${expiredToken}` }
+      });
+      expect(res.status).toBe(403);
+      expect(res.data.code).toBe('SUBSCRIPTION_REQUIRED');
+      expect(res.data.section).toBe('notes');
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 4: Cross-section access -> 403 Forbidden
+  // =========================================================================
+  describe('4. cross-section 403', () => {
+    it('refuses notes subscriber access to paid question papers', async () => {
+      const res = await client.get(`/api/notes/${paidQp._id}/stream`, {
+        headers: { Authorization: `Bearer ${notesToken}` }
+      });
+      expect(res.status).toBe(403);
+      expect(res.data.code).toBe('SUBSCRIPTION_REQUIRED');
+      expect(res.data.section).toBe('question_papers');
+    });
+
+    it('allows question_papers subscriber to stream paid question paper', async () => {
+      const res = await client.get(`/api/notes/${paidQp._id}/stream`, {
+        headers: { Authorization: `Bearer ${qpToken}` },
+        responseType: 'arraybuffer'
+      });
+      expect(res.status).toBe(200);
+      expect(res.data.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 5: Notes subscriber cannot open videos -> 403 Forbidden
+  // =========================================================================
+  describe('5. notes-sub cannot open videos', () => {
+    it('refuses notes subscriber access to paid video media-url', async () => {
+      const res = await client.get(`/api/notes/${paidVideo._id}/media-url`, {
+        headers: { Authorization: `Bearer ${notesToken}` }
+      });
+      expect(res.status).toBe(403);
+      expect(res.data.code).toBe('SUBSCRIPTION_REQUIRED');
+      expect(res.data.section).toBe('videos');
+    });
+
+    it('allows videos subscriber access to paid video media-url', async () => {
+      const res = await client.get(`/api/notes/${paidVideo._id}/media-url`, {
+        headers: { Authorization: `Bearer ${videosToken}` }
+      });
+      expect(res.status).toBe(200);
+      expect(res.data.provider).toBe('bunny');
+      expect(res.data.url).toBe('https://iframe.mediadelivery.net/play/100/paid-geom');
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 6: Concurrent notes + videos purchases with no E11000
+  // =========================================================================
+  describe('6. concurrent notes+videos purchases both active with no E11000', () => {
+    it('allows concurrent active subscriptions in notes and videos for the same user', async () => {
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 30 * 86400000);
+
+      // Create active notes sub for allSubUser
+      const subNotes = await NoteSubscription.create({
+        userId: allSubUser._id,
+        section: 'notes',
+        planType: 'standard',
+        durationDays: 30,
+        amountPaid: 99,
+        status: 'active',
+        startDate: now,
+        expiresAt: expiresAt,
+        razorpayOrderId: 'ord_concurrent_notes',
+        razorpayPaymentId: 'pay_concurrent_notes',
+        razorpaySignature: 'sig_concurrent_notes',
+        subscriptionIndex: 1
+      });
+
+      // Create active videos sub for allSubUser with same expiresAt and subscriptionIndex
+      const subVideos = await NoteSubscription.create({
+        userId: allSubUser._id,
+        section: 'videos',
+        planType: 'standard',
+        durationDays: 30,
+        amountPaid: 199,
+        status: 'active',
+        startDate: now,
+        expiresAt: expiresAt,
+        razorpayOrderId: 'ord_concurrent_videos',
+        razorpayPaymentId: 'pay_concurrent_videos',
+        razorpaySignature: 'sig_concurrent_videos',
+        subscriptionIndex: 1
+      });
+
+      expect(subNotes._id).toBeDefined();
+      expect(subVideos._id).toBeDefined();
+      expect(subNotes.section).toBe('notes');
+      expect(subVideos.section).toBe('videos');
+
+      // Verify allSubUser can access both paid notes and paid videos
+      const resNote = await client.get(`/api/notes/${paidNote._id}/stream`, {
+        headers: { Authorization: `Bearer ${allSubToken}` },
+        responseType: 'arraybuffer'
+      });
+      expect(resNote.status).toBe(200);
+
+      const resVideo = await client.get(`/api/notes/${paidVideo._id}/media-url`, {
+        headers: { Authorization: `Bearer ${allSubToken}` }
+      });
+      expect(resVideo.status).toBe(200);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 7: Replay idempotency on verify-order
+  // =========================================================================
+  describe('7. replay idempotency', () => {
+    it('returns duplicate: true on repeated verification and does not create duplicate subscriptions', async () => {
+      const orderId = 'order_replay_test_001';
+      const paymentId = 'pay_replay_test_001';
+      const signature = generateSignature(orderId, paymentId);
+
+      // Create pre-existing order and active subscription
+      const subOrder = await SubscriptionOrder.create({
+        userId: guestUser._id,
+        section: 'notes',
+        durationDays: 30,
+        amountPaise: 9900,
+        amountRupees: 99,
+        currency: 'INR',
+        razorpayOrderId: orderId,
+        status: 'created'
+      });
+
+      mockRazorpayPaymentsFetch.mockResolvedValueOnce({
+        id: paymentId,
+        order_id: orderId,
+        status: 'captured',
+        currency: 'INR',
+        amount: 9900
+      });
+
+      // First verification: should succeed and create subscription
+      const res1 = await client.post(
+        '/api/subscriptions/verify-order',
+        {
+          razorpay_order_id: orderId,
+          razorpay_payment_id: paymentId,
+          razorpay_signature: signature
+        },
+        { headers: { Authorization: `Bearer ${guestToken}` } }
+      );
+
+      expect(res1.status).toBe(200);
+      expect(res1.data.success).toBe(true);
+      expect(res1.data.duplicate).toBeUndefined();
+
+      const initialCount = await NoteSubscription.countDocuments({ razorpayPaymentId: paymentId });
+      expect(initialCount).toBe(1);
+
+      // Replay / second verification: should return duplicate: true without creating new record
+      const res2 = await client.post(
+        '/api/subscriptions/verify-order',
+        {
+          razorpay_order_id: orderId,
+          razorpay_payment_id: paymentId,
+          razorpay_signature: signature
+        },
+        { headers: { Authorization: `Bearer ${guestToken}` } }
+      );
+
+      expect(res2.status).toBe(200);
+      expect(res2.data.success).toBe(true);
+      expect(res2.data.duplicate).toBe(true);
+      expect(res2.data.message).toMatch(/already active/i);
+
+      const finalCount = await NoteSubscription.countDocuments({ razorpayPaymentId: paymentId });
+      expect(finalCount).toBe(1);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 8: Client-sent section ignored on verify-order
+  // =========================================================================
+  describe('8. client-sent section ignored on verify', () => {
+    it('uses subOrder.section exclusively even if client sends different section in verify body', async () => {
+      const orderId = 'order_ignore_client_sec_002';
+      const paymentId = 'pay_ignore_client_sec_002';
+      const signature = generateSignature(orderId, paymentId);
+
+      // Server order was created for 'notes'
+      await SubscriptionOrder.create({
+        userId: guestUser._id,
+        section: 'notes',
+        durationDays: 30,
+        amountPaise: 9900,
+        amountRupees: 99,
+        currency: 'INR',
+        razorpayOrderId: orderId,
+        status: 'created'
+      });
+
+      mockRazorpayPaymentsFetch.mockResolvedValueOnce({
+        id: paymentId,
+        order_id: orderId,
+        status: 'captured',
+        currency: 'INR',
+        amount: 9900
+      });
+
+      // Malicious or mismatched client passes section: 'videos'
+      const res = await client.post(
+        '/api/subscriptions/verify-order',
+        {
+          razorpay_order_id: orderId,
+          razorpay_payment_id: paymentId,
+          razorpay_signature: signature,
+          section: 'videos' // SHOULD BE IGNORED
+        },
+        { headers: { Authorization: `Bearer ${guestToken}` } }
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.data.success).toBe(true);
+
+      const createdSub = await NoteSubscription.findOne({ razorpayPaymentId: paymentId });
+      expect(createdSub).toBeDefined();
+      expect(createdSub.section).toBe('notes'); // STRICT SERVER ENFORCEMENT
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 9: Inactive plan -> create-order rejected (400)
+  // =========================================================================
+  describe('9. question_papers/videos plan inactive -> create-order rejected', () => {
+    it('rejects create-order if the section plan is marked inactive in AdminSettings', async () => {
+      // Disable question_papers plan in AdminSettings
+      await AdminSettings.updateOne({}, { $set: { 'sectionSubscriptionPlans.question_papers.active': false } });
+
+      const res = await client.post(
+        '/api/subscriptions/create-order',
+        { section: 'question_papers' },
+        { headers: { Authorization: `Bearer ${guestToken}` } }
+      );
+
+      expect(res.status).toBe(400);
+      expect(res.data.error).toMatch(/disabled|unavailable/i);
+
+      // Restore active flag
+      await AdminSettings.updateOne({}, { $set: { 'sectionSubscriptionPlans.question_papers.active': true } });
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 10: Disabled feature flags -> 404 for non-admins
+  // =========================================================================
+  describe('10. disabled flags -> 404', () => {
+    afterEach(() => {
+      process.env.ENABLE_QUESTION_PAPERS = 'true';
+      process.env.ENABLE_VIDEOS = 'true';
+    });
+
+    it('returns 404 when non-admin requests a section whose feature flag is false', async () => {
+      process.env.ENABLE_QUESTION_PAPERS = 'false';
+
+      const res = await client.get('/api/notes?section=question_papers', {
+        headers: { Authorization: `Bearer ${guestToken}` }
+      });
+      expect(res.status).toBe(404);
+      expect(res.data.error).toMatch(/disabled|not available/i);
+    });
+
+    it('allows admin to access catalog even when feature flag is false', async () => {
+      process.env.ENABLE_QUESTION_PAPERS = 'false';
+
+      const res = await client.get('/api/notes?section=question_papers', {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(res.status).toBe(200);
+      expect(res.data).toHaveProperty('notes');
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 11: List endpoints never leak pdfUrl or videoUrl
+  // =========================================================================
+  describe('11. list endpoints never leak pdfUrl/videoUrl', () => {
+    it('strictly omits pdfUrl and videoUrl from GET /api/notes catalog response', async () => {
+      const res = await client.get('/api/notes?section=notes');
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.data.notes)).toBe(true);
+      expect(res.data.notes.length).toBeGreaterThan(0);
+
+      for (const item of res.data.notes) {
+        expect(item.pdfUrl).toBeUndefined();
+        expect(item.videoUrl).toBeUndefined();
+        expect(item.id).toBeDefined();
+        expect(item.title).toBeDefined();
+      }
+    });
+
+    it('strictly omits pdfUrl and videoUrl from GET /api/notes/:id metadata endpoint', async () => {
+      const res = await client.get(`/api/notes/${paidNote._id}`);
+      expect(res.status).toBe(200);
+      expect(res.data.note).toBeDefined();
+      expect(res.data.note.pdfUrl).toBeUndefined();
+      expect(res.data.note.videoUrl).toBeUndefined();
+      expect(res.data.note.id).toBe(paidNote._id.toString());
+      expect(res.data.note.title).toBe(paidNote.title);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 12: Video URL Validation
+  // =========================================================================
+  describe('12. video URL validation', () => {
+    it('rejects javascript: protocol URLs', async () => {
+      const res = await client.post(
+        '/api/notes',
+        {
+          section: 'videos',
+          title: 'Exploit Video',
+          videoUrl: 'javascript:alert(1)',
+          videoProvider: 'bunny',
+          isFree: true
+        },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+      expect(res.status).toBe(400);
+      expect(res.data.error).toMatch(/HTTPS|URL/i);
+    });
+
+    it('rejects unencrypted http:// URLs', async () => {
+      const res = await client.post(
+        '/api/notes',
+        {
+          section: 'videos',
+          title: 'HTTP Video',
+          videoUrl: 'http://iframe.mediadelivery.net/play/123/video',
+          videoProvider: 'bunny',
+          isFree: true
+        },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+      expect(res.status).toBe(400);
+      expect(res.data.error).toMatch(/HTTPS/i);
+    });
+
+    it('rejects untrusted/unknown video hosts', async () => {
+      const res = await client.post(
+        '/api/notes',
+        {
+          section: 'videos',
+          title: 'Untrusted Host Video',
+          videoUrl: 'https://malicious-site.com/video.mp4',
+          videoProvider: 'none',
+          isFree: true
+        },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+      expect(res.status).toBe(400);
+      expect(res.data.error).toMatch(/not in the allowed video provider list/i);
+    });
+
+    it('rejects YouTube URLs for paid video items', async () => {
+      const res = await client.post(
+        '/api/notes',
+        {
+          section: 'videos',
+          title: 'Paid YouTube Video',
+          videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+          videoProvider: 'youtube_unlisted',
+          isFree: false // PAID ITEM WITH YOUTUBE IS FORBIDDEN
+        },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+      expect(res.status).toBe(400);
+      expect(res.data.error).toMatch(/YouTube unlisted videos are only permitted for free preview items/i);
+    });
+
+    it('accepts allowed Bunny CDN HTTPS URLs for paid items', async () => {
+      const res = await client.post(
+        '/api/notes',
+        {
+          section: 'videos',
+          title: 'Valid Bunny Paid Video',
+          videoUrl: 'https://iframe.mediadelivery.net/play/12345/valid-stream',
+          videoProvider: 'bunny',
+          durationMinutes: 45,
+          isFree: false
+        },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+      expect(res.status).toBe(201);
+      expect(res.data.note).toBeDefined();
+      expect(res.data.note.section).toBe('videos');
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 13: Admin bypass
+  // =========================================================================
+  describe('13. admin bypass', () => {
+    it('allows admin to stream paid PDF notes without any active subscription', async () => {
+      const res = await client.get(`/api/notes/${paidNote._id}/stream`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+        responseType: 'arraybuffer'
+      });
+      expect(res.status).toBe(200);
+      expect(res.data.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+    });
+
+    it('allows admin to stream unpublished/draft note without active subscription', async () => {
+      const res = await client.get(`/api/notes/${unpublishedNote._id}/stream`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+        responseType: 'arraybuffer'
+      });
+      expect(res.status).toBe(200);
+      expect(res.data.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+    });
+
+    it('allows admin to get media-url for paid video without active subscription', async () => {
+      const res = await client.get(`/api/notes/${paidVideo._id}/media-url`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(res.status).toBe(200);
+      expect(res.data.provider).toBe('bunny');
+      expect(res.data.url).toBe(paidVideo.videoUrl);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 14: Path traversal protection
+  // =========================================================================
+  describe('14. path traversal on stream', () => {
+    it('rejects attempts to stream notes containing directory traversal sequences', async () => {
+      // Create malicious note record directly
+      const traversalNote = await Note.create({
+        section: 'notes',
+        title: 'Traversal Attack Note',
+        pdfUrl: '../../../../etc/passwd',
+        fileSize: 100,
+        totalPages: 1,
+        isFree: true,
+        isPublished: true,
+        uploadedBy: adminUser._id
+      });
+
+      const res = await client.get(`/api/notes/${traversalNote._id}/stream`);
+      // Should reject with 400 or 403 or 404 or 500 (safe rejection without file leakage)
+      expect([400, 403, 404, 500]).toContain(res.status);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 15: Legacy note without section behaves as 'notes'
+  // =========================================================================
+  describe("15. legacy note without section behaves as 'notes'", () => {
+    beforeAll(async () => {
+      // Directly insert via raw mongo collection to bypass mongoose default
+      const rawCollection = mongoose.connection.collection('notes');
+      const insertResult = await rawCollection.insertOne({
+        title: 'Legacy Board Exam Notes',
+        subject: 'Mathematics',
+        classLevel: 'Class 10',
+        category: 'Study Notes',
+        pdfUrl: samplePdfKey,
+        fileSize: 1024,
+        totalPages: 5,
+        isFree: false,
+        isPublished: true,
+        uploadedBy: adminUser._id,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      legacyNote = await Note.findById(insertResult.insertedId);
+    });
+
+    it("appears when querying ?section=notes and defaults section to 'notes'", async () => {
+      const res = await client.get('/api/notes?section=notes');
+      expect(res.status).toBe(200);
+      const found = res.data.notes.find((n) => n.id === legacyNote._id.toString());
+      expect(found).toBeDefined();
+      expect(found.section).toBe('notes');
+    });
+
+    it('can be streamed by a notes subscriber', async () => {
+      const res = await client.get(`/api/notes/${legacyNote._id}/stream`, {
+        headers: { Authorization: `Bearer ${notesToken}` },
+        responseType: 'arraybuffer'
+      });
+      expect(res.status).toBe(200);
+      expect(res.data.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 16: Legacy subscription without section still grants notes access
+  // =========================================================================
+  describe('16. legacy subscription without section still grants notes access', () => {
+    let legacySubUser, legacySubToken;
+
+    beforeAll(async () => {
+      legacySubUser = await User.create({
+        name: 'Legacy Subscribed User',
+        email: 'legacysub@shreemata.test',
+        phone: '9000000099',
+        password: 'password123',
+        role: 'user'
+      });
+      legacySubToken = jwt.sign({ id: legacySubUser._id, role: 'user' }, JWT_SECRET);
+
+      // Raw insert subscription without section field
+      const rawCollection = mongoose.connection.collection('notesubscriptions');
+      await rawCollection.insertOne({
+        userId: legacySubUser._id,
+        // section intentionally omitted
+        planType: 'standard',
+        amountPaid: 99,
+        currency: 'INR',
+        status: 'active',
+        startDate: new Date(),
+        expiresAt: new Date(Date.now() + 30 * 86400000),
+        razorpayOrderId: 'ord_legacy_raw',
+        razorpayPaymentId: 'pay_legacy_raw',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    });
+
+    it("grants access to paid items in section 'notes'", async () => {
+      const res = await client.get(`/api/notes/${paidNote._id}/stream`, {
+        headers: { Authorization: `Bearer ${legacySubToken}` },
+        responseType: 'arraybuffer'
+      });
+      expect(res.status).toBe(200);
+      expect(res.data.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 17: Existing default /pricing and /my-status shapes unchanged
+  // =========================================================================
+  describe('17. existing default /pricing and /my-status shapes unchanged', () => {
+    it('returns exact legacy response shape for GET /api/subscriptions/pricing without query params', async () => {
+      const res = await client.get('/api/subscriptions/pricing');
+      expect(res.status).toBe(200);
+      expect(res.data.success).toBe(true);
+      // Legacy response structure: res.data.pricing has monthlyPrice, enabled, description
+      expect(res.data).toHaveProperty('pricing');
+      expect(res.data.pricing).toHaveProperty('monthlyPrice');
+      expect(typeof res.data.pricing.monthlyPrice).toBe('number');
+      expect(res.data.pricing).toHaveProperty('enabled');
+      expect(typeof res.data.pricing.enabled).toBe('boolean');
+      expect(res.data.pricing).toHaveProperty('description');
+      expect(typeof res.data.pricing.description).toBe('string');
+      expect(res.data.pricing).toHaveProperty('section', 'notes');
+    });
+
+    it('returns exact legacy response shape for GET /api/subscriptions/my-status without query params', async () => {
+      const res = await client.get('/api/subscriptions/my-status', {
+        headers: { Authorization: `Bearer ${notesToken}` }
+      });
+      expect(res.status).toBe(200);
+      expect(res.data.success).toBe(true);
+      // Legacy top-level keys
+      expect(res.data).toHaveProperty('hasActiveSubscription');
+      expect(typeof res.data.hasActiveSubscription).toBe('boolean');
+      expect(res.data.hasActiveSubscription).toBe(true);
+
+      expect(res.data).toHaveProperty('subscription');
+      expect(res.data.subscription).toHaveProperty('status', 'active');
+      expect(res.data.subscription).toHaveProperty('daysRemaining');
+      expect(typeof res.data.subscription.daysRemaining).toBe('number');
+      expect(res.data.subscription).toHaveProperty('section', 'notes');
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 18: Admin Settings PUT and GET for 4-Section Plans
+  // =========================================================================
+  describe('18. admin settings sectionSubscriptionPlans management', () => {
+    it('allows admin to update sectionSubscriptionPlans with valid price and duration', async () => {
+      const updatePayload = {
+        sectionSubscriptionPlans: {
+          notes: {
+            name: 'Updated Notes Pass',
+            price: 149,
+            durationDays: 45,
+            active: true,
+            description: 'Updated notes description'
+          },
+          videos: {
+            name: 'Updated Videos Pass',
+            price: 299,
+            durationDays: 60,
+            active: true,
+            description: 'Premium video lecture access'
+          }
+        }
+      };
+
+      const res = await client.put('/api/admin/settings', updatePayload, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.data.settings.sectionSubscriptionPlans.notes.price).toBe(149);
+      expect(res.data.settings.sectionSubscriptionPlans.notes.durationDays).toBe(45);
+      expect(res.data.settings.sectionSubscriptionPlans.videos.price).toBe(299);
+      expect(res.data.settings.sectionSubscriptionPlans.videos.durationDays).toBe(60);
+    });
+
+    it('rejects invalid plan pricing (price < 1)', async () => {
+      const badPayload = {
+        sectionSubscriptionPlans: {
+          notes: {
+            price: -50
+          }
+        }
+      };
+
+      const res = await client.put('/api/admin/settings', badPayload, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.data.error).toMatch(/between ₹1 and|positive number/i);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 19: Migration and Rollback Safety & Dry-Run Modes
+  // =========================================================================
+  describe('19. migration and rollback scripts execution & safety', () => {
+    const { execFile } = require('child_process');
+
+    it('migration script runs in dry-run mode by default and prints counts without altering data', async () => {
+      const scriptPath = path.resolve(__dirname, '../scripts/migrate-to-four-sections.js');
+      const uri = mongoose.connection.client.s.url;
+
+      const output = await new Promise((resolve, reject) => {
+        execFile(process.execPath, [scriptPath], { env: { ...process.env, MONGODB_URI: uri } }, (err, stdout, stderr) => {
+          resolve(stdout + stderr);
+        });
+      });
+
+      expect(output).toMatch(/DRY-RUN/i);
+      expect(output).toMatch(/No indexes were dropped or created/i);
+    });
+
+    it('migration script refuses to run with --apply unless --confirm-backup is passed', async () => {
+      const scriptPath = path.resolve(__dirname, '../scripts/migrate-to-four-sections.js');
+      const uri = mongoose.connection.client.s.url;
+
+      const output = await new Promise((resolve) => {
+        execFile(process.execPath, [scriptPath, '--apply'], { env: { ...process.env, MONGODB_URI: uri } }, (err, stdout, stderr) => {
+          resolve(stdout + stderr);
+        });
+      });
+
+      expect(output).toMatch(/--confirm-backup/i);
+    });
+
+    it('rollback script runs in dry-run mode and refuses if non-notes items exist', async () => {
+      const scriptPath = path.resolve(__dirname, '../scripts/rollback-four-sections.js');
+      const uri = mongoose.connection.client.s.url;
+
+      const output = await new Promise((resolve) => {
+        execFile(process.execPath, [scriptPath], { env: { ...process.env, MONGODB_URI: uri } }, (err, stdout, stderr) => {
+          resolve(stdout + stderr);
+        });
+      });
+
+      // Because our test DB contains question_papers and videos, rollback MUST refuse!
+      expect(output).toMatch(/ROLLBACK REFUSED/i);
+    });
+  });
+});
