@@ -87,6 +87,8 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
     app.use('/api/subscriptions', require('../routes/subscriptions'));
     app.use('/api/notes', require('../routes/notes'));
     app.use('/api/admin', require('../routes/adminSettings'));
+    app.use('/api/categories', require('../routes/categories'));
+    app.use('/api/books', require('../routes/books'));
 
     await new Promise((resolve) => {
       server = app.listen(0, () => {
@@ -1121,6 +1123,81 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
 
       // Because our test DB contains question_papers and videos, rollback MUST refuse!
       expect(output).toMatch(/ROLLBACK REFUSED/i);
+    });
+  });
+
+  // =========================================================================
+  // SCENARIO 20: Feature Flags Default Behavior & Physical Books/Categories Parity
+  // =========================================================================
+  describe('20. feature flags default behavior & physical books/categories parity with f540bf8', () => {
+    const originalEnv = { ...process.env };
+
+    afterEach(() => {
+      process.env = { ...originalEnv };
+    });
+
+    it('with no env vars set, textBook is true and digital flags are false', async () => {
+      delete process.env.ENABLE_TEXT_BOOK;
+      delete process.env.ENABLE_READ_NOTES;
+      delete process.env.ENABLE_QUESTION_PAPERS;
+      delete process.env.ENABLE_VIDEOS;
+
+      expect(FEATURES.textBook).toBe(true);
+      expect(FEATURES.readNotes).toBe(false);
+      expect(FEATURES.questionPapers).toBe(false);
+      expect(FEATURES.videos).toBe(false);
+
+      const res = await client.get('/api/features');
+      expect(res.status).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.features.textBook).toBe(true);
+      expect(res.data.features.readNotes).toBe(false);
+      expect(res.data.features.questionPapers).toBe(false);
+      expect(res.data.features.videos).toBe(false);
+    });
+
+    it('only an explicit ENABLE_TEXT_BOOK=false turns off textBook', async () => {
+      process.env.ENABLE_TEXT_BOOK = 'false';
+      expect(FEATURES.textBook).toBe(false);
+
+      process.env.ENABLE_TEXT_BOOK = 'true';
+      expect(FEATURES.textBook).toBe(true);
+    });
+
+    it('existing categories and books endpoints behave the same as at f540bf8 with no env vars set', async () => {
+      delete process.env.ENABLE_TEXT_BOOK;
+      delete process.env.ENABLE_READ_NOTES;
+      delete process.env.ENABLE_QUESTION_PAPERS;
+      delete process.env.ENABLE_VIDEOS;
+
+      const Category = require('../models/Category');
+      const Book = require('../models/Book');
+
+      await Category.create({ name: 'State Board Textbooks', slug: 'state-board-textbooks' });
+      await Book.create({
+        title: 'Class 10 Kannada Sahitya Textbook',
+        author: 'Shree Mata Publications',
+        price: 200,
+        sellingPrice: 180,
+        stockQuantity: 50,
+        class: 'Class 10',
+        category: 'State Board Textbooks'
+      });
+
+      const catRes = await client.get('/api/categories');
+      expect(catRes.status).toBe(200);
+      expect(Array.isArray(catRes.data.categories)).toBe(true);
+      const foundCat = catRes.data.categories.find(c => c.slug === 'state-board-textbooks');
+      expect(foundCat).toBeDefined();
+      expect(foundCat.name).toBe('State Board Textbooks');
+
+      const bookRes = await client.get('/api/books');
+      expect(bookRes.status).toBe(200);
+      expect(Array.isArray(bookRes.data.books)).toBe(true);
+      const foundBook = bookRes.data.books.find(b => b.title === 'Class 10 Kannada Sahitya Textbook');
+      expect(foundBook).toBeDefined();
+      expect(foundBook.price).toBe(200);
+      expect(foundBook.sellingPrice).toBe(180);
     });
   });
 });
