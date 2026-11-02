@@ -256,6 +256,7 @@ router.get("/pricing", async (req, res) => {
 
     const rawSettings = await AdminSettings.findOne().lean();
     const plan = AdminSettings.getSectionPlan(rawSettings, rawSection);
+    const isEnabled = Boolean(plan.active && checkSectionEnabled(rawSection));
 
     // Keep response shape identical for default calls
     return res.json({
@@ -265,7 +266,7 @@ router.get("/pricing", async (req, res) => {
         currency: "INR",
         monthlyPrice: plan.price,
         amountInPaise: Math.round(plan.price * 100),
-        enabled: plan.active,
+        enabled: isEnabled,
         description: plan.description,
         section: rawSection,
         name: plan.name,

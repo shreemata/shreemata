@@ -1673,4 +1673,40 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
       expect(afterUserDoc.viewCount).toBe(1);
     });
   });
+
+  // =========================================================================
+  // SCENARIO 27: GET /pricing Returns enabled: false for Disabled Sections (Defect 8)
+  // =========================================================================
+  describe('27. GET /pricing returns enabled: false for disabled section feature flag (Defect 8)', () => {
+    it('returns enabled: false when section flag is disabled, while preserving shape and default notes call', async () => {
+      process.env.ENABLE_READ_NOTES = 'true';
+      process.env.ENABLE_QUESTION_PAPERS = 'false';
+      process.env.ENABLE_VIDEOS = 'false';
+
+      // 1. Question papers flag is disabled -> returns 200 with pricing payload and enabled: false
+      const resQp = await client.get('/api/subscriptions/pricing?section=question_papers');
+      expect(resQp.status).toBe(200);
+      expect(resQp.data.success).toBe(true);
+      expect(resQp.data.pricing).toBeDefined();
+      expect(resQp.data.pricing.section).toBe('question_papers');
+      expect(resQp.data.pricing.enabled).toBe(false);
+      expect(resQp.data.pricing.monthlyPrice).toBeGreaterThan(0);
+
+      // 2. Videos flag is disabled -> returns 200 with pricing payload and enabled: false
+      const resVid = await client.get('/api/subscriptions/pricing?section=videos');
+      expect(resVid.status).toBe(200);
+      expect(resVid.data.pricing.section).toBe('videos');
+      expect(resVid.data.pricing.enabled).toBe(false);
+
+      // 3. Default call with no ?section= preserves exact legacy notes shape with enabled: true
+      const resDefault = await client.get('/api/subscriptions/pricing');
+      expect(resDefault.status).toBe(200);
+      expect(resDefault.data.pricing.section).toBe('notes');
+      expect(resDefault.data.pricing.enabled).toBe(true);
+      expect(resDefault.data.pricing).toHaveProperty('monthlyPrice');
+      expect(resDefault.data.pricing).toHaveProperty('amountInPaise');
+      expect(resDefault.data.pricing).toHaveProperty('currency', 'INR');
+      expect(resDefault.data.pricing).toHaveProperty('planType', 'monthly');
+    });
+  });
 });
