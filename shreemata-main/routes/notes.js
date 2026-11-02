@@ -532,14 +532,44 @@ router.get("/:id/stream", optionalAuth, async (req, res) => {
 
     const rangeHeader = req.headers["range"];
 
-    if (rangeHeader) {
-      const parts = rangeHeader.replace(/bytes=/, "").split("-");
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-
-      if (isNaN(start) || isNaN(end) || start > end || start >= fileSize || end >= fileSize || start < 0) {
+    if (rangeHeader && typeof rangeHeader === "string") {
+      const match = rangeHeader.trim().match(/^bytes=(-?\d*)-(\d*)$/);
+      if (!match) {
         res.setHeader("Content-Range", `bytes */${fileSize}`);
         return res.status(416).json({ error: "Requested Range Not Satisfiable" });
+      }
+
+      let start;
+      let end;
+      const rawStart = match[1];
+      const rawEnd = match[2];
+
+      if (rawStart === "") {
+        // Suffix range: bytes=-N
+        const suffixLength = parseInt(rawEnd, 10);
+        if (isNaN(suffixLength) || suffixLength <= 0) {
+          res.setHeader("Content-Range", `bytes */${fileSize}`);
+          return res.status(416).json({ error: "Requested Range Not Satisfiable" });
+        }
+        start = Math.max(0, fileSize - suffixLength);
+        end = fileSize - 1;
+      } else {
+        start = parseInt(rawStart, 10);
+        if (isNaN(start) || start < 0 || start >= fileSize) {
+          res.setHeader("Content-Range", `bytes */${fileSize}`);
+          return res.status(416).json({ error: "Requested Range Not Satisfiable" });
+        }
+        if (rawEnd === "") {
+          end = fileSize - 1;
+        } else {
+          const parsedEnd = parseInt(rawEnd, 10);
+          if (isNaN(parsedEnd) || parsedEnd < start) {
+            res.setHeader("Content-Range", `bytes */${fileSize}`);
+            return res.status(416).json({ error: "Requested Range Not Satisfiable" });
+          }
+          // Clamp end to fileSize - 1 (do not 416 when end >= fileSize)
+          end = Math.min(parsedEnd, fileSize - 1);
+        }
       }
 
       const chunkSize = end - start + 1;

@@ -1527,4 +1527,57 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
       expect(resPdfReject.data.error).toMatch(/PDF uploads are not allowed/i);
     });
   });
+
+  // =========================================================================
+  // SCENARIO 24: Stream Route Byte Range Clamping & Suffix Ranges (Defect 4)
+  // =========================================================================
+  describe('24. stream range clamping and suffix ranges (Defect 4)', () => {
+    let streamNote;
+    let actualFileSize;
+
+    beforeAll(async () => {
+      const samplePdfPath = path.resolve(testStorageDir, samplePdfKey);
+      actualFileSize = fs.statSync(samplePdfPath).size;
+
+      streamNote = await Note.create({
+        section: 'notes',
+        title: 'Range Test Free PDF Note',
+        pdfUrl: samplePdfKey,
+        isPublished: true,
+        isFree: true,
+        uploadedBy: adminUser._id
+      });
+    });
+
+    it('clamps range end to fileSize - 1 without returning 416 when end >= fileSize', async () => {
+      // Request bytes=0-65535 on file smaller than 64KB (sample is ~140 bytes)
+      const res = await client.get(`/api/notes/${streamNote._id}/stream`, {
+        headers: { Range: 'bytes=0-65535' }
+      });
+
+      expect(res.status).toBe(206);
+      expect(res.headers['content-range']).toBe(`bytes 0-${actualFileSize - 1}/${actualFileSize}`);
+      expect(parseInt(res.headers['content-length'], 10)).toBe(actualFileSize);
+    });
+
+    it('supports suffix ranges bytes=-N returning the last N bytes of the file', async () => {
+      const suffixN = 30;
+      const res = await client.get(`/api/notes/${streamNote._id}/stream`, {
+        headers: { Range: `bytes=-${suffixN}` }
+      });
+
+      expect(res.status).toBe(206);
+      expect(res.headers['content-range']).toBe(`bytes ${actualFileSize - suffixN}-${actualFileSize - 1}/${actualFileSize}`);
+      expect(parseInt(res.headers['content-length'], 10)).toBe(suffixN);
+    });
+
+    it('returns 416 with Content-Range: bytes */size only when start >= fileSize', async () => {
+      const res = await client.get(`/api/notes/${streamNote._id}/stream`, {
+        headers: { Range: 'bytes=50000-60000' }
+      });
+
+      expect(res.status).toBe(416);
+      expect(res.headers['content-range']).toBe(`bytes */${actualFileSize}`);
+    });
+  });
 });
