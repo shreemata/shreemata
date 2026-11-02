@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#1e293b">
-    <title>Manage Study Notes - Shree Mata Admin</title>
+    <title>Manage Study Material & Subscriptions - Shree Mata Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -50,82 +50,93 @@
         }
 
         .main-container {
-            margin-top: 110px;
-            margin-bottom: 60px;
+            padding-top: 24px;
+            padding-bottom: 60px;
         }
 
         .page-header-band {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 28px;
-            background: #ffffff;
-            padding: 24px 28px;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-subtle);
+            margin-bottom: 24px;
             flex-wrap: wrap;
             gap: 16px;
         }
 
         .page-header-band h1 {
-            margin: 0 0 6px 0;
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 800;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            color: var(--primary);
+            margin: 0 0 6px 0;
+            letter-spacing: -0.5px;
         }
 
         .page-header-band p {
-            margin: 0;
             color: var(--text-muted);
+            margin: 0;
             font-size: 14px;
         }
 
-        .btn {
+        .tab-nav {
+            display: flex;
+            gap: 12px;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: -2px;
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s ease;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #F68048 0%, #e06d36 100%);
-            color: #ffffff;
-        }
-        .btn-primary:hover {
-            opacity: 0.95;
-            transform: translateY(-1px);
+        .tab-btn:hover {
+            color: var(--text-main);
         }
 
-        .btn-secondary {
-            background: #f1f5f9;
-            color: #334155;
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .sub-tab-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .sub-tab-btn {
+            padding: 8px 18px;
+            border-radius: 20px;
             border: 1px solid var(--border-color);
-        }
-        .btn-secondary:hover {
-            background: #e2e8f0;
+            background: #ffffff;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
         }
 
-        .btn-danger {
-            background: #ef4444;
+        .sub-tab-btn:hover {
+            background: #f1f5f9;
+            color: var(--text-main);
+        }
+
+        .sub-tab-btn.active {
+            background: var(--primary);
             color: #ffffff;
-        }
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 12.5px;
+            border-color: var(--primary);
         }
 
         .admin-section {
@@ -137,52 +148,112 @@
             margin-bottom: 24px;
         }
 
-        /* Filter Controls */
         .filter-grid {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr auto;
-            gap: 14px;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+            gap: 12px;
             align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .sub-filter-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
         }
 
         .form-control {
             width: 100%;
             padding: 10px 14px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
             font-size: 14px;
-            font-family: inherit;
-        }
-        .form-control:focus {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background-color: #fff;
+            color: var(--text-main);
             outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-control:focus {
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(246, 128, 72, 0.15);
         }
 
-        /* Notes Table */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            line-height: 1.2;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
         .table-responsive {
             overflow-x: auto;
-            margin-top: 16px;
+            margin-top: 10px;
         }
 
         .admin-table {
             width: 100%;
             border-collapse: collapse;
+            text-align: left;
             font-size: 13.5px;
         }
 
         .admin-table th {
-            background: #f8fafc;
-            color: #475569;
-            text-align: left;
-            padding: 12px 16px;
-            font-weight: 700;
+            background-color: #f8fafc;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 12px 14px;
             border-bottom: 2px solid var(--border-color);
             white-space: nowrap;
         }
 
         .admin-table td {
-            padding: 14px 16px;
+            padding: 14px;
             border-bottom: 1px solid var(--border-color);
             vertical-align: middle;
         }
@@ -194,26 +265,57 @@
         .status-badge {
             display: inline-flex;
             align-items: center;
-            gap: 4px;
-            padding: 4px 10px;
-            border-radius: 20px;
+            padding: 3px 8px;
+            border-radius: 6px;
             font-size: 11.5px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .badge-published {
+            background-color: #dcfce7;
+            color: #15803d;
+        }
+
+        .badge-draft {
+            background-color: #f1f5f9;
+            color: #64748b;
+        }
+
+        .badge-section-notes {
+            background-color: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .badge-section-question_papers {
+            background-color: #fef3c7;
+            color: #b45309;
+        }
+
+        .badge-section-videos {
+            background-color: #ede9fe;
+            color: #6d28d9;
+        }
+
+        .badge-free {
+            background-color: #dcfce7;
+            color: #15803d;
             font-weight: 700;
         }
-        .badge-published {
-            background: #ecfdf5;
-            color: #065f46;
-            border: 1px solid #a7f3d0;
+
+        .badge-paid {
+            background-color: #f1f5f9;
+            color: #475569;
         }
-        .badge-draft {
-            background: #fef3c7;
-            color: #92400e;
-            border: 1px solid #fde68a;
+
+        .badge-active {
+            background-color: #dcfce7;
+            color: #15803d;
         }
-        .badge-download {
-            background: #eff6ff;
-            color: #1e40af;
-            border: 1px solid #bfdbfe;
+
+        .badge-expired {
+            background-color: #fee2e2;
+            color: #b91c1c;
         }
 
         .action-group {
@@ -222,138 +324,35 @@
             align-items: center;
         }
 
-        /* Modal Overlays */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(4px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-        }
-
-        .modal-card {
-            background: #ffffff;
-            border-radius: 16px;
-            max-width: 650px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .modal-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h3 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 800;
-        }
-
-        .modal-close {
-            background: transparent;
-            border: none;
-            font-size: 22px;
-            cursor: pointer;
-            color: var(--text-muted);
-        }
-
-        .modal-body {
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .modal-footer {
-            padding: 16px 24px;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            background: #f8fafc;
-            border-radius: 0 0 16px 16px;
-        }
-
-        .form-row {
+        .stats-row {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 16px;
+            margin-bottom: 20px;
         }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+        .stat-box {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            text-align: center;
         }
 
-        .form-group label {
-            font-size: 13px;
+        .stat-box .num {
+            font-size: 24px;
             font-weight: 700;
-            color: #334155;
+            color: var(--primary);
         }
 
-        .form-help {
-            font-size: 11.5px;
+        .stat-box .lbl {
+            font-size: 12px;
             color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
         }
 
-        /* Progress Bar */
-        .progress-box {
-            display: none;
-            margin-top: 10px;
-        }
-
-        .progress-track {
-            width: 100%;
-            height: 8px;
-            background: #e2e8f0;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-bar {
-            width: 0%;
-            height: 100%;
-            background: var(--accent);
-            transition: width 0.3s ease;
-        }
-
-        /* Alerts */
-        .alert-box {
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 13.5px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            display: none;
-        }
-        .alert-success {
-            background: #ecfdf5;
-            color: #065f46;
-            border: 1px solid #a7f3d0;
-        }
-        .alert-danger {
-            background: #fef2f2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-        }
-
-        /* Pagination */
         .pagination-bar {
             display: flex;
             justify-content: space-between;
@@ -365,15 +364,142 @@
 
         .empty-placeholder {
             text-align: center;
-            padding: 48px 20px;
+            padding: 48px 16px;
             color: var(--text-muted);
         }
 
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+
+        .modal-card {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 650px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            animation: modalFadeIn 0.2s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            line-height: 1;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            background: #f8fafc;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .alert-box {
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            font-size: 13.5px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .alert-danger {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .progress-box {
+            display: none;
+            margin-top: 12px;
+        }
+
+        .progress-track {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
         @media (max-width: 768px) {
-            .filter-grid {
-                grid-template-columns: 1fr;
-            }
-            .form-row {
+            .filter-grid, .sub-filter-grid, .form-row {
                 grid-template-columns: 1fr;
             }
         }
@@ -386,109 +512,230 @@
         <!-- Page Header -->
         <div class="page-header-band">
             <div>
-                <h1>📝 Study Notes Manager</h1>
-                <p>Upload, publish, and manage digital notes for monthly subscription readers</p>
+                <h1>📖 Study Material & Subscriptions</h1>
+                <p>Manage Notes, Question Papers, Video Lectures, and track subscriber access</p>
             </div>
             <div>
                 <button class="btn btn-primary" onclick="openUploadModal()">
-                    <span>➕</span> Upload New Note
+                    <span>➕</span> Add Content Item
                 </button>
             </div>
         </div>
 
         <div id="pageAlert" class="alert-box"></div>
 
-        <!-- Filter & Search Toolbar -->
-        <div class="admin-section">
-            <div class="filter-grid">
-                <div>
-                    <input type="text" id="searchInput" class="form-control" placeholder="🔍 Search notes by title, subject..." oninput="handleSearch()">
+        <!-- Top Navigation Tabs -->
+        <div class="tab-nav">
+            <button class="tab-btn active" id="tabBtnContent" onclick="switchTab('content')">
+                📚 Content Catalog
+            </button>
+            <button class="tab-btn" id="tabBtnSubscribers" onclick="switchTab('subscribers')">
+                👥 Subscribers
+            </button>
+        </div>
+
+        <!-- ==================== SECTION 1: CONTENT CATALOG ==================== -->
+        <div id="contentSection">
+            <!-- Section Filter Tabs -->
+            <div class="sub-tab-nav">
+                <button class="sub-tab-btn active" data-sec="all" onclick="switchSection('all')">All Items</button>
+                <button class="sub-tab-btn" data-sec="notes" onclick="switchSection('notes')">📖 Notes</button>
+                <button class="sub-tab-btn" data-sec="question_papers" onclick="switchSection('question_papers')">📝 Question Papers</button>
+                <button class="sub-tab-btn" data-sec="videos" onclick="switchSection('videos')">🎥 Video Lectures</button>
+            </div>
+
+            <!-- Filter & Search Toolbar -->
+            <div class="admin-section">
+                <div class="filter-grid">
+                    <div>
+                        <input type="text" id="searchInput" class="form-control" placeholder="🔍 Search title, subject..." oninput="handleSearch()">
+                    </div>
+                    <div>
+                        <select id="classFilter" class="form-control" onchange="loadNotes(1)">
+                            <option value="">All Class Levels</option>
+                            <option value="Class 10">Class 10</option>
+                            <option value="Class 11">Class 11</option>
+                            <option value="Class 12">Class 12</option>
+                            <option value="Graduation">Graduation</option>
+                            <option value="Competitive Exams">Competitive Exams</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="categoryFilter" class="form-control" onchange="loadNotes(1)">
+                            <option value="">All Categories</option>
+                            <option value="Study Notes">Study Notes</option>
+                            <option value="Question Bank">Question Bank</option>
+                            <option value="Video Lectures">Video Lectures</option>
+                            <option value="Formula Sheet">Formula Sheet</option>
+                            <option value="Summary Notes">Summary Notes</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="freeFilter" class="form-control" onchange="loadNotes(1)">
+                            <option value="all">All Access</option>
+                            <option value="true">Free Preview Only</option>
+                            <option value="false">Subscription Required</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="publishFilter" class="form-control" onchange="loadNotes(1)">
+                            <option value="all">All Status</option>
+                            <option value="true">Published Only</option>
+                            <option value="false">Drafts Only</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary btn-sm" onclick="resetFilters()">Reset</button>
+                    </div>
                 </div>
-                <div>
-                    <select id="classFilter" class="form-control" onchange="loadNotes(1)">
-                        <option value="">All Class Levels</option>
-                        <option value="Class 10">Class 10</option>
-                        <option value="Class 11">Class 11</option>
-                        <option value="Class 12">Class 12</option>
-                        <option value="Graduation">Graduation</option>
-                        <option value="Competitive Exams">Competitive Exams</option>
-                    </select>
+
+                <!-- Notes Table -->
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Title & Subject</th>
+                                <th>Class Level</th>
+                                <th>Section</th>
+                                <th>Access</th>
+                                <th>Status</th>
+                                <th>Order</th>
+                                <th>Views</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="notesTableBody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 30px;">Loading content items...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div>
-                    <select id="categoryFilter" class="form-control" onchange="loadNotes(1)">
-                        <option value="">All Categories</option>
-                        <option value="Study Notes">Study Notes</option>
-                        <option value="Question Bank">Question Bank</option>
-                        <option value="Formula Sheet">Formula Sheet</option>
-                        <option value="Summary Notes">Summary Notes</option>
-                    </select>
+
+                <div id="emptyCatalogState" class="empty-placeholder" style="display: none;">
+                    <h3>📚 No Items Found</h3>
+                    <p>No content items matched your search criteria or none have been added yet.</p>
                 </div>
-                <div>
-                    <select id="publishFilter" class="form-control" onchange="loadNotes(1)">
-                        <option value="all">All Status</option>
-                        <option value="true">Published Only</option>
-                        <option value="false">Drafts Only</option>
-                    </select>
+
+                <!-- Pagination Bar -->
+                <div class="pagination-bar" id="paginationBar">
+                    <span id="paginationInfo" style="font-size: 13px; color: var(--text-muted);">Page 1 of 1</span>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary btn-sm" id="prevPageBtn" onclick="changePage(-1)" disabled>Previous</button>
+                        <button class="btn btn-secondary btn-sm" id="nextPageBtn" onclick="changePage(1)" disabled>Next</button>
+                    </div>
                 </div>
-                <div>
-                    <button class="btn btn-secondary btn-sm" onclick="resetFilters()">Reset</button>
+            </div>
+        </div>
+
+        <!-- ==================== SECTION 2: SUBSCRIBERS ==================== -->
+        <div id="subscribersSection" style="display: none;">
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="num" id="subTotalStat">0</div>
+                    <div class="lbl">Total Subscriptions</div>
+                </div>
+                <div class="stat-box">
+                    <div class="num" id="subActiveStat" style="color: var(--success);">0</div>
+                    <div class="lbl">Active Subscribers</div>
+                </div>
+                <div class="stat-box">
+                    <div class="num" id="subExpiredStat" style="color: var(--danger);">0</div>
+                    <div class="lbl">Expired / Inactive</div>
                 </div>
             </div>
 
-            <!-- Notes Table -->
-            <div class="table-responsive">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>Title & Subject</th>
-                            <th>Class Level</th>
-                            <th>Category</th>
-                            <th>Pages</th>
-                            <th>Size</th>
-                            <th>Status</th>
-                            <th>Download</th>
-                            <th>Views</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="notesTableBody">
-                        <tr>
-                            <td colspan="9" style="text-align: center; padding: 30px;">Loading study notes...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <div class="admin-section">
+                <div class="sub-filter-grid">
+                    <div>
+                        <input type="text" id="searchSubInput" class="form-control" placeholder="🔍 Search subscriber name, email, phone, order ID..." oninput="handleSubSearch()">
+                    </div>
+                    <div>
+                        <select id="subSectionFilter" class="form-control" onchange="loadSubscribers(1)">
+                            <option value="all">All Sections</option>
+                            <option value="notes">Notes</option>
+                            <option value="question_papers">Question Papers</option>
+                            <option value="videos">Video Lectures</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="subStatusFilter" class="form-control" onchange="loadSubscribers(1)">
+                            <option value="all">All Status</option>
+                            <option value="active">Active Only</option>
+                            <option value="expired">Expired Only</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary btn-sm" onclick="resetSubFilters()">Reset</button>
+                    </div>
+                </div>
 
-            <div id="emptyCatalogState" class="empty-placeholder" style="display: none;">
-                <h3>📚 No Study Notes Found</h3>
-                <p>No digital notes matched your search criteria or none have been uploaded yet.</p>
-            </div>
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Subscriber</th>
+                                <th>Section</th>
+                                <th>Plan Name</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Valid Until</th>
+                                <th>Payment Ref</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subscribersTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 30px;">Loading subscribers...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-            <!-- Pagination Bar -->
-            <div class="pagination-bar" id="paginationBar">
-                <span id="paginationInfo" style="font-size: 13px; color: var(--text-muted);">Page 1 of 1</span>
-                <div style="display: flex; gap: 8px;">
-                    <button id="prevPageBtn" class="btn btn-secondary btn-sm" onclick="changePage(-1)" disabled>← Previous</button>
-                    <button id="nextPageBtn" class="btn btn-secondary btn-sm" onclick="changePage(1)" disabled>Next →</button>
+                <div id="emptySubscribersState" class="empty-placeholder" style="display: none;">
+                    <h3>👥 No Subscribers Found</h3>
+                    <p>No subscriptions match the selected criteria.</p>
+                </div>
+
+                <div class="pagination-bar" id="subPaginationBar">
+                    <span id="subPaginationInfo" style="font-size: 13px; color: var(--text-muted);">Page 1 of 1</span>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary btn-sm" id="subPrevPageBtn" onclick="changeSubPage(-1)" disabled>Previous</button>
+                        <button class="btn btn-secondary btn-sm" id="subNextPageBtn" onclick="changeSubPage(1)" disabled>Next</button>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Upload Note Modal -->
+    <!-- ==================== ADD / UPLOAD MODAL ==================== -->
     <div id="uploadModal" class="modal-overlay" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>Upload New Study Note</h3>
+                <h3>Add New Content Item</h3>
                 <button class="modal-close" onclick="closeUploadModal()">&times;</button>
             </div>
             <form id="uploadNoteForm" onsubmit="handleUploadSubmit(event)">
                 <div class="modal-body">
                     <div id="uploadModalAlert" class="alert-box"></div>
 
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="uploadSection">Category Section *</label>
+                            <select id="uploadSection" class="form-control" onchange="toggleSectionFields('upload')">
+                                <option value="notes">Notes (Digital PDF)</option>
+                                <option value="question_papers">Question Papers (Digital PDF)</option>
+                                <option value="videos">Video Lectures</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="uploadOrder">Display Order</label>
+                            <input type="number" id="uploadOrder" class="form-control" value="0">
+                        </div>
+                    </div>
+
                     <div class="form-group">
-                        <label for="uploadTitle">Note Title *</label>
-                        <input type="text" id="uploadTitle" class="form-control" placeholder="e.g. Class 10 Mathematics - Trigonometry Notes" required>
+                        <label for="uploadTitle">Title *</label>
+                        <input type="text" id="uploadTitle" class="form-control" placeholder="e.g. Class 10 Trigonometry" required>
                     </div>
 
                     <div class="form-row">
@@ -497,46 +744,85 @@
                             <input type="text" id="uploadSubject" class="form-control" placeholder="e.g. Mathematics">
                         </div>
                         <div class="form-group">
-                            <label for="uploadClass">Class / Grade Level</label>
+                            <label for="uploadClass">Class / Level</label>
                             <input type="text" id="uploadClass" class="form-control" placeholder="e.g. Class 10">
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="uploadCategory">Category</label>
-                            <select id="uploadCategory" class="form-control">
-                                <option value="Study Notes">Study Notes</option>
-                                <option value="Question Bank">Question Bank</option>
-                                <option value="Formula Sheet">Formula Sheet</option>
-                                <option value="Summary Notes">Summary Notes</option>
-                            </select>
+                            <label for="uploadCategory">Category Tag</label>
+                            <input type="text" id="uploadCategory" class="form-control" placeholder="e.g. Study Notes">
                         </div>
                         <div class="form-group">
-                            <label for="uploadPages">Total Pages</label>
-                            <input type="number" id="uploadPages" class="form-control" min="0" value="0">
+                            <label for="uploadCoverImage">Cover Image URL</label>
+                            <input type="url" id="uploadCoverImage" class="form-control" placeholder="https://...">
+                        </div>
+                    </div>
+
+                    <!-- PDF Fields (for Notes & Question Papers) -->
+                    <div id="uploadPdfFields">
+                        <div class="form-group">
+                            <label for="uploadPdfFile">Select PDF Document *</label>
+                            <input type="file" id="uploadPdfFile" class="form-control" accept=".pdf,application/pdf" onchange="handleFileSelect(this)">
+                            <span class="form-help">Max 50MB. Securely stored in private storage.</span>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="uploadPages">Total Pages</label>
+                                <input type="number" id="uploadPages" class="form-control" min="0" value="0">
+                            </div>
+                            <div class="form-group" style="justify-content: center;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 20px;">
+                                    <input type="checkbox" id="uploadAllowDownload" style="width: 18px; height: 18px;">
+                                    <span>Allow Offline PDF Download</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Fields (for Video Lectures) -->
+                    <div id="uploadVideoFields" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="uploadVideoProvider">Video Provider *</label>
+                                <select id="uploadVideoProvider" class="form-control">
+                                    <option value="bunny">Bunny Stream</option>
+                                    <option value="vimeo">Vimeo</option>
+                                    <option value="youtube_unlisted">YouTube (Free Items Only)</option>
+                                    <option value="hls">HLS Direct</option>
+                                    <option value="none">None / Direct Link</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="uploadDurationMinutes">Duration (Minutes)</label>
+                                <input type="number" id="uploadDurationMinutes" class="form-control" min="0" placeholder="e.g. 45">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="uploadVideoUrl">Video Embed / Stream URL *</label>
+                            <input type="url" id="uploadVideoUrl" class="form-control" placeholder="https://iframe.mediadelivery.net/play/... or https://player.vimeo.com/video/...">
+                            <span class="form-help">Note: YouTube URLs are strictly permitted for Free Preview items only. Paid videos must use Bunny or Vimeo.</span>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="uploadDescription">Description / Key Highlights</label>
-                        <textarea id="uploadDescription" class="form-control" rows="3" placeholder="Brief outline of chapters covered in this note..."></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="uploadPdfFile">Select PDF Document *</label>
-                        <input type="file" id="uploadPdfFile" class="form-control" accept=".pdf,application/pdf" required onchange="handleFileSelect(this)">
-                        <span class="form-help">Max 50MB. Files are verified for PDF binary content and securely stored in private storage.</span>
+                        <label for="uploadDescription">Description</label>
+                        <textarea id="uploadDescription" class="form-control" rows="3" placeholder="Overview of topics covered..."></textarea>
                     </div>
 
                     <div class="form-row" style="margin-top: 8px;">
-                        <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="uploadIsPublished" checked style="width: 18px; height: 18px;">
-                            <label for="uploadIsPublished" style="margin: 0; cursor: pointer;">Publish Immediately</label>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="uploadIsFree" style="width: 18px; height: 18px;">
+                                <span><strong>Free Preview</strong> (Unlocked for all visitors)</span>
+                            </label>
                         </div>
-                        <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="uploadAllowDownload" style="width: 18px; height: 18px;">
-                            <label for="uploadAllowDownload" style="margin: 0; cursor: pointer;">Allow Offline PDF Download</label>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="uploadIsPublished" checked style="width: 18px; height: 18px;">
+                                <span>Publish Immediately</span>
+                            </label>
                         </div>
                     </div>
 
@@ -549,17 +835,17 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
-                    <button type="submit" id="submitUploadBtn" class="btn btn-primary">Upload & Save Note</button>
+                    <button type="submit" id="submitUploadBtn" class="btn btn-primary">Save Content Item</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Edit Note Modal -->
+    <!-- ==================== EDIT MODAL ==================== -->
     <div id="editModal" class="modal-overlay" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>Edit Study Note</h3>
+                <h3>Edit Content Item</h3>
                 <button class="modal-close" onclick="closeEditModal()">&times;</button>
             </div>
             <form id="editNoteForm" onsubmit="handleEditSubmit(event)">
@@ -567,8 +853,23 @@
                 <div class="modal-body">
                     <div id="editModalAlert" class="alert-box"></div>
 
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editSection">Category Section *</label>
+                            <select id="editSection" class="form-control" onchange="toggleSectionFields('edit')">
+                                <option value="notes">Notes (Digital PDF)</option>
+                                <option value="question_papers">Question Papers (Digital PDF)</option>
+                                <option value="videos">Video Lectures</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editOrder">Display Order</label>
+                            <input type="number" id="editOrder" class="form-control" value="0">
+                        </div>
+                    </div>
+
                     <div class="form-group">
-                        <label for="editTitle">Note Title *</label>
+                        <label for="editTitle">Title *</label>
                         <input type="text" id="editTitle" class="form-control" required>
                     </div>
 
@@ -578,24 +879,65 @@
                             <input type="text" id="editSubject" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label for="editClass">Class Level</label>
+                            <label for="editClass">Class / Level</label>
                             <input type="text" id="editClass" class="form-control">
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="editCategory">Category</label>
-                            <select id="editCategory" class="form-control">
-                                <option value="Study Notes">Study Notes</option>
-                                <option value="Question Bank">Question Bank</option>
-                                <option value="Formula Sheet">Formula Sheet</option>
-                                <option value="Summary Notes">Summary Notes</option>
-                            </select>
+                            <label for="editCategory">Category Tag</label>
+                            <input type="text" id="editCategory" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label for="editPages">Total Pages</label>
-                            <input type="number" id="editPages" class="form-control" min="0">
+                            <label for="editCoverImage">Cover Image URL</label>
+                            <input type="url" id="editCoverImage" class="form-control">
+                        </div>
+                    </div>
+
+                    <!-- PDF Fields -->
+                    <div id="editPdfFields">
+                        <div class="form-group">
+                            <label for="editPdfFile">Replace PDF Document (Optional)</label>
+                            <input type="file" id="editPdfFile" class="form-control" accept=".pdf,application/pdf">
+                            <span class="form-help">Leave empty to keep existing file. Uploading replaces securely.</span>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="editPages">Total Pages</label>
+                                <input type="number" id="editPages" class="form-control" min="0">
+                            </div>
+                            <div class="form-group" style="justify-content: center;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 20px;">
+                                    <input type="checkbox" id="editAllowDownload" style="width: 18px; height: 18px;">
+                                    <span>Allow Offline PDF Download</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Fields -->
+                    <div id="editVideoFields" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="editVideoProvider">Video Provider *</label>
+                                <select id="editVideoProvider" class="form-control">
+                                    <option value="bunny">Bunny Stream</option>
+                                    <option value="vimeo">Vimeo</option>
+                                    <option value="youtube_unlisted">YouTube (Free Items Only)</option>
+                                    <option value="hls">HLS Direct</option>
+                                    <option value="none">None / Direct Link</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="editDurationMinutes">Duration (Minutes)</label>
+                                <input type="number" id="editDurationMinutes" class="form-control" min="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="editVideoUrl">Video Embed / Stream URL *</label>
+                            <input type="url" id="editVideoUrl" class="form-control" placeholder="https://...">
+                            <span class="form-help">YouTube is permitted only when Free Preview is checked.</span>
                         </div>
                     </div>
 
@@ -604,20 +946,18 @@
                         <textarea id="editDescription" class="form-control" rows="3"></textarea>
                     </div>
 
-                    <div class="form-group">
-                        <label for="editPdfFile">Replace PDF Document (Optional)</label>
-                        <input type="file" id="editPdfFile" class="form-control" accept=".pdf,application/pdf">
-                        <span class="form-help">Leave blank to retain current PDF. Uploading replaces existing file safely.</span>
-                    </div>
-
                     <div class="form-row" style="margin-top: 8px;">
-                        <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="editIsPublished" style="width: 18px; height: 18px;">
-                            <label for="editIsPublished" style="margin: 0; cursor: pointer;">Published</label>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="editIsFree" style="width: 18px; height: 18px;">
+                                <span><strong>Free Preview</strong> (Unlocked for all visitors)</span>
+                            </label>
                         </div>
-                        <div class="form-group" style="flex-direction: row; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="editAllowDownload" style="width: 18px; height: 18px;">
-                            <label for="editAllowDownload" style="margin: 0; cursor: pointer;">Allow PDF Download</label>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="editIsPublished" style="width: 18px; height: 18px;">
+                                <span>Published</span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -633,12 +973,12 @@
     <div id="deleteModal" class="modal-overlay" style="display: none;">
         <div class="modal-card" style="max-width: 450px;">
             <div class="modal-header">
-                <h3 style="color: var(--danger);">Confirm Note Deletion</h3>
+                <h3 style="color: var(--danger);">Confirm Deletion</h3>
                 <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <p>Are you sure you want to delete <strong id="deleteNoteTitle"></strong>?</p>
-                <p style="font-size: 13px; color: var(--danger);">This will permanently remove the record and delete the associated PDF from private disk storage.</p>
+                <p style="font-size: 13px; color: var(--danger);">This permanently deletes the item record and any associated storage file.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
@@ -650,29 +990,24 @@
     <!-- Scripts -->
     <script src="js/config.js"></script>
     <script src="js/admin-navigation.js"></script>
-    <script>
-        // Authentication & Role Gate
-        const token = localStorage.getItem('token');
-        const user = JSON.parse(localStorage.getItem('user') || 'null');
 
-        if (!token || !user || user.role !== 'admin') {
-            alert('Access denied. Administrator privileges required.');
-            window.location.href = '/';
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login.html?redirect=/admin-notes.html';
         }
 
-        // Global State
         let currentPage = 1;
         let totalPages = 1;
-        let searchTimeout = null;
-        let pendingDeleteId = null;
+        let currentSection = 'all';
+        let deleteTargetId = null;
+        let searchDebounceTimer = null;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            if (typeof initAdminNavigation === 'function') {
-                initAdminNavigation('notes');
-            }
-            loadNotes(1);
-        });
+        let currentSubPage = 1;
+        let totalSubPages = 1;
+        let searchSubDebounceTimer = null;
 
+        // Helpers
         function formatBytes(bytes) {
             if (!bytes || bytes === 0) return '0 B';
             const k = 1024;
@@ -681,17 +1016,85 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
         }
 
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
         function showAlert(elementId, message, isSuccess = true) {
             const el = document.getElementById(elementId);
             if (!el) return;
-            el.className = `alert-box ${isSuccess ? 'alert-success' : 'alert-danger'}`;
+            el.className = 'alert-box ' + (isSuccess ? 'alert-success' : 'alert-danger');
             el.textContent = message;
             el.style.display = 'block';
             setTimeout(() => {
-                el.style.display = 'none';
+                if (isSuccess && el) el.style.display = 'none';
             }, 5000);
         }
 
+        function sectionLabel(sec) {
+            if (sec === 'videos') return '🎥 Video';
+            if (sec === 'question_papers') return '📝 Q-Papers';
+            return '📖 Notes';
+        }
+
+        function sectionBadgeClass(sec) {
+            if (sec === 'videos') return 'badge-section-videos';
+            if (sec === 'question_papers') return 'badge-section-question_papers';
+            return 'badge-section-notes';
+        }
+
+        // Navigation Tabs
+        function switchTab(tab) {
+            const tabBtnContent = document.getElementById('tabBtnContent');
+            const tabBtnSubscribers = document.getElementById('tabBtnSubscribers');
+            const contentSec = document.getElementById('contentSection');
+            const subSec = document.getElementById('subscribersSection');
+
+            if (tab === 'content') {
+                tabBtnContent.classList.add('active');
+                tabBtnSubscribers.classList.remove('active');
+                contentSec.style.display = 'block';
+                subSec.style.display = 'none';
+            } else {
+                tabBtnSubscribers.classList.add('active');
+                tabBtnContent.classList.remove('active');
+                subSec.style.display = 'block';
+                contentSec.style.display = 'none';
+                loadSubscribers(1);
+            }
+        }
+
+        // Section Sub-Tabs
+        function switchSection(sec) {
+            currentSection = sec;
+            document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-sec') === sec);
+            });
+            loadNotes(1);
+        }
+
+        // Dynamic Form Fields toggle
+        function toggleSectionFields(prefix) {
+            const section = document.getElementById(prefix + 'Section').value;
+            const pdfFields = document.getElementById(prefix + 'PdfFields');
+            const videoFields = document.getElementById(prefix + 'VideoFields');
+            const pdfInput = document.getElementById(prefix + 'PdfFile');
+
+            if (section === 'videos') {
+                pdfFields.style.display = 'none';
+                videoFields.style.display = 'block';
+                if (pdfInput) pdfInput.required = false;
+            } else {
+                pdfFields.style.display = 'block';
+                videoFields.style.display = 'none';
+                if (pdfInput && prefix === 'upload') pdfInput.required = true;
+            }
+        }
+
+        // ================= CATALOG MANAGEMENT =================
         async function loadNotes(page = 1) {
             currentPage = page;
             const tbody = document.getElementById('notesTableBody');
@@ -700,116 +1103,138 @@
             const search = document.getElementById('searchInput').value.trim();
             const classLevel = document.getElementById('classFilter').value;
             const category = document.getElementById('categoryFilter').value;
+            const isFree = document.getElementById('freeFilter').value;
             const isPublished = document.getElementById('publishFilter').value;
 
-            const params = new URLSearchParams({
-                page: page,
-                limit: 12
-            });
-
-            if (search) params.append('search', search);
-            if (classLevel) params.append('classLevel', classLevel);
-            if (category) params.append('category', category);
-            if (isPublished) params.append('isPublished', isPublished);
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 30px;">Loading content items...</td></tr>';
 
             try {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px;">Loading study notes...</td></tr>';
+                const buildQuery = (sec) => {
+                    const params = new URLSearchParams({
+                        page: page,
+                        limit: 15,
+                        section: sec
+                    });
+                    if (search) params.append('search', search);
+                    if (classLevel) params.append('classLevel', classLevel);
+                    if (category) params.append('category', category);
+                    if (isFree !== 'all') params.append('isFree', isFree);
+                    if (isPublished !== 'all') params.append('isPublished', isPublished);
+                    return params.toString();
+                };
 
-                const response = await fetch(`${window.API_URL}/notes?${params.toString()}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
+                let items = [];
+                let totalItemsCount = 0;
+
+                if (currentSection === 'all') {
+                    // Query all 3 sections concurrently and merge
+                    const [resNotes, resQP, resVid] = await Promise.all([
+                        fetch(`${window.API_URL}/notes?${buildQuery('notes')}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                        fetch(`${window.API_URL}/notes?${buildQuery('question_papers')}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                        fetch(`${window.API_URL}/notes?${buildQuery('videos')}`, { headers: { 'Authorization': `Bearer ${token}` } })
+                    ]);
+
+                    const dataNotes = resNotes.ok ? await resNotes.json() : { notes: [] };
+                    const dataQP = resQP.ok ? await resQP.json() : { notes: [] };
+                    const dataVid = resVid.ok ? await resVid.json() : { notes: [] };
+
+                    items = [...(dataNotes.notes || []), ...(dataQP.notes || []), ...(dataVid.notes || [])];
+                    totalItemsCount = (dataNotes.pagination?.totalNotes || 0) + (dataQP.pagination?.totalNotes || 0) + (dataVid.pagination?.totalNotes || 0);
+                    totalPages = Math.ceil(totalItemsCount / 15) || 1;
+                } else {
+                    const response = await fetch(`${window.API_URL}/notes?${buildQuery(currentSection)}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!response.ok) {
+                        const err = await response.json().catch(() => ({}));
+                        throw new Error(err.error || `Failed to load notes: ${response.statusText}`);
                     }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Failed to load notes: ${response.statusText}`);
+                    const data = await response.json();
+                    items = data.notes || [];
+                    totalItemsCount = data.pagination?.totalNotes || items.length;
+                    totalPages = data.pagination?.totalPages || 1;
                 }
 
-                const data = await response.json();
-                const notes = data.notes || [];
-                totalPages = data.pagination?.totalPages || 1;
+                // Sort by order asc, then createdAt desc
+                items.sort((a, b) => (a.order || 0) - (b.order || 0));
 
-                document.getElementById('paginationInfo').textContent = `Page ${data.pagination?.page || 1} of ${totalPages} (${data.pagination?.totalNotes || 0} total)`;
+                document.getElementById('paginationInfo').textContent = `Page ${currentPage} of ${totalPages} (${totalItemsCount} total)`;
                 document.getElementById('prevPageBtn').disabled = currentPage <= 1;
                 document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
 
-                if (notes.length === 0) {
+                if (items.length === 0) {
                     tbody.innerHTML = '';
                     emptyState.style.display = 'block';
                     return;
                 }
 
                 emptyState.style.display = 'none';
-                tbody.innerHTML = notes.map(note => `
+                tbody.innerHTML = items.map(note => `
                     <tr>
                         <td>
                             <div style="font-weight: 700; color: #1e293b;">${escapeHtml(note.title)}</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">${escapeHtml(note.subject || 'General')}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">${escapeHtml(note.subject || 'General')} ${note.category ? '• ' + escapeHtml(note.category) : ''}</div>
                         </td>
                         <td>${escapeHtml(note.classLevel || 'All Levels')}</td>
-                        <td><span class="status-badge" style="background:#f1f5f9; color:#334155;">${escapeHtml(note.category || 'Study Notes')}</span></td>
-                        <td>${note.totalPages || '-'}</td>
-                        <td>${formatBytes(note.fileSize)}</td>
                         <td>
-                            <span class="status-badge ${note.isPublished ? 'badge-published' : 'badge-draft'}">
+                            <span class="status-badge ${sectionBadgeClass(note.section)}">${sectionLabel(note.section)}</span>
+                        </td>
+                        <td>
+                            <span class="status-badge ${note.isFree ? 'badge-free' : 'badge-paid'}">
+                                ${note.isFree ? 'Free Preview' : 'Subscription'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="status-badge ${note.isPublished ? 'badge-published' : 'badge-draft'}" style="cursor: pointer; border: none;" onclick="togglePublish('${note.id}', ${!note.isPublished})" title="Click to toggle status">
                                 ${note.isPublished ? '● Published' : '○ Draft'}
-                            </span>
+                            </button>
                         </td>
-                        <td>
-                            <span class="status-badge ${note.allowDownload ? 'badge-download' : ''}" style="${!note.allowDownload ? 'background:#f8fafc; color:#94a3b8;' : ''}">
-                                ${note.allowDownload ? 'Allowed' : 'Disabled'}
-                            </span>
-                        </td>
+                        <td style="font-weight: 600;">${note.order !== undefined ? note.order : 0}</td>
                         <td>${note.viewCount || 0}</td>
                         <td>
                             <div class="action-group">
-                                <button class="btn btn-secondary btn-sm" onclick="togglePublish('${note.id}', ${!note.isPublished})">
-                                    ${note.isPublished ? 'Unpublish' : 'Publish'}
-                                </button>
-                                <button class="btn btn-secondary btn-sm" onclick="openEditModal('${note.id}')">
-                                    Edit
-                                </button>
-                                <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${note.id}', '${escapeHtml(note.title)}')">
-                                    Delete
-                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="openEditModal('${note.id}')">Edit</button>
+                                <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${note.id}', '${escapeHtml(note.title)}')">Delete</button>
                             </div>
                         </td>
                     </tr>
                 `).join('');
 
             } catch (err) {
-                console.error("Error loading notes:", err);
-                tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--danger); padding: 30px;">Error: ${escapeHtml(err.message)}</td></tr>`;
+                console.error("Error loading content items:", err);
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--danger); padding: 30px;">Error: ${escapeHtml(err.message)}</td></tr>`;
             }
         }
 
         function handleSearch() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                loadNotes(1);
-            }, 300);
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => loadNotes(1), 300);
         }
 
         function resetFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('classFilter').value = '';
             document.getElementById('categoryFilter').value = '';
+            document.getElementById('freeFilter').value = 'all';
             document.getElementById('publishFilter').value = 'all';
             loadNotes(1);
         }
 
         function changePage(delta) {
-            const newPage = currentPage + delta;
-            if (newPage >= 1 && newPage <= totalPages) {
-                loadNotes(newPage);
+            const next = currentPage + delta;
+            if (next >= 1 && next <= totalPages) {
+                loadNotes(next);
             }
         }
 
-        // Upload Handling
+        // Add / Upload Item
         function openUploadModal() {
             document.getElementById('uploadNoteForm').reset();
-            document.getElementById('uploadModalAlert').style.display = 'none';
+            document.getElementById('uploadSection').value = currentSection !== 'all' ? currentSection : 'notes';
+            toggleSectionFields('upload');
             document.getElementById('uploadProgressBox').style.display = 'none';
+            document.getElementById('uploadProgressBar').style.width = '0%';
+            document.getElementById('uploadModalAlert').style.display = 'none';
             document.getElementById('uploadModal').style.display = 'flex';
         }
 
@@ -820,15 +1245,13 @@
         function handleFileSelect(input) {
             const file = input.files[0];
             if (!file) return;
-
-            if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
-                alert('Only PDF documents are allowed.');
+            if (file.size > 50 * 1024 * 1024) {
+                showAlert('uploadModalAlert', 'PDF file size exceeds 50MB limit.', false);
                 input.value = '';
                 return;
             }
-
-            if (file.size > 50 * 1024 * 1024) {
-                alert('File size exceeds the 50MB limit.');
+            if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+                showAlert('uploadModalAlert', 'Please select a valid PDF file.', false);
                 input.value = '';
                 return;
             }
@@ -837,53 +1260,71 @@
         async function handleUploadSubmit(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitUploadBtn');
-            const fileInput = document.getElementById('uploadPdfFile');
-            const file = fileInput.files[0];
-
-            if (!file) {
-                showAlert('uploadModalAlert', 'Please select a PDF file to upload.', false);
-                return;
-            }
+            const section = document.getElementById('uploadSection').value;
+            const isFree = document.getElementById('uploadIsFree').checked;
 
             const formData = new FormData();
+            formData.append('section', section);
             formData.append('title', document.getElementById('uploadTitle').value.trim());
             formData.append('subject', document.getElementById('uploadSubject').value.trim());
             formData.append('classLevel', document.getElementById('uploadClass').value.trim());
-            formData.append('category', document.getElementById('uploadCategory').value);
-            formData.append('totalPages', document.getElementById('uploadPages').value);
-            formData.append('description', document.getElementById('uploadDescription').value.trim());
+            formData.append('category', document.getElementById('uploadCategory').value.trim());
+            formData.append('coverImage', document.getElementById('uploadCoverImage').value.trim());
+            formData.append('order', document.getElementById('uploadOrder').value);
+            formData.append('isFree', isFree);
             formData.append('isPublished', document.getElementById('uploadIsPublished').checked);
-            formData.append('allowDownload', document.getElementById('uploadAllowDownload').checked);
-            formData.append('pdf', file);
+            formData.append('description', document.getElementById('uploadDescription').value.trim());
+
+            if (section === 'videos') {
+                const videoUrl = document.getElementById('uploadVideoUrl').value.trim();
+                const videoProvider = document.getElementById('uploadVideoProvider').value;
+                const durationMinutes = document.getElementById('uploadDurationMinutes').value;
+
+                if (!videoUrl) {
+                    showAlert('uploadModalAlert', 'Video stream / embed URL is required for videos.', false);
+                    return;
+                }
+                formData.append('videoUrl', videoUrl);
+                formData.append('videoProvider', videoProvider);
+                if (durationMinutes) formData.append('durationMinutes', durationMinutes);
+            } else {
+                const fileInput = document.getElementById('uploadPdfFile');
+                const file = fileInput.files[0];
+                if (!file) {
+                    showAlert('uploadModalAlert', 'Please select a PDF document to upload.', false);
+                    return;
+                }
+                formData.append('pdf', file);
+                formData.append('totalPages', document.getElementById('uploadPages').value);
+                formData.append('allowDownload', document.getElementById('uploadAllowDownload').checked);
+            }
 
             const progressBox = document.getElementById('uploadProgressBox');
             const progressBar = document.getElementById('uploadProgressBar');
             const progressText = document.getElementById('uploadProgressText');
 
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Uploading...';
+            submitBtn.textContent = 'Saving...';
             progressBox.style.display = 'block';
-            progressBar.style.width = '30%';
-            progressText.textContent = 'Uploading PDF document...';
+            progressBar.style.width = '40%';
+            progressText.textContent = 'Uploading & verifying...';
 
             try {
                 const response = await fetch(`${window.API_URL}/notes`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
+                    headers: { 'Authorization': `Bearer ${token}` },
                     body: formData
                 });
 
                 progressBar.style.width = '100%';
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to upload note');
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Failed to save item');
                 }
 
                 closeUploadModal();
-                showAlert('pageAlert', 'Note uploaded and saved successfully!', true);
+                showAlert('pageAlert', 'Content item saved successfully!', true);
                 loadNotes(1);
 
             } catch (err) {
@@ -891,7 +1332,7 @@
                 showAlert('uploadModalAlert', err.message, false);
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Upload & Save Note';
+                submitBtn.textContent = 'Save Content Item';
             }
         }
 
@@ -899,27 +1340,37 @@
         async function openEditModal(noteId) {
             try {
                 const response = await fetch(`${window.API_URL}/notes/${noteId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                if (!response.ok) throw new Error('Could not fetch note details');
+                if (!response.ok) throw new Error('Could not fetch item details');
                 const data = await response.json();
                 const note = data.note;
 
                 document.getElementById('editNoteId').value = note.id;
+                document.getElementById('editSection').value = note.section || 'notes';
                 document.getElementById('editTitle').value = note.title || '';
                 document.getElementById('editSubject').value = note.subject || '';
                 document.getElementById('editClass').value = note.classLevel || '';
-                document.getElementById('editCategory').value = note.category || 'Study Notes';
-                document.getElementById('editPages').value = note.totalPages || 0;
-                document.getElementById('editDescription').value = note.description || '';
+                document.getElementById('editCategory').value = note.category || '';
+                document.getElementById('editCoverImage').value = note.coverImage || '';
+                document.getElementById('editOrder').value = note.order !== undefined ? note.order : 0;
+                document.getElementById('editIsFree').checked = !!note.isFree;
                 document.getElementById('editIsPublished').checked = !!note.isPublished;
+                document.getElementById('editDescription').value = note.description || '';
+
+                // PDF fields
+                document.getElementById('editPages').value = note.totalPages || 0;
                 document.getElementById('editAllowDownload').checked = !!note.allowDownload;
                 document.getElementById('editPdfFile').value = '';
-                document.getElementById('editModalAlert').style.display = 'none';
 
+                // Video fields
+                document.getElementById('editVideoProvider').value = note.videoProvider || 'none';
+                document.getElementById('editVideoUrl').value = note.videoUrl || '';
+                document.getElementById('editDurationMinutes').value = note.durationMinutes || '';
+
+                toggleSectionFields('edit');
+                document.getElementById('editModalAlert').style.display = 'none';
                 document.getElementById('editModal').style.display = 'flex';
             } catch (err) {
                 alert(err.message);
@@ -934,20 +1385,34 @@
             e.preventDefault();
             const noteId = document.getElementById('editNoteId').value;
             const submitBtn = document.getElementById('submitEditBtn');
+            const section = document.getElementById('editSection').value;
+            const isFree = document.getElementById('editIsFree').checked;
 
             const formData = new FormData();
+            formData.append('section', section);
             formData.append('title', document.getElementById('editTitle').value.trim());
             formData.append('subject', document.getElementById('editSubject').value.trim());
             formData.append('classLevel', document.getElementById('editClass').value.trim());
-            formData.append('category', document.getElementById('editCategory').value);
-            formData.append('totalPages', document.getElementById('editPages').value);
-            formData.append('description', document.getElementById('editDescription').value.trim());
+            formData.append('category', document.getElementById('editCategory').value.trim());
+            formData.append('coverImage', document.getElementById('editCoverImage').value.trim());
+            formData.append('order', document.getElementById('editOrder').value);
+            formData.append('isFree', isFree);
             formData.append('isPublished', document.getElementById('editIsPublished').checked);
-            formData.append('allowDownload', document.getElementById('editAllowDownload').checked);
+            formData.append('description', document.getElementById('editDescription').value.trim());
 
-            const file = document.getElementById('editPdfFile').files[0];
-            if (file) {
-                formData.append('pdf', file);
+            if (section === 'videos') {
+                const videoUrl = document.getElementById('editVideoUrl').value.trim();
+                const videoProvider = document.getElementById('editVideoProvider').value;
+                const durationMinutes = document.getElementById('editDurationMinutes').value;
+
+                formData.append('videoUrl', videoUrl);
+                formData.append('videoProvider', videoProvider);
+                if (durationMinutes) formData.append('durationMinutes', durationMinutes);
+            } else {
+                formData.append('totalPages', document.getElementById('editPages').value);
+                formData.append('allowDownload', document.getElementById('editAllowDownload').checked);
+                const file = document.getElementById('editPdfFile').files[0];
+                if (file) formData.append('pdf', file);
             }
 
             submitBtn.disabled = true;
@@ -956,19 +1421,17 @@
             try {
                 const response = await fetch(`${window.API_URL}/notes/${noteId}`, {
                     method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
+                    headers: { 'Authorization': `Bearer ${token}` },
                     body: formData
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to update note');
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Failed to update item');
                 }
 
                 closeEditModal();
-                showAlert('pageAlert', 'Note updated successfully!', true);
+                showAlert('pageAlert', 'Content item updated successfully!', true);
                 loadNotes(currentPage);
 
             } catch (err) {
@@ -991,63 +1454,166 @@
                     body: JSON.stringify({ isPublished: newStatus })
                 });
 
-                if (!response.ok) throw new Error('Failed to update publication status');
-                showAlert('pageAlert', `Note status changed to ${newStatus ? 'Published' : 'Draft'}`, true);
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.error || 'Failed to update publication status');
+                }
+
+                showAlert('pageAlert', `Status updated to ${newStatus ? 'Published' : 'Draft'}`, true);
                 loadNotes(currentPage);
             } catch (err) {
-                alert(err.message);
+                showAlert('pageAlert', err.message, false);
             }
         }
 
-        // Delete Handling
+        // Delete Item
         function openDeleteModal(noteId, title) {
-            pendingDeleteId = noteId;
-            document.getElementById('deleteNoteTitle').textContent = `"${title}"`;
+            deleteTargetId = noteId;
+            document.getElementById('deleteNoteTitle').textContent = title;
             document.getElementById('deleteModal').style.display = 'flex';
         }
 
         function closeDeleteModal() {
-            pendingDeleteId = null;
+            deleteTargetId = null;
             document.getElementById('deleteModal').style.display = 'none';
         }
 
         async function executeDelete() {
-            if (!pendingDeleteId) return;
+            if (!deleteTargetId) return;
             const btn = document.getElementById('confirmDeleteBtn');
             btn.disabled = true;
             btn.textContent = 'Deleting...';
 
             try {
-                const response = await fetch(`${window.API_URL}/notes/${pendingDeleteId}`, {
+                const response = await fetch(`${window.API_URL}/notes/${deleteTargetId}`, {
                     method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                if (!response.ok) throw new Error('Failed to delete note');
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.error || 'Failed to delete item');
+                }
 
                 closeDeleteModal();
-                showAlert('pageAlert', 'Note deleted successfully!', true);
+                showAlert('pageAlert', 'Item deleted successfully.', true);
                 loadNotes(currentPage);
-
             } catch (err) {
-                alert(err.message);
+                alert("Error: " + err.message);
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Delete Permanently';
             }
         }
 
-        function escapeHtml(str) {
-            if (!str) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
+        // ================= SUBSCRIBERS MANAGEMENT =================
+        async function loadSubscribers(page = 1) {
+            currentSubPage = page;
+            const tbody = document.getElementById('subscribersTableBody');
+            const emptyState = document.getElementById('emptySubscribersState');
+
+            const section = document.getElementById('subSectionFilter').value;
+            const status = document.getElementById('subStatusFilter').value;
+            const search = document.getElementById('searchSubInput').value.trim();
+
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px;">Loading subscribers...</td></tr>';
+
+            const params = new URLSearchParams({
+                page: page,
+                limit: 10,
+                section: section,
+                status: status
+            });
+            if (search) params.append('search', search);
+
+            try {
+                const response = await fetch(`${window.API_URL}/subscriptions/admin/subscribers?${params.toString()}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.error || `Failed to load subscribers: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const subscribers = data.subscribers || [];
+                const stats = data.stats || {};
+                const pagination = data.pagination || {};
+
+                document.getElementById('subTotalStat').textContent = stats.total || 0;
+                document.getElementById('subActiveStat').textContent = stats.active || 0;
+                document.getElementById('subExpiredStat').textContent = stats.expired || 0;
+
+                totalSubPages = pagination.pages || 1;
+                document.getElementById('subPaginationInfo').textContent = `Page ${pagination.page || 1} of ${totalSubPages} (${pagination.total || 0} subscribers)`;
+                document.getElementById('subPrevPageBtn').disabled = currentSubPage <= 1;
+                document.getElementById('subNextPageBtn').disabled = currentSubPage >= totalSubPages;
+
+                if (subscribers.length === 0) {
+                    tbody.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                tbody.innerHTML = subscribers.map(sub => {
+                    const user = sub.userId || {};
+                    const isActive = sub.status === 'active' && new Date(sub.expiresAt) > new Date();
+                    const expiresDateStr = sub.expiresAt ? new Date(sub.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
+                    return `
+                        <tr>
+                            <td>
+                                <div style="font-weight: 700; color: #1e293b;">${escapeHtml(user.name || 'Unnamed')}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">${escapeHtml(user.email || user.phone || 'No contact')}</div>
+                            </td>
+                            <td>
+                                <span class="status-badge ${sectionBadgeClass(sub.section)}">${sectionLabel(sub.section)}</span>
+                            </td>
+                            <td>${escapeHtml(sub.planName || 'Monthly Pass')}</td>
+                            <td style="font-weight: 700;">₹${sub.amount !== undefined ? sub.amount : 0}</td>
+                            <td>
+                                <span class="status-badge ${isActive ? 'badge-active' : 'badge-expired'}">
+                                    ${isActive ? 'Active' : 'Expired'}
+                                </span>
+                            </td>
+                            <td>${expiresDateStr}</td>
+                            <td style="font-size: 12px; font-family: monospace; color: var(--text-muted);">
+                                ${escapeHtml(sub.razorpayPaymentId || sub.razorpayOrderId || 'Manual')}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error("Error loading subscribers:", err);
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--danger); padding: 30px;">Error: ${escapeHtml(err.message)}</td></tr>`;
+            }
         }
+
+        function handleSubSearch() {
+            clearTimeout(searchSubDebounceTimer);
+            searchSubDebounceTimer = setTimeout(() => loadSubscribers(1), 300);
+        }
+
+        function resetSubFilters() {
+            document.getElementById('searchSubInput').value = '';
+            document.getElementById('subSectionFilter').value = 'all';
+            document.getElementById('subStatusFilter').value = 'all';
+            loadSubscribers(1);
+        }
+
+        function changeSubPage(delta) {
+            const next = currentSubPage + delta;
+            if (next >= 1 && next <= totalSubPages) {
+                loadSubscribers(next);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadNotes(1);
+        });
     </script>
 </body>
 </html>

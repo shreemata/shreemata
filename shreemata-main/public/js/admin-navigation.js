@@ -11,6 +11,7 @@ const adminNavConfig = {
         { href: "/", icon: "🚪", text: "Public Site", id: "public-site", title: "Visit Public Site" },
         { href: "/admin.html", icon: "📚", text: "Books", id: "books", title: "Manage Books" },
         { href: "/admin-bundles.html", icon: "📦", text: "Bundles", id: "bundles", title: "Manage Bundles" },
+        { href: "/admin-notes.html", icon: "📖", text: "Study Material", id: "study-material", title: "Manage Study Material" },
         { href: "/admin-orders.html", icon: "🛒", text: "Orders", id: "orders", title: "Manage Orders" },
         { href: "/admin-check-payments.html", icon: "📋", text: "Cheque Payments", id: "cheque-payments", title: "Cheque Payment Approvals" },
         { href: "/admin-invoices.html", icon: "🧾", text: "Invoices", id: "invoices", title: "Manage Invoices" },
