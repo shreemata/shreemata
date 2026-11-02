@@ -1640,4 +1640,37 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
       expect(resPaid.status).toBe(401);
     });
   });
+
+  // =========================================================================
+  // SCENARIO 26: GET /:id viewCount Skipping for Guests (Defect 6)
+  // =========================================================================
+  describe('26. GET /:id viewCount guest vs logged-in (Defect 6)', () => {
+    it('skips increment for unauthenticated guests and keeps for logged-in users', async () => {
+      const noteItem = await Note.create({
+        section: 'notes',
+        title: 'ViewCount Counting Test Note',
+        pdfUrl: samplePdfKey,
+        isPublished: true,
+        isFree: true,
+        viewCount: 0,
+        uploadedBy: adminUser._id
+      });
+
+      // 1. Unauthenticated guest request -> viewCount should NOT increment
+      const guestRes = await client.get(`/api/notes/${noteItem._id}`);
+      expect(guestRes.status).toBe(200);
+
+      const afterGuestDoc = await Note.findById(noteItem._id).lean();
+      expect(afterGuestDoc.viewCount).toBe(0);
+
+      // 2. Logged-in user request -> viewCount increments by 1
+      const userRes = await client.get(`/api/notes/${noteItem._id}`, {
+        headers: { Authorization: `Bearer ${guestToken}` }
+      });
+      expect(userRes.status).toBe(200);
+
+      const afterUserDoc = await Note.findById(noteItem._id).lean();
+      expect(afterUserDoc.viewCount).toBe(1);
+    });
+  });
 });

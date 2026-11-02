@@ -475,7 +475,9 @@ router.get("/:id", optionalAuth, async (req, res) => {
       return res.status(404).json({ error: `Section ${note.section || 'notes'} is currently disabled` });
     }
 
-    await Note.findByIdAndUpdate(note._id, { $inc: { viewCount: 1 } });
+    if (req.user) {
+      await Note.findByIdAndUpdate(note._id, { $inc: { viewCount: 1 } });
+    }
 
     return res.json({
       success: true,
