@@ -362,38 +362,20 @@
         async function initializeReader() {
             // 1. Parameter presence check
             if (!noteId) {
-                showAccessDenied("Missing Document ID", "No study note was specified to read.", "Browse Notes Catalog", "/notes.html");
+                showAccessDenied("Missing Document ID", "No study note was specified to read.", "Browse Study Material", "/notes.html");
                 return;
             }
 
-            // 2. Authentication check
             const token = localStorage.getItem('token');
             const user = JSON.parse(localStorage.getItem('user') || 'null');
-
-            if (!token || !user) {
-                showAccessDenied(
-                    "Authentication Required",
-                    "Please log in with your Shree Mata account to access this study note.",
-                    "Log In to Continue",
-                    `/login.html?redirect=${encodeURIComponent(window.location.href)}`
-                );
-                return;
-            }
-
-            // Apply personalized watermark
-            const watermarkEl = document.getElementById('userWatermark');
-            if (watermarkEl) {
-                watermarkEl.textContent = `${user.email || user.name || 'Subscriber'} • ${new Date().toLocaleDateString('en-IN')}`;
-            }
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
             try {
-                // 3. Fetch Note Metadata
-                const metaRes = await fetch(`${window.API_URL}/notes/${noteId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                // 2. Fetch Note Metadata (accessible to guests if free or published)
+                const metaRes = await fetch(`${window.API_URL}/notes/${noteId}`, { headers });
 
                 if (metaRes.status === 404) {
-                    showAccessDenied("Document Not Found", "This note is no longer available or has been unpublished by administration.", "Back to Notes", "/notes.html");
+                    showAccessDenied("Document Not Found", "This item is no longer available or has been unpublished by administration.", "Back to Study Material", "/notes.html");
                     return;
                 }
 
@@ -407,17 +389,49 @@
                 document.getElementById('toolbarTitle').textContent = note.title;
                 document.getElementById('toolbarSubtitle').textContent = `${note.subject || 'Curriculum'} • ${note.classLevel || 'General'}`;
 
-                // 4. Fetch Protected Stream with Authorization Header
-                const streamRes = await fetch(`${window.API_URL}/notes/${noteId}/stream`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const isFree = !!note.isFree;
+
+                // 3. Authentication & subscription gating for paid items
+                if (!isFree && (!token || !user)) {
+                    showAccessDenied(
+                        "Authentication Required",
+                        "Please log in with an active subscription to access this study material.",
+                        "Log In to Continue",
+                        `/login.html?redirect=${encodeURIComponent(window.location.href)}`
+                    );
+                    return;
+                }
+
+                // 4. Set Watermark
+                const watermarkEl = document.getElementById('userWatermark');
+                if (watermarkEl) {
+                    if (user && (user.email || user.name)) {
+                        watermarkEl.textContent = `${user.email || user.name} • ${new Date().toLocaleDateString('en-IN')}`;
+                    } else {
+                        watermarkEl.textContent = `Guest Preview • ${new Date().toLocaleDateString('en-IN')}`;
+                    }
+                }
+
+                // 5. Fetch Protected Stream with Authorization Header if present
+                const streamRes = await fetch(`${window.API_URL}/notes/${noteId}/stream`, { headers });
+
+                if (streamRes.status === 401) {
+                    showAccessDenied(
+                        "Authentication Required",
+                        "Please log in to continue reading.",
+                        "Log In to Continue",
+                        `/login.html?redirect=${encodeURIComponent(window.location.href)}`
+                    );
+                    return;
+                }
 
                 if (streamRes.status === 403) {
+                    const sectionName = note.section === 'question_papers' ? 'Question Papers' : 'Notes';
                     showAccessDenied(
                         "Active Subscription Required",
-                        "Your READ NOTES subscription is either expired or inactive. Subscribe today for unlimited access to all digital study notes.",
+                        `Your ${sectionName} subscription is either expired or inactive. Subscribe today for unlimited access to this section.`,
                         "Subscribe / Renew Pass",
-                        "/notes.html#subscriptionHero"
+                        `/notes.html?section=${note.section || 'notes'}`
                     );
                     return;
                 }
@@ -426,7 +440,7 @@
                     throw new Error(`Failed to stream document (HTTP ${streamRes.status})`);
                 }
 
-                // 5. Parse and Render PDF in Canvas
+                // 6. Parse and Render PDF in Canvas
                 const blob = await streamRes.blob();
                 const arrayBuffer = await blob.arrayBuffer();
 
@@ -449,7 +463,7 @@
 
             } catch (err) {
                 console.error("Reader initialization error:", err);
-                showAccessDenied("Unable to Load Document", err.message || "An error occurred while loading document pages.", "Back to Notes", "/notes.html");
+                showAccessDenied("Unable to Load Document", err.message || "An error occurred while loading document pages.", "Back to Study Material", "/notes.html");
             }
         }
 
@@ -528,6 +542,9 @@
 
             document.getElementById('stateModal').style.display = 'flex';
         }
+
+        // Anti-piracy: disable right-click context menu
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
 
         // Keyboard Shortcut Navigation
         document.addEventListener('keydown', (e) => {

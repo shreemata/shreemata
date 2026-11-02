@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0F172A">
+    <title>Video Lecture Player — Shree Mata</title>
+    <link rel="icon" href="images/press.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+
+    <style>
+        :root {
+            --player-bg: #0b1120;
+            --card-bg: #1e293b;
+            --accent: #F68048;
+            --accent-hover: #e06d36;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-dark: #334155;
+            --radius-lg: 14px;
+            --radius-md: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: var(--player-bg);
+            color: var(--text-light);
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+        }
+
+        .player-header {
+            background-color: #0f172a;
+            border-bottom: 1px solid var(--border-dark);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 8px 14px;
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.08);
+            transition: background 0.2s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.16);
+        }
+
+        .player-container {
+            max-width: 1100px;
+            margin: 32px auto;
+            padding: 0 20px;
+        }
+
+        .video-viewport {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            background: #000;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-dark);
+        }
+
+        .video-viewport iframe,
+        .video-viewport video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+
+        .video-placeholder .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .video-placeholder h3 {
+            margin: 0 0 8px 0;
+            font-size: 20px;
+        }
+
+        .video-placeholder p {
+            color: var(--text-muted);
+            max-width: 480px;
+            margin: 0 0 20px 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .video-details {
+            background: var(--card-bg);
+            border: 1px solid var(--border-dark);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-top: 24px;
+        }
+
+        .meta-badges {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .badge-free {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .badge-paid {
+            background: #ede9fe;
+            color: #6d28d9;
+        }
+
+        .badge-info {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+        }
+
+        .video-title {
+            font-size: 22px;
+            font-weight: 800;
+            margin: 0 0 8px 0;
+            color: #fff;
+        }
+
+        .video-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin: 0 0 16px 0;
+        }
+
+        .video-desc {
+            font-size: 14.5px;
+            color: #cbd5e1;
+            line-height: 1.6;
+            white-space: pre-line;
+            border-top: 1px solid var(--border-dark);
+            padding-top: 16px;
+            margin-top: 16px;
+        }
+
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            background: var(--accent);
+            color: #fff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 700;
+            border-radius: var(--radius-md);
+            transition: background 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-action:hover {
+            background: var(--accent-hover);
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header class="player-header">
+        <a href="/notes.html?section=videos" class="back-btn">
+            <span>←</span> Back to Video Lectures
+        </a>
+        <div style="font-size: 14px; font-weight: 700; color: #fff;">
+            Shree Mata <span style="color: var(--accent);">Learning Portal</span>
+        </div>
+    </header>
+
+    <main class="player-container">
+        <!-- 16:9 Player Viewport -->
+        <div class="video-viewport" id="videoViewport">
+            <div class="video-placeholder" id="statePlaceholder">
+                <div class="spinner" id="stateSpinner"></div>
+                <div class="icon" id="stateIcon" style="display: none;">🔒</div>
+                <h3 id="stateTitle">Loading Video Lecture...</h3>
+                <p id="stateMessage">Connecting to secure stream servers...</p>
+                <div id="stateActionWrap" style="display: none;">
+                    <a href="/notes.html?section=videos" id="stateActionBtn" class="btn-action">Browse Videos</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Metadata Card -->
+        <div class="video-details" id="videoDetails" style="display: none;">
+            <div class="meta-badges">
+                <span class="badge" id="badgeAccess">Free Preview</span>
+                <span class="badge badge-info" id="badgeSubject">General</span>
+                <span class="badge badge-info" id="badgeClass">All Classes</span>
+                <span class="badge badge-info" id="badgeDuration" style="display: none;">0 mins</span>
+            </div>
+            <h1 class="video-title" id="videoTitle">Video Lecture</h1>
+            <p class="video-subtitle" id="videoSubtitle"></p>
+            <div class="video-desc" id="videoDescription" style="display: none;"></div>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const videoId = urlParams.get('id');
+
+        // Allowlisted video provider hosts
+        const ALLOWED_HOSTS = [
+            'iframe.mediadelivery.net',
+            'bunnycdn.com',
+            'bunny.net',
+            'player.vimeo.com',
+            'vimeo.com',
+            'www.youtube.com',
+            'youtube.com',
+            'www.youtube-nocookie.com',
+            'youtube-nocookie.com',
+            'youtu.be'
+        ];
+
+        function isHostAllowed(urlString) {
+            try {
+                const u = new URL(urlString);
+                if (u.protocol !== 'https:') return false;
+                const hostname = u.hostname.toLowerCase();
+                return ALLOWED_HOSTS.some(allowed => hostname === allowed || hostname.endsWith('.' + allowed));
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function showState(title, message, icon = '🔒', btnText = null, btnHref = null) {
+            document.getElementById('stateSpinner').style.display = 'none';
+            const iconEl = document.getElementById('stateIcon');
+            iconEl.textContent = icon;
+            iconEl.style.display = 'block';
+
+            document.getElementById('stateTitle').textContent = title;
+            document.getElementById('stateMessage').textContent = message;
+
+            const actionWrap = document.getElementById('stateActionWrap');
+            const actionBtn = document.getElementById('stateActionBtn');
+            if (btnText && btnHref) {
+                actionBtn.textContent = btnText;
+                actionBtn.href = btnHref;
+                actionWrap.style.display = 'block';
+            } else {
+                actionWrap.style.display = 'none';
+            }
+            document.getElementById('statePlaceholder').style.display = 'flex';
+        }
+
+        async function initializePlayer() {
+            if (!videoId) {
+                showState("Missing Video ID", "No video lecture was selected.", "⚠️", "Browse Videos", "/notes.html?section=videos");
+                return;
+            }
+
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+            try {
+                // 1. Fetch Metadata
+                const metaRes = await fetch(`${window.API_URL}/notes/${videoId}`, { headers });
+                if (metaRes.status === 404) {
+                    showState("Video Not Found", "This video lecture is not available or has been unpublished.", "⚠️", "Back to Catalog", "/notes.html?section=videos");
+                    return;
+                }
+                if (!metaRes.ok) {
+                    throw new Error("Unable to retrieve video information");
+                }
+
+                const metaData = await metaRes.json();
+                const note = metaData.note;
+
+                // Populate Details
+                document.getElementById('videoTitle').textContent = note.title;
+                document.getElementById('videoSubtitle').textContent = `${note.subject || 'General'} • ${note.classLevel || 'All Levels'}`;
+                document.getElementById('badgeSubject').textContent = note.subject || 'Curriculum';
+                document.getElementById('badgeClass').textContent = note.classLevel || 'All Classes';
+
+                const badgeAccess = document.getElementById('badgeAccess');
+                if (note.isFree) {
+                    badgeAccess.className = 'badge badge-free';
+                    badgeAccess.textContent = 'Free Preview';
+                } else {
+                    badgeAccess.className = 'badge badge-paid';
+                    badgeAccess.textContent = 'Premium Video';
+                }
+
+                if (note.durationMinutes) {
+                    const badgeDur = document.getElementById('badgeDuration');
+                    badgeDur.textContent = `⏱️ ${note.durationMinutes} mins`;
+                    badgeDur.style.display = 'inline-flex';
+                }
+
+                if (note.description) {
+                    const descEl = document.getElementById('videoDescription');
+                    descEl.textContent = note.description;
+                    descEl.style.display = 'block';
+                }
+
+                document.getElementById('videoDetails').style.display = 'block';
+
+                // Gating check for paid video if not logged in
+                if (!note.isFree && (!token || !user)) {
+                    showState(
+                        "Authentication Required",
+                        "Please log in with an active Video Lectures subscription to watch this lecture.",
+                        "🔒",
+                        "Log In to Continue",
+                        `/login.html?redirect=${encodeURIComponent(window.location.href)}`
+                    );
+                    return;
+                }
+
+                // 2. Fetch Media Playback URL
+                const mediaRes = await fetch(`${window.API_URL}/notes/${videoId}/media-url`, { headers });
+
+                if (mediaRes.status === 401) {
+                    showState(
+                        "Authentication Required",
+                        "Please log in to watch this video lecture.",
+                        "🔒",
+                        "Log In to Continue",
+                        `/login.html?redirect=${encodeURIComponent(window.location.href)}`
+                    );
+                    return;
+                }
+
+                if (mediaRes.status === 403) {
+                    showState(
+                        "Active Subscription Required",
+                        "Your Video Lectures subscription is inactive or expired. Subscribe to unlock all curated video lectures.",
+                        "👑",
+                        "View Subscription Plans",
+                        "/notes.html?section=videos"
+                    );
+                    return;
+                }
+
+                if (!mediaRes.ok) {
+                    throw new Error(`Failed to retrieve stream URL (HTTP ${mediaRes.status})`);
+                }
+
+                const mediaData = await mediaRes.json();
+                const videoUrl = mediaData.url;
+                const provider = mediaData.provider;
+
+                if (!videoUrl) {
+                    showState("Video Unavailable", "No playback URL has been configured for this lecture.", "⚠️", "Back to Catalog", "/notes.html?section=videos");
+                    return;
+                }
+
+                // 3. Render appropriate playback element
+                const viewport = document.getElementById('videoViewport');
+
+                if (provider === 'hls' || videoUrl.includes('.m3u8')) {
+                    // Check if native HLS is supported by the browser video tag
+                    const testVideo = document.createElement('video');
+                    const canPlayHls = testVideo.canPlayType('application/vnd.apple.mpegurl');
+
+                    if (canPlayHls) {
+                        document.getElementById('statePlaceholder').style.display = 'none';
+                        const videoEl = document.createElement('video');
+                        videoEl.src = videoUrl;
+                        videoEl.controls = true;
+                        videoEl.autoplay = false;
+                        videoEl.playsInline = true;
+                        videoEl.style.width = '100%';
+                        videoEl.style.height = '100%';
+                        viewport.appendChild(videoEl);
+                    } else {
+                        showState(
+                            "Mobile App Recommended",
+                            "HLS video streaming is optimized for the Shree Mata mobile app. Playback in web browser is coming soon.",
+                            "📱",
+                            "Back to Videos",
+                            "/notes.html?section=videos"
+                        );
+                    }
+                    return;
+                }
+
+                // Security check on video embed URL: must be HTTPS and in allowed host list
+                if (!isHostAllowed(videoUrl)) {
+                    showState(
+                        "Playback Restricted",
+                        "The video stream URL uses an unsupported or untrusted provider domain.",
+                        "⚠️",
+                        "Back to Videos",
+                        "/notes.html?section=videos"
+                    );
+                    return;
+                }
+
+                // Embed secure iframe with sandbox and referrerpolicy
+                document.getElementById('statePlaceholder').style.display = 'none';
+                const iframe = document.createElement('iframe');
+                iframe.src = videoUrl;
+                iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-presentation');
+                iframe.setAttribute('referrerpolicy', 'no-referrer');
+                iframe.setAttribute('allow', 'fullscreen; encrypted-media; picture-in-picture');
+                iframe.setAttribute('allowfullscreen', 'true');
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = 'none';
+                viewport.appendChild(iframe);
+
+            } catch (err) {
+                console.error("Player error:", err);
+                showState("Unable to Play Video", err.message || "An unexpected error occurred.", "⚠️", "Back to Catalog", "/notes.html?section=videos");
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initializePlayer);
+    </script>
+</body>
+</html>

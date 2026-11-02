@@ -428,12 +428,52 @@
     }
 
     // Initialize on DOMContentLoaded or immediately if already loaded
+    // ── 8. DIGITAL STUDY MATERIAL FEATURE FLAG GATING ──
+    async function updateFeaturesNav() {
+        try {
+            const apiBase = (typeof API_URL !== 'undefined') ? API_URL : '/api';
+            const res = await fetch(`${apiBase}/features`);
+            if (!res.ok) return;
+            const data = await res.json();
+            const f = data.features || {};
+            const digitalEnabled = !!(f.readNotes || f.questionPapers || f.videos);
+
+            if (digitalEnabled) {
+                // Desktop header nav
+                const navLinks = document.querySelector('.header-nav-links');
+                if (navLinks && !document.getElementById('navStudyMaterial')) {
+                    const link = document.createElement('a');
+                    link.id = 'navStudyMaterial';
+                    link.href = '/notes.html';
+                    link.className = 'nav-item-link';
+                    link.textContent = 'Study Material';
+                    navLinks.appendChild(link);
+                }
+
+                // Mobile drawer nav
+                const drawerNav = document.querySelector('.drawer-nav');
+                if (drawerNav && !document.getElementById('drawerNavStudyMaterial')) {
+                    const dLink = document.createElement('a');
+                    dLink.id = 'drawerNavStudyMaterial';
+                    dLink.href = '/notes.html';
+                    dLink.className = 'drawer-link';
+                    dLink.textContent = '📖 Study Material';
+                    drawerNav.appendChild(dLink);
+                }
+            }
+        } catch (err) {
+            // Silent fallback preserves existing navbar layout
+        }
+    }
+
+    // Initialize on DOMContentLoaded or immediately if already loaded
     function bootstrap() {
         updateGlobalNavbarAuth();
         updateGlobalCartCount();
         initAccountDropdown();
         initMobileDrawer();
         initGlobalEventListeners();
+        updateFeaturesNav();
     }
 
     if (document.readyState === "loading") {

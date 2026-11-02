@@ -4,18 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#102A43">
-    <title>READ NOTES — Digital Study Notes & Formula Sheets | Shree Mata</title>
-    <meta name="description" content="Access curriculum study notes, formula sheets, and question banks online with a monthly READ NOTES subscription at Shree Mata.">
+    <title>Study Material & Digital Learning — Shree Mata</title>
+    <meta name="description" content="Access curriculum study notes, question papers, and video lectures online with Shree Mata subscriptions.">
     <link rel="icon" href="images/press.png" type="image/png">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
 
     <!-- Core Styles -->
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/home-3d.css">
     <style>
         :root {
             --brand-navy: #102A43;
@@ -27,509 +26,437 @@
             --card-border: #E2E8F0;
             --text-dark: #0F172A;
             --text-muted: #64748B;
+            --radius-lg: 14px;
+            --radius-md: 8px;
         }
 
         body {
             background-color: var(--brand-bg);
             color: var(--text-dark);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
             margin: 0;
             padding: 0;
         }
 
-        /* Hero Subscription Banner */
+        /* Hero Banner */
         .notes-hero {
             background: linear-gradient(135deg, #102A43 0%, #1e3a5f 100%);
             color: #ffffff;
-            padding: 56px 0 44px;
+            padding: 48px 0 36px;
             position: relative;
-            overflow: hidden;
             box-shadow: 0 4px 20px rgba(16, 42, 67, 0.15);
         }
 
-        .notes-hero::after {
-            content: "";
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, rgba(246, 128, 72, 0.18) 0%, transparent 70%);
-            pointer-events: none;
-        }
-
-        .hero-inner {
-            display: grid;
-            grid-template-columns: 1.4fr 1fr;
-            gap: 36px;
-            align-items: center;
-        }
-
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(246, 128, 72, 0.2);
-            border: 1px solid rgba(246, 128, 72, 0.4);
-            color: #FFA573;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 14px;
-        }
-
-        .hero-title {
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 38px;
-            line-height: 1.2;
-            margin: 0 0 14px;
-            color: #ffffff;
-        }
-
-        .hero-desc {
-            font-size: 16px;
-            line-height: 1.6;
-            color: #CBD5E1;
-            margin: 0 0 20px;
-        }
-
-        .distinction-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.16);
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            color: #E2E8F0;
-        }
-
-        /* Subscription Card */
-        .subscription-box {
-            background: #ffffff;
-            color: var(--text-dark);
-            border-radius: 16px;
-            padding: 28px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-            border: 2px solid rgba(246, 128, 72, 0.3);
-            text-align: center;
-        }
-
-        .plan-header {
-            font-size: 14px;
+        .notes-hero h1 {
+            font-size: 32px;
             font-weight: 800;
-            color: var(--brand-orange);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-bottom: 8px;
+            margin: 0 0 10px 0;
+            letter-spacing: -0.5px;
         }
 
-        .plan-price {
-            font-size: 42px;
-            font-weight: 800;
-            color: var(--brand-navy);
-            line-height: 1;
-            margin-bottom: 4px;
-        }
-
-        .plan-price span {
+        .notes-hero p {
+            color: #94a3b8;
             font-size: 16px;
-            font-weight: 600;
-            color: var(--text-muted);
+            margin: 0;
+            max-width: 600px;
         }
 
-        .plan-subtitle {
-            font-size: 13.5px;
-            color: var(--text-muted);
-            margin-bottom: 20px;
-        }
-
-        .plan-perks {
-            text-align: left;
-            margin: 0 0 22px;
-            padding: 0;
-            list-style: none;
+        /* Section Navigation Tabs */
+        .section-tabs-wrap {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-            font-size: 13.5px;
+            gap: 12px;
+            margin-top: 28px;
+            flex-wrap: wrap;
         }
 
-        .plan-perks li {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #334155;
-        }
-
-        .plan-perks li span {
-            color: var(--brand-orange);
-            font-weight: bold;
-        }
-
-        .btn-subscribe {
-            width: 100%;
-            padding: 14px 20px;
-            background: linear-gradient(135deg, #F68048 0%, #e06d36 100%);
+        .section-tab-btn {
+            background: rgba(255, 255, 255, 0.1);
             color: #ffffff;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 22px;
+            border-radius: 30px;
+            font-size: 14.5px;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(246, 128, 72, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-tab-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .section-tab-btn.active {
+            background: var(--brand-orange);
+            border-color: var(--brand-orange);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(246, 128, 72, 0.35);
+        }
+
+        /* Subscription Action Bar */
+        .subscription-plan-card {
+            background: #ffffff;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            margin: 28px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        }
+
+        .plan-info h3 {
+            margin: 0 0 4px 0;
+            font-size: 18px;
+            color: var(--brand-navy);
+        }
+
+        .plan-info p {
+            margin: 0;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .plan-price-tag {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--brand-navy);
+        }
+
+        .plan-price-tag span {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .btn-subscribe {
+            background: var(--brand-orange);
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn-subscribe:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(246, 128, 72, 0.4);
+            background: var(--brand-orange-hover);
+            transform: translateY(-1px);
         }
 
-        .btn-subscribe:disabled {
-            background: #94A3B8;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .sub-active-banner {
-            background: #ECFDF5;
-            border: 2px solid #10B981;
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
-            color: #065F46;
+        .subscribed-badge {
+            background: #dcfce7;
+            color: #15803d;
+            padding: 10px 20px;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* Filter Toolbar */
-        .catalog-container {
-            max-width: 1200px;
-            margin: 36px auto 60px;
-            padding: 0 20px;
-        }
-
-        .toolbar-box {
-            background: #ffffff;
-            border: 1px solid var(--card-border);
-            border-radius: 14px;
-            padding: 18px 24px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        .filter-toolbar {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr auto;
-            gap: 14px;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 12px;
+            margin-bottom: 24px;
             align-items: center;
-            margin-bottom: 28px;
         }
 
-        .input-control {
+        .form-control {
             width: 100%;
             padding: 10px 14px;
-            border: 1px solid var(--card-border);
-            border-radius: 8px;
             font-size: 14px;
-            font-family: inherit;
-            box-sizing: border-box;
-        }
-
-        .input-control:focus {
-            outline: none;
-            border-color: var(--brand-orange);
-            box-shadow: 0 0 0 3px rgba(246, 128, 72, 0.15);
-        }
-
-        /* Notes Grid */
-        .notes-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-            gap: 24px;
-        }
-
-        .note-card {
-            background: #ffffff;
-            border-radius: 14px;
             border: 1px solid var(--card-border);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            border-radius: var(--radius-md);
+            background: #fff;
+            color: var(--text-dark);
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--brand-orange);
+        }
+
+        /* Catalog Grid */
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .item-card {
+            background: #ffffff;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
-        .note-card:hover {
+        .item-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
         }
 
-        .note-card-top {
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-            padding: 24px;
-            text-align: center;
-            position: relative;
-        }
-
-        .note-icon-wrap {
-            width: 60px;
-            height: 60px;
-            background: #ffffff;
-            border-radius: 12px;
-            display: inline-flex;
+        .card-cover {
+            height: 160px;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 30px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+            position: relative;
+            overflow: hidden;
         }
 
-        .note-badge {
+        .card-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-cover .cover-icon {
+            font-size: 56px;
+            opacity: 0.8;
+        }
+
+        .card-access-badge {
             position: absolute;
             top: 12px;
-            left: 12px;
-            background: #ffffff;
-            color: #334155;
-            padding: 4px 8px;
+            right: 12px;
+            padding: 4px 10px;
             border-radius: 6px;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 700;
-            border: 1px solid #e2e8f0;
         }
 
-        .note-card-body {
-            padding: 20px;
+        .badge-free {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .badge-paid {
+            background: #ede9fe;
+            color: #6d28d9;
+        }
+
+        .card-body {
+            padding: 18px 20px;
             display: flex;
             flex-direction: column;
             flex-grow: 1;
         }
 
-        .note-card-title {
-            font-size: 17px;
-            font-weight: 700;
-            color: var(--brand-navy);
-            margin: 0 0 6px;
-            line-height: 1.35;
-        }
-
-        .note-card-subject {
-            font-size: 13px;
+        .card-meta {
+            font-size: 12px;
             font-weight: 600;
             color: var(--brand-orange);
-            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
         }
 
-        .note-card-desc {
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--brand-navy);
+            margin: 0 0 8px 0;
+            line-height: 1.4;
+        }
+
+        .card-desc {
             font-size: 13px;
             color: var(--text-muted);
+            margin: 0 0 16px 0;
             line-height: 1.5;
-            margin: 0 0 16px;
-            flex-grow: 1;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
-        .note-card-meta {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            color: #94A3B8;
-            padding-top: 12px;
+        .card-footer {
+            margin-top: auto;
             border-top: 1px solid #f1f5f9;
-            margin-bottom: 16px;
+            padding-top: 14px;
         }
 
-        .btn-read {
+        .btn-card {
             width: 100%;
-            padding: 10px;
-            background: #102A43;
-            color: #ffffff;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            font-size: 13.5px;
             font-weight: 700;
-            cursor: pointer;
             text-align: center;
             text-decoration: none;
-            transition: background 0.2s ease;
-            display: inline-block;
-            box-sizing: border-box;
-        }
-
-        .btn-read:hover {
-            background: #243B53;
-        }
-
-        .btn-lock {
-            width: 100%;
-            padding: 10px;
-            background: #f1f5f9;
-            color: #475569;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: none;
             cursor: pointer;
-            text-align: center;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
         }
 
-        .btn-lock:hover {
-            background: #e2e8f0;
-            color: #1e293b;
+        .btn-card-free {
+            background: #10b981;
+            color: #ffffff;
         }
 
-        /* Empty / Error States */
-        .state-placeholder {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-muted);
-            grid-column: 1 / -1;
+        .btn-card-free:hover {
+            background: #059669;
         }
 
-        .state-placeholder h3 {
-            font-size: 20px;
+        .btn-card-unlocked {
+            background: var(--brand-navy);
+            color: #ffffff;
+        }
+
+        .btn-card-unlocked:hover {
+            background: var(--brand-navy-light);
+        }
+
+        .btn-card-locked {
+            background: #f1f5f9;
             color: var(--brand-navy);
-            margin-bottom: 8px;
+            border: 1px solid var(--card-border);
         }
 
-        /* Pagination */
+        .btn-card-locked:hover {
+            background: #e2e8f0;
+        }
+
+        /* Coming soon state */
+        .coming-soon-box {
+            text-align: center;
+            padding: 80px 20px;
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        }
+
+        .coming-soon-box .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .coming-soon-box h2 {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--brand-navy);
+            margin: 0 0 12px 0;
+        }
+
+        .coming-soon-box p {
+            color: var(--text-muted);
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 0 0 24px 0;
+        }
+
         .pagination-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 32px;
-            padding-top: 20px;
+            margin-bottom: 60px;
+            padding-top: 16px;
             border-top: 1px solid var(--card-border);
         }
 
-        @media (max-width: 900px) {
-            .hero-inner {
+        @media (max-width: 768px) {
+            .filter-toolbar {
                 grid-template-columns: 1fr;
             }
-            .toolbar-box {
-                grid-template-columns: 1fr;
+            .subscription-plan-card {
+                flex-direction: column;
+                align-items: flex-start;
             }
         }
     </style>
 </head>
 <body>
-
-    <!-- 1. TOP ANNOUNCEMENT BAR -->
-    <div class="top-announcement-bar" role="region" aria-label="Store Announcement">
-        <div class="container">
-            <div class="top-bar-left">
-                <span class="live-dot" aria-hidden="true"></span>
-                <span class="announcement-text">📚 READ NOTES Digital Hub — Unlimited curriculum study notes on all your devices.</span>
-            </div>
-            <div class="top-bar-right">
-                <a href="/" class="top-bar-link">🏠 Physical Book Store</a>
-                <a href="/orders.html" class="top-bar-link">📦 My Orders</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- 2. MAIN HEADER -->
+    <!-- Global Header Placeholder -->
     <header class="main-header" role="banner">
         <div class="container">
-            <div class="header-inner">
-                <a href="/" class="brand-logo" aria-label="Shree Mata Home">
-                    <img src="images/press.png" alt="Shree Mata Logo" width="44" height="44">
-                    <div class="brand-text">
-                        <span class="brand-title">Shree Mata</span>
-                        <span class="brand-sub">Disseminating Knowledge</span>
+            <div class="header-inner" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0;">
+                <a href="/" class="brand-logo" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit;">
+                    <img src="images/press.png" alt="Shree Mata" width="40" height="40">
+                    <div>
+                        <strong style="font-size: 18px; color: var(--brand-navy); display: block;">Shree Mata</strong>
+                        <span style="font-size: 12px; color: var(--text-muted);">Learning Portal</span>
                     </div>
                 </a>
-
-                <nav class="header-nav-links" aria-label="Primary Navigation">
-                    <a href="/#booksSection" class="nav-item-link">Books</a>
-                    <a href="/#subjectSection" class="nav-item-link">Categories</a>
-                    <a href="/notes.html" class="nav-item-link active" style="color: #F68048; font-weight: 700;">Read Notes</a>
-                    <a href="/#notificationsSection" class="nav-item-link">Offers</a>
+                <nav class="header-nav-links" style="display: flex; gap: 18px; align-items: center;">
+                    <a href="/" class="nav-item-link" style="color: var(--brand-navy); font-weight: 600; text-decoration: none;">Books</a>
+                    <a href="/cart.html" class="nav-item-link" style="color: var(--brand-navy); font-weight: 600; text-decoration: none;">Cart (<span id="cartCount">0</span>)</a>
                 </nav>
-
-                <div class="header-actions">
-                    <div id="authLinks" class="auth-group">
-                        <a href="/login.html" class="btn-login"><span class="btn-login-text">Log In</span></a>
-                        <a href="/signup.html" class="btn-signup">Sign Up</a>
-                    </div>
-
-                    <div id="userLinks" class="user-nav-wrap" style="display: none;">
-                        <button type="button" class="user-name-badge" id="userMenuBtn">
-                            <span class="user-avatar-icon">👤</span>
-                            <span id="userName" class="user-name-text">Account</span>
-                        </button>
-                    </div>
-
-                    <a href="/cart.html" id="cartLink" class="btn-cart-header" title="Shopping Cart">
-                        <span aria-hidden="true">🛒</span>
-                        <span class="cart-text">Cart</span>
-                        <span id="cartCount" class="cart-count-badge">0</span>
-                    </a>
-                </div>
             </div>
         </div>
     </header>
 
-    <!-- 3. HERO & SUBSCRIPTION SECTION -->
-    <section class="notes-hero" id="subscriptionHero">
+    <!-- Hero Section -->
+    <section class="notes-hero">
         <div class="container">
-            <div class="hero-inner">
-                <div>
-                    <span class="hero-badge">📖 Shree Mata READ NOTES</span>
-                    <h1 class="hero-title">Curriculum Notes, Formula Sheets & Solved Questions Online.</h1>
-                    <p class="hero-desc">
-                        Read verified academic study notes prepared by expert faculty directly in your browser. Complete chapter-wise revision for board exams and competitive preparation.
-                    </p>
-                    <div class="distinction-pill">
-                        <span>ℹ️</span>
-                        <span><strong>Digital Pass:</strong> 1-month prepaid online access. No physical textbook shipping required. No auto-debit renewal.</span>
-                    </div>
-                </div>
+            <h1 id="heroTitle">Study Material & Digital Learning</h1>
+            <p id="heroSubtitle">Explore curriculum notes, question papers, and curated video lectures</p>
 
-                <!-- Dynamic Subscription Card -->
-                <div class="subscription-box" id="subscriptionCard">
-                    <div class="plan-header">Monthly Digital Pass</div>
-                    <div class="plan-price">
-                        <span style="font-size: 26px; color: var(--brand-navy);">₹</span><span id="monthlyPriceDisplay">--</span><span> / month</span>
-                    </div>
-                    <div class="plan-subtitle" id="planDescriptionText">
-                        Unlimited online reading on phone, tablet, and PC
-                    </div>
-
-                    <ul class="plan-perks">
-                        <li><span>✓</span> Full access to all published study notes</li>
-                        <li><span>✓</span> Formula sheets, chapter summaries & solutions</li>
-                        <li><span>✓</span> Distraction-free protected online reader</li>
-                        <li><span>✓</span> Valid for 1 full calendar month (prepaid)</li>
-                    </ul>
-
-                    <div id="subscriptionActionWrap">
-                        <button type="button" id="subscribeBtn" class="btn-subscribe" onclick="handleSubscribeClick()">
-                            Subscribe for ₹<span id="btnPriceDisplay">--</span>
-                        </button>
-                    </div>
-
-                    <div id="activeSubscriberWrap" style="display: none;" class="sub-active-banner">
-                        <div style="font-size: 15px; font-weight: 800; margin-bottom: 4px;">🎉 Active Subscription</div>
-                        <div style="font-size: 13px;" id="activeExpiryText">Valid until --</div>
-                    </div>
-                </div>
-            </div>
+            <!-- Dynamic Section Tabs -->
+            <div class="section-tabs-wrap" id="sectionTabsWrap" style="display: none;"></div>
         </div>
     </section>
 
-    <!-- 4. CATALOG BROWSING & FILTERS -->
-    <main class="catalog-container">
-        <!-- Filter Toolbar -->
-        <div class="toolbar-box">
-            <div>
-                <input type="search" id="catalogSearch" class="input-control" placeholder="🔍 Search notes by title, subject, chapter..." oninput="handleCatalogSearch()">
+    <!-- Main Content Container -->
+    <main class="container" style="padding-top: 24px;">
+        <!-- Coming Soon Box (shown when all digital flags are false) -->
+        <div class="coming-soon-box" id="comingSoonBox" style="display: none;">
+            <div class="icon">🎓</div>
+            <h2>Study Material Coming Soon</h2>
+            <p>We are currently assembling complete chapter study notes, solved question papers, and video lectures. Please check back shortly or explore our printed textbooks in the meantime.</p>
+            <a href="/" class="btn-subscribe" style="text-decoration: none;">Browse Text Books</a>
+        </div>
+
+        <!-- Digital Portal Content (shown when at least one section is active) -->
+        <div id="portalContent" style="display: none;">
+            <!-- Subscription Plan Banner -->
+            <div class="subscription-plan-card" id="planBanner" style="display: none;">
+                <div class="plan-info">
+                    <h3 id="planTitle">Digital Subscription Pass</h3>
+                    <p id="planDesc">Unlimited reading and streaming access</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div class="plan-price-tag" id="planPriceWrap">
+                        ₹<span id="planPrice">299</span> <span>/ <span id="planDays">30</span> days</span>
+                    </div>
+                    <div id="planActionWrap">
+                        <button class="btn-subscribe" id="planSubscribeBtn" onclick="handleSubscribe()">
+                            <span>⚡</span> Subscribe to Unlock
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div>
-                <select id="classFilter" class="input-control" onchange="loadCatalog(1)">
+
+            <!-- Filter Toolbar -->
+            <div class="filter-toolbar">
+                <input type="text" id="searchInput" class="form-control" placeholder="🔍 Search by topic, subject..." oninput="handleSearch()">
+                <select id="classFilter" class="form-control" onchange="loadCatalog(1)">
                     <option value="">All Class Levels</option>
                     <option value="Class 10">Class 10</option>
                     <option value="Class 11">Class 11</option>
@@ -537,184 +464,264 @@
                     <option value="Graduation">Graduation</option>
                     <option value="Competitive Exams">Competitive Exams</option>
                 </select>
-            </div>
-            <div>
-                <select id="categoryFilter" class="input-control" onchange="loadCatalog(1)">
+                <select id="categoryFilter" class="form-control" onchange="loadCatalog(1)">
                     <option value="">All Categories</option>
                     <option value="Study Notes">Study Notes</option>
                     <option value="Question Bank">Question Bank</option>
+                    <option value="Video Lectures">Video Lectures</option>
                     <option value="Formula Sheet">Formula Sheet</option>
-                    <option value="Summary Notes">Summary Notes</option>
                 </select>
+                <select id="accessFilter" class="form-control" onchange="loadCatalog(1)">
+                    <option value="all">All Items</option>
+                    <option value="true">Free Preview Only</option>
+                    <option value="false">Premium Only</option>
+                </select>
+                <button class="form-control" style="cursor: pointer; background: #fff;" onclick="resetFilters()">Reset</button>
             </div>
-            <div>
-                <button type="button" class="btn-lock" style="padding: 10px 16px;" onclick="resetCatalogFilters()">Reset</button>
-            </div>
-        </div>
 
-        <!-- Notes Grid Container -->
-        <div class="notes-grid" id="notesGrid">
-            <div class="state-placeholder">
-                <p>Loading digital study notes catalog...</p>
+            <!-- Items Grid -->
+            <div class="items-grid" id="itemsGrid">
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+                    Loading items...
+                </div>
             </div>
-        </div>
 
-        <!-- Pagination Controls -->
-        <div class="pagination-bar" id="paginationBar" style="display: none;">
-            <span id="paginationLabel" style="font-size: 13px; color: var(--text-muted);">Page 1 of 1</span>
-            <div style="display: flex; gap: 8px;">
-                <button type="button" id="prevPageBtn" class="btn-lock" style="padding: 8px 14px;" onclick="stepPage(-1)" disabled>← Previous</button>
-                <button type="button" id="nextPageBtn" class="btn-lock" style="padding: 8px 14px;" onclick="stepPage(1)" disabled>Next →</button>
+            <div id="emptyCatalogState" style="text-align: center; padding: 60px 20px; display: none; color: var(--text-muted);">
+                <h3>📚 No Items Found</h3>
+                <p>No content items matched your search filter in this section.</p>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="pagination-bar" id="paginationBar">
+                <span id="paginationInfo" style="font-size: 14px; color: var(--text-muted);">Page 1 of 1</span>
+                <div style="display: flex; gap: 8px;">
+                    <button class="form-control" style="width: auto; cursor: pointer;" id="prevPageBtn" onclick="changePage(-1)" disabled>Previous</button>
+                    <button class="form-control" style="width: auto; cursor: pointer;" id="nextPageBtn" onclick="changePage(1)" disabled>Next</button>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- 5. FOOTER -->
-    <footer style="background: #102A43; color: #ffffff; padding: 36px 0; margin-top: 60px;">
-        <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-            <div>
-                <p style="margin: 0 0 6px; font-weight: 700;">Shree Mata — Disseminating Knowledge</p>
-                <p style="margin: 0; font-size: 13px; color: #94A3B8;">&copy; 2026 Shree Mata. All rights reserved. | Empower Us. We Empower You.</p>
-            </div>
-            <div>
-                <a href="tel:+919845163604" style="color: #F68048; text-decoration: none; font-weight: 600; font-size: 14px;">📞 +91 98451 63604</a>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Scripts -->
+    <!-- Razorpay Checkout SDK -->
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script src="js/config.js"></script>
     <script src="js/global-nav.js"></script>
 
     <script>
-        // State
-        let activeConfig = { monthlyPrice: 99, enabled: true, description: '' };
-        let userSubscription = null;
+        let currentSection = 'notes';
+        let enabledSections = [];
+        let sectionPlan = null;
+        let isUserSubscribed = false;
+        let subscriptionDetails = null;
         let currentPage = 1;
         let totalPages = 1;
-        let searchDebounce = null;
-        let isPurchasing = false;
+        let searchTimer = null;
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            await Promise.all([
-                loadPricing(),
-                checkUserSubscription(),
-                loadCatalog(1)
-            ]);
-        });
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
 
-        function formatFileSize(bytes) {
-            if (!bytes || bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
         }
 
-        async function loadPricing() {
+        // Initialize features and tabs
+        async function initPage() {
             try {
-                const res = await fetch(`${window.API_URL}/subscriptions/pricing`);
-                if (!res.ok) throw new Error("Could not fetch pricing");
+                const res = await fetch(`${window.API_URL}/features`);
+                if (!res.ok) throw new Error("Failed to load feature configuration");
                 const data = await res.json();
-                if (data.pricing) {
-                    activeConfig = data.pricing;
-                    document.getElementById('monthlyPriceDisplay').textContent = activeConfig.monthlyPrice;
-                    document.getElementById('btnPriceDisplay').textContent = activeConfig.monthlyPrice;
-                    if (activeConfig.description) {
-                        document.getElementById('planDescriptionText').textContent = activeConfig.description;
-                    }
-                    if (!activeConfig.enabled) {
-                        const btn = document.getElementById('subscribeBtn');
-                        btn.disabled = true;
-                        btn.textContent = "Subscriptions Temporarily Paused";
-                    }
+                const features = data.features || {};
+
+                enabledSections = [];
+                if (features.readNotes) enabledSections.push('notes');
+                if (features.questionPapers) enabledSections.push('question_papers');
+                if (features.videos) enabledSections.push('videos');
+
+                if (enabledSections.length === 0) {
+                    document.getElementById('comingSoonBox').style.display = 'block';
+                    document.getElementById('portalContent').style.display = 'none';
+                    return;
                 }
+
+                // Check URL parameter for requested section
+                const urlParams = new URLSearchParams(window.location.search);
+                const reqSec = urlParams.get('section');
+                if (reqSec && enabledSections.includes(reqSec)) {
+                    currentSection = reqSec;
+                } else {
+                    currentSection = enabledSections[0];
+                }
+
+                renderSectionTabs();
+                document.getElementById('portalContent').style.display = 'block';
+
+                await switchSection(currentSection);
+
             } catch (err) {
-                console.error("Pricing fetch error:", err);
+                console.error("Initialization error:", err);
+                document.getElementById('comingSoonBox').style.display = 'block';
             }
         }
 
-        async function checkUserSubscription() {
-            const token = localStorage.getItem('token');
-            if (!token) return;
+        function renderSectionTabs() {
+            const tabsWrap = document.getElementById('sectionTabsWrap');
+            tabsWrap.innerHTML = '';
 
+            const tabConfig = {
+                notes: { icon: '📖', label: 'Study Notes' },
+                question_papers: { icon: '📝', label: 'Question Papers' },
+                videos: { icon: '🎥', label: 'Video Lectures' }
+            };
+
+            enabledSections.forEach(sec => {
+                const conf = tabConfig[sec] || { icon: '📄', label: sec };
+                const btn = document.createElement('button');
+                btn.className = 'section-tab-btn ' + (sec === currentSection ? 'active' : '');
+                btn.innerHTML = `<span>${conf.icon}</span> <span>${conf.label}</span>`;
+                btn.onclick = () => switchSection(sec);
+                tabsWrap.appendChild(btn);
+            });
+
+            tabsWrap.style.display = 'flex';
+        }
+
+        async function switchSection(sec) {
+            currentSection = sec;
+
+            // Update tab UI
+            document.querySelectorAll('.section-tab-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', enabledSections[idx] === sec);
+            });
+
+            // Update URL without reload
+            const url = new URL(window.location);
+            url.searchParams.set('section', sec);
+            window.history.replaceState({}, '', url);
+
+            // Fetch pricing & user subscription status for this section
+            await Promise.all([loadPricing(sec), checkUserSubscription(sec)]);
+
+            // Load catalog
+            loadCatalog(1);
+        }
+
+        async function loadPricing(sec) {
             try {
-                const res = await fetch(`${window.API_URL}/subscriptions/my-status`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!res.ok) return;
-
-                const data = await res.json();
-                if (data.hasActiveSubscription && data.subscription) {
-                    userSubscription = data.subscription;
-                    const expiryDate = new Date(userSubscription.expiresAt).toLocaleDateString('en-IN', {
-                        day: 'numeric', month: 'short', year: 'numeric'
-                    });
-                    document.getElementById('subscriptionActionWrap').style.display = 'none';
-                    document.getElementById('activeSubscriberWrap').style.display = 'block';
-                    document.getElementById('activeExpiryText').textContent = `Access valid until ${expiryDate} (${userSubscription.daysRemaining} days left)`;
+                const res = await fetch(`${window.API_URL}/subscriptions/pricing?section=${sec}`);
+                if (!res.ok) {
+                    document.getElementById('planBanner').style.display = 'none';
+                    return;
                 }
+                const data = await res.json();
+                if (!data.enabled || !data.plan) {
+                    document.getElementById('planBanner').style.display = 'none';
+                    return;
+                }
+
+                sectionPlan = data.plan;
+                document.getElementById('planTitle').textContent = sectionPlan.name || 'Subscription Pass';
+                document.getElementById('planDesc').textContent = sectionPlan.description || 'Unlimited access to this section';
+                document.getElementById('planPrice').textContent = sectionPlan.price;
+                document.getElementById('planDays').textContent = sectionPlan.durationDays || 30;
+                document.getElementById('planBanner').style.display = 'flex';
             } catch (err) {
-                console.error("Subscription status fetch error:", err);
+                console.error("Pricing load error:", err);
+                document.getElementById('planBanner').style.display = 'none';
             }
         }
 
-        async function handleSubscribeClick() {
-            const token = localStorage.getItem('token');
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
+        async function checkUserSubscription(sec) {
+            isUserSubscribed = false;
+            subscriptionDetails = null;
 
-            if (!token || !user) {
-                alert("Please log in to purchase a READ NOTES subscription.");
-                window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.pathname)}`;
+            if (!token) {
+                renderSubscriptionBannerState();
                 return;
             }
 
-            if (isPurchasing) return;
-            isPurchasing = true;
+            try {
+                const res = await fetch(`${window.API_URL}/subscriptions/my-status?section=${sec}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
 
-            const btn = document.getElementById('subscribeBtn');
-            const originalText = btn.textContent;
-            btn.disabled = true;
-            btn.textContent = "Initiating Checkout...";
+                if (data.hasActiveSubscription && data.subscription) {
+                    isUserSubscribed = true;
+                    subscriptionDetails = data.subscription;
+                }
+            } catch (err) {
+                console.error("Subscription status error:", err);
+            } finally {
+                renderSubscriptionBannerState();
+            }
+        }
+
+        function renderSubscriptionBannerState() {
+            const actionWrap = document.getElementById('planActionWrap');
+            const priceWrap = document.getElementById('planPriceWrap');
+
+            if (isUserSubscribed && subscriptionDetails) {
+                const days = subscriptionDetails.daysRemaining || 0;
+                actionWrap.innerHTML = `<div class="subscribed-badge">✓ Unlocked (${days} days left)</div>`;
+                priceWrap.style.display = 'none';
+            } else {
+                actionWrap.innerHTML = `
+                    <button class="btn-subscribe" onclick="handleSubscribe()">
+                        <span>⚡</span> Subscribe to Unlock
+                    </button>
+                `;
+                priceWrap.style.display = 'block';
+            }
+        }
+
+        // Razorpay Subscription Purchase
+        async function handleSubscribe() {
+            if (!token || !user) {
+                window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.href)}`;
+                return;
+            }
 
             try {
-                // 1. Create Server-Authoritative Subscription Order
+                // 1. Create order
                 const orderRes = await fetch(`${window.API_URL}/subscriptions/create-order`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    body: JSON.stringify({ section: currentSection })
                 });
 
                 if (!orderRes.ok) {
-                    const errorData = await orderRes.json();
-                    throw new Error(errorData.error || "Unable to initiate payment");
+                    const errData = await orderRes.json().catch(() => ({}));
+                    throw new Error(errData.error || "Failed to create subscription order");
                 }
 
                 const orderData = await orderRes.json();
 
                 // 2. Open Razorpay Modal
                 const options = {
-                    key: orderData.key,
+                    key: orderData.keyId || window.RAZORPAY_KEY_ID,
                     amount: orderData.amount,
                     currency: orderData.currency || "INR",
-                    name: "Shree Mata READ NOTES",
-                    description: `1-Month Digital Reading Pass (₹${activeConfig.monthlyPrice})`,
-                    image: "images/press.png",
+                    name: "Shree Mata",
+                    description: `Subscription - ${orderData.planName || currentSection}`,
+                    image: "/images/press.png",
                     order_id: orderData.orderId,
                     prefill: {
                         name: user.name || "",
-                        email: user.email || ""
+                        email: user.email || "",
+                        contact: user.phone || ""
                     },
                     theme: {
                         color: "#F68048"
                     },
                     handler: async function (response) {
-                        btn.textContent = "Verifying Activation...";
                         try {
-                            // 3. Server-Side Payment Verification (8-Point Gate)
                             const verifyRes = await fetch(`${window.API_URL}/subscriptions/verify-order`, {
                                 method: 'POST',
                                 headers: {
@@ -722,36 +729,23 @@
                                     'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify({
-                                    razorpay_order_id: response.razorpay_order_id,
-                                    razorpay_payment_id: response.razorpay_payment_id,
-                                    razorpay_signature: response.razorpay_signature
+                                    razorpayOrderId: response.razorpay_order_id,
+                                    razorpayPaymentId: response.razorpay_payment_id,
+                                    razorpaySignature: response.razorpay_signature,
+                                    section: currentSection
                                 })
                             });
 
                             if (!verifyRes.ok) {
-                                const errData = await verifyRes.json();
-                                throw new Error(errData.error || "Payment verification failed");
+                                const vErr = await verifyRes.json().catch(() => ({}));
+                                throw new Error(vErr.error || "Payment verification failed");
                             }
 
-                            const result = await verifyRes.json();
-                            alert("🎉 Payment verified! Your 1-Month READ NOTES subscription is now active.");
-                            await checkUserSubscription();
+                            alert("🎉 Payment successful! Your subscription is now unlocked.");
+                            await checkUserSubscription(currentSection);
                             loadCatalog(currentPage);
-
-                        } catch (verifyErr) {
-                            console.error("Verification error:", verifyErr);
-                            alert(`Verification notice: ${verifyErr.message}. If money was debited, your access will be credited shortly.`);
-                        } finally {
-                            isPurchasing = false;
-                            btn.disabled = false;
-                            btn.textContent = originalText;
-                        }
-                    },
-                    modal: {
-                        ondismiss: function () {
-                            isPurchasing = false;
-                            btn.disabled = false;
-                            btn.textContent = originalText;
+                        } catch (err) {
+                            alert("Verification error: " + err.message);
                         }
                     }
                 };
@@ -760,130 +754,131 @@
                 rzp.open();
 
             } catch (err) {
-                console.error("Subscription order error:", err);
-                alert(err.message || "Failed to start subscription process");
-                isPurchasing = false;
-                btn.disabled = false;
-                btn.textContent = originalText;
+                alert("Subscription error: " + err.message);
             }
         }
 
+        // Load Catalog Items
         async function loadCatalog(page = 1) {
             currentPage = page;
-            const grid = document.getElementById('notesGrid');
-            const search = document.getElementById('catalogSearch').value.trim();
+            const grid = document.getElementById('itemsGrid');
+            const emptyState = document.getElementById('emptyCatalogState');
+
+            const search = document.getElementById('searchInput').value.trim();
             const classLevel = document.getElementById('classFilter').value;
             const category = document.getElementById('categoryFilter').value;
+            const isFree = document.getElementById('accessFilter').value;
 
-            const params = new URLSearchParams({ page, limit: 12 });
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">Loading items...</div>';
+
+            const params = new URLSearchParams({
+                section: currentSection,
+                page: page,
+                limit: 12
+            });
             if (search) params.append('search', search);
             if (classLevel) params.append('classLevel', classLevel);
             if (category) params.append('category', category);
-
-            const token = localStorage.getItem('token');
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            if (isFree !== 'all') params.append('isFree', isFree);
 
             try {
-                grid.innerHTML = '<div class="state-placeholder"><p>Loading digital notes...</p></div>';
-
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
                 const res = await fetch(`${window.API_URL}/notes?${params.toString()}`, { headers });
-                if (!res.ok) throw new Error("Could not load study notes");
+                if (!res.ok) {
+                    throw new Error("Failed to load catalog items");
+                }
 
                 const data = await res.json();
                 const notes = data.notes || [];
                 totalPages = data.pagination?.totalPages || 1;
 
-                if (notes.length === 0) {
-                    grid.innerHTML = `
-                        <div class="state-placeholder">
-                            <h3>📚 No Study Notes Found</h3>
-                            <p>Try clearing your search filters or check back soon as faculty uploads new material.</p>
-                        </div>
-                    `;
-                    document.getElementById('paginationBar').style.display = 'none';
-                    return;
-                }
-
-                const isSubscriber = !!userSubscription;
-
-                grid.innerHTML = notes.map(note => `
-                    <div class="note-card">
-                        <div class="note-card-top">
-                            <span class="note-badge">${escapeHtml(note.classLevel || 'General')}</span>
-                            <div class="note-icon-wrap">📄</div>
-                        </div>
-                        <div class="note-card-body">
-                            <h3 class="note-card-title">${escapeHtml(note.title)}</h3>
-                            <div class="note-card-subject">${escapeHtml(note.subject || 'All Subjects')} • ${escapeHtml(note.category || 'Study Notes')}</div>
-                            <p class="note-card-desc">${escapeHtml(note.description || 'Verified chapter study notes and formula sheet.')}</p>
-                            <div class="note-card-meta">
-                                <span>📄 ${note.totalPages || '-'} Pages</span>
-                                <span>📦 ${formatFileSize(note.fileSize)}</span>
-                                <span>👁️ ${note.viewCount || 0}</span>
-                            </div>
-                            ${isSubscriber ? `
-                                <a href="/reader.html?id=${note.id}" class="btn-read">📖 Read Online</a>
-                            ` : `
-                                <button type="button" class="btn-lock" onclick="promptSubscribe()">🔒 Subscribe to Read</button>
-                            `}
-                        </div>
-                    </div>
-                `).join('');
-
-                const paginationBar = document.getElementById('paginationBar');
-                paginationBar.style.display = totalPages > 1 ? 'flex' : 'none';
-                document.getElementById('paginationLabel').textContent = `Page ${page} of ${totalPages} (${data.pagination?.totalNotes || 0} notes)`;
+                document.getElementById('paginationInfo').textContent = `Page ${data.pagination?.page || 1} of ${totalPages} (${data.pagination?.totalNotes || 0} items)`;
                 document.getElementById('prevPageBtn').disabled = currentPage <= 1;
                 document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
 
+                if (notes.length === 0) {
+                    grid.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+
+                const fallbackIcon = currentSection === 'videos' ? '🎥' : (currentSection === 'question_papers' ? '📝' : '📖');
+
+                grid.innerHTML = notes.map(note => {
+                    const isItemFree = !!note.isFree;
+                    let actionBtnHtml = '';
+
+                    if (isItemFree) {
+                        const targetHref = currentSection === 'videos' ? `/video-player.html?id=${note.id}` : `/reader.html?id=${note.id}`;
+                        const btnText = currentSection === 'videos' ? '▶ Watch Free Video' : '📖 Read Free Preview';
+                        actionBtnHtml = `<a href="${targetHref}" class="btn-card btn-card-free">${btnText}</a>`;
+                    } else {
+                        // Paid Item
+                        if (!token) {
+                            const loginHref = `/login.html?redirect=${encodeURIComponent('/notes.html?section=' + currentSection)}`;
+                            actionBtnHtml = `<a href="${loginHref}" class="btn-card btn-card-locked">🔒 Log in to Unlock</a>`;
+                        } else if (isUserSubscribed) {
+                            const targetHref = currentSection === 'videos' ? `/video-player.html?id=${note.id}` : `/reader.html?id=${note.id}`;
+                            const btnText = currentSection === 'videos' ? '▶ Watch Now (Unlocked)' : '📖 Read Now (Unlocked)';
+                            actionBtnHtml = `<a href="${targetHref}" class="btn-card btn-card-unlocked">${btnText}</a>`;
+                        } else {
+                            const priceText = sectionPlan ? `₹${sectionPlan.price}` : 'Subscribe';
+                            actionBtnHtml = `<button class="btn-card btn-card-locked" onclick="handleSubscribe()">🔓 Unlock (${priceText})</button>`;
+                        }
+                    }
+
+                    return `
+                        <div class="item-card">
+                            <div class="card-cover">
+                                ${note.coverImage 
+                                    ? `<img src="${escapeHtml(note.coverImage)}" alt="${escapeHtml(note.title)}" onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\'cover-icon\'>${fallbackIcon}</span>';">` 
+                                    : `<span class="cover-icon">${fallbackIcon}</span>`
+                                }
+                                <span class="card-access-badge ${isItemFree ? 'badge-free' : 'badge-paid'}">
+                                    ${isItemFree ? 'Free Preview' : 'Premium'}
+                                </span>
+                            </div>
+                            <div class="card-body">
+                                <div class="card-meta">${escapeHtml(note.subject || 'General')} ${note.classLevel ? '• ' + escapeHtml(note.classLevel) : ''}</div>
+                                <h3 class="card-title">${escapeHtml(note.title)}</h3>
+                                <p class="card-desc">${escapeHtml(note.description || 'Curriculum resource curated by Shree Mata.')}</p>
+                                <div class="card-footer">
+                                    ${actionBtnHtml}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
             } catch (err) {
                 console.error("Catalog load error:", err);
-                grid.innerHTML = `
-                    <div class="state-placeholder">
-                        <p style="color: #ef4444;">Failed to load study notes.</p>
-                        <button type="button" class="btn-lock" onclick="loadCatalog(${currentPage})">🔄 Retry</button>
-                    </div>
-                `;
+                grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--brand-orange); padding: 40px;">Error: ${escapeHtml(err.message)}</div>`;
             }
         }
 
-        function handleCatalogSearch() {
-            clearTimeout(searchDebounce);
-            searchDebounce = setTimeout(() => {
-                loadCatalog(1);
-            }, 300);
+        function handleSearch() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => loadCatalog(1), 300);
         }
 
-        function resetCatalogFilters() {
-            document.getElementById('catalogSearch').value = '';
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
             document.getElementById('classFilter').value = '';
             document.getElementById('categoryFilter').value = '';
+            document.getElementById('accessFilter').value = 'all';
             loadCatalog(1);
         }
 
-        function stepPage(delta) {
+        function changePage(delta) {
             const next = currentPage + delta;
             if (next >= 1 && next <= totalPages) {
                 loadCatalog(next);
             }
         }
 
-        function promptSubscribe() {
-            const card = document.getElementById('subscriptionHero');
-            if (card) {
-                card.scrollIntoView({ behavior: 'smooth' });
-            }
-        }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
+        document.addEventListener('DOMContentLoaded', initPage);
     </script>
 </body>
 </html>
