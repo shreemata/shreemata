@@ -1332,4 +1332,199 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
       expect(adminStreamQP.status).toBe(200);
     });
   });
+
+  // =========================================================================
+  // SCENARIO 23: Video URL Rules, Validation & PUT Section Transitions (Defect 3)
+  // =========================================================================
+  describe('23. video url rules, validation & PUT section transitions (Defect 3)', () => {
+    it('(a) treats youtube-nocookie.com and m.youtube.com as YouTube, rejecting on paid items', async () => {
+      // Paid with youtube-nocookie.com -> 400
+      const resNoCookiePaid = await client.post('/api/notes', {
+        section: 'videos',
+        title: 'Paid YouTube NoCookie Video',
+        videoUrl: 'https://www.youtube-nocookie.com/embed/test1234',
+        videoProvider: 'bunny',
+        isFree: false
+      }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(resNoCookiePaid.status).toBe(400);
+      expect(resNoCookiePaid.data.error).toMatch(/YouTube.*free preview/i);
+
+      // Paid with m.youtube.com -> 400
+      const resSubdomainPaid = await client.post('/api/notes', {
+        section: 'videos',
+        title: 'Paid YouTube Mobile Subdomain',
+        videoUrl: 'https://m.youtube.com/watch?v=test1234',
+        videoProvider: 'none',
+        isFree: false
+      }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(resSubdomainPaid.status).toBe(400);
+
+      // Free with youtube-nocookie.com -> 201
+      const resNoCookieFree = await client.post('/api/notes', {
+        section: 'videos',
+        title: 'Free YouTube NoCookie Video',
+        videoUrl: 'https://www.youtube-nocookie.com/embed/test1234',
+        videoProvider: 'youtube_unlisted',
+        isFree: true
+      }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(resNoCookieFree.status).toBe(201);
+    });
+
+    it('(b) PUT re-runs validateVideoUrl on resulting values so paid video cannot keep YouTube, and switching to videos requires videoUrl', async () => {
+      // 1. Create a free video with YouTube URL
+      const freeVid = await Note.create({
+        section: 'videos',
+        title: 'Free Vid with YouTube',
+        videoUrl: 'https://www.youtube.com/watch?v=testabc',
+        videoProvider: 'youtube_unlisted',
+        isPublished: true,
+        isFree: true,
+        uploadedBy: adminUser._id
+      });
+
+      // Update isFree to false WITHOUT sending videoUrl
+      const resFlipPaid = await client.put(`/api/notes/${freeVid._id}`, {
+        isFree: false
+      }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(resFlipPaid.status).toBe(400);
+      expect(resFlipPaid.data.error).toMatch(/YouTube.*free preview/i);
+
+      // 2. Create a normal note with PDF
+      const docNote = await Note.create({
+        section: 'notes',
+        title: 'Document Note For Conversion',
+        pdfUrl: samplePdfKey,
+        isPublished: true,
+        isFree: false,
+        uploadedBy: adminUser._id
+      });
+
+      // Update section to 'videos' WITHOUT sending videoUrl
+      const resConvertToVideosNoUrl = await client.put(`/api/notes/${docNote._id}`, {
+        section: 'videos'
+      }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(resConvertToVideosNoUrl.status).toBe(400);
+      expect(resConvertToVideosNoUrl.data.error).toMatch(/Video URL is required/i);
+    });
+
+    it('(c) rejects unknown videoProvider values with 400 instead of 500', async () => {
+      // POST with invalid provider
+      const resPostBad = await client.post('/api/notes', {
+        section: 'videos',
+        title: 'Video with bad provider',
+        videoUrl: 'https://iframe.mediadelivery.net/play/123/bad',
+        videoProvider: 'dailymotion',
+        isFree: false
+      }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(resPostBad.status).toBe(400);
+      expect(resPostBad.data.error).toMatch(/Invalid videoProvider/i);
+
+      // PUT with invalid provider
+      const validVid = await Note.create({
+        section: 'videos',
+        title: 'Valid Bunny Video',
+        videoUrl: 'https://iframe.mediadelivery.net/play/123/good',
+        videoProvider: 'bunny',
+        isPublished: true,
+        isFree: false,
+        uploadedBy: adminUser._id
+      });
+
+      const resPutBad = await client.put(`/api/notes/${validVid._id}`, {
+        videoProvider: 'facebook_watch'
+      }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(resPutBad.status).toBe(400);
+      expect(resPutBad.data.error).toMatch(/Invalid videoProvider/i);
+    });
+
+    it('(d) section change away from videos clears videoUrl/videoProvider; changing to videos requires no PDF', async () => {
+      const FormData = require('form-data');
+
+      // 1. A video item with no PDF cannot switch to 'notes' without uploading a PDF
+      const vidNoPdf = await Note.create({
+        section: 'videos',
+        title: 'Video Lecture to be Reclassified',
+        videoUrl: 'https://iframe.mediadelivery.net/play/123/reclass',
+        videoProvider: 'bunny',
+        isPublished: true,
+        isFree: false,
+        uploadedBy: adminUser._id
+      });
+
+      const resFailSwitch = await client.put(`/api/notes/${vidNoPdf._id}`, {
+        section: 'notes'
+      }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(resFailSwitch.status).toBe(400);
+      expect(resFailSwitch.data.error).toMatch(/PDF file is required/i);
+
+      // 2. An item with a PDF switching away from videos clears videoUrl and videoProvider
+      const vidWithPdf = await Note.create({
+        section: 'videos',
+        title: 'Video Lecture With Stored Doc',
+        pdfUrl: samplePdfKey,
+        videoUrl: 'https://iframe.mediadelivery.net/play/123/reclass',
+        videoProvider: 'bunny',
+        isPublished: true,
+        isFree: false,
+        uploadedBy: adminUser._id
+      });
+
+      const resReclass = await client.put(`/api/notes/${vidWithPdf._id}`, {
+        section: 'notes'
+      }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(resReclass.status).toBe(200);
+
+      const updatedItem = await Note.findById(vidWithPdf._id).lean();
+      expect(updatedItem.section).toBe('notes');
+      expect(updatedItem.videoUrl).toBe('');
+      expect(updatedItem.videoProvider).toBe('none');
+
+      // 3. Changing to videos requires NO PDF (clears old pdfUrl and succeeds)
+      const resSwitchToVid = await client.put(`/api/notes/${updatedItem._id}`, {
+        section: 'videos',
+        videoUrl: 'https://iframe.mediadelivery.net/play/123/switchtovid',
+        videoProvider: 'bunny'
+      }, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(resSwitchToVid.status).toBe(200);
+
+      const vidCleared = await Note.findById(updatedItem._id).lean();
+      expect(vidCleared.section).toBe('videos');
+      expect(vidCleared.pdfUrl).toBe('');
+
+      // 4. Changing to videos rejects PDF upload if one is sent
+      const form = new FormData();
+      form.append('section', 'videos');
+      form.append('videoUrl', 'https://iframe.mediadelivery.net/play/123/rejectpdf');
+      form.append('pdf', Buffer.from('%PDF-1.4 mock content %%EOF'), 'sample.pdf');
+
+      const resPdfReject = await client.put(`/api/notes/${vidCleared._id}`, form, {
+        headers: {
+          ...form.getHeaders(),
+          Authorization: `Bearer ${adminToken}`
+        }
+      });
+      expect(resPdfReject.status).toBe(400);
+      expect(resPdfReject.data.error).toMatch(/PDF uploads are not allowed/i);
+    });
+  });
 });

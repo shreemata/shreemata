@@ -122,10 +122,23 @@ const ALLOWED_VIDEO_HOSTS = [
   'video.bunnycdn.com',
   'player.vimeo.com',
   'vimeo.com',
-  'www.youtube.com',
   'youtube.com',
-  'youtu.be'
+  'youtu.be',
+  'youtube-nocookie.com'
 ];
+
+function isYouTubeHost(hostname) {
+  if (!hostname || typeof hostname !== 'string') return false;
+  const h = hostname.toLowerCase();
+  return (
+    h === 'youtube.com' ||
+    h.endsWith('.youtube.com') ||
+    h === 'youtu.be' ||
+    h.endsWith('.youtu.be') ||
+    h === 'youtube-nocookie.com' ||
+    h.endsWith('.youtube-nocookie.com')
+  );
+}
 
 function validateVideoUrl(urlStr, isFree = false, provider = 'none') {
   if (!urlStr || typeof urlStr !== 'string' || !urlStr.trim()) {
@@ -148,13 +161,13 @@ function validateVideoUrl(urlStr, isFree = false, provider = 'none') {
   const hostname = parsed.hostname.toLowerCase();
 
   // Paid items may NOT use youtube_unlisted or youtube URLs
-  const isYouTube = hostname === 'www.youtube.com' || hostname === 'youtube.com' || hostname === 'youtu.be' || provider === 'youtube_unlisted';
+  const isYouTube = isYouTubeHost(hostname) || provider === 'youtube_unlisted';
   if (isYouTube && !isFree) {
     return { valid: false, error: 'YouTube unlisted videos are only permitted for free preview items. Paid items must use protected video providers.' };
   }
 
   const isHls = parsed.pathname.toLowerCase().endsWith('.m3u8');
-  const isAllowedHost = ALLOWED_VIDEO_HOSTS.some(h => hostname === h || hostname.endsWith('.' + h));
+  const isAllowedHost = isYouTubeHost(hostname) || ALLOWED_VIDEO_HOSTS.some(h => hostname === h || hostname.endsWith('.' + h));
 
   if (!isAllowedHost && !isHls) {
     return { valid: false, error: `Host "${hostname}" is not in the allowed video provider list.` };
@@ -724,6 +737,11 @@ router.post("/", authenticateToken, isAdmin, handleOptionalPdfUpload, async (req
       return res.status(400).json({ error: "Invalid section. Must be one of: notes, question_papers, videos" });
     }
 
+    const validProviders = ['bunny', 'vimeo', 'youtube_unlisted', 'hls', 'none'];
+    if (videoProvider !== undefined && !validProviders.includes(videoProvider)) {
+      return res.status(400).json({ error: `Invalid videoProvider: ${videoProvider}. Must be one of: ${validProviders.join(', ')}` });
+    }
+
     if (!title || typeof title !== "string" || !title.trim()) {
       return res.status(400).json({ error: "Title is required and must not be empty" });
     }
@@ -839,7 +857,17 @@ router.put("/:id", authenticateToken, isAdmin, handleOptionalPdfUpload, async (r
       return res.status(404).json({ error: "Item not found" });
     }
 
-    const targetSection = req.body.section ? String(req.body.section).toLowerCase().trim() : note.section;
+    const targetSection = req.body.section ? String(req.body.section).toLowerCase().trim() : (note.section || 'notes');
+    const validSections = ['notes', 'question_papers', 'videos'];
+    if (req.body.section !== undefined && !validSections.includes(targetSection)) {
+      return res.status(400).json({ error: "Invalid section. Must be one of: notes, question_papers, videos" });
+    }
+
+    const validProviders = ['bunny', 'vimeo', 'youtube_unlisted', 'hls', 'none'];
+    if (req.body.videoProvider !== undefined && !validProviders.includes(req.body.videoProvider)) {
+      return res.status(400).json({ error: `Invalid videoProvider: ${req.body.videoProvider}. Must be one of: ${validProviders.join(', ')}` });
+    }
+
     const isTargetVideos = targetSection === 'videos';
 
     if (isTargetVideos && req.file) {
@@ -856,12 +884,36 @@ router.put("/:id", authenticateToken, isAdmin, handleOptionalPdfUpload, async (r
       ? (req.body.isFree === "true" || req.body.isFree === true)
       : note.isFree;
 
-    if (isTargetVideos && req.body.videoUrl !== undefined) {
-      const videoValidation = validateVideoUrl(req.body.videoUrl, cleanIsFree, req.body.videoProvider || note.videoProvider);
-      if (!videoValidation.valid) {
-        return res.status(400).json({ error: videoValidation.error });
+    const resultingProvider = req.body.videoProvider !== undefined
+      ? req.body.videoProvider
+      : (note.videoProvider || 'none');
+
+    const resultingVideoUrl = req.body.videoUrl !== undefined
+      ? req.body.videoUrl
+      : note.videoUrl;
+
+    const videoFieldsChanged = (
+      req.body.isFree !== undefined ||
+      req.body.videoProvider !== undefined ||
+      req.body.section !== undefined ||
+      req.body.videoUrl !== undefined
+    );
+
+    if (isTargetVideos) {
+      if (videoFieldsChanged) {
+        const videoValidation = validateVideoUrl(resultingVideoUrl, cleanIsFree, resultingProvider);
+        if (!videoValidation.valid) {
+          return res.status(400).json({ error: videoValidation.error });
+        }
+        note.videoUrl = videoValidation.cleanUrl;
       }
-      note.videoUrl = videoValidation.cleanUrl;
+    } else {
+      // when section changes away from 'videos', clear videoUrl/videoProvider
+      note.videoUrl = '';
+      note.videoProvider = 'none';
+      if (note.section === 'videos' && !req.file && !note.pdfUrl) {
+        return res.status(400).json({ error: "PDF file is required when switching from videos to a document section" });
+      }
     }
 
     if (req.file && req.file.buffer) {
@@ -884,6 +936,10 @@ router.put("/:id", authenticateToken, isAdmin, handleOptionalPdfUpload, async (r
       if (newKey) {
         note.pdfUrl = newKey;
         note.fileSize = req.file.size || req.file.buffer.length;
+      } else if (isTargetVideos) {
+        note.pdfUrl = '';
+        note.fileSize = 0;
+        note.totalPages = 0;
       }
 
       if (req.body.section !== undefined) note.section = targetSection;
@@ -920,10 +976,13 @@ router.put("/:id", authenticateToken, isAdmin, handleOptionalPdfUpload, async (r
           if (fs.existsSync(newFilePath)) await fs.promises.unlink(newFilePath);
         } catch (_) {}
       }
+      if (saveErr.name === 'ValidationError') {
+        return res.status(400).json({ error: saveErr.message });
+      }
       throw saveErr;
     }
 
-    if (newKey && oldKey && oldKey !== newKey) {
+    if (oldKey && ((newKey && oldKey !== newKey) || (isTargetVideos && oldKey !== note.pdfUrl))) {
       try {
         const oldFilePath = getSafeStoragePath(oldKey);
         if (fs.existsSync(oldFilePath)) await fs.promises.unlink(oldFilePath);
