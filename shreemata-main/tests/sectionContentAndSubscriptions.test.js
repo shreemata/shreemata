@@ -1130,10 +1130,23 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
   // SCENARIO 20: Feature Flags Default Behavior & Physical Books/Categories Parity
   // =========================================================================
   describe('20. feature flags default behavior & physical books/categories parity with f540bf8', () => {
-    const originalEnv = { ...process.env };
+    let prevTextBook;
+    let prevReadNotes;
+    let prevQp;
+    let prevVideos;
+
+    beforeEach(() => {
+      prevTextBook = process.env.ENABLE_TEXT_BOOK;
+      prevReadNotes = process.env.ENABLE_READ_NOTES;
+      prevQp = process.env.ENABLE_QUESTION_PAPERS;
+      prevVideos = process.env.ENABLE_VIDEOS;
+    });
 
     afterEach(() => {
-      process.env = { ...originalEnv };
+      if (prevTextBook !== undefined) process.env.ENABLE_TEXT_BOOK = prevTextBook; else delete process.env.ENABLE_TEXT_BOOK;
+      if (prevReadNotes !== undefined) process.env.ENABLE_READ_NOTES = prevReadNotes; else delete process.env.ENABLE_READ_NOTES;
+      if (prevQp !== undefined) process.env.ENABLE_QUESTION_PAPERS = prevQp; else delete process.env.ENABLE_QUESTION_PAPERS;
+      if (prevVideos !== undefined) process.env.ENABLE_VIDEOS = prevVideos; else delete process.env.ENABLE_VIDEOS;
     });
 
     it('with no env vars set, textBook is true and digital flags are false', async () => {
@@ -1474,10 +1487,13 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
       expect(resFailSwitch.data.error).toMatch(/PDF file is required/i);
 
       // 2. An item with a PDF switching away from videos clears videoUrl and videoProvider
+      const disposableKey = 'disposable_test_note.pdf';
+      fs.writeFileSync(path.resolve(testStorageDir, disposableKey), '%PDF-1.4 disposable test content %%EOF');
+
       const vidWithPdf = await Note.create({
         section: 'videos',
         title: 'Video Lecture With Stored Doc',
-        pdfUrl: samplePdfKey,
+        pdfUrl: disposableKey,
         videoUrl: 'https://iframe.mediadelivery.net/play/123/reclass',
         videoProvider: 'bunny',
         isPublished: true,
@@ -1537,6 +1553,11 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
 
     beforeAll(async () => {
       const samplePdfPath = path.resolve(testStorageDir, samplePdfKey);
+      if (!fs.existsSync(samplePdfPath)) {
+        fs.writeFileSync(samplePdfPath, Buffer.from(
+          '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF'
+        ));
+      }
       actualFileSize = fs.statSync(samplePdfPath).size;
 
       streamNote = await Note.create({
@@ -1589,6 +1610,13 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
     let paidNote;
 
     beforeAll(async () => {
+      const samplePdfPath = path.resolve(testStorageDir, samplePdfKey);
+      if (!fs.existsSync(samplePdfPath)) {
+        fs.writeFileSync(samplePdfPath, Buffer.from(
+          '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF'
+        ));
+      }
+
       freeNote = await Note.create({
         section: 'notes',
         title: 'Free Note for optionalAuth test',
