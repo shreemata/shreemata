@@ -432,10 +432,12 @@
     async function updateFeaturesNav() {
         try {
             const apiBase = (typeof API_URL !== 'undefined') ? API_URL : '/api';
-            const res = await fetch(`${apiBase}/features`);
-            if (!res.ok) return;
-            const data = await res.json();
-            const f = data.features || {};
+            const res = await fetch(`${apiBase}/features`).catch(() => null);
+            if (!res || !res.ok) return;
+            const data = await res.json().catch(() => null);
+            if (!data || typeof data !== 'object') return;
+            const f = data.features;
+            if (!f || typeof f !== 'object') return;
             const digitalEnabled = !!(f.readNotes || f.questionPapers || f.videos);
 
             if (digitalEnabled) {
@@ -461,8 +463,8 @@
                     drawerNav.appendChild(dLink);
                 }
             }
-        } catch (err) {
-            // Silent fallback preserves existing navbar layout
+        } catch (_) {
+            // Absolute silent fallback: never throw, never log, leave header intact
         }
     }
 
