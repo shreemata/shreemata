@@ -59,6 +59,16 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // =====================================
 // Routes
 // =====================================
+const { FEATURES } = require("./config/features");
+
+// Expose public feature flags
+app.get("/api/features", (req, res) => {
+  res.json({ success: true, features: FEATURES });
+});
+
+app.use("/api/subscriptions", require("./routes/subscriptions"));
+app.use("/api/notes", require("./routes/notes"));
+
 app.use("/api/payments", paymentRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/auth", authRoutes);

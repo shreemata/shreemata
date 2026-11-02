@@ -21,6 +21,8 @@ router.get('/settings', authenticateToken, isAdmin, async (req, res) => {
         pointsEarningSettings: settings.pointsEarningSettings,
         commissionSettings: settings.commissionSettings,
         systemSettings: settings.systemSettings,
+        readNotesSubscriptionSettings: AdminSettings.getSubscriptionConfig(settings),
+        sectionSubscriptionPlans: settings.sectionSubscriptionPlans,
         lastUpdated: settings.lastUpdated,
         updatedBy: settings.updatedBy
       }
@@ -63,6 +65,58 @@ router.put('/settings', authenticateToken, isAdmin, async (req, res) => {
         return res.status(400).json({ error: 'Cash per conversion must be between ₹0.1 and ₹1,000' });
       }
     }
+
+    if (updates.readNotesSubscriptionSettings) {
+      if (typeof updates.readNotesSubscriptionSettings !== 'object' || updates.readNotesSubscriptionSettings === null) {
+        return res.status(400).json({ error: 'Subscription settings must be an object' });
+      }
+      const { monthlyPrice, enabled, description } = updates.readNotesSubscriptionSettings;
+      if (monthlyPrice !== undefined) {
+        if (typeof monthlyPrice !== 'number' || Number.isNaN(monthlyPrice) || monthlyPrice < 1 || monthlyPrice > 100000) {
+          return res.status(400).json({ error: 'Monthly subscription price must be between ₹1 and ₹1,00,000' });
+        }
+      }
+      if (enabled !== undefined && typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: 'Subscription enabled status must be a boolean' });
+      }
+      if (description !== undefined && typeof description === 'string' && description.length > 300) {
+        return res.status(400).json({ error: 'Subscription description cannot exceed 300 characters' });
+      }
+    }
+
+    if (updates.sectionSubscriptionPlans) {
+      if (typeof updates.sectionSubscriptionPlans !== 'object' || updates.sectionSubscriptionPlans === null) {
+        return res.status(400).json({ error: 'sectionSubscriptionPlans must be an object' });
+      }
+      const allowedSections = ['notes', 'question_papers', 'videos'];
+      for (const sec of allowedSections) {
+        const plan = updates.sectionSubscriptionPlans[sec];
+        if (plan) {
+          if (typeof plan !== 'object' || plan === null) {
+            return res.status(400).json({ error: `Plan for section ${sec} must be an object` });
+          }
+          if (plan.price !== undefined) {
+            if (typeof plan.price !== 'number' || Number.isNaN(plan.price) || plan.price < 1 || plan.price > 100000) {
+              return res.status(400).json({ error: `Plan price for ${sec} must be between ₹1 and ₹1,00,000` });
+            }
+          }
+          if (plan.durationDays !== undefined) {
+            if (typeof plan.durationDays !== 'number' || Number.isNaN(plan.durationDays) || plan.durationDays < 1 || plan.durationDays > 3650) {
+              return res.status(400).json({ error: `durationDays for ${sec} must be between 1 and 3650 days` });
+            }
+          }
+          if (plan.active !== undefined && typeof plan.active !== 'boolean') {
+            return res.status(400).json({ error: `active flag for ${sec} must be a boolean` });
+          }
+          if (plan.name !== undefined && (typeof plan.name !== 'string' || plan.name.trim().length > 100)) {
+            return res.status(400).json({ error: `Plan name for ${sec} must be text up to 100 characters` });
+          }
+          if (plan.description !== undefined && (typeof plan.description !== 'string' || plan.description.length > 300)) {
+            return res.status(400).json({ error: `Plan description for ${sec} cannot exceed 300 characters` });
+          }
+        }
+      }
+    }
     
     // Update settings
     const settings = await AdminSettings.updateSettings(updates, updatedBy);
@@ -76,6 +130,8 @@ router.put('/settings', authenticateToken, isAdmin, async (req, res) => {
         pointsEarningSettings: settings.pointsEarningSettings,
         commissionSettings: settings.commissionSettings,
         systemSettings: settings.systemSettings,
+        readNotesSubscriptionSettings: AdminSettings.getSubscriptionConfig(settings),
+        sectionSubscriptionPlans: settings.sectionSubscriptionPlans,
         lastUpdated: settings.lastUpdated
       }
     });
