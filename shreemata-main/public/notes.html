@@ -616,16 +616,23 @@
                     return;
                 }
                 const data = await res.json();
-                if (!data.enabled || !data.plan) {
+                const pricing = data.pricing || data.plan || {};
+                if (!pricing.enabled) {
                     document.getElementById('planBanner').style.display = 'none';
                     return;
                 }
 
-                sectionPlan = data.plan;
-                document.getElementById('planTitle').textContent = sectionPlan.name || 'Subscription Pass';
-                document.getElementById('planDesc').textContent = sectionPlan.description || 'Unlimited access to this section';
+                sectionPlan = {
+                    name: pricing.name || 'Subscription Pass',
+                    price: pricing.monthlyPrice !== undefined ? pricing.monthlyPrice : (pricing.price || 0),
+                    durationDays: pricing.durationDays || 30,
+                    description: pricing.description || 'Unlimited access to this section'
+                };
+
+                document.getElementById('planTitle').textContent = sectionPlan.name;
+                document.getElementById('planDesc').textContent = sectionPlan.description;
                 document.getElementById('planPrice').textContent = sectionPlan.price;
-                document.getElementById('planDays').textContent = sectionPlan.durationDays || 30;
+                document.getElementById('planDays').textContent = sectionPlan.durationDays;
                 document.getElementById('planBanner').style.display = 'flex';
             } catch (err) {
                 console.error("Pricing load error:", err);
