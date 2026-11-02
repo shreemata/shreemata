@@ -1267,4 +1267,69 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
       expect(Array.isArray(subjNotes.data.subjects)).toBe(true);
     });
   });
+
+  // =========================================================================
+  // SCENARIO 22: Enforce Section Feature Flag on Detail, Stream, Media-Url, Download (Defect 2)
+  // =========================================================================
+  describe('22. enforce section feature flag on detail, stream, media-url, and download (Defect 2)', () => {
+    it('free item in a disabled section must return 404 for guests; admin still works', async () => {
+      process.env.ENABLE_READ_NOTES = 'true';
+      process.env.ENABLE_QUESTION_PAPERS = 'false';
+      process.env.ENABLE_VIDEOS = 'false';
+
+      // 1. Create a free video in disabled section 'videos'
+      const videoItem = await Note.create({
+        section: 'videos',
+        title: 'Free Disabled Section Video',
+        videoUrl: 'https://iframe.mediadelivery.net/play/123/free-vid',
+        videoProvider: 'bunny',
+        isPublished: true,
+        isFree: true,
+        uploadedBy: adminUser._id
+      });
+
+      // 2. Create a free question paper in disabled section 'question_papers'
+      const qpItem = await Note.create({
+        section: 'question_papers',
+        title: 'Free Disabled Section QP',
+        pdfUrl: samplePdfKey,
+        isPublished: true,
+        isFree: true,
+        allowDownload: true,
+        uploadedBy: adminUser._id
+      });
+
+      // Guest requests on disabled section items -> MUST BE 404
+      const resDetailVideo = await client.get(`/api/notes/${videoItem._id}`);
+      expect(resDetailVideo.status).toBe(404);
+
+      const resMediaUrl = await client.get(`/api/notes/${videoItem._id}/media-url`);
+      expect(resMediaUrl.status).toBe(404);
+
+      const resDetailQP = await client.get(`/api/notes/${qpItem._id}`);
+      expect(resDetailQP.status).toBe(404);
+
+      const resStreamQP = await client.get(`/api/notes/${qpItem._id}/stream`);
+      expect(resStreamQP.status).toBe(404);
+
+      const resDownloadQP = await client.get(`/api/notes/${qpItem._id}/download`);
+      expect(resDownloadQP.status).toBe(404);
+
+      // Admin requests on disabled section items -> MUST BE ALLOWED (not 404 disabled)
+      const adminDetailVideo = await client.get(`/api/notes/${videoItem._id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(adminDetailVideo.status).toBe(200);
+
+      const adminMediaUrl = await client.get(`/api/notes/${videoItem._id}/media-url`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(adminMediaUrl.status).toBe(200);
+
+      const adminStreamQP = await client.get(`/api/notes/${qpItem._id}/stream`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(adminStreamQP.status).toBe(200);
+    });
+  });
 });

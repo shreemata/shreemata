@@ -198,6 +198,11 @@ const optionalAuth = async (req, res, next) => {
  */
 async function evaluateItemAccess(item, user) {
   const isAdminUser = Boolean(user && user.role === 'admin');
+  const targetSection = item.section || 'notes';
+
+  if (!checkSectionFeatureFlag(targetSection, isAdminUser)) {
+    return { allowed: false, status: 404, error: `Section ${targetSection} is currently disabled` };
+  }
 
   if (!item.isPublished && !isAdminUser) {
     return { allowed: false, status: 404, error: "Note not found" };
@@ -216,7 +221,6 @@ async function evaluateItemAccess(item, user) {
   }
 
   const now = new Date();
-  const targetSection = item.section || 'notes';
 
   const subQuery = {
     userId: user.id,
@@ -449,6 +453,10 @@ router.get("/:id", optionalAuth, async (req, res) => {
 
     if (!note.isPublished && !isAdminUser) {
       return res.status(404).json({ error: "Note not found" });
+    }
+
+    if (!checkSectionFeatureFlag(note.section || 'notes', isAdminUser)) {
+      return res.status(404).json({ error: `Section ${note.section || 'notes'} is currently disabled` });
     }
 
     await Note.findByIdAndUpdate(note._id, { $inc: { viewCount: 1 } });
