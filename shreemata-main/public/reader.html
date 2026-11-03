@@ -12,6 +12,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/home-3d.css">
+
     <!-- PDF.js CDN (Standard Open Source Browser PDF Engine) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
@@ -39,6 +43,8 @@
             color: var(--text-light);
             font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         /* Reader Top Navigation Bar */
@@ -141,7 +147,8 @@
 
         /* Main Viewport Container */
         .reader-viewport {
-            height: calc(100vh - 60px);
+            flex: 1;
+            min-height: 0;
             overflow: auto;
             display: flex;
             justify-content: center;
@@ -177,7 +184,7 @@
             flex-direction: column;
             justify-content: space-around;
             align-items: center;
-            opacity: 0.08;
+            opacity: 0.10;
             font-size: 22px;
             font-weight: 800;
             color: #000000;
@@ -197,7 +204,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 100;
+            z-index: 1000;
             padding: 20px;
         }
 
@@ -274,6 +281,112 @@
     </style>
 </head>
 <body>
+    <!-- 3. PREMIUM HEADER -->
+    <header class="main-header" role="banner">
+        <div class="container">
+            <div class="header-inner">
+                <!-- Mobile Menu Hamburger Button -->
+                <button type="button" id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="Open Navigation Menu">☰</button>
+
+                <!-- Brand Logo & Identity -->
+                <a href="/" class="brand-logo" aria-label="Shree Mata Home">
+                    <img src="images/press.png" alt="Shree Mata Logo" width="44" height="44">
+                    <div class="brand-text">
+                        <span class="brand-title">Shree Mata</span>
+                        <span class="brand-sub">Disseminating Knowledge</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Primary Navigation Links -->
+                <nav class="header-nav-links" aria-label="Primary Navigation">
+                    <a href="/#booksSection" class="nav-item-link">Books</a>
+                    <a href="/#subjectSection" class="nav-item-link">Categories</a>
+                    <a href="/#notificationsSection" class="nav-item-link">Offers</a>
+                </nav>
+
+                <!-- Wide Search Field -->
+                <div class="header-search">
+                    <div class="search-box" role="search">
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                        <input 
+                            type="search" 
+                            id="searchInput" 
+                            class="search-input" 
+                            placeholder="Search books, subjects, class..." 
+                            aria-label="Search catalog"
+                            autocomplete="off"
+                        >
+                        <button type="button" id="searchBtn" class="search-btn" aria-label="Search">Search</button>
+                    </div>
+                </div>
+
+                <!-- User & Cart Actions -->
+                <div class="header-actions">
+                    <!-- Guest Auth Links -->
+                    <div id="authLinks" class="auth-group">
+                        <a href="/login.html" class="btn-login" aria-label="Account Login">
+                            <span class="btn-login-icon" aria-hidden="true">👤</span>
+                            <span class="btn-login-text">Log In</span>
+                        </a>
+                        <a href="/signup.html" class="btn-signup">Sign Up</a>
+                    </div>
+
+                    <!-- Logged-in User Navigation Dropdown -->
+                    <div id="userLinks" class="user-nav-wrap" style="display: none;">
+                        <button type="button" class="user-name-badge" id="userMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-label="User Account Menu">
+                            <span class="user-avatar-icon" aria-hidden="true">👤</span>
+                            <span id="userName" class="user-name-text">Account</span>
+                            <span class="dropdown-chevron" aria-hidden="true">▾</span>
+                        </button>
+                        <div class="user-dropdown-menu" id="userDropdownMenu" role="menu" aria-labelledby="userMenuBtn">
+                            <div class="dropdown-header">
+                                <div class="dropdown-user-profile">
+                                    <div class="dropdown-user-avatar">👤</div>
+                                    <div class="dropdown-user-info">
+                                        <span class="dropdown-user-name" id="dropdownUserName">User</span>
+                                        <span class="dropdown-user-email" id="dropdownUserEmail"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="/account.html" class="dropdown-item-link" id="accountLink" role="menuitem">
+                                <span class="dropdown-item-icon">👤</span> <span>My Account</span>
+                            </a>
+                            <a href="/orders.html" class="dropdown-item-link" id="ordersLink" role="menuitem">
+                                <span class="dropdown-item-icon">📦</span> <span>My Orders</span>
+                            </a>
+                            <a href="/account.html?section=wallet" class="dropdown-item-link" id="dropdownWalletLink" role="menuitem">
+                                <span class="dropdown-item-icon">👛</span> <span>Wallet & Cashback</span>
+                            </a>
+                            <a href="/referral.html" class="dropdown-item-link" id="referralLink" role="menuitem">
+                                <span class="dropdown-item-icon">💰</span> <span>Referral Network</span>
+                            </a>
+                            <a href="/account.html?section=vip" class="dropdown-item-link" id="dropdownVipLink" role="menuitem">
+                                <span class="dropdown-item-icon">👑</span> <span>VIP Master Card</span>
+                            </a>
+                            <a href="/admin.html" class="dropdown-item-link" id="adminLink" role="menuitem" style="display: none;">
+                                <span class="dropdown-item-icon">⚙️</span> <span>Admin Dashboard</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button type="button" id="logoutBtn" class="btn-logout-item" role="menuitem">
+                                <span class="dropdown-item-icon">🚪</span> <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Orders Link (Quick Access) -->
+                    <a href="/orders.html" class="nav-item-link header-orders-link" style="display: inline-flex; align-items: center; gap: 4px;">Orders</a>
+
+                    <!-- Shopping Cart Button with Dynamic Badge -->
+                    <a href="/cart.html" id="cartLink" class="btn-cart-header" title="Shopping Cart">
+                        <span aria-hidden="true">🛒</span>
+                        <span class="cart-text">Cart</span>
+                        <span id="cartCount" class="cart-count-badge">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
 
     <!-- 1. TOP READER TOOLBAR -->
     <header class="reader-header" id="readerHeader">
@@ -454,7 +567,8 @@
                 }
 
                 pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                document.getElementById('pageCount').textContent = pdfDoc.numPages;
+                const totalPdfPages = (pdfDoc && pdfDoc.numPages > 0) ? pdfDoc.numPages : 1;
+                document.getElementById('pageCount').textContent = totalPdfPages;
 
                 // Close loading modal
                 document.getElementById('stateModal').style.display = 'none';
@@ -469,6 +583,12 @@
 
         function renderPage(num) {
             pageRendering = true;
+            const total = (pdfDoc && pdfDoc.numPages > 0) ? pdfDoc.numPages : 1;
+
+            document.getElementById('pageNum').textContent = num;
+            document.getElementById('pageCount').textContent = total;
+            document.getElementById('prevPageBtn').disabled = num <= 1;
+            document.getElementById('nextPageBtn').disabled = num >= total;
 
             pdfDoc.getPage(num).then(function(page) {
                 const viewport = page.getViewport({ scale: scale });
@@ -489,11 +609,10 @@
                         pageNumPending = null;
                     }
                 });
+            }).catch(function(err) {
+                pageRendering = false;
+                console.error("Page render error:", err);
             });
-
-            document.getElementById('pageNum').textContent = num;
-            document.getElementById('prevPageBtn').disabled = num <= 1;
-            document.getElementById('nextPageBtn').disabled = num >= pdfDoc.numPages;
         }
 
         function queueRenderPage(num) {
@@ -511,7 +630,8 @@
         }
 
         function onNextPage() {
-            if (pageNum >= pdfDoc.numPages) return;
+            const total = (pdfDoc && pdfDoc.numPages > 0) ? pdfDoc.numPages : 1;
+            if (pageNum >= total) return;
             pageNum++;
             queueRenderPage(pageNum);
         }
@@ -555,5 +675,47 @@
             }
         });
     </script>
+
+    <!-- MOBILE NAVIGATION DRAWER -->
+    <div id="mobileNavDrawer" class="mobile-nav-drawer" aria-hidden="true">
+        <div id="drawerBackdrop" class="drawer-backdrop"></div>
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <a href="/" class="brand-logo" aria-label="Shree Mata">
+                    <img src="images/press.png" alt="Shree Mata" width="36" height="36">
+                    <span class="brand-title" style="font-size: 18px;">Shree Mata</span>
+                </a>
+                <button type="button" id="drawerCloseBtn" class="drawer-close-btn" aria-label="Close menu">&times;</button>
+            </div>
+            <nav class="drawer-nav">
+                <a href="/#booksSection" class="drawer-link">📚 All Books</a>
+                <a href="/#subjectSection" class="drawer-link">🏷️ Categories & Subjects</a>
+                <a href="/#notificationsSection" class="drawer-link">🎉 Offers & Deals</a>
+                <a href="/track-order.html" class="drawer-link">📦 Track Your Order</a>
+                <a href="/cart.html" class="drawer-link">🛒 Shopping Cart</a>
+            </nav>
+            <div id="drawerAuthSection" class="drawer-auth">
+                <div id="drawerGuestAuth" class="drawer-auth-buttons">
+                    <a href="/login.html" class="btn-secondary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">Log In</a>
+                    <a href="/signup.html" class="btn-primary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center;">Sign Up</a>
+                </div>
+                <div id="drawerUserAuth" class="drawer-user-info" style="display: none;">
+                    <div class="drawer-user-name" id="drawerUserName">User</div>
+                    <div class="drawer-user-links">
+                        <a href="/account.html" class="drawer-link">👤 My Account</a>
+                        <a href="/orders.html" class="drawer-link">📦 My Orders</a>
+                        <a href="/account.html?section=wallet" class="drawer-link">👛 Wallet & Cashback</a>
+                        <a href="/referral.html" class="drawer-link">💰 Referral Network</a>
+                        <a href="/account.html?section=vip" class="drawer-link">👑 VIP Master Card</a>
+                        <a href="/admin.html" id="drawerAdminLink" class="drawer-link" style="display: none;">⚙️ Admin Dashboard</a>
+                        <button type="button" id="drawerLogoutBtn" class="drawer-logout-btn">🚪 Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Navigation Controller -->
+    <script src="js/global-nav.js"></script>
 </body>
 </html>
