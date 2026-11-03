@@ -11,7 +11,7 @@ if (!origin.includes("localhost")) {
 }
 // Local development
 else {
-    API_URL = "http://localhost:3000/api";
+    API_URL = (origin && window.location.port) ? (origin + "/api") : "http://localhost:3000/api";
 }
 
 console.log("🔧 API_URL Loaded:", API_URL);
