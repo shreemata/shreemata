@@ -311,17 +311,22 @@ router.get("/my-status", authenticateToken, async (req, res) => {
 
     if (activeSub) {
       const daysRemaining = Math.max(0, Math.ceil((new Date(activeSub.expiresAt).getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
+      const isGrantedByAdmin = activeSub.planType === 'admin_grant';
       return res.json({
         success: true,
         hasActiveSubscription: true,
+        isGrantedByAdmin,
         subscription: {
           id: activeSub._id,
           section: activeSub.section || 'notes',
           planType: activeSub.planType,
+          isGrantedByAdmin,
           status: activeSub.status,
           startDate: activeSub.startDate,
           expiresAt: activeSub.expiresAt,
-          daysRemaining
+          daysRemaining,
+          grantedAt: activeSub.grantedAt || null,
+          note: activeSub.note || null
         }
       });
     }
@@ -892,6 +897,314 @@ router.get("/admin/subscribers", authenticateToken, isAdmin, async (req, res) =>
     return res.status(500).json({ error: "Failed to fetch subscribers list" });
   }
 });
+
+// =========================================================================
+// 6. ADMIN FREE ACCESS GRANTS
+// =========================================================================
+
+const handleAdminGrant = async (req, res) => {
+  try {
+    const { email, section, durationDays, note } = req.body;
+
+    if (!email || typeof email !== 'string' || !email.trim()) {
+      return res.status(400).json({ error: 'Member email is required' });
+    }
+
+    const validSections = ['notes', 'question_papers', 'videos'];
+    const targetSection = (section || '').toLowerCase().trim();
+    if (!validSections.includes(targetSection)) {
+      return res.status(400).json({
+        error: `Invalid section. Must be one of: ${validSections.join(', ')}`
+      });
+    }
+
+    const parsedDays = parseInt(durationDays, 10);
+    if (isNaN(parsedDays) || parsedDays < 1 || parsedDays > 3650) {
+      return res.status(400).json({
+        error: 'Duration must be an integer between 1 and 3650 days'
+      });
+    }
+
+    const trimmedNote = (note || '').trim();
+    if (trimmedNote.length > 200) {
+      return res.status(400).json({
+        error: 'Note / reason must not exceed 200 characters'
+      });
+    }
+
+    const trimmedEmail = email.trim();
+    const escapedEmail = trimmedEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const targetUser = await User.findOne({
+      email: new RegExp(`^${escapedEmail}$`, 'i')
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({
+        error: `User not found with email: ${trimmedEmail}`
+      });
+    }
+
+    const now = new Date();
+
+    const activeSubQuery = {
+      userId: targetUser._id,
+      status: 'active',
+      expiresAt: { $gt: now }
+    };
+    if (targetSection === 'notes') {
+      activeSubQuery.$or = [
+        { section: 'notes' },
+        { section: { $exists: false } },
+        { section: null }
+      ];
+    } else {
+      activeSubQuery.section = targetSection;
+    }
+
+    const existingActive = await NoteSubscription.findOne(activeSubQuery).sort({ expiresAt: -1 });
+
+    if (existingActive) {
+      const currentExpiryMs = new Date(existingActive.expiresAt).getTime();
+      const additionalMs = parsedDays * 24 * 60 * 60 * 1000;
+      const newExpiry = new Date(currentExpiryMs + additionalMs);
+
+      existingActive.expiresAt = newExpiry;
+      existingActive.durationDays = (existingActive.durationDays || 0) + parsedDays;
+      existingActive.grantedBy = req.user.id;
+      existingActive.grantedAt = now;
+      if (trimmedNote) {
+        existingActive.note = trimmedNote;
+      }
+      await existingActive.save();
+
+      console.log(`[AUDIT] [ADMIN_GRANT_EXTEND] Admin ${req.user.email || req.user.id} extended free access for section '${targetSection}' to user ${targetUser.email} (${targetUser._id}) by ${parsedDays} days until ${newExpiry.toISOString()}`);
+
+      return res.status(200).json({
+        success: true,
+        message: `Extended access by ${parsedDays} days`,
+        extended: true,
+        subscription: existingActive
+      });
+    }
+
+    const startDate = now;
+    const expiresAt = new Date(now.getTime() + parsedDays * 24 * 60 * 60 * 1000);
+
+    const newSub = await NoteSubscription.create({
+      userId: targetUser._id,
+      section: targetSection,
+      planType: 'admin_grant',
+      durationDays: parsedDays,
+      amountPaid: 0,
+      currency: 'INR',
+      status: 'active',
+      startDate,
+      expiresAt,
+      grantedBy: req.user.id,
+      grantedAt: now,
+      note: trimmedNote,
+      paymentDetails: {
+        method: 'admin_grant',
+        capturedAt: now
+      }
+    });
+
+    console.log(`[AUDIT] [ADMIN_GRANT_NEW] Admin ${req.user.email || req.user.id} granted free access for section '${targetSection}' to user ${targetUser.email} (${targetUser._id}) for ${parsedDays} days until ${expiresAt.toISOString()}`);
+
+    return res.status(201).json({
+      success: true,
+      message: `Granted free access to ${targetSection} for ${parsedDays} days`,
+      subscription: newSub
+    });
+  } catch (err) {
+    console.error('Error granting free section access:', err);
+    return res.status(500).json({ error: 'Failed to grant free section access' });
+  }
+};
+
+router.post('/admin/grant', authenticateToken, isAdmin, handleAdminGrant);
+router.post('/admin/grants', authenticateToken, isAdmin, handleAdminGrant);
+
+router.get('/admin/grants', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const now = new Date();
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+
+    const sectionFilter = (req.query.section || 'all').toLowerCase().trim();
+    const statusFilter = (req.query.status || 'all').toLowerCase().trim();
+    const search = (req.query.search || '').trim();
+
+    const query = {
+      planType: 'admin_grant'
+    };
+
+    if (sectionFilter !== 'all' && ['notes', 'question_papers', 'videos'].includes(sectionFilter)) {
+      query.section = sectionFilter;
+    }
+
+    if (statusFilter === 'active') {
+      query.status = 'active';
+      query.expiresAt = { $gt: now };
+    } else if (statusFilter === 'expired') {
+      query.$or = [
+        { status: 'expired' },
+        { status: 'active', expiresAt: { $lte: now } }
+      ];
+    } else if (statusFilter === 'cancelled' || statusFilter === 'revoked') {
+      query.status = 'cancelled';
+    }
+
+    if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const searchRegex = new RegExp(escapedSearch, 'i');
+
+      const matchedUsers = await User.find({
+        $or: [
+          { name: searchRegex },
+          { email: searchRegex }
+        ]
+      }).select('_id').lean();
+
+      const matchedUserIds = matchedUsers.map(u => u._id);
+
+      const searchConditions = [
+        { userId: { $in: matchedUserIds } },
+        { note: searchRegex }
+      ];
+
+      if (query.$or) {
+        query.$and = [
+          { $or: query.$or },
+          { $or: searchConditions }
+        ];
+        delete query.$or;
+      } else {
+        query.$or = searchConditions;
+      }
+    }
+
+    const [rawGrants, totalCount] = await Promise.all([
+      NoteSubscription.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('userId', 'name email phone')
+        .populate('grantedBy', 'name email')
+        .populate('revokedBy', 'name email')
+        .lean(),
+      NoteSubscription.countDocuments(query)
+    ]);
+
+    const grants = rawGrants.map((sub) => {
+      const isExpired = !sub.expiresAt || new Date(sub.expiresAt).getTime() <= now.getTime();
+      let computedStatus = sub.status;
+      if (sub.status === 'active') {
+        computedStatus = isExpired ? 'expired' : 'active';
+      }
+      const daysRemaining = (computedStatus === 'active' && sub.expiresAt)
+        ? Math.max(0, Math.ceil((new Date(sub.expiresAt).getTime() - now.getTime()) / (24 * 60 * 60 * 1000)))
+        : 0;
+
+      return {
+        id: sub._id,
+        user: sub.userId ? {
+          id: sub.userId._id,
+          name: sub.userId.name || 'N/A',
+          email: sub.userId.email || 'N/A',
+          phone: sub.userId.phone || 'N/A'
+        } : { id: null, name: 'Deleted User', email: 'N/A', phone: 'N/A' },
+        section: sub.section || 'notes',
+        planType: sub.planType,
+        status: computedStatus,
+        rawStatus: sub.status,
+        durationDays: sub.durationDays,
+        startDate: sub.startDate,
+        expiresAt: sub.expiresAt,
+        daysRemaining,
+        note: sub.note || '',
+        grantedBy: sub.grantedBy ? {
+          id: sub.grantedBy._id,
+          name: sub.grantedBy.name || 'Admin',
+          email: sub.grantedBy.email || 'N/A'
+        } : null,
+        grantedAt: sub.grantedAt || sub.createdAt,
+        revokedBy: sub.revokedBy ? {
+          id: sub.revokedBy._id,
+          name: sub.revokedBy.name || 'Admin',
+          email: sub.revokedBy.email || 'N/A'
+        } : null,
+        revokedAt: sub.revokedAt || null,
+        createdAt: sub.createdAt
+      };
+    });
+
+    return res.json({
+      success: true,
+      grants,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit) || 1
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching admin free access grants:', err);
+    return res.status(500).json({ error: 'Failed to fetch free access grants' });
+  }
+});
+
+const handleRevokeGrant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid grant ID' });
+    }
+
+    const sub = await NoteSubscription.findById(id).populate('userId', 'email name');
+    if (!sub) {
+      return res.status(404).json({ error: 'Subscription grant not found' });
+    }
+
+    if (sub.planType !== 'admin_grant' || sub.razorpayPaymentId) {
+      return res.status(400).json({
+        error: 'Cannot revoke a paid customer subscription via this endpoint'
+      });
+    }
+
+    const now = new Date();
+    const isAlreadyExpired = new Date(sub.expiresAt).getTime() <= now.getTime();
+
+    if (sub.status === 'cancelled' || sub.status === 'expired' || isAlreadyExpired) {
+      return res.status(400).json({
+        error: 'Subscription is already expired or cancelled'
+      });
+    }
+
+    sub.status = 'cancelled';
+    sub.expiresAt = now;
+    sub.revokedBy = req.user.id;
+    sub.revokedAt = now;
+    await sub.save();
+
+    console.log(`[AUDIT] [ADMIN_REVOKE] Admin ${req.user.email || req.user.id} revoked free access for subscription ${sub._id} (user: ${sub.userId?.email || sub.userId}, section: ${sub.section})`);
+
+    return res.json({
+      success: true,
+      message: 'Free access revoked successfully',
+      subscription: sub
+    });
+  } catch (err) {
+    console.error('Error revoking free section access:', err);
+    return res.status(500).json({ error: 'Failed to revoke free section access' });
+  }
+};
+
+router.post('/admin/grants/:id/revoke', authenticateToken, isAdmin, handleRevokeGrant);
+router.delete('/admin/grants/:id', authenticateToken, isAdmin, handleRevokeGrant);
+
 
 // Export helper for unit testing
 router._testHelpers = {

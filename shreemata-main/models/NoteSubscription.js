@@ -63,22 +63,41 @@ const noteSubscriptionSchema = new mongoose.Schema({
   },
   razorpayOrderId: {
     type: String,
-    required: true,
+    required: function() { return this.planType !== 'admin_grant'; },
     trim: true,
     index: true
   },
   // Unique sparse constraint ensures strict idempotency and avoids collisions if draft records omit payment IDs
   razorpayPaymentId: {
     type: String,
-    required: true,
+    required: function() { return this.planType !== 'admin_grant'; },
     trim: true,
     unique: true,
     sparse: true
   },
   razorpaySignature: {
     type: String,
-    required: true,
+    required: function() { return this.planType !== 'admin_grant'; },
     trim: true
+  },
+  grantedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  grantedAt: {
+    type: Date
+  },
+  note: {
+    type: String,
+    maxlength: 200,
+    trim: true
+  },
+  revokedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  revokedAt: {
+    type: Date
   },
   subscriptionIndex: {
     type: Number,
