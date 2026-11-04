@@ -961,21 +961,40 @@ const handleAdminGrant = async (req, res) => {
       activeSubQuery.section = targetSection;
     }
 
-    const existingActive = await NoteSubscription.findOne(activeSubQuery).sort({ expiresAt: -1 });
+    // 1. Check if the user already has an ACTIVE paid subscription (planType !== 'admin_grant')
+    const existingPaidActive = await NoteSubscription.findOne({
+      ...activeSubQuery,
+      planType: { $ne: 'admin_grant' }
+    }).sort({ expiresAt: -1 });
 
-    if (existingActive) {
-      const currentExpiryMs = new Date(existingActive.expiresAt).getTime();
+    if (existingPaidActive) {
+      const expiryDateStr = existingPaidActive.expiresAt
+        ? new Date(existingPaidActive.expiresAt).toLocaleDateString('en-IN')
+        : 'active period';
+      return res.status(409).json({
+        error: `Member already has paid access to ${targetSection} until ${expiryDateStr}`
+      });
+    }
+
+    // 2. Check if the user already has an active admin_grant subscription to extend
+    const existingGrantActive = await NoteSubscription.findOne({
+      ...activeSubQuery,
+      planType: 'admin_grant'
+    }).sort({ expiresAt: -1 });
+
+    if (existingGrantActive) {
+      const currentExpiryMs = new Date(existingGrantActive.expiresAt).getTime();
       const additionalMs = parsedDays * 24 * 60 * 60 * 1000;
       const newExpiry = new Date(currentExpiryMs + additionalMs);
 
-      existingActive.expiresAt = newExpiry;
-      existingActive.durationDays = (existingActive.durationDays || 0) + parsedDays;
-      existingActive.grantedBy = req.user.id;
-      existingActive.grantedAt = now;
+      existingGrantActive.expiresAt = newExpiry;
+      existingGrantActive.durationDays = (existingGrantActive.durationDays || 0) + parsedDays;
+      existingGrantActive.grantedBy = req.user.id;
+      existingGrantActive.grantedAt = now;
       if (trimmedNote) {
-        existingActive.note = trimmedNote;
+        existingGrantActive.note = trimmedNote;
       }
-      await existingActive.save();
+      await existingGrantActive.save();
 
       console.log(`[AUDIT] [ADMIN_GRANT_EXTEND] Admin ${req.user.email || req.user.id} extended free access for section '${targetSection}' to user ${targetUser.email} (${targetUser._id}) by ${parsedDays} days until ${newExpiry.toISOString()}`);
 
@@ -983,7 +1002,7 @@ const handleAdminGrant = async (req, res) => {
         success: true,
         message: `Extended access by ${parsedDays} days`,
         extended: true,
-        subscription: existingActive
+        subscription: existingGrantActive
       });
     }
 

@@ -445,4 +445,100 @@ describe('Admin Free Access Grants', () => {
     expect(res.data.grants.length).toBe(1);
     expect(res.data.grants[0].user.email).toBe('second@school.test');
   });
+
+  test('12. Grant to user with active paid subscription returns 409 and record is byte-for-byte unchanged', async () => {
+    // Find the active paid subscription of paidStudentUser
+    const paidSub = await NoteSubscription.findOne({
+      userId: paidStudentUser._id,
+      section: 'notes',
+      status: 'active'
+    });
+    expect(paidSub).not.toBeNull();
+
+    const beforeDoc = await NoteSubscription.findById(paidSub._id).lean();
+
+    // Attempt to grant access to notes for this paid student
+    const grantRes = await client.post(
+      '/api/subscriptions/admin/grant',
+      {
+        email: paidStudentUser.email,
+        section: 'notes',
+        durationDays: 30,
+        note: 'Attempting to overwrite paid subscription'
+      },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    );
+
+    // Expect 409 Conflict with clear error message
+    expect(grantRes.status).toBe(409);
+    expect(grantRes.data.error).toMatch(/Member already has paid access to notes until/i);
+
+    // Verify document in MongoDB is byte-for-byte unchanged
+    const afterDoc = await NoteSubscription.findById(paidSub._id).lean();
+    expect(JSON.stringify(afterDoc)).toBe(JSON.stringify(beforeDoc));
+    expect(afterDoc.expiresAt.toISOString()).toBe(beforeDoc.expiresAt.toISOString());
+    expect(afterDoc.grantedBy).toBeUndefined();
+    expect(afterDoc.note).toBeUndefined();
+  });
+
+  test('13. A user whose paid subscription has expired CAN be granted free access', async () => {
+    const expiredPaidStudent = await User.create({
+      name: 'Expired Paid Student',
+      email: 'expiredpaid@school.test',
+      phone: '9555555555',
+      password: 'password123',
+      role: 'user'
+    });
+
+    const pastExpiry = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+    const pastStart = new Date(Date.now() - 35 * 24 * 60 * 60 * 1000);
+
+    const oldPaidSub = await NoteSubscription.create({
+      userId: expiredPaidStudent._id,
+      section: 'notes',
+      planType: 'standard',
+      durationDays: 30,
+      amountPaid: 99,
+      status: 'active', // expired by date
+      startDate: pastStart,
+      expiresAt: pastExpiry,
+      razorpayOrderId: 'order_test_old_111',
+      razorpayPaymentId: 'pay_test_old_111',
+      razorpaySignature: 'sig_test_old_111'
+    });
+
+    // Admin grants free access to notes for 45 days
+    const grantRes = await client.post(
+      '/api/subscriptions/admin/grant',
+      {
+        email: expiredPaidStudent.email,
+        section: 'notes',
+        durationDays: 45,
+        note: 'Special grant after paid plan expired'
+      },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    );
+
+    expect(grantRes.status).toBe(201);
+    expect(grantRes.data.success).toBe(true);
+    expect(grantRes.data.subscription).toBeDefined();
+    expect(grantRes.data.subscription.planType).toBe('admin_grant');
+    expect(grantRes.data.subscription.amountPaid).toBe(0);
+
+    // Verify the old paid subscription is still intact
+    const originalSub = await NoteSubscription.findById(oldPaidSub._id).lean();
+    expect(originalSub.planType).toBe('standard');
+    expect(originalSub.amountPaid).toBe(99);
+
+    // Verify new grant is active and unlocks access
+    const activeGrant = await NoteSubscription.findOne({
+      userId: expiredPaidStudent._id,
+      section: 'notes',
+      status: 'active',
+      planType: 'admin_grant'
+    });
+    expect(activeGrant).not.toBeNull();
+    expect(activeGrant.durationDays).toBe(45);
+    expect(activeGrant.note).toBe('Special grant after paid plan expired');
+  });
 });
