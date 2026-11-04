@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0">
     <meta name="theme-color" content="#0F172A">
     <title>Online Note Reader — Shree Mata</title>
     <link rel="icon" href="images/press.png" type="image/png">
@@ -47,17 +47,34 @@
             flex-direction: column;
         }
 
+        /* Keyboard Accessibility */
+        button:focus-visible,
+        a:focus-visible,
+        input:focus-visible {
+            outline: 2px solid var(--accent) !important;
+            outline-offset: 2px !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+
         /* Reader Top Navigation Bar */
         .reader-header {
-            height: 60px;
+            min-height: 56px;
             background: var(--toolbar-bg);
             border-bottom: 1px solid var(--border-dark);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 16px;
+            padding: 6px 16px;
             z-index: 50;
             position: relative;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .header-left {
@@ -65,25 +82,30 @@
             align-items: center;
             gap: 12px;
             overflow: hidden;
+            flex-shrink: 1;
+            min-width: 0;
         }
 
         .btn-back {
             background: rgba(255, 255, 255, 0.1);
             color: var(--text-light);
             border: 1px solid var(--border-dark);
-            padding: 6px 12px;
+            padding: 8px 14px;
             border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
+            font-size: 13.5px;
+            font-weight: 700;
             cursor: pointer;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 6px;
             white-space: nowrap;
+            min-height: 44px;
+            transition: background 0.15s;
         }
         .btn-back:hover {
             background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
         }
 
         .doc-title-box {
@@ -93,42 +115,52 @@
         }
 
         .doc-title {
-            font-size: 14px;
+            font-size: 14.5px;
             font-weight: 700;
             margin: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            color: #ffffff;
         }
 
         .doc-subtitle {
-            font-size: 11px;
+            font-size: 11.5px;
             color: var(--text-muted);
-            margin: 0;
+            margin: 2px 0 0 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        /* Controls (Center & Right) */
+        /* Controls Toolbar */
         .header-controls {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .btn-ctrl {
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid var(--border-dark);
             color: var(--text-light);
-            padding: 6px 10px;
+            padding: 8px 12px;
             border-radius: 6px;
             font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s;
+            transition: background 0.15s;
+            min-height: 44px;
+            min-width: 44px;
+            text-decoration: none;
         }
         .btn-ctrl:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
         }
         .btn-ctrl:disabled {
             opacity: 0.35;
@@ -139,6 +171,21 @@
             font-size: 13px;
             color: var(--text-muted);
             white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 4px;
+        }
+        .page-indicator input {
+            width: 44px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-dark);
+            color: #ffffff;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
         }
         .page-indicator span {
             color: #ffffff;
@@ -156,14 +203,16 @@
             padding: 24px 16px;
             position: relative;
             background: #0b1329;
+            -webkit-overflow-scrolling: touch;
         }
 
         .canvas-wrapper {
             position: relative;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6);
             background: #ffffff;
             border-radius: 4px;
             overflow: hidden;
+            max-width: 100%;
         }
 
         #pdfCanvas {
@@ -184,7 +233,7 @@
             flex-direction: column;
             justify-content: space-around;
             align-items: center;
-            opacity: 0.10;
+            opacity: 0.08;
             font-size: 22px;
             font-weight: 800;
             color: #000000;
@@ -192,7 +241,7 @@
             z-index: 10;
         }
 
-        /* State Modals / Full Screen Placeholders */
+        /* State Modals */
         .state-modal {
             position: fixed;
             top: 0;
@@ -238,7 +287,9 @@
         }
 
         .btn-action {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             width: 100%;
             padding: 12px 20px;
             background: linear-gradient(135deg, #F68048 0%, #e06d36 100%);
@@ -250,6 +301,7 @@
             cursor: pointer;
             text-decoration: none;
             box-sizing: border-box;
+            min-height: 44px;
         }
 
         /* Spinner */
@@ -269,13 +321,16 @@
 
         @media (max-width: 768px) {
             .reader-header {
-                padding: 0 10px;
+                padding: 6px 10px;
             }
             .doc-subtitle {
                 display: none;
             }
             .reader-viewport {
-                padding: 12px 6px;
+                padding: 10px 4px;
+            }
+            .btn-text-label {
+                display: none;
             }
         }
     </style>
@@ -391,24 +446,31 @@
     <!-- 1. TOP READER TOOLBAR -->
     <header class="reader-header" id="readerHeader">
         <div class="header-left">
-            <a href="/notes.html" class="btn-back">← Notes</a>
+            <a href="/notes.html" class="btn-back" id="btnBackToCatalog">← <span class="btn-text-label">Catalog</span></a>
             <div class="doc-title-box">
                 <h1 class="doc-title" id="toolbarTitle">Loading Document...</h1>
-                <p class="doc-subtitle" id="toolbarSubtitle">Curriculum Revision Sheet</p>
+                <p class="doc-subtitle" id="toolbarSubtitle">Curriculum Study Note</p>
             </div>
         </div>
 
         <div class="header-controls">
             <!-- Page Navigation -->
-            <button type="button" class="btn-ctrl" id="prevPageBtn" onclick="onPrevPage()" disabled title="Previous Page">◀</button>
+            <button type="button" class="btn-ctrl" id="prevPageBtn" onclick="onPrevPage()" disabled title="Previous Page (Left Arrow)">◀</button>
             <div class="page-indicator">
-                <span id="pageNum">1</span> / <span id="pageCount">--</span>
+                <input type="number" id="pageInput" min="1" value="1" onchange="onJumpToPage(this.value)" aria-label="Page Number">
+                <span>/</span>
+                <span id="pageCount">--</span>
             </div>
-            <button type="button" class="btn-ctrl" id="nextPageBtn" onclick="onNextPage()" disabled title="Next Page">▶</button>
+            <button type="button" class="btn-ctrl" id="nextPageBtn" onclick="onNextPage()" disabled title="Next Page (Right Arrow)">▶</button>
 
             <!-- Zoom Controls -->
-            <button type="button" class="btn-ctrl" onclick="onZoomOut()" title="Zoom Out">−</button>
-            <button type="button" class="btn-ctrl" onclick="onZoomIn()" title="Zoom In">+</button>
+            <button type="button" class="btn-ctrl" onclick="onZoomOut()" title="Zoom Out (-)">−</button>
+            <button type="button" class="btn-ctrl" onclick="onZoomIn()" title="Zoom In (+)">+</button>
+            <button type="button" class="btn-ctrl btn-text-label" onclick="onFitWidth()" title="Fit to Width">⇲ Fit</button>
+            <button type="button" class="btn-ctrl btn-text-label" onclick="onResetZoom()" title="Original 100%">100%</button>
+
+            <!-- Fullscreen -->
+            <button type="button" class="btn-ctrl" onclick="toggleFullscreen()" title="Toggle Fullscreen (F)">⛶</button>
 
             <!-- Optional Authorized Download -->
             <a href="#" id="authDownloadBtn" class="btn-ctrl" style="display: none; color: #10B981;" title="Download PDF Document">⬇️</a>
@@ -433,7 +495,7 @@
             <div class="spinner" id="stateSpinner"></div>
             <div class="state-icon" id="stateIcon" style="display: none;">🔒</div>
             <h2 id="stateTitle">Verifying Access...</h2>
-            <p id="stateMessage">Validating active READ NOTES subscription and preparing document pages.</p>
+            <p id="stateMessage">Validating subscription and loading document pages.</p>
             <div id="stateActionWrap" style="display: none;">
                 <a href="/notes.html" class="btn-action" id="stateActionBtn">Get Subscription Pass</a>
             </div>
@@ -501,6 +563,11 @@
 
                 document.getElementById('toolbarTitle').textContent = note.title;
                 document.getElementById('toolbarSubtitle').textContent = `${note.subject || 'Curriculum'} • ${note.classLevel || 'General'}`;
+                
+                const backBtn = document.getElementById('btnBackToCatalog');
+                if (backBtn && note.section) {
+                    backBtn.href = `/notes.html?section=${note.section}`;
+                }
 
                 const isFree = !!note.isFree;
 
@@ -569,6 +636,7 @@
                 pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                 const totalPdfPages = (pdfDoc && pdfDoc.numPages > 0) ? pdfDoc.numPages : 1;
                 document.getElementById('pageCount').textContent = totalPdfPages;
+                document.getElementById('pageInput').max = totalPdfPages;
 
                 // Close loading modal
                 document.getElementById('stateModal').style.display = 'none';
@@ -585,7 +653,7 @@
             pageRendering = true;
             const total = (pdfDoc && pdfDoc.numPages > 0) ? pdfDoc.numPages : 1;
 
-            document.getElementById('pageNum').textContent = num;
+            document.getElementById('pageInput').value = num;
             document.getElementById('pageCount').textContent = total;
             document.getElementById('prevPageBtn').disabled = num <= 1;
             document.getElementById('nextPageBtn').disabled = num >= total;
@@ -636,16 +704,54 @@
             queueRenderPage(pageNum);
         }
 
+        function onJumpToPage(val) {
+            const target = parseInt(val, 10);
+            const total = (pdfDoc && pdfDoc.numPages > 0) ? pdfDoc.numPages : 1;
+            if (target >= 1 && target <= total) {
+                pageNum = target;
+                queueRenderPage(pageNum);
+            } else {
+                document.getElementById('pageInput').value = pageNum;
+            }
+        }
+
         function onZoomIn() {
-            if (scale >= 2.5) return;
-            scale += 0.2;
+            if (scale >= 3.0) return;
+            scale += 0.25;
             queueRenderPage(pageNum);
         }
 
         function onZoomOut() {
-            if (scale <= 0.8) return;
-            scale -= 0.2;
+            if (scale <= 0.6) return;
+            scale -= 0.25;
             queueRenderPage(pageNum);
+        }
+
+        function onFitWidth() {
+            const viewportEl = document.getElementById('readerViewport');
+            if (viewportEl && pdfDoc) {
+                pdfDoc.getPage(pageNum).then(function(page) {
+                    const defaultVp = page.getViewport({ scale: 1.0 });
+                    const availableWidth = viewportEl.clientWidth - 48;
+                    scale = Math.max(0.6, Math.min(2.5, availableWidth / defaultVp.width));
+                    queueRenderPage(pageNum);
+                });
+            }
+        }
+
+        function onResetZoom() {
+            scale = 1.0;
+            queueRenderPage(pageNum);
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
         }
 
         function showAccessDenied(title, message, btnText, btnHref) {
@@ -668,10 +774,19 @@
 
         // Keyboard Shortcut Navigation
         document.addEventListener('keydown', (e) => {
+            if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                return;
+            }
             if (e.key === 'ArrowRight' || e.key === 'PageDown') {
                 onNextPage();
             } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
                 onPrevPage();
+            } else if (e.key === '+' || e.key === '=') {
+                onZoomIn();
+            } else if (e.key === '-' || e.key === '_') {
+                onZoomOut();
+            } else if (e.key === 'f' || e.key === 'F') {
+                toggleFullscreen();
             }
         });
     </script>

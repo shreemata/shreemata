@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0">
     <meta name="theme-color" content="#0F172A">
     <title>Video Lecture Player — Shree Mata</title>
     <link rel="icon" href="images/press.png" type="image/png">
@@ -36,15 +36,36 @@
             color: var(--text-light);
             font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
+        /* Keyboard Accessibility */
+        button:focus-visible,
+        a:focus-visible {
+            outline: 2px solid var(--accent) !important;
+            outline-offset: 2px !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+
+        /* Sticky Top Toolbar */
         .player-header {
             background-color: #0f172a;
             border-bottom: 1px solid var(--border-dark);
-            padding: 14px 24px;
+            padding: 10px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 40;
         }
 
         .back-btn {
@@ -53,24 +74,47 @@
             gap: 8px;
             color: var(--text-light);
             text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 13.5px;
+            font-weight: 700;
             padding: 8px 14px;
             border-radius: var(--radius-md);
             background: rgba(255, 255, 255, 0.08);
-            transition: background 0.2s;
+            border: 1px solid var(--border-dark);
+            transition: background 0.15s;
+            min-height: 44px;
         }
 
         .back-btn:hover {
-            background: rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+        }
+
+        .toolbar-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            overflow: hidden;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-title {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 400px;
         }
 
         .player-container {
             max-width: 1100px;
-            margin: 32px auto;
-            padding: 0 20px;
+            margin: 24px auto 48px;
+            padding: 0 16px;
         }
 
+        /* 16:9 Aspect Ratio Viewport */
         .video-viewport {
             position: relative;
             width: 100%;
@@ -78,7 +122,7 @@
             background: #000;
             border-radius: var(--radius-lg);
             overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6);
             border: 1px solid var(--border-dark);
         }
 
@@ -115,6 +159,7 @@
         .video-placeholder h3 {
             margin: 0 0 8px 0;
             font-size: 20px;
+            color: #ffffff;
         }
 
         .video-placeholder p {
@@ -131,6 +176,7 @@
             border-radius: var(--radius-lg);
             padding: 24px;
             margin-top: 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
         }
 
         .meta-badges {
@@ -156,30 +202,32 @@
         }
 
         .badge-paid {
-            background: #ede9fe;
-            color: #6d28d9;
+            background: #fef3c7;
+            color: #b45309;
         }
 
         .badge-info {
             background: rgba(255, 255, 255, 0.1);
             color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.15);
         }
 
         .video-title {
             font-size: 22px;
             font-weight: 800;
-            margin: 0 0 8px 0;
+            margin: 0 0 6px 0;
             color: #fff;
+            line-height: 1.35;
         }
 
         .video-subtitle {
-            font-size: 14px;
+            font-size: 13.5px;
             color: var(--text-muted);
             margin: 0 0 16px 0;
         }
 
         .video-desc {
-            font-size: 14.5px;
+            font-size: 14px;
             color: #cbd5e1;
             line-height: 1.6;
             white-space: pre-line;
@@ -191,21 +239,82 @@
         .btn-action {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
-            padding: 10px 20px;
-            background: var(--accent);
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #F68048 0%, #e06d36 100%);
             color: #fff;
             text-decoration: none;
-            font-size: 14px;
+            font-size: 14.5px;
             font-weight: 700;
             border-radius: var(--radius-md);
-            transition: background 0.2s;
+            transition: all 0.2s;
             border: none;
             cursor: pointer;
+            min-height: 44px;
         }
 
         .btn-action:hover {
-            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(246, 128, 72, 0.4);
+            color: #ffffff;
+        }
+
+        /* Recommended Videos Section */
+        .recommended-section {
+            margin-top: 36px;
+        }
+
+        .recommended-section h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0 0 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .recommended-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .recommended-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .toolbar-title {
+                max-width: 200px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .recommended-grid {
+                grid-template-columns: 1fr;
+            }
+            .video-title {
+                font-size: 18px;
+            }
+        }
+
+        .rec-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-dark);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
+            color: var(--text-light);
+            transition: transform 0.15s, border-color 0.15s;
+        }
+
+        .rec-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+            color: #ffffff;
         }
 
         .spinner {
@@ -331,11 +440,16 @@
         </div>
     </header>
 
+    <!-- Top Player Header -->
     <header class="player-header">
-        <a href="/notes.html?section=videos" class="back-btn">
-            <span>←</span> Back to Video Lectures
+        <a href="/notes.html?section=videos" class="back-btn" id="btnBackToVideos">
+            <span>←</span> <span id="backBtnLabel">Back to Video Lectures</span>
         </a>
-        <div style="font-size: 14px; font-weight: 700; color: #fff;">
+        <div class="toolbar-info">
+            <span class="badge badge-info" id="toolbarSubjectBadge">Video Lecture</span>
+            <span class="toolbar-title" id="toolbarVideoTitle">Loading Lecture...</span>
+        </div>
+        <div style="font-size: 13.5px; font-weight: 700; color: #fff;">
             Shree Mata <span style="color: var(--accent);">Learning Portal</span>
         </div>
     </header>
@@ -366,12 +480,25 @@
             <p class="video-subtitle" id="videoSubtitle"></p>
             <div class="video-desc" id="videoDescription" style="display: none;"></div>
         </div>
+
+        <!-- More from this section -->
+        <div class="recommended-section" id="recommendedSection" style="display: none;">
+            <h2>🎥 More from this Section</h2>
+            <div class="recommended-grid" id="recommendedGrid"></div>
+        </div>
     </main>
 
     <script src="js/config.js"></script>
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const videoId = urlParams.get('id');
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
 
         // Allowlisted video provider hosts
         const ALLOWED_HOSTS = [
@@ -419,6 +546,36 @@
             document.getElementById('statePlaceholder').style.display = 'flex';
         }
 
+        async function loadRecommended(currentId, section) {
+            try {
+                const res = await fetch(`${window.API_URL}/notes?section=${section || 'videos'}&limit=6`);
+                if (!res.ok) return;
+                const data = await res.json();
+                const items = (data.notes || []).filter(item => item.id !== currentId).slice(0, 3);
+                if (items.length === 0) return;
+
+                const grid = document.getElementById('recommendedGrid');
+                grid.innerHTML = items.map(item => {
+                    const isItemFree = !!item.isFree;
+                    return `
+                        <a href="/video-player.html?id=${item.id}" class="rec-card">
+                            <div style="font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 4px;">
+                                ${escapeHtml(item.subject || 'Curriculum')} ${isItemFree ? '• FREE' : '• PREMIUM'}
+                            </div>
+                            <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px; line-height: 1.3;">
+                                ${escapeHtml(item.title)}
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: auto;">
+                                ${item.durationMinutes ? `⏱️ ${item.durationMinutes} mins` : '▶ Watch Lecture'}
+                            </div>
+                        </a>
+                    `;
+                }).join('');
+
+                document.getElementById('recommendedSection').style.display = 'block';
+            } catch (_) {}
+        }
+
         async function initializePlayer() {
             if (!videoId) {
                 showState("Missing Video ID", "No video lecture was selected.", "⚠️", "Browse Videos", "/notes.html?section=videos");
@@ -445,8 +602,10 @@
 
                 // Populate Details
                 document.getElementById('videoTitle').textContent = note.title;
+                document.getElementById('toolbarVideoTitle').textContent = note.title;
                 document.getElementById('videoSubtitle').textContent = `${note.subject || 'General'} • ${note.classLevel || 'All Levels'}`;
                 document.getElementById('badgeSubject').textContent = note.subject || 'Curriculum';
+                document.getElementById('toolbarSubjectBadge').textContent = note.subject || 'Curriculum';
                 document.getElementById('badgeClass').textContent = note.classLevel || 'All Classes';
 
                 const badgeAccess = document.getElementById('badgeAccess');
@@ -471,6 +630,9 @@
                 }
 
                 document.getElementById('videoDetails').style.display = 'block';
+
+                // Load recommended videos
+                loadRecommended(note.id, note.section);
 
                 // Gating check for paid video if not logged in
                 if (!note.isFree && (!token || !user)) {
@@ -526,7 +688,6 @@
                 const viewport = document.getElementById('videoViewport');
 
                 if (provider === 'hls' || videoUrl.includes('.m3u8')) {
-                    // Check if native HLS is supported by the browser video tag
                     const testVideo = document.createElement('video');
                     const canPlayHls = testVideo.canPlayType('application/vnd.apple.mpegurl');
 
