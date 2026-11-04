@@ -200,15 +200,27 @@ adminSettingsSchema.methods.applyUpdates = function(updates) {
         }
         if (secUpdate.price !== undefined && typeof secUpdate.price === 'number' && secUpdate.price >= 1) {
           this.sectionSubscriptionPlans[sec].price = secUpdate.price;
+          if (sec === 'notes') {
+            if (!this.readNotesSubscriptionSettings) this.readNotesSubscriptionSettings = {};
+            this.readNotesSubscriptionSettings.monthlyPrice = secUpdate.price;
+          }
         }
         if (secUpdate.durationDays !== undefined && typeof secUpdate.durationDays === 'number' && secUpdate.durationDays >= 1) {
           this.sectionSubscriptionPlans[sec].durationDays = secUpdate.durationDays;
         }
         if (secUpdate.active !== undefined && typeof secUpdate.active === 'boolean') {
           this.sectionSubscriptionPlans[sec].active = secUpdate.active;
+          if (sec === 'notes') {
+            if (!this.readNotesSubscriptionSettings) this.readNotesSubscriptionSettings = {};
+            this.readNotesSubscriptionSettings.enabled = secUpdate.active;
+          }
         }
         if (secUpdate.description !== undefined && typeof secUpdate.description === 'string') {
           this.sectionSubscriptionPlans[sec].description = secUpdate.description.trim();
+          if (sec === 'notes') {
+            if (!this.readNotesSubscriptionSettings) this.readNotesSubscriptionSettings = {};
+            this.readNotesSubscriptionSettings.description = secUpdate.description.trim();
+          }
         }
       }
     }

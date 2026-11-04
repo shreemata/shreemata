@@ -9,8 +9,14 @@
     <style>
         .settings-container {
             max-width: 1200px;
-            margin: 0 auto;
+            margin: 110px auto 40px auto;
             padding: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .settings-container {
+                margin-top: 90px;
+            }
         }
         
         .settings-section {
@@ -225,6 +231,8 @@
     </style>
 </head>
 <body>
+    <!-- Admin Navigation Container -->
+    <nav id="adminNav"></nav>
     <!-- Navigation will be injected by admin-navigation.js -->
 
     <div class="settings-container">
@@ -335,7 +343,7 @@
         </div>
         
                 <!-- Digital Subscription Plans -->
-        <div class="settings-section">
+        <div class="settings-section" id="subscriptionPlans">
             <h2>🎓 Digital Subscription Plans</h2>
             <p class="help-text" style="margin-bottom: 20px;">Configure subscription pricing and validity duration for each digital category section.</p>
             
@@ -356,7 +364,7 @@
                         </div>
                         <div class="setting-item">
                             <label>Price (₹):</label>
-                            <input type="number" id="plan_notes_price" min="1" max="100000" step="1" placeholder="299">
+                            <input type="number" id="plan_notes_price" min="1" max="100000" step="any" placeholder="299">
                         </div>
                         <div class="setting-item">
                             <label>Duration (Days):</label>
@@ -385,7 +393,7 @@
                         </div>
                         <div class="setting-item">
                             <label>Price (₹):</label>
-                            <input type="number" id="plan_question_papers_price" min="1" max="100000" step="1" placeholder="199">
+                            <input type="number" id="plan_question_papers_price" min="1" max="100000" step="any" placeholder="199">
                         </div>
                         <div class="setting-item">
                             <label>Duration (Days):</label>
@@ -414,7 +422,7 @@
                         </div>
                         <div class="setting-item">
                             <label>Price (₹):</label>
-                            <input type="number" id="plan_videos_price" min="1" max="100000" step="1" placeholder="499">
+                            <input type="number" id="plan_videos_price" min="1" max="100000" step="any" placeholder="499">
                         </div>
                         <div class="setting-item">
                             <label>Duration (Days):</label>
@@ -634,20 +642,20 @@
                 
                 const settings = {
                     virtualTreeSettings: {
-                        enabled: document.getElementById('virtualTreeEnabled').checked,
-                        pointsPerVirtualTree: parseInt(document.getElementById('pointsPerVirtualTree').value),
-                        maxVirtualTreesPerUser: parseInt(document.getElementById('maxVirtualTreesPerUser').value),
-                        autoCreateEnabled: document.getElementById('autoCreateEnabled').checked
+                        enabled: document.getElementById('virtualTreeEnabled')?.checked ?? true,
+                        pointsPerVirtualTree: parseInt(document.getElementById('pointsPerVirtualTree')?.value, 10) || 100,
+                        maxVirtualTreesPerUser: parseInt(document.getElementById('maxVirtualTreesPerUser')?.value, 10) || 5,
+                        autoCreateEnabled: document.getElementById('autoCreateEnabled')?.checked ?? true
                     },
                     cashConversionSettings: {
-                        enabled: document.getElementById('cashConversionEnabled').checked,
-                        pointsPerConversion: parseInt(document.getElementById('pointsPerConversion').value),
-                        cashPerConversion: parseFloat(document.getElementById('cashPerConversion').value)
+                        enabled: document.getElementById('cashConversionEnabled')?.checked ?? true,
+                        pointsPerConversion: parseInt(document.getElementById('pointsPerConversion')?.value, 10) || 50,
+                        cashPerConversion: parseFloat(document.getElementById('cashPerConversion')?.value) || 25
                     },
                     pointsEarningSettings: {
-                        pointsPerRupeeSpent: parseFloat(document.getElementById('pointsPerRupeeSpent').value),
-                        bonusPointsOnFirstPurchase: parseInt(document.getElementById('bonusPointsOnFirstPurchase').value),
-                        bonusPointsOnReferral: parseInt(document.getElementById('bonusPointsOnReferral').value)
+                        pointsPerRupeeSpent: parseFloat(document.getElementById('pointsPerRupeeSpent')?.value) || 1,
+                        bonusPointsOnFirstPurchase: parseInt(document.getElementById('bonusPointsOnFirstPurchase')?.value, 10) || 50,
+                        bonusPointsOnReferral: parseInt(document.getElementById('bonusPointsOnReferral')?.value, 10) || 100
                     },
                     sectionSubscriptionPlans: {
                         notes: {

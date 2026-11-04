@@ -11,7 +11,7 @@ const adminNavConfig = {
         { href: "/", icon: "🚪", text: "Public Site", id: "public-site", title: "Visit Public Site" },
         { href: "/admin.html", icon: "📚", text: "Books", id: "books", title: "Manage Books" },
         { href: "/admin-bundles.html", icon: "📦", text: "Bundles", id: "bundles", title: "Manage Bundles" },
-        { href: "/admin-notes.html", icon: "📖", text: "Study Material", id: "study-material", title: "Manage Study Material" },
+        { href: "/admin-notes.html", icon: "📖", text: "Study Content (Notes / Question Papers / Videos)", id: "study-content", title: "Study Content (Notes / Question Papers / Videos)" },
         { href: "/admin-orders.html", icon: "🛒", text: "Orders", id: "orders", title: "Manage Orders" },
         { href: "/admin-check-payments.html", icon: "📋", text: "Cheque Payments", id: "cheque-payments", title: "Cheque Payment Approvals" },
         { href: "/admin-invoices.html", icon: "🧾", text: "Invoices", id: "invoices", title: "Manage Invoices" },
@@ -33,7 +33,7 @@ const adminNavConfig = {
         { href: "/admin-commission-settings.html", icon: "⚙️", text: "Commission", id: "commission-settings", title: "Commission Settings" },
         { href: "/admin-commission-fund.html", icon: "🏛️", text: "Commission Fund", id: "commission-fund", title: "Commission Fund & Liabilities" },
         { href: "/admin-trust-fund.html", icon: "🏛️", text: "Trust Fund", id: "trust-fund", title: "Trust Fund Dashboard" },
-        { href: "/admin-settings.html", icon: "🎛️", text: "Points System", id: "admin-settings", title: "Points & Virtual Tree Settings" },
+        { href: "/admin-settings.html", icon: "💳", text: "Subscription Plans & Prices", id: "subscription-plans", title: "Subscription Plans & Prices" },
         { href: "/admin-receipt-settings.html", icon: "🧾", text: "Receipt Settings", id: "receipt-settings", title: "Receipt Settings" },
         { href: "/", icon: "🚪", text: "Logout", id: "logout" }
     ]
@@ -41,7 +41,10 @@ const adminNavConfig = {
 
 // Initialize admin navigation
 function initAdminNavigation(currentPageId = '') {
-    let nav = document.querySelector('nav');
+    let nav = document.getElementById('adminNav') || document.querySelector('nav#adminNavFallback, nav.admin-nav-forced');
+    if (!nav) {
+        nav = document.querySelector('nav:not(.header-nav-links):not(.drawer-nav)');
+    }
     
     // If no nav element exists, create one
     if (!nav) {
@@ -179,6 +182,7 @@ function createAdminNavHTML(currentPageId) {
                             <div class="popup-group-title">Content Management</div>
                             <a href="/admin.html" class="${currentPageId === 'books' ? 'active' : ''}"><span class="icon">📚</span> Manage Books</a>
                             <a href="/admin-bundles.html" class="${currentPageId === 'bundles' ? 'active' : ''}"><span class="icon">📦</span> Manage Bundles</a>
+                            <a href="/admin-notes.html" class="${(currentPageId === 'study-content' || currentPageId === 'study-material' || window.location.pathname.includes('admin-notes')) ? 'active' : ''}"><span class="icon">📖</span> Study Content (Notes / Question Papers / Videos)</a>
                         </div>
                         
                         <div class="popup-menu-group">
@@ -215,7 +219,7 @@ function createAdminNavHTML(currentPageId) {
                             <a href="/admin-commission-settings.html" class="${currentPageId === 'commission-settings' ? 'active' : ''}"><span class="icon">⚙️</span> Commission Settings</a>
                             <a href="/admin-commission-fund.html" class="${currentPageId === 'commission-fund' ? 'active' : ''}"><span class="icon">🏛️</span> Commission Fund</a>
                             <a href="/admin-trust-fund.html" class="${currentPageId === 'trust-fund' ? 'active' : ''}"><span class="icon">🏛️</span> Trust Fund</a>
-                            <a href="/admin-settings.html" class="${currentPageId === 'admin-settings' ? 'active' : ''}"><span class="icon">🎛️</span> Points System</a>
+                            <a href="/admin-settings.html" class="${(currentPageId === 'subscription-plans' || currentPageId === 'admin-settings' || window.location.pathname.includes('admin-settings')) ? 'active' : ''}"><span class="icon">💳</span> Subscription Plans & Prices</a>
                             <a href="/admin-receipt-settings.html" class="${currentPageId === 'receipt-settings' ? 'active' : ''}"><span class="icon">🧾</span> Receipt Settings</a>
                         </div>
                         
@@ -858,7 +862,7 @@ function setupBackButton(currentPageId) {
 
 // Update page title based on current page
 function updatePageTitle(currentPageId) {
-    const currentPage = adminNavConfig.links.find(link => link.id === currentPageId);
+    const currentPage = adminNavConfig.links.find(link => link.id === currentPageId || (link.id === 'subscription-plans' && currentPageId === 'admin-settings') || (link.id === 'study-content' && currentPageId === 'study-material'));
     if (currentPage && currentPage.title) {
         document.title = `${currentPage.title} - Shree Mata Admin`;
         
@@ -877,7 +881,9 @@ function detectCurrentPage() {
     const path = window.location.pathname;
     let currentPageId = '';
     
-    if (path.includes('admin-bundles')) currentPageId = 'bundles';
+    if (path.includes('admin-notes')) currentPageId = 'study-content';
+    else if (path.includes('admin-settings')) currentPageId = 'subscription-plans';
+    else if (path.includes('admin-bundles')) currentPageId = 'bundles';
     else if (path.includes('admin-check-payments')) currentPageId = 'cheque-payments';
     else if (path.includes('admin-invoices')) currentPageId = 'invoices';
     else if (path.includes('admin-orders')) currentPageId = 'orders';

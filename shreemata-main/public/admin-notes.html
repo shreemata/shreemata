@@ -51,8 +51,15 @@
         }
 
         .main-container {
-            padding-top: 24px;
+            margin-top: 110px;
+            padding-top: 10px;
             padding-bottom: 60px;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                margin-top: 90px;
+            }
         }
 
         .page-header-band {
@@ -507,8 +514,10 @@
     </style>
 </head>
 <body>
+    <!-- Top Admin Navigation Container -->
+    <nav id="adminNav"></nav>
     <!-- 3. PREMIUM HEADER -->
-    <header class="main-header" role="banner">
+    <header class="main-header" role="banner" style="display: none;">
         <div class="container">
             <div class="header-inner">
                 <!-- Mobile Menu Hamburger Button -->
@@ -621,9 +630,15 @@
                 <h1>📖 Study Material & Subscriptions</h1>
                 <p>Manage Notes, Question Papers, Video Lectures, and track subscriber access</p>
             </div>
-            <div>
-                <button class="btn btn-primary" onclick="openUploadModal()">
-                    <span>➕</span> Add Content Item
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-primary" onclick="openUploadModal('notes')" title="Add Study Note (PDF Document)">
+                    <span>➕ Add Note (PDF)</span>
+                </button>
+                <button type="button" class="btn btn-primary" onclick="openUploadModal('question_papers')" title="Add Question Paper (PDF Document)">
+                    <span>➕ Add Question Paper (PDF)</span>
+                </button>
+                <button type="button" class="btn btn-primary" onclick="openUploadModal('videos')" title="Add Video Lecture (Stream / Embed URL)">
+                    <span>➕ Add Video Lecture (URL)</span>
                 </button>
             </div>
         </div>
@@ -643,11 +658,17 @@
         <!-- ==================== SECTION 1: CONTENT CATALOG ==================== -->
         <div id="contentSection">
             <!-- Section Filter Tabs -->
-            <div class="sub-tab-nav">
-                <button class="sub-tab-btn active" data-sec="all" onclick="switchSection('all')">All Items</button>
-                <button class="sub-tab-btn" data-sec="notes" onclick="switchSection('notes')">📖 Notes</button>
-                <button class="sub-tab-btn" data-sec="question_papers" onclick="switchSection('question_papers')">📝 Question Papers</button>
-                <button class="sub-tab-btn" data-sec="videos" onclick="switchSection('videos')">🎥 Video Lectures</button>
+            <div class="sub-tab-nav" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: #ffffff; padding: 12px 16px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span style="font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase;">Section:</span>
+                    <button class="sub-tab-btn active" data-sec="all" onclick="switchSection('all')">📚 All Items</button>
+                    <button class="sub-tab-btn" data-sec="notes" onclick="switchSection('notes')">📖 Notes</button>
+                    <button class="sub-tab-btn" data-sec="question_papers" onclick="switchSection('question_papers')">📝 Question Papers</button>
+                    <button class="sub-tab-btn" data-sec="videos" onclick="switchSection('videos')">🎥 Video Lectures</button>
+                </div>
+                <div id="activeSectionIndicator" style="font-size: 13px; color: #64748b; font-weight: 600;">
+                    Showing: <span>All Sections</span>
+                </div>
             </div>
 
             <!-- Filter & Search Toolbar -->
@@ -1177,8 +1198,18 @@
         function switchSection(sec) {
             currentSection = sec;
             document.querySelectorAll('.sub-tab-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.getAttribute('data-sec') === sec);
+                btn.classList.toggle('active', btn.dataset.sec === sec);
             });
+            const ind = document.getElementById('activeSectionIndicator');
+            if (ind) {
+                const labels = {
+                    'all': 'All Sections',
+                    'notes': 'Notes (PDF Study Materials)',
+                    'question_papers': 'Question Papers (PDF Model & Previous Papers)',
+                    'videos': 'Video Lectures (Streaming Videos)'
+                };
+                ind.innerHTML = 'Showing: <span>' + (labels[sec] || sec) + '</span>';
+            }
             loadNotes(1);
         }
 
@@ -1188,15 +1219,18 @@
             const pdfFields = document.getElementById(prefix + 'PdfFields');
             const videoFields = document.getElementById(prefix + 'VideoFields');
             const pdfInput = document.getElementById(prefix + 'PdfFile');
+            const videoUrlInput = document.getElementById(prefix + 'VideoUrl');
 
             if (section === 'videos') {
-                pdfFields.style.display = 'none';
-                videoFields.style.display = 'block';
+                if (pdfFields) pdfFields.style.display = 'none';
+                if (videoFields) videoFields.style.display = 'block';
                 if (pdfInput) pdfInput.required = false;
+                if (videoUrlInput && prefix === 'upload') videoUrlInput.required = true;
             } else {
-                pdfFields.style.display = 'block';
-                videoFields.style.display = 'none';
+                if (pdfFields) pdfFields.style.display = 'block';
+                if (videoFields) videoFields.style.display = 'none';
                 if (pdfInput && prefix === 'upload') pdfInput.required = true;
+                if (videoUrlInput) videoUrlInput.required = false;
             }
         }
 
@@ -1334,10 +1368,19 @@
         }
 
         // Add / Upload Item
-        function openUploadModal() {
+        function openUploadModal(presetSection = 'notes') {
             document.getElementById('uploadNoteForm').reset();
-            document.getElementById('uploadSection').value = currentSection !== 'all' ? currentSection : 'notes';
+            const sec = (presetSection && presetSection !== 'all') ? presetSection : (currentSection !== 'all' ? currentSection : 'notes');
+            const secSelect = document.getElementById('uploadSection');
+            if (secSelect) secSelect.value = sec;
             toggleSectionFields('upload');
+            const titleEl = document.querySelector('#uploadModal .modal-header h3');
+            if (titleEl) {
+                if (sec === 'notes') titleEl.textContent = 'Add Study Note (PDF Document)';
+                else if (sec === 'question_papers') titleEl.textContent = 'Add Question Paper (PDF Document)';
+                else if (sec === 'videos') titleEl.textContent = 'Add Video Lecture (Stream / Embed URL)';
+                else titleEl.textContent = 'Add New Content Item';
+            }
             document.getElementById('uploadProgressBox').style.display = 'none';
             document.getElementById('uploadProgressBar').style.width = '0%';
             document.getElementById('uploadModalAlert').style.display = 'none';
@@ -1723,7 +1766,7 @@
     </script>
 
     <!-- MOBILE NAVIGATION DRAWER -->
-    <div id="mobileNavDrawer" class="mobile-nav-drawer" aria-hidden="true">
+    <div id="mobileNavDrawer" class="mobile-nav-drawer" style="display: none;" aria-hidden="true">
         <div id="drawerBackdrop" class="drawer-backdrop"></div>
         <div class="drawer-content">
             <div class="drawer-header">
