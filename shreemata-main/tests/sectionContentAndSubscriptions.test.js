@@ -1575,8 +1575,6 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
           '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF'
         ));
       }
-      actualFileSize = fs.statSync(samplePdfPath).size;
-
       streamNote = await Note.create({
         section: 'notes',
         title: 'Range Test Free PDF Note',
@@ -1585,6 +1583,12 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
         isFree: true,
         uploadedBy: adminUser._id
       });
+
+      // Obtain streamed file size (including server-side stamped watermark)
+      const resFull = await client.get(`/api/notes/${streamNote._id}/stream`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      actualFileSize = parseInt(resFull.headers['content-length'], 10);
     });
 
     it('clamps range end to fileSize - 1 without returning 416 when end >= fileSize', async () => {

@@ -231,14 +231,21 @@
             pointer-events: none;
             display: flex;
             flex-direction: column;
-            justify-content: space-around;
+            justify-content: space-evenly;
             align-items: center;
-            opacity: 0.08;
-            font-size: 22px;
+            opacity: 0.12;
+            font-size: 24px;
             font-weight: 800;
             color: #000000;
-            transform: rotate(-30deg);
+            transform: rotate(-25deg);
             z-index: 10;
+            overflow: hidden;
+            user-select: none;
+            letter-spacing: 2px;
+        }
+
+        .wm-line {
+            white-space: nowrap;
         }
 
         /* State Modals */
@@ -604,9 +611,12 @@
             <div class="canvas-wrapper" id="canvasWrapper">
                 <canvas id="pdfCanvas"></canvas>
                 <div class="watermark-overlay" id="watermarkOverlay">
-                    <div class="wm-line">SHREE MATA READ NOTES</div>
-                    <div class="wm-line" id="userWatermark">LICENSED SUBSCRIBER</div>
-                    <div class="wm-line">CONFIDENTIAL STUDY PASS</div>
+                    <div class="wm-line">SHREE MATA</div>
+                    <div class="wm-line user-wm-line">LICENSED READER</div>
+                    <div class="wm-line">SHREE MATA</div>
+                    <div class="wm-line user-wm-line" id="userWatermark">LICENSED READER</div>
+                    <div class="wm-line">SHREE MATA</div>
+                    <div class="wm-line user-wm-line">LICENSED READER</div>
                 </div>
             </div>
             <!-- LOCKED OVERLAY CARD AT END OF PREVIEW -->
@@ -717,13 +727,22 @@
                     return;
                 }
 
-                // 4. Set Watermark
+                // 4. Set Watermark (textContent only)
+                const uName = user && user.name ? user.name : '';
+                const uMail = user && user.email ? user.email : '';
+                const uDisplay = uName ? (uName + ' (' + uMail + ')') : (uMail || 'Reader');
+                const dateStr = new Date().toLocaleDateString('en-IN');
+                const wmText = 'Shree Mata • ' + uDisplay + ' • ' + dateStr;
+                const userWmEls = document.querySelectorAll('.user-wm-line');
+                userWmEls.forEach(el => {
+                    el.textContent = wmText;
+                });
                 const watermarkEl = document.getElementById('userWatermark');
                 if (watermarkEl) {
-                    if (user && (user.email || user.name)) {
-                        watermarkEl.textContent = `${user.email || user.name} • ${new Date().toLocaleDateString('en-IN')}`;
+                    if (user && (uMail || uName)) {
+                        watermarkEl.textContent = (uMail || uName) + ' • ' + dateStr;
                     } else {
-                        watermarkEl.textContent = `Guest Preview • ${new Date().toLocaleDateString('en-IN')}`;
+                        watermarkEl.textContent = 'Guest Preview • ' + dateStr;
                     }
                 }
 
@@ -908,6 +927,10 @@
             pageNum++;
             queueRenderPage(pageNum);
         }
+
+        window.onNextPage = onNextPage;
+        window.onPrevPage = onPrevPage;
+        window.onJumpToPage = onJumpToPage;
 
         function onJumpToPage(val) {
             const target = parseInt(val, 10);

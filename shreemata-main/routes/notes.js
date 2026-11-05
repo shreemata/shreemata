@@ -14,6 +14,7 @@ const User = require("../models/User");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { FEATURES } = require("../config/features");
 const { getOrCreatePreviewPdf, invalidatePreviewCache } = require("../utils/pdfPreviewService");
+const { getOrCreateStampedPdf, invalidateWatermarkCache } = require("../utils/pdfWatermarkService");
 
 const router = express.Router();
 
@@ -688,7 +689,15 @@ router.get("/:id/stream", optionalAuth, async (req, res) => {
       return res.status(404).json({ error: "Document content file is not available" });
     }
 
+    // Server-side burned-in watermark (stamped derivative)
+    try {
+      filePath = await getOrCreateStampedPdf(filePath);
+    } catch (stampErr) {
+      console.error("Notice during PDF stamping:", stampErr.message);
+    }
+
     // If access is preview-only, generate/retrieve preview PDF containing ONLY pages 1..N
+    // Extracted directly from stamped file so preview carries watermark
     if (access.previewOnly) {
       try {
         filePath = await getOrCreatePreviewPdf(filePath, access.previewPages);
@@ -885,6 +894,13 @@ router.get("/:id/download", optionalAuth, async (req, res) => {
     if (!fs.existsSync(filePath)) {
       console.error(`Missing PDF file on disk for download: ${filePath}`);
       return res.status(404).json({ error: "Document content file is not available" });
+    }
+
+    // Stamped derivative with Shree Mata watermark for downloads
+    try {
+      filePath = await getOrCreateStampedPdf(filePath);
+    } catch (stampErr) {
+      console.error("Notice during PDF stamping on download:", stampErr.message);
     }
 
     const stat = await fs.promises.stat(filePath);
@@ -1219,6 +1235,8 @@ router.put("/:id", authenticateToken, isAdmin, handleOptionalPdfUpload, async (r
     if (oldKey && ((newKey && oldKey !== newKey) || (isTargetVideos && oldKey !== note.pdfUrl))) {
       try {
         const oldFilePath = getSafeStoragePath(oldKey);
+        await invalidateWatermarkCache(oldFilePath);
+        await invalidatePreviewCache(oldFilePath);
         if (fs.existsSync(oldFilePath)) await fs.promises.unlink(oldFilePath);
       } catch (unlinkErr) {
         console.warn("Storage cleanup notice on old PDF removal:", unlinkErr.message);
@@ -1263,6 +1281,7 @@ router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
 
     if (filePath) {
       try {
+        await invalidateWatermarkCache(filePath);
         await invalidatePreviewCache(filePath);
         if (fs.existsSync(filePath)) await fs.promises.unlink(filePath);
       } catch (unlinkErr) {

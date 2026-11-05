@@ -89,11 +89,10 @@ async function invalidatePreviewCache(sourceFilePath) {
     if (!fs.existsSync(dir)) return;
 
     const files = await fs.promises.readdir(dir);
-    const prefix = `preview_`;
-    const targetSuffix = `_${baseName}`;
+    const cleanBase = baseName.replace(/^stamped_/, '');
 
     for (const f of files) {
-      if (f.startsWith(prefix) && f.endsWith(targetSuffix)) {
+      if (f.startsWith('preview_') && (f.endsWith(`_${baseName}`) || f.endsWith(`_${cleanBase}`))) {
         try {
           await fs.promises.unlink(path.join(dir, f));
         } catch (_) {}
