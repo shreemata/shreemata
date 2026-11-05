@@ -107,6 +107,19 @@ const noteSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'totalPages cannot be negative']
   },
+  // Preview pages for PDF items (0 = no preview, 1-20 = allowed preview page count; default 2)
+  previewPages: {
+    type: Number,
+    default: 2,
+    min: [0, 'previewPages cannot be negative'],
+    max: [20, 'previewPages cannot exceed 20'],
+    validate: {
+      validator: function(v) {
+        return v === undefined || v === null || Number.isInteger(v);
+      },
+      message: 'previewPages must be an integer between 0 and 20'
+    }
+  },
   // Free preview flag per item (true = open for everyone without subscription)
   isFree: {
     type: Boolean,

@@ -321,6 +321,12 @@
             color: #475569;
         }
 
+        .badge-preview {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            font-weight: 600;
+        }
+
         .badge-active {
             background-color: #dcfce7;
             color: #15803d;
@@ -1032,12 +1038,17 @@
                                 <label for="uploadPages">Total Pages</label>
                                 <input type="number" id="uploadPages" class="form-control" min="0" value="0">
                             </div>
-                            <div class="form-group" style="justify-content: center;">
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 20px;">
-                                    <input type="checkbox" id="uploadAllowDownload" style="width: 18px; height: 18px;">
-                                    <span>Allow Offline PDF Download</span>
-                                </label>
+                            <div class="form-group">
+                                <label for="uploadPreviewPages">Preview Pages (0–20) *</label>
+                                <input type="number" id="uploadPreviewPages" class="form-control" min="0" max="20" value="2" required>
+                                <span class="form-help">Number of leading pages non-subscribers can read (default: 2, 0 = no preview).</span>
                             </div>
+                        </div>
+                        <div class="form-group" style="margin-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="uploadAllowDownload" style="width: 18px; height: 18px;">
+                                <span>Allow Offline PDF Download (Subscribers Only)</span>
+                            </label>
                         </div>
                     </div>
 
@@ -1072,10 +1083,10 @@
                     </div>
 
                     <div class="form-row" style="margin-top: 8px;">
-                        <div class="form-group">
+                        <div class="form-group" id="uploadIsFreeGroup" style="display: none;">
                             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                                 <input type="checkbox" id="uploadIsFree" style="width: 18px; height: 18px;">
-                                <span><strong>Free Preview</strong> (Unlocked for all visitors)</span>
+                                <span><strong>Free Video</strong> (Unlocked for all visitors)</span>
                             </label>
                         </div>
                         <div class="form-group">
@@ -1167,12 +1178,17 @@
                                 <label for="editPages">Total Pages</label>
                                 <input type="number" id="editPages" class="form-control" min="0">
                             </div>
-                            <div class="form-group" style="justify-content: center;">
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 20px;">
-                                    <input type="checkbox" id="editAllowDownload" style="width: 18px; height: 18px;">
-                                    <span>Allow Offline PDF Download</span>
-                                </label>
+                            <div class="form-group">
+                                <label for="editPreviewPages">Preview Pages (0–20) *</label>
+                                <input type="number" id="editPreviewPages" class="form-control" min="0" max="20" value="2" required>
+                                <span class="form-help">First N pages visible to non-subscribers (0 = no preview).</span>
                             </div>
+                        </div>
+                        <div class="form-group" style="margin-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="editAllowDownload" style="width: 18px; height: 18px;">
+                                <span>Allow Offline PDF Download (Subscribers Only)</span>
+                            </label>
                         </div>
                     </div>
 
@@ -1207,10 +1223,10 @@
                     </div>
 
                     <div class="form-row" style="margin-top: 8px;">
-                        <div class="form-group">
+                        <div class="form-group" id="editIsFreeGroup" style="display: none;">
                             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                                 <input type="checkbox" id="editIsFree" style="width: 18px; height: 18px;">
-                                <span><strong>Free Preview</strong> (Unlocked for all visitors)</span>
+                                <span><strong>Free Video</strong> (Unlocked for all visitors)</span>
                             </label>
                         </div>
                         <div class="form-group">
@@ -1361,17 +1377,20 @@
             const section = document.getElementById(prefix + 'Section').value;
             const pdfFields = document.getElementById(prefix + 'PdfFields');
             const videoFields = document.getElementById(prefix + 'VideoFields');
+            const isFreeGroup = document.getElementById(prefix + 'IsFreeGroup');
             const pdfInput = document.getElementById(prefix + 'PdfFile');
             const videoUrlInput = document.getElementById(prefix + 'VideoUrl');
 
             if (section === 'videos') {
                 if (pdfFields) pdfFields.style.display = 'none';
                 if (videoFields) videoFields.style.display = 'block';
+                if (isFreeGroup) isFreeGroup.style.display = 'block';
                 if (pdfInput) pdfInput.required = false;
                 if (videoUrlInput && prefix === 'upload') videoUrlInput.required = true;
             } else {
                 if (pdfFields) pdfFields.style.display = 'block';
                 if (videoFields) videoFields.style.display = 'none';
+                if (isFreeGroup) isFreeGroup.style.display = 'none';
                 if (pdfInput && prefix === 'upload') pdfInput.required = true;
                 if (videoUrlInput) videoUrlInput.required = false;
             }
@@ -1463,9 +1482,10 @@
                             <span class="status-badge ${sectionBadgeClass(note.section)}">${sectionLabel(note.section)}</span>
                         </td>
                         <td>
-                            <span class="status-badge ${note.isFree ? 'badge-free' : 'badge-paid'}">
-                                ${note.isFree ? 'Free Preview' : 'Subscription'}
-                            </span>
+                            ${note.section === 'videos'
+                                ? `<span class="status-badge ${note.isFree ? 'badge-free' : 'badge-paid'}">${note.isFree ? 'Free Video' : 'Paid Video'}</span>`
+                                : `<span class="status-badge badge-preview">Preview: ${note.previewPages !== undefined ? note.previewPages : 2} pgs</span>`
+                            }
                         </td>
                         <td>
                             <button class="status-badge ${note.isPublished ? 'badge-published' : 'badge-draft'}" style="cursor: pointer; border: none;" onclick="togglePublish('${note.id}', ${!note.isPublished})" title="Click to toggle status">
@@ -1553,7 +1573,6 @@
             e.preventDefault();
             const submitBtn = document.getElementById('submitUploadBtn');
             const section = document.getElementById('uploadSection').value;
-            const isFree = document.getElementById('uploadIsFree').checked;
 
             const formData = new FormData();
             formData.append('section', section);
@@ -1563,11 +1582,12 @@
             formData.append('category', document.getElementById('uploadCategory').value.trim());
             formData.append('coverImage', document.getElementById('uploadCoverImage').value.trim());
             formData.append('order', document.getElementById('uploadOrder').value);
-            formData.append('isFree', isFree);
             formData.append('isPublished', document.getElementById('uploadIsPublished').checked);
             formData.append('description', document.getElementById('uploadDescription').value.trim());
 
             if (section === 'videos') {
+                const isFree = document.getElementById('uploadIsFree').checked;
+                formData.append('isFree', isFree);
                 const videoUrl = document.getElementById('uploadVideoUrl').value.trim();
                 const videoProvider = document.getElementById('uploadVideoProvider').value;
                 const durationMinutes = document.getElementById('uploadDurationMinutes').value;
@@ -1588,6 +1608,7 @@
                 }
                 formData.append('pdf', file);
                 formData.append('totalPages', document.getElementById('uploadPages').value);
+                formData.append('previewPages', document.getElementById('uploadPreviewPages').value);
                 formData.append('allowDownload', document.getElementById('uploadAllowDownload').checked);
             }
 
@@ -1653,6 +1674,7 @@
 
                 // PDF fields
                 document.getElementById('editPages').value = note.totalPages || 0;
+                document.getElementById('editPreviewPages').value = (note.previewPages !== undefined && note.previewPages !== null) ? note.previewPages : 2;
                 document.getElementById('editAllowDownload').checked = !!note.allowDownload;
                 document.getElementById('editPdfFile').value = '';
 
@@ -1678,7 +1700,6 @@
             const noteId = document.getElementById('editNoteId').value;
             const submitBtn = document.getElementById('submitEditBtn');
             const section = document.getElementById('editSection').value;
-            const isFree = document.getElementById('editIsFree').checked;
 
             const formData = new FormData();
             formData.append('section', section);
@@ -1688,11 +1709,12 @@
             formData.append('category', document.getElementById('editCategory').value.trim());
             formData.append('coverImage', document.getElementById('editCoverImage').value.trim());
             formData.append('order', document.getElementById('editOrder').value);
-            formData.append('isFree', isFree);
             formData.append('isPublished', document.getElementById('editIsPublished').checked);
             formData.append('description', document.getElementById('editDescription').value.trim());
 
             if (section === 'videos') {
+                const isFree = document.getElementById('editIsFree').checked;
+                formData.append('isFree', isFree);
                 const videoUrl = document.getElementById('editVideoUrl').value.trim();
                 const videoProvider = document.getElementById('editVideoProvider').value;
                 const durationMinutes = document.getElementById('editDurationMinutes').value;
@@ -1702,6 +1724,7 @@
                 if (durationMinutes) formData.append('durationMinutes', durationMinutes);
             } else {
                 formData.append('totalPages', document.getElementById('editPages').value);
+                formData.append('previewPages', document.getElementById('editPreviewPages').value);
                 formData.append('allowDownload', document.getElementById('editAllowDownload').checked);
                 const file = document.getElementById('editPdfFile').files[0];
                 if (file) formData.append('pdf', file);

@@ -8,6 +8,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { PDFDocument } = require('pdf-lib');
 
 const { setupTestDB, teardownTestDB } = require('./setup');
 const User = require('../models/User');
@@ -73,9 +74,11 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
       fs.mkdirSync(testStorageDir, { recursive: true });
     }
     const samplePdfPath = path.resolve(testStorageDir, samplePdfKey);
-    const validPdfBytes = Buffer.from(
-      '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF'
-    );
+    const pdfDoc = await PDFDocument.create();
+    for (let p = 1; p <= 3; p++) {
+      pdfDoc.addPage([400, 600]);
+    }
+    const validPdfBytes = await pdfDoc.save();
     fs.writeFileSync(samplePdfPath, validPdfBytes);
 
     // Setup Express App with 4-Section routers
@@ -396,16 +399,24 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
   }
 
   // =========================================================================
-  // SCENARIO 1: Guest + Free item -> 200 OK
+  // SCENARIO 1: Guest + Free item (Videos stream free; PDF items require login for preview)
   // =========================================================================
   describe('1. guest + free ok', () => {
-    it('allows unauthenticated guest to stream a free note PDF', async () => {
+    it('requires authentication for guest to stream a note PDF (preview requires login)', async () => {
       const res = await client.get(`/api/notes/${freeNote._id}/stream`, {
+        responseType: 'arraybuffer'
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it('allows logged-in non-entitled user to stream preview of note PDF', async () => {
+      const res = await client.get(`/api/notes/${freeNote._id}/stream`, {
+        headers: { Authorization: `Bearer ${guestToken}` },
         responseType: 'arraybuffer'
       });
       expect(res.status).toBe(200);
       expect(res.headers['content-type']).toBe('application/pdf');
-      expect(res.data.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+      expect(res.headers['content-disposition']).toMatch(/preview\.pdf/i);
     });
 
     it('allows unauthenticated guest to get media-url for a free video', async () => {
@@ -442,11 +453,11 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
   });
 
   // =========================================================================
-  // SCENARIO 3: Expired subscription -> 403 Forbidden
+  // SCENARIO 3: Expired subscription -> 403 Forbidden on download or locked items
   // =========================================================================
   describe('3. expired 403', () => {
-    it('returns 403 SUBSCRIPTION_REQUIRED for user with expired subscription', async () => {
-      const res = await client.get(`/api/notes/${paidNote._id}/stream`, {
+    it('returns 403 SUBSCRIPTION_REQUIRED on download for user with expired subscription', async () => {
+      const res = await client.get(`/api/notes/${paidNote._id}/download`, {
         headers: { Authorization: `Bearer ${expiredToken}` }
       });
       expect(res.status).toBe(403);
@@ -456,11 +467,11 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
   });
 
   // =========================================================================
-  // SCENARIO 4: Cross-section access -> 403 Forbidden
+  // SCENARIO 4: Cross-section access -> 403 Forbidden on download or locked items
   // =========================================================================
   describe('4. cross-section 403', () => {
-    it('refuses notes subscriber access to paid question papers', async () => {
-      const res = await client.get(`/api/notes/${paidQp._id}/stream`, {
+    it('refuses notes subscriber access to paid question papers on download', async () => {
+      const res = await client.get(`/api/notes/${paidQp._id}/download`, {
         headers: { Authorization: `Bearer ${notesToken}` }
       });
       expect(res.status).toBe(403);
@@ -895,7 +906,9 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
         uploadedBy: adminUser._id
       });
 
-      const res = await client.get(`/api/notes/${traversalNote._id}/stream`);
+      const res = await client.get(`/api/notes/${traversalNote._id}/stream`, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
       // Should reject with 400 or 403 or 404 or 500 (safe rejection without file leakage)
       expect([400, 403, 404, 500]).toContain(res.status);
     });
@@ -1343,6 +1356,10 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
         headers: { Authorization: `Bearer ${adminToken}` }
       });
       expect(adminStreamQP.status).toBe(200);
+
+      // Restore flags
+      process.env.ENABLE_QUESTION_PAPERS = 'true';
+      process.env.ENABLE_VIDEOS = 'true';
     });
   });
 
@@ -1573,7 +1590,7 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
     it('clamps range end to fileSize - 1 without returning 416 when end >= fileSize', async () => {
       // Request bytes=0-65535 on file smaller than 64KB (sample is ~140 bytes)
       const res = await client.get(`/api/notes/${streamNote._id}/stream`, {
-        headers: { Range: 'bytes=0-65535' }
+        headers: { Range: 'bytes=0-65535', Authorization: `Bearer ${adminToken}` }
       });
 
       expect(res.status).toBe(206);
@@ -1584,7 +1601,7 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
     it('supports suffix ranges bytes=-N returning the last N bytes of the file', async () => {
       const suffixN = 30;
       const res = await client.get(`/api/notes/${streamNote._id}/stream`, {
-        headers: { Range: `bytes=-${suffixN}` }
+        headers: { Range: `bytes=-${suffixN}`, Authorization: `Bearer ${adminToken}` }
       });
 
       expect(res.status).toBe(206);
@@ -1594,7 +1611,7 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
 
     it('returns 416 with Content-Range: bytes */size only when start >= fileSize', async () => {
       const res = await client.get(`/api/notes/${streamNote._id}/stream`, {
-        headers: { Range: 'bytes=50000-60000' }
+        headers: { Range: 'bytes=50000-60000', Authorization: `Bearer ${adminToken}` }
       });
 
       expect(res.status).toBe(416);
@@ -1640,32 +1657,34 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
       const nonExistentUserId = new mongoose.Types.ObjectId();
       const ghostToken = jwt.sign({ id: nonExistentUserId, role: 'user' }, JWT_SECRET);
 
-      // Free note stream succeeds as guest
-      const resFree = await client.get(`/api/notes/${freeNote._id}/stream`, {
+      // Free video succeeds as guest
+      const resFreeVid = await client.get(`/api/notes/${freeVideo._id}/media-url`, {
         headers: { Authorization: `Bearer ${ghostToken}` }
       });
-      expect(resFree.status).toBe(200);
+      expect(resFreeVid.status).toBe(200);
 
-      // Paid note stream fails as guest with 401
-      const resPaid = await client.get(`/api/notes/${paidNote._id}/stream`, {
+      // PDF note stream fails as guest with 401
+      const resNote = await client.get(`/api/notes/${freeNote._id}/stream`, {
         headers: { Authorization: `Bearer ${ghostToken}` }
       });
-      expect(resPaid.status).toBe(401);
-      expect(resPaid.data.error).toMatch(/Authentication required/i);
+      expect(resNote.status).toBe(401);
+      expect(resNote.data.error).toMatch(/Authentication required/i);
     });
 
     it('treats tokens with non-ObjectId payload or invalid signature as unauthenticated guest', async () => {
       const stringIdToken = jwt.sign({ id: 'not-a-valid-object-id', role: 'user' }, JWT_SECRET);
 
-      const resFree = await client.get(`/api/notes/${freeNote._id}/stream`, {
+      // Free video succeeds as guest
+      const resFreeVid = await client.get(`/api/notes/${freeVideo._id}/media-url`, {
         headers: { Authorization: `Bearer ${stringIdToken}` }
       });
-      expect(resFree.status).toBe(200);
+      expect(resFreeVid.status).toBe(200);
 
-      const resPaid = await client.get(`/api/notes/${paidNote._id}/stream`, {
+      // PDF note stream fails as guest with 401
+      const resNote = await client.get(`/api/notes/${freeNote._id}/stream`, {
         headers: { Authorization: `Bearer ${stringIdToken}` }
       });
-      expect(resPaid.status).toBe(401);
+      expect(resNote.status).toBe(401);
     });
   });
 

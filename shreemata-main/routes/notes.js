@@ -13,6 +13,7 @@ const NoteSubscription = require("../models/NoteSubscription");
 const User = require("../models/User");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { FEATURES } = require("../config/features");
+const { getOrCreatePreviewPdf, invalidatePreviewCache } = require("../utils/pdfPreviewService");
 
 const router = express.Router();
 
@@ -224,20 +225,63 @@ async function evaluateItemAccess(item, user) {
     return { allowed: false, status: 404, error: "Note not found" };
   }
 
-  if (item.isFree) {
-    return { allowed: true, isFree: true, isAdmin: isAdminUser };
+  const effectivePreviewPages = (item.previewPages !== undefined && item.previewPages !== null)
+    ? Math.max(0, Math.min(20, parseInt(item.previewPages, 10) || 0))
+    : 2;
+
+  // 1. VIDEOS section keeps existing rules unchanged
+  if (targetSection === 'videos') {
+    if (item.isFree) {
+      return { allowed: true, hasFullAccess: true, previewOnly: false, isFree: true, isAdmin: isAdminUser };
+    }
+    if (!user) {
+      return { allowed: false, status: 401, error: "Authentication required to access this item", hasFullAccess: false, previewOnly: false };
+    }
+    if (isAdminUser) {
+      return { allowed: true, hasFullAccess: true, previewOnly: false, isFree: false, isAdmin: true };
+    }
+    const now = new Date();
+    const activeSubscription = await NoteSubscription.findOne({
+      userId: user.id,
+      section: 'videos',
+      status: 'active',
+      expiresAt: { $gt: now }
+    }).lean();
+
+    if (!activeSubscription) {
+      return {
+        allowed: false,
+        status: 403,
+        error: `An active subscription is required to access videos`,
+        code: "SUBSCRIPTION_REQUIRED",
+        section: 'videos',
+        hasFullAccess: false,
+        previewOnly: false
+      };
+    }
+    return { allowed: true, hasFullAccess: true, previewOnly: false, isFree: false, isAdmin: false, subscription: activeSubscription };
   }
 
+  // 2. PDF SECTIONS: notes and question_papers
+  // Rule 2: subscriber (paid or admin_grant) and admin = full file.
+  // Logged-in non-entitled user = PREVIEW ONLY. Not logged in = 401.
+  // isFree must NO LONGER grant full access for notes and question_papers (ignore it).
   if (!user) {
-    return { allowed: false, status: 401, error: "Authentication required to access this item" };
+    return {
+      allowed: false,
+      status: 401,
+      error: "Authentication required to access this item",
+      hasFullAccess: false,
+      previewOnly: false,
+      previewPages: effectivePreviewPages
+    };
   }
 
   if (isAdminUser) {
-    return { allowed: true, isFree: false, isAdmin: true };
+    return { allowed: true, hasFullAccess: true, previewOnly: false, isFree: false, isAdmin: true, previewPages: effectivePreviewPages };
   }
 
   const now = new Date();
-
   const subQuery = {
     userId: user.id,
     status: 'active',
@@ -255,24 +299,69 @@ async function evaluateItemAccess(item, user) {
 
   const activeSubscription = await NoteSubscription.findOne(subQuery).lean();
 
-  if (!activeSubscription) {
+  if (activeSubscription) {
+    return {
+      allowed: true,
+      hasFullAccess: true,
+      previewOnly: false,
+      isFree: false,
+      isAdmin: false,
+      subscription: activeSubscription,
+      previewPages: effectivePreviewPages
+    };
+  }
+
+  // Logged-in non-entitled user: check previewPages
+  if (effectivePreviewPages === 0) {
     return {
       allowed: false,
       status: 403,
       error: `An active subscription is required to access ${targetSection}`,
       code: "SUBSCRIPTION_REQUIRED",
-      section: targetSection
+      section: targetSection,
+      hasFullAccess: false,
+      previewOnly: false,
+      previewPages: 0
     };
   }
 
-  return { allowed: true, isFree: false, isAdmin: false, subscription: activeSubscription };
+  return {
+    allowed: true,
+    hasFullAccess: false,
+    previewOnly: true,
+    isFree: false,
+    isAdmin: false,
+    previewPages: effectivePreviewPages
+  };
 }
 
 /**
- * Sanitizes item to NEVER leak internal storage paths (pdfUrl) or video URLs in list endpoints.
+ * Sanitizes item to NEVER leak internal storage paths (pdfUrl) or video URLs in list/detail endpoints.
+ * Rule 4: Exposes previewPages (effective), totalPages, hasFullAccess, and previewOnly.
  */
-function sanitizeNote(note) {
+function sanitizeNote(note, userAccess = null) {
   if (!note) return null;
+  const isVideo = (note.section || 'notes') === 'videos';
+  const effectivePreview = (note.previewPages !== undefined && note.previewPages !== null)
+    ? Math.max(0, Math.min(20, parseInt(note.previewPages, 10) || 0))
+    : 2;
+
+  let hasFullAccess = false;
+  let previewOnly = false;
+
+  if (userAccess) {
+    hasFullAccess = Boolean(userAccess.hasFullAccess);
+    previewOnly = Boolean(userAccess.previewOnly);
+  } else {
+    if (isVideo) {
+      hasFullAccess = Boolean(note.isFree);
+      previewOnly = false;
+    } else {
+      hasFullAccess = false;
+      previewOnly = effectivePreview > 0;
+    }
+  }
+
   return {
     id: note._id,
     section: note.section || 'notes',
@@ -286,6 +375,9 @@ function sanitizeNote(note) {
     durationMinutes: note.durationMinutes || 0,
     totalPages: note.totalPages || 0,
     fileSize: note.fileSize || 0,
+    previewPages: effectivePreview,
+    hasFullAccess,
+    previewOnly,
     isFree: Boolean(note.isFree),
     order: note.order || 0,
     allowDownload: Boolean(note.allowDownload),
@@ -348,6 +440,20 @@ router.get("/", optionalAuth, async (req, res) => {
       andConditions.push({ isFree: req.query.isFree === "true" || req.query.isFree === true });
     }
 
+    // Has preview filter (for PDF sections)
+    if (req.query.hasPreview !== undefined && req.query.hasPreview !== "all") {
+      if (req.query.hasPreview === "true" || req.query.hasPreview === true) {
+        andConditions.push({
+          $or: [
+            { previewPages: { $gt: 0 } },
+            { previewPages: { $exists: false } }
+          ]
+        });
+      } else if (req.query.hasPreview === "false" || req.query.hasPreview === false) {
+        andConditions.push({ previewPages: 0 });
+      }
+    }
+
     // Category filter
     if (req.query.category && typeof req.query.category === "string" && req.query.category.trim()) {
       andConditions.push({ category: req.query.category.trim() });
@@ -391,7 +497,55 @@ router.get("/", optionalAuth, async (req, res) => {
         .lean()
     ]);
 
-    const sanitizedNotes = notes.map(sanitizeNote);
+    let isUserEntitled = false;
+    if (req.user) {
+      if (req.user.role === "admin") {
+        isUserEntitled = true;
+      } else {
+        const now = new Date();
+        const subQuery = {
+          userId: req.user.id,
+          status: "active",
+          expiresAt: { $gt: now }
+        };
+        if (rawSection === 'notes') {
+          subQuery.$or = [
+            { section: 'notes' },
+            { section: { $exists: false } },
+            { section: null }
+          ];
+        } else {
+          subQuery.section = rawSection;
+        }
+        const activeSub = await NoteSubscription.findOne(subQuery).select('_id').lean();
+        if (activeSub) isUserEntitled = true;
+      }
+    }
+
+    const sanitizedNotes = notes.map((n) => {
+      const isVideo = (n.section || rawSection) === 'videos';
+      const effectivePreview = (n.previewPages !== undefined && n.previewPages !== null)
+        ? Math.max(0, Math.min(20, parseInt(n.previewPages, 10) || 0))
+        : 2;
+
+      let hasFullAccess;
+      let previewOnly;
+
+      if (isUserEntitled) {
+        hasFullAccess = true;
+        previewOnly = false;
+      } else {
+        if (isVideo) {
+          hasFullAccess = Boolean(n.isFree);
+          previewOnly = false;
+        } else {
+          hasFullAccess = false;
+          previewOnly = effectivePreview > 0;
+        }
+      }
+
+      return sanitizeNote(n, { hasFullAccess, previewOnly });
+    });
 
     return res.json({
       success: true,
@@ -479,9 +633,11 @@ router.get("/:id", optionalAuth, async (req, res) => {
       await Note.findByIdAndUpdate(note._id, { $inc: { viewCount: 1 } });
     }
 
+    const access = await evaluateItemAccess(note, req.user);
+
     return res.json({
       success: true,
-      note: sanitizeNote(note)
+      note: sanitizeNote(note, access)
     });
   } catch (err) {
     console.error("Error fetching note details:", err.message);
@@ -530,6 +686,16 @@ router.get("/:id/stream", optionalAuth, async (req, res) => {
     if (!fs.existsSync(filePath)) {
       console.error(`Missing PDF file on disk: ${filePath}`);
       return res.status(404).json({ error: "Document content file is not available" });
+    }
+
+    // If access is preview-only, generate/retrieve preview PDF containing ONLY pages 1..N
+    if (access.previewOnly) {
+      try {
+        filePath = await getOrCreatePreviewPdf(filePath, access.previewPages);
+      } catch (previewErr) {
+        console.error("Error generating/retrieving preview PDF:", previewErr.message);
+        return res.status(500).json({ error: "Failed to generate preview document" });
+      }
     }
 
     const stat = await fs.promises.stat(filePath);
@@ -583,7 +749,7 @@ router.get("/:id/stream", optionalAuth, async (req, res) => {
         "Accept-Ranges": "bytes",
         "Content-Length": chunkSize,
         "Content-Type": "application/pdf",
-        "Content-Disposition": 'inline; filename="document.pdf"',
+        "Content-Disposition": access.previewOnly ? 'inline; filename="preview.pdf"' : 'inline; filename="document.pdf"',
         "Cache-Control": "private, no-cache, no-store, must-revalidate",
         "Pragma": "no-cache",
         "Expires": "0"
@@ -601,7 +767,7 @@ router.get("/:id/stream", optionalAuth, async (req, res) => {
     res.writeHead(200, {
       "Content-Length": fileSize,
       "Content-Type": "application/pdf",
-      "Content-Disposition": 'inline; filename="document.pdf"',
+      "Content-Disposition": access.previewOnly ? 'inline; filename="preview.pdf"' : 'inline; filename="document.pdf"',
       "Accept-Ranges": "bytes",
       "Cache-Control": "private, no-cache, no-store, must-revalidate",
       "Pragma": "no-cache",
@@ -689,6 +855,14 @@ router.get("/:id/download", optionalAuth, async (req, res) => {
         error: access.error,
         code: access.code,
         section: access.section
+      });
+    }
+
+    if (access.previewOnly) {
+      return res.status(403).json({
+        error: "Download is only available for subscribers with full access",
+        code: "SUBSCRIPTION_REQUIRED",
+        section: note.section || 'notes'
       });
     }
 
@@ -781,7 +955,16 @@ router.post("/", authenticateToken, isAdmin, handleOptionalPdfUpload, async (req
       return res.status(400).json({ error: "Title is required and must not be empty" });
     }
 
-    const cleanIsFree = isFree === "true" || isFree === true;
+    let cleanPreviewPages = 2;
+    if (req.body.previewPages !== undefined) {
+      const parsed = parseInt(req.body.previewPages, 10);
+      if (isNaN(parsed) || parsed < 0 || parsed > 20) {
+        return res.status(400).json({ error: "previewPages must be an integer between 0 and 20" });
+      }
+      cleanPreviewPages = parsed;
+    }
+
+    const cleanIsFree = cleanSection === 'videos' ? (isFree === "true" || isFree === true) : false;
 
     // SECTION: VIDEOS
     if (cleanSection === 'videos') {
@@ -850,6 +1033,7 @@ router.post("/", authenticateToken, isAdmin, handleOptionalPdfUpload, async (req
         pdfUrl: randomKey,
         fileSize: req.file.size || req.file.buffer.length,
         totalPages: totalPages ? Math.max(0, parseInt(totalPages, 10) || 0) : 0,
+        previewPages: cleanPreviewPages,
         isFree: cleanIsFree,
         order: order !== undefined ? parseInt(order, 10) || 0 : 0,
         allowDownload: allowDownload === "true" || allowDownload === true,
@@ -991,8 +1175,23 @@ router.put("/:id", authenticateToken, isAdmin, handleOptionalPdfUpload, async (r
       if (req.body.totalPages !== undefined) {
         note.totalPages = Math.max(0, parseInt(req.body.totalPages, 10) || 0);
       }
+      if (req.body.previewPages !== undefined) {
+        const parsed = parseInt(req.body.previewPages, 10);
+        if (isNaN(parsed) || parsed < 0 || parsed > 20) {
+          return res.status(400).json({ error: "previewPages must be an integer between 0 and 20" });
+        }
+        note.previewPages = parsed;
+        if (note.pdfUrl) {
+          try {
+            const oldFilePath = getSafeStoragePath(note.pdfUrl);
+            await invalidatePreviewCache(oldFilePath);
+          } catch (_) {}
+        }
+      }
       if (req.body.isFree !== undefined) {
-        note.isFree = cleanIsFree;
+        note.isFree = isTargetVideos ? cleanIsFree : false;
+      } else if (!isTargetVideos) {
+        note.isFree = false;
       }
       if (req.body.order !== undefined) {
         note.order = parseInt(req.body.order, 10) || 0;
@@ -1064,6 +1263,7 @@ router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
 
     if (filePath) {
       try {
+        await invalidatePreviewCache(filePath);
         if (fs.existsSync(filePath)) await fs.promises.unlink(filePath);
       } catch (unlinkErr) {
         console.warn("Storage cleanup notice on delete:", unlinkErr.message);

@@ -357,6 +357,18 @@
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         }
 
+        .badge-preview {
+            background: #e0f2fe;
+            color: #0369a1;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .badge-full {
+            background: #dcfce7;
+            color: #15803d;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
         .card-body {
             padding: 18px 20px;
             display: flex;
@@ -921,6 +933,26 @@
             // Update tab UI
             renderSectionTabs();
 
+            // Update accessFilter options based on section
+            const accessFilter = document.getElementById('accessFilter');
+            if (accessFilter) {
+                const currentVal = accessFilter.value;
+                if (sec === 'videos') {
+                    accessFilter.innerHTML = `
+                        <option value="all">All Access</option>
+                        <option value="true">Free Videos Only</option>
+                        <option value="false">Premium Only</option>
+                    `;
+                } else {
+                    accessFilter.innerHTML = `
+                        <option value="all">All Access</option>
+                        <option value="true">Has Preview</option>
+                        <option value="false">Premium Only (No Preview)</option>
+                    `;
+                }
+                accessFilter.value = currentVal;
+            }
+
             // Update URL without reload
             const url = new URL(window.location);
             url.searchParams.set('section', sec);
@@ -1219,24 +1251,43 @@
                 const fallbackIcon = currentSection === 'videos' ? '🎥' : (currentSection === 'question_papers' ? '📝' : '📖');
 
                 grid.innerHTML = notes.map(note => {
-                    const isItemFree = !!note.isFree;
-                    let actionBtnHtml = '';
-
                     const isVideo = (note.section || currentSection) === 'videos';
                     const targetViewerHref = isVideo ? `/video-player.html?id=${note.id}` : `/reader.html?id=${note.id}`;
+                    const isEntitled = isUserSubscribed || !!note.hasFullAccess;
+                    let actionBtnHtml = '';
+                    let badgeHtml = '';
 
-                    if (isItemFree) {
-                        const btnText = isVideo ? '▶ Watch Free' : '📖 Read Free';
-                        actionBtnHtml = `<a href="${targetViewerHref}" class="btn-card btn-card-free">${btnText}</a>`;
-                    } else {
-                        // Paid Item
-                        if (!token) {
-                            actionBtnHtml = `<button type="button" class="btn-card btn-card-locked" onclick="openLockedModal('${escapeHtml(note.title)}', '${escapeHtml(note.section || currentSection)}')">🔒 Locked — Log In</button>`;
-                        } else if (isUserSubscribed) {
-                            const btnText = isVideo ? '▶ Watch Now' : '📖 Read Now';
-                            actionBtnHtml = `<a href="${targetViewerHref}" class="btn-card btn-card-unlocked">${btnText}</a>`;
+                    if (isVideo) {
+                        const isItemFree = !!note.isFree;
+                        if (isItemFree) {
+                            badgeHtml = `<span class="card-access-badge badge-free">Free</span>`;
+                            actionBtnHtml = `<a href="${targetViewerHref}" class="btn-card btn-card-free">▶ Watch Free</a>`;
                         } else {
-                            actionBtnHtml = `<button type="button" class="btn-card btn-card-locked" onclick="openLockedModal('${escapeHtml(note.title)}', '${escapeHtml(note.section || currentSection)}')">🔒 Locked — Subscribe</button>`;
+                            badgeHtml = `<span class="card-access-badge badge-paid">Premium</span>`;
+                            if (!token) {
+                                actionBtnHtml = `<button type="button" class="btn-card btn-card-locked" onclick="openLockedModal('${escapeHtml(note.title)}', '${escapeHtml(note.section || currentSection)}')">🔒 Locked — Log In</button>`;
+                            } else if (isEntitled) {
+                                actionBtnHtml = `<a href="${targetViewerHref}" class="btn-card btn-card-unlocked">▶ Watch Now</a>`;
+                            } else {
+                                actionBtnHtml = `<button type="button" class="btn-card btn-card-locked" onclick="openLockedModal('${escapeHtml(note.title)}', '${escapeHtml(note.section || currentSection)}')">🔒 Locked — Subscribe</button>`;
+                            }
+                        }
+                    } else {
+                        // PDF Item (notes or question_papers)
+                        const previewN = (note.previewPages !== undefined && note.previewPages !== null) ? note.previewPages : 2;
+                        if (isEntitled) {
+                            badgeHtml = `<span class="card-access-badge badge-full">Full access</span>`;
+                            actionBtnHtml = `<a href="${targetViewerHref}" class="btn-card btn-card-unlocked">📖 Read</a>`;
+                        } else if (previewN > 0) {
+                            badgeHtml = `<span class="card-access-badge badge-preview">Preview ${previewN} pages</span>`;
+                            actionBtnHtml = `<a href="${targetViewerHref}" class="btn-card btn-card-free">📖 Preview</a>`;
+                        } else {
+                            badgeHtml = `<span class="card-access-badge badge-paid">Locked</span>`;
+                            if (!token) {
+                                actionBtnHtml = `<button type="button" class="btn-card btn-card-locked" onclick="openLockedModal('${escapeHtml(note.title)}', '${escapeHtml(note.section || currentSection)}')">🔒 Locked — Log In</button>`;
+                            } else {
+                                actionBtnHtml = `<button type="button" class="btn-card btn-card-locked" onclick="openLockedModal('${escapeHtml(note.title)}', '${escapeHtml(note.section || currentSection)}')">🔒 Subscribe to read</button>`;
+                            }
                         }
                     }
 
@@ -1251,9 +1302,7 @@
                                     ? `<img src="${escapeHtml(note.coverImage)}" alt="${escapeHtml(note.title)}" onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\\'cover-icon\\'>${fallbackIcon}</span>';">` 
                                     : `<span class="cover-icon">${fallbackIcon}</span>`
                                 }
-                                <span class="card-access-badge ${isItemFree ? 'badge-free' : 'badge-paid'}">
-                                    ${isItemFree ? 'Free' : 'Premium'}
-                                </span>
+                                ${badgeHtml}
                             </div>
                             <div class="card-body">
                                 <div class="card-meta-line">

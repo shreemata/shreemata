@@ -333,6 +333,118 @@
                 display: none;
             }
         }
+
+        /* Preview Banner */
+        .preview-banner {
+            background: linear-gradient(90deg, #1e3a8a, #0369a1);
+            color: #ffffff;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 50;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .preview-banner-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preview-pill {
+            background: #f59e0b;
+            color: #000;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .preview-banner-action {
+            background: #f97316;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+            transition: background 0.2s;
+        }
+
+        .preview-banner-action:hover {
+            background: #ea580c;
+        }
+
+        /* End of Preview Overlay Card */
+        .preview-end-card {
+            margin-top: 16px;
+            margin-bottom: 24px;
+            max-width: 520px;
+            width: 90%;
+            background: #0f172a;
+            border: 2px solid #f97316;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            line-height: normal;
+        }
+
+        .preview-lock-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+
+        .preview-card-inner h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            color: #f8fafc;
+            font-weight: 700;
+        }
+
+        .preview-card-inner p {
+            margin: 0 0 16px 0;
+            color: #cbd5e1;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .btn-card-subscribe {
+            display: inline-block;
+            background: #f97316;
+            color: #fff;
+            font-weight: 700;
+            padding: 10px 22px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-card-subscribe:hover {
+            background: #ea580c;
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 600px) {
+            .preview-banner {
+                font-size: 11.5px;
+                padding: 6px 10px;
+            }
+            .preview-banner-action {
+                font-size: 11px;
+                padding: 3px 8px;
+            }
+            .preview-end-card {
+                padding: 16px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -477,14 +589,36 @@
         </div>
     </header>
 
+    <!-- PREVIEW BANNER -->
+    <div id="previewBanner" class="preview-banner" style="display: none;">
+        <div class="preview-banner-content">
+            <span class="preview-pill">PREVIEW</span>
+            <span id="previewBannerText">Preview mode</span>
+        </div>
+        <a id="previewBannerBtn" href="/notes.html" class="preview-banner-action">⚡ Subscribe</a>
+    </div>
+
     <!-- 2. MAIN VIEWPORT -->
     <main class="reader-viewport" id="readerViewport">
-        <div class="canvas-wrapper" id="canvasWrapper">
-            <canvas id="pdfCanvas"></canvas>
-            <div class="watermark-overlay" id="watermarkOverlay">
-                <div class="wm-line">SHREE MATA READ NOTES</div>
-                <div class="wm-line" id="userWatermark">LICENSED SUBSCRIBER</div>
-                <div class="wm-line">CONFIDENTIAL STUDY PASS</div>
+        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+            <div class="canvas-wrapper" id="canvasWrapper">
+                <canvas id="pdfCanvas"></canvas>
+                <div class="watermark-overlay" id="watermarkOverlay">
+                    <div class="wm-line">SHREE MATA READ NOTES</div>
+                    <div class="wm-line" id="userWatermark">LICENSED SUBSCRIBER</div>
+                    <div class="wm-line">CONFIDENTIAL STUDY PASS</div>
+                </div>
+            </div>
+            <!-- LOCKED OVERLAY CARD AT END OF PREVIEW -->
+            <div id="previewEndCard" class="preview-end-card" style="display: none;">
+                <div class="preview-card-inner">
+                    <div class="preview-lock-icon">🔒</div>
+                    <h3 id="previewCardTitle">End of Preview</h3>
+                    <p id="previewCardMessage">Subscribe for full access to this and all study materials.</p>
+                    <div id="previewCardActionWrap">
+                        <a id="previewCardBtn" href="/notes.html" class="btn-card-subscribe">⚡ Subscribe for Full Access</a>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -520,6 +654,7 @@
         let canvas = document.getElementById('pdfCanvas');
         let ctx = canvas.getContext('2d');
         let activeBlobUrl = null;
+        let isPreviewMode = false;
 
         const urlParams = new URLSearchParams(window.location.search);
         const noteId = urlParams.get('id');
@@ -546,7 +681,7 @@
             const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
             try {
-                // 2. Fetch Note Metadata (accessible to guests if free or published)
+                // 2. Fetch Note Metadata
                 const metaRes = await fetch(`${window.API_URL}/notes/${noteId}`, { headers });
 
                 if (metaRes.status === 404) {
@@ -571,11 +706,11 @@
 
                 const isFree = !!note.isFree;
 
-                // 3. Authentication & subscription gating for paid items
-                if (!isFree && (!token || !user)) {
+                // 3. Authentication check: reading/previewing requires login
+                if (!token || !user) {
                     showAccessDenied(
                         "Authentication Required",
-                        "Please log in with an active subscription to access this study material.",
+                        "Please log in with your Shree Mata account to read or preview this study material.",
                         "Log In to Continue",
                         `/login.html?redirect=${encodeURIComponent(window.location.href)}`
                     );
@@ -592,7 +727,7 @@
                     }
                 }
 
-                // 5. Fetch Protected Stream with Authorization Header if present
+                // 5. Fetch Protected Stream with Authorization Header
                 const streamRes = await fetch(`${window.API_URL}/notes/${noteId}/stream`, { headers });
 
                 if (streamRes.status === 401) {
@@ -620,23 +755,80 @@
                     throw new Error(`Failed to stream document (HTTP ${streamRes.status})`);
                 }
 
-                // 6. Parse and Render PDF in Canvas
+                // 6. Check Preview Mode vs Full Access
+                isPreviewMode = !!(metaData.access?.previewOnly || note.previewOnly);
+
+                // 7. Parse and Render PDF in Canvas
                 const blob = await streamRes.blob();
                 const arrayBuffer = await blob.arrayBuffer();
 
-                // If note explicitly authorizes offline downloads, enable button
-                if (note.allowDownload) {
+                // If note authorizes downloads, only enable for full subscribers
+                const dlBtn = document.getElementById('authDownloadBtn');
+                if (note.allowDownload && !isPreviewMode) {
                     activeBlobUrl = URL.createObjectURL(blob);
-                    const dlBtn = document.getElementById('authDownloadBtn');
                     dlBtn.href = activeBlobUrl;
                     dlBtn.download = `${note.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
                     dlBtn.style.display = 'inline-flex';
+                } else {
+                    dlBtn.style.display = 'none';
+                    dlBtn.title = 'Download is available with a full subscription';
                 }
 
                 pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                 const totalPdfPages = (pdfDoc && pdfDoc.numPages > 0) ? pdfDoc.numPages : 1;
-                document.getElementById('pageCount').textContent = totalPdfPages;
+                document.getElementById('pageCount').textContent = isPreviewMode ? `${totalPdfPages} (Preview)` : totalPdfPages;
                 document.getElementById('pageInput').max = totalPdfPages;
+
+                if (isPreviewMode) {
+                    const bannerEl = document.getElementById('previewBanner');
+                    const bannerTextEl = document.getElementById('previewBannerText');
+                    const bannerBtn = document.getElementById('previewBannerBtn');
+                    const sectionName = (note.section === 'question_papers') ? 'Question Papers' : 'Notes';
+                    const totalPagesDeclared = note.totalPages || totalPdfPages;
+
+                    bannerTextEl.textContent = `Preview: pages 1-${totalPdfPages} of ${totalPagesDeclared}. Subscribe to read all ${totalPagesDeclared} pages.`;
+                    bannerBtn.textContent = '⚡ Subscribe';
+                    bannerBtn.href = `/notes.html?section=${note.section || 'notes'}`;
+                    bannerEl.style.display = 'flex';
+
+                    // Fetch pricing details for end-of-preview card
+                    let sectionPriceText = '';
+                    let subscriptionsOpen = true;
+                    try {
+                        const priceRes = await fetch(`${window.API_URL}/subscriptions/pricing?section=${note.section || 'notes'}`);
+                        if (priceRes.ok) {
+                            const pData = await priceRes.json();
+                            if (pData && pData.pricing) {
+                                if (pData.pricing.enabled) {
+                                    sectionPriceText = `₹${pData.pricing.monthlyPrice} (${pData.pricing.durationDays} days)`;
+                                } else {
+                                    subscriptionsOpen = false;
+                                }
+                            }
+                        }
+                    } catch (_) {}
+
+                    const cardMsg = document.getElementById('previewCardMessage');
+                    const cardBtn = document.getElementById('previewCardBtn');
+                    const actionWrap = document.getElementById('previewCardActionWrap');
+
+                    if (!subscriptionsOpen) {
+                        cardMsg.textContent = 'Subscriptions are not open yet.';
+                        if (actionWrap) actionWrap.style.display = 'none';
+                    } else {
+                        cardMsg.textContent = sectionPriceText
+                            ? `End of preview. Subscribe for full access to this and all ${sectionName} for ${sectionPriceText}.`
+                            : `End of preview. Subscribe for full access to this and all ${sectionName}.`;
+                        if (cardBtn) {
+                            cardBtn.textContent = '⚡ Subscribe for Full Access';
+                            cardBtn.href = `/notes.html?section=${note.section || 'notes'}`;
+                        }
+                        if (actionWrap) actionWrap.style.display = 'block';
+                    }
+                } else {
+                    document.getElementById('previewBanner').style.display = 'none';
+                    document.getElementById('previewEndCard').style.display = 'none';
+                }
 
                 // Close loading modal
                 document.getElementById('stateModal').style.display = 'none';
@@ -654,9 +846,18 @@
             const total = (pdfDoc && pdfDoc.numPages > 0) ? pdfDoc.numPages : 1;
 
             document.getElementById('pageInput').value = num;
-            document.getElementById('pageCount').textContent = total;
+            document.getElementById('pageCount').textContent = isPreviewMode ? `${total} (Preview)` : total;
             document.getElementById('prevPageBtn').disabled = num <= 1;
             document.getElementById('nextPageBtn').disabled = num >= total;
+
+            const endCard = document.getElementById('previewEndCard');
+            if (endCard) {
+                if (isPreviewMode && num >= total) {
+                    endCard.style.display = 'block';
+                } else {
+                    endCard.style.display = 'none';
+                }
+            }
 
             pdfDoc.getPage(num).then(function(page) {
                 const viewport = page.getViewport({ scale: scale });
@@ -678,6 +879,10 @@
                     }
                 });
             }).catch(function(err) {
+                pageRendering = false;
+                console.error("Page render error:", err);
+            });
+        }
                 pageRendering = false;
                 console.error("Page render error:", err);
             });

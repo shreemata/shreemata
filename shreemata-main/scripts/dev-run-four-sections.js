@@ -330,9 +330,11 @@ async function bootstrap() {
     }
   ]);
 
-  // E. Seed 3 Free & 3 Paid Items in Each of the 3 Digital Sections
+  // E. Seed Digital Items in Each of the 3 Digital Sections
+  // Notes & Question Papers have previewPages (2 pages preview, with one 0-page locked item)
+  // Video lectures have 3 free and 3 paid
   const digitalNotes = [
-    // --- SECTION: NOTES (3 Free, 3 Paid) ---
+    // --- SECTION: NOTES (Preview / Paid) ---
     {
       title: 'Physics Chapter 1: Electromagnetism & Induction',
       section: 'notes',
@@ -340,7 +342,9 @@ async function bootstrap() {
       classLevel: 'Class 10',
       category: 'Theory Summary',
       description: 'Clear concise notes on magnetic fields, Flemings left-hand rule, and electromagnetic induction with 3-page revision sheet.',
-      isFree: true,
+      isFree: false,
+      previewPages: 2,
+      totalPages: 3,
       pdfUrl: 'private:notes_physics.pdf',
       fileSize: pdfSizes['notes_physics.pdf'],
       isPublished: true,
@@ -353,7 +357,9 @@ async function bootstrap() {
       classLevel: 'Class 10',
       category: 'Complete Notes',
       description: 'Structural isomerism, nomenclature of functional groups, and chemical reactions of ethanol and ethanoic acid.',
-      isFree: true,
+      isFree: false,
+      previewPages: 2,
+      totalPages: 3,
       pdfUrl: 'private:notes_chemistry.pdf',
       fileSize: pdfSizes['notes_chemistry.pdf'],
       isPublished: true,
@@ -366,7 +372,9 @@ async function bootstrap() {
       classLevel: 'Class 10',
       category: 'Formula Sheet',
       description: 'Formulas for nth term, sum of first n terms, and practical word problem techniques.',
-      isFree: true,
+      isFree: false,
+      previewPages: 2,
+      totalPages: 3,
       pdfUrl: 'private:notes_maths.pdf',
       fileSize: pdfSizes['notes_maths.pdf'],
       isPublished: true,
@@ -380,6 +388,8 @@ async function bootstrap() {
       category: 'Master Notes',
       description: 'Comprehensive high-yield notes covering Physics, Chemistry, and Biology modules.',
       isFree: false,
+      previewPages: 2,
+      totalPages: 3,
       pdfUrl: 'private:notes_physics.pdf',
       fileSize: pdfSizes['notes_physics.pdf'],
       isPublished: true,
@@ -393,6 +403,8 @@ async function bootstrap() {
       category: 'Theorems & Proofs',
       description: 'Step-by-step proofs for Thales Theorem, Areas of Similar Triangles, and Tangents to Circles.',
       isFree: false,
+      previewPages: 2,
+      totalPages: 3,
       pdfUrl: 'private:notes_maths.pdf',
       fileSize: pdfSizes['notes_maths.pdf'],
       isPublished: true,
@@ -406,13 +418,15 @@ async function bootstrap() {
       category: 'Comprehensive Notes',
       description: 'Nutrition, respiration, transportation, and excretion with annotated diagrams.',
       isFree: false,
+      previewPages: 0, // Locked item: no preview
+      totalPages: 3,
       pdfUrl: 'private:notes_chemistry.pdf',
       fileSize: pdfSizes['notes_chemistry.pdf'],
       isPublished: true,
       order: 6
     },
 
-    // --- SECTION: QUESTION PAPERS (3 Free, 3 Paid) ---
+    // --- SECTION: QUESTION PAPERS (Preview / Paid) ---
     {
       title: '2025 State Board Physics Model Question Paper',
       section: 'question_papers',
@@ -420,7 +434,9 @@ async function bootstrap() {
       classLevel: 'Class 10',
       category: 'Model Papers',
       description: 'Latest pattern board model examination question paper with solution keys and blueprint.',
-      isFree: true,
+      isFree: false,
+      previewPages: 2,
+      totalPages: 3,
       pdfUrl: 'private:qp_physics_2025.pdf',
       fileSize: pdfSizes['qp_physics_2025.pdf'],
       isPublished: true,
@@ -433,7 +449,9 @@ async function bootstrap() {
       classLevel: 'Class 10',
       category: 'Solved Papers',
       description: 'Official board paper with step-by-step solutions for 1-mark, 2-mark, and 4-mark questions.',
-      isFree: true,
+      isFree: false,
+      previewPages: 2,
+      totalPages: 3,
       pdfUrl: 'private:qp_maths_2024.pdf',
       fileSize: pdfSizes['qp_maths_2024.pdf'],
       isPublished: true,
@@ -446,7 +464,9 @@ async function bootstrap() {
       classLevel: 'Class 10',
       category: 'Question Bank',
       description: 'Top 50 high-probability questions frequently asked in state board examinations.',
-      isFree: true,
+      isFree: false,
+      previewPages: 2,
+      totalPages: 3,
       pdfUrl: 'private:qp_science_2024.pdf',
       fileSize: pdfSizes['qp_science_2024.pdf'],
       isPublished: true,
@@ -460,6 +480,8 @@ async function bootstrap() {
       category: 'Previous Years Solved',
       description: 'Previous 5 years of board papers fully solved with marking distribution hints.',
       isFree: false,
+      previewPages: 2,
+      totalPages: 3,
       pdfUrl: 'private:qp_maths_2024.pdf',
       fileSize: pdfSizes['qp_maths_2024.pdf'],
       isPublished: true,
@@ -473,6 +495,8 @@ async function bootstrap() {
       category: 'Mock Exam Series',
       description: '3 full-length timed mock tests with detailed scoring rubrics and answers.',
       isFree: false,
+      previewPages: 2,
+      totalPages: 3,
       pdfUrl: 'private:qp_physics_2025.pdf',
       fileSize: pdfSizes['qp_physics_2025.pdf'],
       isPublished: true,
@@ -486,6 +510,8 @@ async function bootstrap() {
       category: 'Preparatory Papers',
       description: 'Official district-level preparatory exam papers with verified marking schemes.',
       isFree: false,
+      previewPages: 0, // Locked item: no preview
+      totalPages: 3,
       pdfUrl: 'private:qp_science_2024.pdf',
       fileSize: pdfSizes['qp_science_2024.pdf'],
       isPublished: true,

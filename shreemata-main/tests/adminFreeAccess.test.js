@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const { PDFDocument } = require('pdf-lib');
 
 const { setupTestDB, teardownTestDB } = require('./setup');
 const User = require('../models/User');
@@ -44,9 +45,11 @@ describe('Admin Free Access Grants', () => {
       fs.mkdirSync(testStorageDir, { recursive: true });
     }
     const samplePdfPath = path.resolve(testStorageDir, samplePdfKey);
-    const validPdfBytes = Buffer.from(
-      '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [] /Count 0 >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF'
-    );
+    const pdfDoc = await PDFDocument.create();
+    for (let p = 1; p <= 3; p++) {
+      pdfDoc.addPage([400, 600]);
+    }
+    const validPdfBytes = await pdfDoc.save();
     fs.writeFileSync(samplePdfPath, validPdfBytes);
 
     const app = express();
@@ -110,6 +113,7 @@ describe('Admin Free Access Grants', () => {
       section: 'notes',
       pdfUrl: samplePdfKey,
       isFree: false,
+      previewPages: 0,
       isPublished: true,
       totalPages: 10
     });
@@ -122,6 +126,7 @@ describe('Admin Free Access Grants', () => {
       section: 'question_papers',
       pdfUrl: samplePdfKey,
       isFree: false,
+      previewPages: 0,
       isPublished: true,
       totalPages: 5
     });
