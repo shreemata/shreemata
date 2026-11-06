@@ -330,6 +330,89 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* Capture & Print Deterrents (Honest browser-level mitigations, not absolute OS protection) */
+        .video-viewport {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        #printBlockedNotice {
+            display: none;
+            text-align: center;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+            #printBlockedNotice, #printBlockedNotice * {
+                visibility: visible !important;
+                display: block !important;
+            }
+            #printBlockedNotice {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: #ffffff;
+                color: #0f172a;
+                z-index: 999999;
+                padding-top: 120px;
+                font-family: sans-serif;
+            }
+        }
+
+        .privacy-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(11, 19, 41, 0.98);
+            backdrop-filter: blur(12px);
+            z-index: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            cursor: pointer;
+        }
+
+        .privacy-card {
+            background: #1e293b;
+            border: 1px solid var(--border-dark);
+            border-radius: 14px;
+            padding: 28px 24px;
+            text-align: center;
+            max-width: 380px;
+            width: 100%;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+
+        /* Moving Watermark on Video Viewport */
+        .video-watermark-overlay {
+            position: absolute;
+            z-index: 25;
+            pointer-events: none;
+            padding: 6px 14px;
+            background: rgba(15, 23, 42, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 11.5px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            user-select: none;
+            transition: top 1.5s ease-in-out, left 1.5s ease-in-out;
+            max-width: 90%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     </style>
 </head>
 <body>
@@ -457,6 +540,10 @@
     <main class="player-container">
         <!-- 16:9 Player Viewport -->
         <div class="video-viewport" id="videoViewport">
+            <!-- Dynamic Moving Watermark Overlay (Pointer events none) -->
+            <div id="videoWatermarkOverlay" class="video-watermark-overlay" style="display: none;">
+                <span id="videoWatermarkText"></span>
+            </div>
             <div class="video-placeholder" id="statePlaceholder">
                 <div class="spinner" id="stateSpinner"></div>
                 <div class="icon" id="stateIcon" style="display: none;">🔒</div>
@@ -487,6 +574,22 @@
             <div class="recommended-grid" id="recommendedGrid"></div>
         </div>
     </main>
+
+    <!-- 4. PRINT RESTRICTION NOTICE (Visible only in @media print) -->
+    <div id="printBlockedNotice">
+        <h2 style="font-size: 26px; margin-bottom: 12px;">Printing is disabled</h2>
+        <p style="font-size: 16px; color: #475569;">Printing and exporting protected study materials is restricted.</p>
+    </div>
+
+    <!-- 5. PRIVACY OVERLAY (Shown on tab switch / screenshot attempt) -->
+    <div id="contentPrivacyOverlay" class="privacy-overlay" style="display: none;" onclick="dismissPrivacyOverlay()">
+        <div class="privacy-card" onclick="event.stopPropagation()">
+            <div style="font-size: 38px; margin-bottom: 12px;">👁️</div>
+            <h3 style="margin: 0 0 8px 0; font-size: 19px; color: #ffffff;">Content hidden. Click to continue.</h3>
+            <p style="margin: 0 0 18px 0; font-size: 13.5px; color: #94a3b8; line-height: 1.5;">Protected study material is covered while switching tabs.</p>
+            <button type="button" class="btn-action" style="max-width: 220px; margin: 0 auto;" onclick="dismissPrivacyOverlay()">Resume Video</button>
+        </div>
+    </div>
 
     <script src="js/config.js"></script>
     <script>
@@ -701,6 +804,8 @@
                         videoEl.style.width = '100%';
                         videoEl.style.height = '100%';
                         viewport.appendChild(videoEl);
+                        const viewerName = user ? (user.name || user.email || 'Subscriber') : 'Guest Viewer';
+                        startVideoWatermark(viewerName);
                     } else {
                         showState(
                             "Mobile App Recommended",
@@ -737,6 +842,8 @@
                 iframe.style.height = '100%';
                 iframe.style.border = 'none';
                 viewport.appendChild(iframe);
+                const viewerName = user ? (user.name || user.email || 'Subscriber') : 'Guest Viewer';
+                startVideoWatermark(viewerName);
 
             } catch (err) {
                 console.error("Player error:", err);
@@ -744,7 +851,89 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', initializePlayer);
+        // Capture & Print Deterrents (Honest browser-level mitigations, not absolute OS protection)
+        function showPrivacyOverlay() {
+            const overlay = document.getElementById('contentPrivacyOverlay');
+            if (overlay) overlay.style.display = 'flex';
+        }
+
+        function dismissPrivacyOverlay() {
+            const overlay = document.getElementById('contentPrivacyOverlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+
+        const WATERMARK_POSITIONS = [
+            { top: '8%', left: '8%' },
+            { top: '8%', left: '55%' },
+            { top: '45%', left: '32%' },
+            { top: '75%', left: '10%' },
+            { top: '75%', left: '55%' }
+        ];
+        let watermarkTimer = null;
+        let watermarkPosIdx = 0;
+
+        function startVideoWatermark(viewerIdentity) {
+            const wmOverlay = document.getElementById('videoWatermarkOverlay');
+            const wmText = document.getElementById('videoWatermarkText');
+            if (!wmOverlay || !wmText) return;
+
+            const label = 'Shree Mata • ' + (viewerIdentity || 'Learning Portal');
+            wmText.textContent = label;
+            wmOverlay.style.display = 'block';
+
+            function updatePosition() {
+                const pos = WATERMARK_POSITIONS[watermarkPosIdx % WATERMARK_POSITIONS.length];
+                wmOverlay.style.top = pos.top;
+                wmOverlay.style.left = pos.left;
+                watermarkPosIdx++;
+            }
+
+            updatePosition();
+            if (watermarkTimer) clearInterval(watermarkTimer);
+            watermarkTimer = setInterval(updatePosition, 16000); // Cycles position every ~16 seconds
+        }
+
+        function initVideoDeterrents() {
+            // Protected content container (video viewport)
+            const viewport = document.getElementById('videoViewport');
+            if (viewport) {
+                viewport.addEventListener('contextmenu', (e) => e.preventDefault());
+                viewport.addEventListener('dragstart', (e) => e.preventDefault());
+            }
+
+            // Keyboard shortcut deterrents (Ctrl+P, Ctrl+S, Ctrl+Shift+S, Ctrl+U)
+            window.addEventListener('keydown', (e) => {
+                const isModifier = e.ctrlKey || e.metaKey;
+                const key = (e.key || '').toLowerCase();
+                if (isModifier && (key === 'p' || key === 's' || key === 'u')) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // PrintScreen key deterrent: overwrite clipboard with notice text and briefly cover content
+            window.addEventListener('keyup', (e) => {
+                if (e.key === 'PrintScreen') {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText('Shree Mata — Protected Study Material').catch(() => {});
+                    }
+                    showPrivacyOverlay();
+                }
+            });
+
+            // Visibilitychange: cover content when tab is inactive or hidden
+            // Note: window blur is intentionally omitted to avoid interrupting iframe focus/playback
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    showPrivacyOverlay();
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initVideoDeterrents();
+            initializePlayer();
+        });
     </script>
 
     <!-- MOBILE NAVIGATION DRAWER -->

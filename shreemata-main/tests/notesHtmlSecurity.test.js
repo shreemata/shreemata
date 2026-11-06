@@ -84,6 +84,25 @@ function runAudits() {
   assert.ok(notesContent.includes('Razorpay(options)'), 'notes.html instantiates Razorpay modal');
   results.push('✔ notes.html implements Coming Soon fallback and full Razorpay subscription checkout');
 
+  // 7. Capture and print deterrents on protected study pages
+  ['reader.html', 'video-player.html'].forEach((filename) => {
+    const pageContent = readFile(filename);
+    assert.ok(pageContent.includes('@media print'), `${filename} includes @media print`);
+    assert.ok(pageContent.includes('Printing is disabled'), `${filename} includes print disabled notice`);
+    assert.ok(pageContent.includes('contentPrivacyOverlay'), `${filename} includes contentPrivacyOverlay`);
+    assert.ok(pageContent.includes('Content hidden. Click to continue.'), `${filename} includes privacy message`);
+    assert.ok(pageContent.includes('PrintScreen'), `${filename} handles PrintScreen deterrent`);
+    assert.ok(pageContent.includes('visibilitychange'), `${filename} handles visibilitychange`);
+    assert.ok(pageContent.includes('dragstart'), `${filename} prevents dragstart on protected container`);
+  });
+
+  // reader.html must also handle window blur; video-player.html must NOT listen to window blur (so iframe focus works)
+  assert.ok(readerContent.includes("window.addEventListener('blur'"), 'reader.html covers content on window blur');
+  assert.ok(!videoPlayerContent.includes("window.addEventListener('blur'"), 'video-player.html must NOT listen to blur');
+  assert.ok(videoPlayerContent.includes('videoWatermarkOverlay'), 'video-player.html has videoWatermarkOverlay');
+  assert.ok(videoPlayerContent.includes('startVideoWatermark'), 'video-player.html implements moving watermark');
+  results.push('✔ reader.html and video-player.html implement capture/print deterrents and moving video watermark');
+
   return results;
 }
 
