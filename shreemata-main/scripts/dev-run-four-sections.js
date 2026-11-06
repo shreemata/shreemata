@@ -35,6 +35,7 @@ process.env.ENABLE_TEXT_BOOK = 'true';
 process.env.ENABLE_READ_NOTES = isFlagsOn ? 'true' : 'false';
 process.env.ENABLE_QUESTION_PAPERS = isFlagsOn ? 'true' : 'false';
 process.env.ENABLE_VIDEOS = isFlagsOn ? 'true' : 'false';
+process.env.ENABLE_OTHERS = isFlagsOn ? 'true' : 'false';
 
 // 3. Isolated Private Storage in OS Temp Directory
 const tempStorageDir = fs.mkdtempSync(path.join(os.tmpdir(), 'shreemata-dev-storage-'));
@@ -168,7 +169,8 @@ async function bootstrap() {
     sectionSubscriptionPlans: {
       notes: { name: 'Study Notes Pass', price: 99, durationDays: 30, active: true, description: 'Unlimited monthly access to all digital study notes' },
       question_papers: { name: 'Question Papers Pass', price: 99, durationDays: 30, active: true, description: 'Access to question papers and solved model papers' },
-      videos: { name: 'Video Lectures Pass', price: 199, durationDays: 30, active: true, description: 'Unlimited streaming access to video lectures' }
+      videos: { name: 'Video Lectures Pass', price: 199, durationDays: 30, active: true, description: 'Unlimited streaming access to video lectures' },
+      others: { name: 'Others Pass', price: 99, durationDays: 30, active: true, description: 'Unlimited access to other study materials' }
     }
   });
 
@@ -241,6 +243,19 @@ async function bootstrap() {
       razorpayOrderId: 'order_dev_vid_003',
       razorpayPaymentId: 'pay_dev_vid_003',
       razorpaySignature: 'sig_dev_vid_003'
+    },
+    {
+      userId: subscriberStudent._id,
+      section: 'others',
+      planType: 'standard',
+      durationDays: 30,
+      amountPaid: 99,
+      status: 'active',
+      startDate: new Date(),
+      expiresAt: expiryDate,
+      razorpayOrderId: 'order_dev_others_004',
+      razorpayPaymentId: 'pay_dev_others_004',
+      razorpaySignature: 'sig_dev_others_004'
     }
   ]);
 
@@ -592,11 +607,58 @@ async function bootstrap() {
       videoUrl: 'https://iframe.mediadelivery.net/embed/12345/demo-biology-diagrams',
       isPublished: true,
       order: 6
+    },
+
+    // --- SECTION: OTHERS (3 items with preview pages) ---
+    {
+      title: 'Class 10 Competitive Exam Foundation Workbook',
+      section: 'others',
+      subject: 'Aptitude & Science',
+      classLevel: 'Class 10',
+      category: 'Competitive Prep',
+      description: 'Advanced reasoning, Olympiad preparatory questions, and multi-concept problem sets.',
+      isFree: false,
+      previewPages: 2,
+      totalPages: 3,
+      pdfUrl: 'private:notes_physics.pdf',
+      fileSize: pdfSizes['notes_physics.pdf'],
+      isPublished: true,
+      order: 1
+    },
+    {
+      title: 'Lab Manual & Practical Experiments Guide 2025',
+      section: 'others',
+      subject: 'General Science',
+      classLevel: 'Class 10',
+      category: 'Lab Manual',
+      description: 'Viva voce questions, observations, diagrams, and experimental precautions.',
+      isFree: false,
+      previewPages: 2,
+      totalPages: 3,
+      pdfUrl: 'private:notes_chemistry.pdf',
+      fileSize: pdfSizes['notes_chemistry.pdf'],
+      isPublished: true,
+      order: 2
+    },
+    {
+      title: 'Career Guidance & Higher Studies Roadmap for Class 10',
+      section: 'others',
+      subject: 'Guidance',
+      classLevel: 'Class 10',
+      category: 'Career Guide',
+      description: 'Stream selection matrix, scholarship opportunities, and preparation timeline.',
+      isFree: false,
+      previewPages: 2,
+      totalPages: 3,
+      pdfUrl: 'private:notes_maths.pdf',
+      fileSize: pdfSizes['notes_maths.pdf'],
+      isPublished: true,
+      order: 3
     }
   ];
 
   await Note.create(digitalNotes);
-  console.log(`[Seed] Seeded ${digitalNotes.length} digital study materials (Notes, QPs, Videos).`);
+  console.log(`[Seed] Seeded ${digitalNotes.length} digital study materials (Notes, QPs, Videos, Others).`);
 
   // 8. Start Real Express App from server.js
   console.log('[Server] Launching Express application on port 3100...');

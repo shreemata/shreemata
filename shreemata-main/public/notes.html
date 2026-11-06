@@ -821,7 +821,7 @@
         let currentPage = 1;
         let totalPages = 1;
         let searchTimer = null;
-        let sectionCounts = { notes: 0, question_papers: 0, videos: 0 };
+        let sectionCounts = { notes: 0, question_papers: 0, videos: 0, others: 0 };
 
         const token = localStorage.getItem('token');
         const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -861,6 +861,7 @@
                 if (features.readNotes) enabledSections.push('notes');
                 if (features.questionPapers) enabledSections.push('question_papers');
                 if (features.videos) enabledSections.push('videos');
+                if (features.others) enabledSections.push('others');
 
                 if (enabledSections.length === 0) {
                     document.getElementById('comingSoonBox').style.display = 'block';
@@ -911,7 +912,8 @@
             const tabConfig = {
                 notes: { icon: '📖', label: 'Study Notes' },
                 question_papers: { icon: '📝', label: 'Question Papers' },
-                videos: { icon: '🎥', label: 'Video Lectures' }
+                videos: { icon: '🎥', label: 'Video Lectures' },
+                others: { icon: '📁', label: 'Others' }
             };
 
             enabledSections.forEach(sec => {
@@ -1084,7 +1086,7 @@
             const msgEl = document.getElementById('lockedModalMessage');
             const btnEl = document.getElementById('lockedModalSubscribeBtn');
 
-            const sectionName = itemSection === 'videos' ? 'Video Lectures' : (itemSection === 'question_papers' ? 'Question Papers' : 'Notes');
+            const sectionName = itemSection === 'videos' ? 'Video Lectures' : (itemSection === 'question_papers' ? 'Question Papers' : (itemSection === 'others' ? 'Others' : 'Notes'));
             titleEl.textContent = `🔒 ${escapeHtml(itemTitle || 'Premium Resource')}`;
 
             if (!token) {
@@ -1248,7 +1250,7 @@
 
                 emptyState.style.display = 'none';
 
-                const fallbackIcon = currentSection === 'videos' ? '🎥' : (currentSection === 'question_papers' ? '📝' : '📖');
+                const fallbackIcon = currentSection === 'videos' ? '🎥' : (currentSection === 'question_papers' ? '📝' : (currentSection === 'others' ? '📁' : '📖'));
 
                 grid.innerHTML = notes.map(note => {
                     const isVideo = (note.section || currentSection) === 'videos';

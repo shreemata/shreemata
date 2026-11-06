@@ -438,7 +438,7 @@
             if (!data || typeof data !== 'object') return;
             const f = data.features;
             if (!f || typeof f !== 'object') return;
-            const digitalEnabled = !!(f.readNotes || f.questionPapers || f.videos);
+            const digitalEnabled = !!(f.readNotes || f.questionPapers || f.videos || f.others);
 
             if (digitalEnabled) {
                 // Desktop header nav

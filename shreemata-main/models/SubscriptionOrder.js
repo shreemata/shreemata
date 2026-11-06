@@ -18,7 +18,7 @@ const subscriptionOrderSchema = new mongoose.Schema({
   },
   section: {
     type: String,
-    enum: ['notes', 'question_papers', 'videos'],
+    enum: ['notes', 'question_papers', 'videos', 'others'],
     default: 'notes',
     required: true,
     index: true

@@ -240,6 +240,7 @@ function checkSectionEnabled(section) {
   if (section === 'notes') return Boolean(FEATURES.readNotes);
   if (section === 'question_papers') return Boolean(FEATURES.questionPapers);
   if (section === 'videos') return Boolean(FEATURES.videos);
+  if (section === 'others') return Boolean(FEATURES.others);
   return false;
 }
 
@@ -249,7 +250,7 @@ function checkSectionEnabled(section) {
 router.get("/pricing", async (req, res) => {
   try {
     const rawSection = (req.query.section || 'notes').toLowerCase().trim();
-    const validSections = ['notes', 'question_papers', 'videos'];
+    const validSections = ['notes', 'question_papers', 'videos', 'others'];
     if (!validSections.includes(rawSection)) {
       return res.status(400).json({ error: "Invalid section parameter" });
     }
@@ -285,7 +286,7 @@ router.get("/pricing", async (req, res) => {
 router.get("/my-status", authenticateToken, async (req, res) => {
   try {
     const rawSection = (req.query.section || 'notes').toLowerCase().trim();
-    const validSections = ['notes', 'question_papers', 'videos'];
+    const validSections = ['notes', 'question_papers', 'videos', 'others'];
     if (!validSections.includes(rawSection)) {
       return res.status(400).json({ error: "Invalid section parameter" });
     }
@@ -369,9 +370,9 @@ router.get("/my-status", authenticateToken, async (req, res) => {
 router.post("/create-order", authenticateToken, async (req, res) => {
   try {
     const rawSection = (req.body.section || 'notes').toLowerCase().trim();
-    const validSections = ['notes', 'question_papers', 'videos'];
+    const validSections = ['notes', 'question_papers', 'videos', 'others'];
     if (!validSections.includes(rawSection)) {
-      return res.status(400).json({ error: "Invalid section. Must be one of: notes, question_papers, videos" });
+      return res.status(400).json({ error: "Invalid section. Must be one of: notes, question_papers, videos, others" });
     }
 
     if (!checkSectionEnabled(rawSection)) {
@@ -780,7 +781,7 @@ router.get("/admin/subscribers", authenticateToken, isAdmin, async (req, res) =>
 
     const query = {};
 
-    if (sectionFilter !== "all" && ['notes', 'question_papers', 'videos'].includes(sectionFilter)) {
+    if (sectionFilter !== "all" && ['notes', 'question_papers', 'videos', 'others'].includes(sectionFilter)) {
       query.section = sectionFilter;
     }
 
@@ -910,7 +911,7 @@ const handleAdminGrant = async (req, res) => {
       return res.status(400).json({ error: 'Member email is required' });
     }
 
-    const validSections = ['notes', 'question_papers', 'videos'];
+    const validSections = ['notes', 'question_papers', 'videos', 'others'];
     const targetSection = (section || '').toLowerCase().trim();
     if (!validSections.includes(targetSection)) {
       return res.status(400).json({
@@ -1059,7 +1060,7 @@ router.get('/admin/grants', authenticateToken, isAdmin, async (req, res) => {
       planType: 'admin_grant'
     };
 
-    if (sectionFilter !== 'all' && ['notes', 'question_papers', 'videos'].includes(sectionFilter)) {
+    if (sectionFilter !== 'all' && ['notes', 'question_papers', 'videos', 'others'].includes(sectionFilter)) {
       query.section = sectionFilter;
     }
 

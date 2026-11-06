@@ -760,7 +760,7 @@
                 }
 
                 if (streamRes.status === 403) {
-                    const sectionName = note.section === 'question_papers' ? 'Question Papers' : 'Notes';
+                    const sectionName = note.section === 'question_papers' ? 'Question Papers' : (note.section === 'others' ? 'Others' : 'Notes');
                     showAccessDenied(
                         "Active Subscription Required",
                         `Your ${sectionName} subscription is either expired or inactive. Subscribe today for unlimited access to this section.`,
@@ -802,7 +802,7 @@
                     const bannerEl = document.getElementById('previewBanner');
                     const bannerTextEl = document.getElementById('previewBannerText');
                     const bannerBtn = document.getElementById('previewBannerBtn');
-                    const sectionName = (note.section === 'question_papers') ? 'Question Papers' : 'Notes';
+                    const sectionName = (note.section === 'question_papers') ? 'Question Papers' : (note.section === 'others' ? 'Others' : 'Notes');
                     const totalPagesDeclared = note.totalPages || totalPdfPages;
 
                     bannerTextEl.textContent = `Preview: pages 1-${totalPdfPages} of ${totalPagesDeclared}. Subscribe to read all ${totalPagesDeclared} pages.`;

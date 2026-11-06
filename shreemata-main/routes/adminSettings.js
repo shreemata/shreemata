@@ -88,7 +88,7 @@ router.put('/settings', authenticateToken, isAdmin, async (req, res) => {
       if (typeof updates.sectionSubscriptionPlans !== 'object' || updates.sectionSubscriptionPlans === null) {
         return res.status(400).json({ error: 'sectionSubscriptionPlans must be an object' });
       }
-      const allowedSections = ['notes', 'question_papers', 'videos'];
+      const allowedSections = ['notes', 'question_papers', 'videos', 'others'];
       for (const sec of allowedSections) {
         const plan = updates.sectionSubscriptionPlans[sec];
         if (plan) {

@@ -28,7 +28,7 @@ describe('Admin Free Access Grants', () => {
   let otherStudentUser, otherStudentToken;
   let paidStudentUser, paidStudentToken;
 
-  let paidNote, paidQp, paidVideo;
+  let paidNote, paidQp, paidVideo, paidOther;
 
   const JWT_SECRET = 'test_jwt_secret_grants_42';
 
@@ -39,6 +39,7 @@ describe('Admin Free Access Grants', () => {
     process.env.ENABLE_READ_NOTES = 'true';
     process.env.ENABLE_QUESTION_PAPERS = 'true';
     process.env.ENABLE_VIDEOS = 'true';
+    process.env.ENABLE_OTHERS = 'true';
 
     testStorageDir = path.resolve(__dirname, '../storage/notes/private');
     if (!fs.existsSync(testStorageDir)) {
@@ -141,6 +142,19 @@ describe('Admin Free Access Grants', () => {
       videoProvider: 'bunny',
       isFree: false,
       isPublished: true
+    });
+
+    paidOther = await Note.create({
+      title: 'Premium Career Roadmap Guide',
+      description: 'Comprehensive guide',
+      subject: 'Guidance',
+      classLevel: 'Class 10',
+      section: 'others',
+      pdfUrl: samplePdfKey,
+      isFree: false,
+      previewPages: 0,
+      isPublished: true,
+      totalPages: 5
     });
   });
 
@@ -266,7 +280,7 @@ describe('Admin Free Access Grants', () => {
     expect(statusRes.data.subscription.note).toBe('Review access for student');
   });
 
-  test('6. Section isolation: grant for "notes" does NOT grant access to "question_papers" or "videos"', async () => {
+  test('6. Section isolation: grant for "notes" does NOT grant access to "question_papers", "videos", or "others", and vice-versa', async () => {
     // Student has active grant for 'notes', but should still be 403 for 'question_papers'
     const qpCheck = await client.get(`/api/notes/${paidQp._id}/stream`, {
       headers: { Authorization: `Bearer ${studentToken}` }
@@ -280,6 +294,47 @@ describe('Admin Free Access Grants', () => {
     });
     expect(videoCheck.status).toBe(403);
     expect(videoCheck.data.section).toBe('videos');
+
+    // And 403 for 'others'
+    const othersCheck = await client.get(`/api/notes/${paidOther._id}/stream`, {
+      headers: { Authorization: `Bearer ${studentToken}` }
+    });
+    expect(othersCheck.status).toBe(403);
+    expect(othersCheck.data.section).toBe('others');
+
+    // Now grant access to 'others' for a dedicated test user
+    const othersIsolationUser = await User.create({
+      name: 'Others Isolation Student',
+      email: 'othersisolation@school.test',
+      phone: '9888888888',
+      password: 'password123',
+      role: 'user'
+    });
+    const othersIsolationToken = jwt.sign({ id: othersIsolationUser._id, role: 'user' }, JWT_SECRET);
+
+    const grantOtherRes = await client.post(
+      '/api/subscriptions/admin/grant',
+      {
+        email: 'othersisolation@school.test',
+        section: 'others',
+        durationDays: 30,
+        note: 'Others access grant'
+      },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    );
+    expect(grantOtherRes.status).toBe(201);
+
+    // Other student has access to 'others'
+    const otherAccess = await client.get(`/api/notes/${paidOther._id}/stream`, {
+      headers: { Authorization: `Bearer ${othersIsolationToken}` }
+    });
+    expect(otherAccess.status).toBe(200);
+
+    // But other student is 403 for 'notes'
+    const otherNotesCheck = await client.get(`/api/notes/${paidNote._id}/stream`, {
+      headers: { Authorization: `Bearer ${othersIsolationToken}` }
+    });
+    expect(otherNotesCheck.status).toBe(403);
   });
 
   test('7. Extending an existing grant -> extends expiry date, no duplicate active record', async () => {

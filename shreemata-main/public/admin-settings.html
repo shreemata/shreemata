@@ -434,6 +434,35 @@
                         <input type="text" id="plan_videos_description" maxlength="300" placeholder="Full access to curated video lectures">
                     </div>
                 </div>
+
+                <!-- Others Plan -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="margin: 0; font-size: 16px; color: #1e293b;">📁 Others Subscription</h3>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="plan_others_active">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        <div class="setting-item">
+                            <label>Plan Name:</label>
+                            <input type="text" id="plan_others_name" placeholder="e.g. Others Pass">
+                        </div>
+                        <div class="setting-item">
+                            <label>Price (₹):</label>
+                            <input type="number" id="plan_others_price" min="1" max="100000" step="any" placeholder="99">
+                        </div>
+                        <div class="setting-item">
+                            <label>Duration (Days):</label>
+                            <input type="number" id="plan_others_durationDays" min="1" max="3650" placeholder="30">
+                        </div>
+                    </div>
+                    <div class="setting-item" style="margin-top: 10px;">
+                        <label>Description:</label>
+                        <input type="text" id="plan_others_description" maxlength="300" placeholder="Full access to other study materials & resources">
+                    </div>
+                </div>
             </div>
 
             <!-- Free Access Callout -->
@@ -553,7 +582,7 @@
             document.getElementById('bonusPointsOnReferral').value = settings.pointsEarningSettings.bonusPointsOnReferral;
             // Digital Subscription Plans
             if (settings.sectionSubscriptionPlans) {
-                const sections = ['notes', 'question_papers', 'videos'];
+                const sections = ['notes', 'question_papers', 'videos', 'others'];
                 sections.forEach(sec => {
                     const plan = settings.sectionSubscriptionPlans[sec] || {};
                     const nameEl = document.getElementById('plan_' + sec + '_name');
@@ -687,6 +716,13 @@
                             durationDays: parseInt(document.getElementById('plan_videos_durationDays').value, 10),
                             active: document.getElementById('plan_videos_active').checked,
                             description: document.getElementById('plan_videos_description').value.trim()
+                        },
+                        others: {
+                            name: document.getElementById('plan_others_name').value.trim() || 'Others Pass',
+                            price: parseFloat(document.getElementById('plan_others_price').value),
+                            durationDays: parseInt(document.getElementById('plan_others_durationDays').value, 10),
+                            active: document.getElementById('plan_others_active').checked,
+                            description: document.getElementById('plan_others_description').value.trim()
                         }
                     }
                 };

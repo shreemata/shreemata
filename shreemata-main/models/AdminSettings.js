@@ -67,6 +67,13 @@ const adminSettingsSchema = new mongoose.Schema({
       durationDays: { type: Number, default: 30, min: 1 },
       active: { type: Boolean, default: false },
       description: { type: String, default: 'Unlimited streaming access to video lectures', trim: true }
+    },
+    others: {
+      name: { type: String, default: 'Others Pass', trim: true },
+      price: { type: Number, default: 99, min: 1 },
+      durationDays: { type: Number, default: 30, min: 1 },
+      active: { type: Boolean, default: false },
+      description: { type: String, default: 'Access to other study materials and resources', trim: true }
     }
   },
   
@@ -99,7 +106,7 @@ adminSettingsSchema.statics.getSubscriptionConfig = function(settings) {
 
 // Authoritative per-section plan resolver
 adminSettingsSchema.statics.getSectionPlan = function(settings, section = 'notes') {
-  const validSections = ['notes', 'question_papers', 'videos'];
+  const validSections = ['notes', 'question_papers', 'videos', 'others'];
   const targetSection = validSections.includes(section) ? section : 'notes';
   
   const plans = settings?.sectionSubscriptionPlans;
@@ -128,6 +135,16 @@ adminSettingsSchema.statics.getSectionPlan = function(settings, section = 'notes
       durationDays: (targetPlan && typeof targetPlan.durationDays === 'number' && targetPlan.durationDays >= 1) ? targetPlan.durationDays : 30,
       active: (targetPlan && typeof targetPlan.active === 'boolean') ? targetPlan.active : false,
       description: (targetPlan && targetPlan.description) ? targetPlan.description : 'Access to question papers and solved model papers'
+    };
+  }
+
+  if (targetSection === 'others') {
+    return {
+      name: (targetPlan && targetPlan.name) ? targetPlan.name : 'Others Pass',
+      price: (targetPlan && typeof targetPlan.price === 'number' && targetPlan.price >= 1) ? targetPlan.price : 99,
+      durationDays: (targetPlan && typeof targetPlan.durationDays === 'number' && targetPlan.durationDays >= 1) ? targetPlan.durationDays : 30,
+      active: (targetPlan && typeof targetPlan.active === 'boolean') ? targetPlan.active : false,
+      description: (targetPlan && targetPlan.description) ? targetPlan.description : 'Access to other study materials and resources'
     };
   }
 
@@ -188,7 +205,7 @@ adminSettingsSchema.methods.applyUpdates = function(updates) {
     if (!this.sectionSubscriptionPlans) {
       this.sectionSubscriptionPlans = {};
     }
-    const sections = ['notes', 'question_papers', 'videos'];
+    const sections = ['notes', 'question_papers', 'videos', 'others'];
     for (const sec of sections) {
       const secUpdate = updates.sectionSubscriptionPlans[sec];
       if (secUpdate && typeof secUpdate === 'object') {

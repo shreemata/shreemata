@@ -18,7 +18,9 @@ const FEATURES = {
   // Question Papers feature: PDF question papers, solved papers
   get questionPapers() { return getFeatureFlag('ENABLE_QUESTION_PAPERS', false); },
   // Video Lectures feature: video lectures catalog and streaming
-  get videos() { return getFeatureFlag('ENABLE_VIDEOS', false); }
+  get videos() { return getFeatureFlag('ENABLE_VIDEOS', false); },
+  // Others study section feature: PDF viewing for miscellaneous/other study material
+  get others() { return getFeatureFlag('ENABLE_OTHERS', false); }
 };
 
 module.exports = {

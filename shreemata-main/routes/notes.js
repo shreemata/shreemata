@@ -389,11 +389,16 @@ function sanitizeNote(note, userAccess = null) {
   };
 }
 
+function isPdfSection(section) {
+  return section === 'notes' || section === 'question_papers' || section === 'others';
+}
+
 function checkSectionFeatureFlag(section, isAdminUser) {
   if (isAdminUser) return true;
   if (section === 'notes') return Boolean(FEATURES.readNotes);
   if (section === 'question_papers') return Boolean(FEATURES.questionPapers);
   if (section === 'videos') return Boolean(FEATURES.videos);
+  if (section === 'others') return Boolean(FEATURES.others);
   return false;
 }
 
@@ -403,9 +408,9 @@ function checkSectionFeatureFlag(section, isAdminUser) {
 router.get("/", optionalAuth, async (req, res) => {
   try {
     const rawSection = (req.query.section || 'notes').toLowerCase().trim();
-    const validSections = ['notes', 'question_papers', 'videos'];
+    const validSections = ['notes', 'question_papers', 'videos', 'others'];
     if (!validSections.includes(rawSection)) {
-      return res.status(400).json({ error: "Invalid section parameter. Allowed: notes, question_papers, videos" });
+      return res.status(400).json({ error: "Invalid section parameter. Allowed: notes, question_papers, videos, others" });
     }
 
     const isAdminUser = req.user && req.user.role === "admin";
@@ -571,7 +576,7 @@ router.get("/", optionalAuth, async (req, res) => {
 router.get("/subjects", optionalAuth, async (req, res) => {
   try {
     const rawSection = (req.query.section || 'notes').toLowerCase().trim();
-    const validSections = ['notes', 'question_papers', 'videos'];
+    const validSections = ['notes', 'question_papers', 'videos', 'others'];
     if (!validSections.includes(rawSection)) {
       return res.status(400).json({ error: "Invalid section parameter" });
     }
@@ -956,10 +961,10 @@ router.post("/", authenticateToken, isAdmin, handleOptionalPdfUpload, async (req
       durationMinutes
     } = req.body;
 
-    const validSections = ['notes', 'question_papers', 'videos'];
+    const validSections = ['notes', 'question_papers', 'videos', 'others'];
     const cleanSection = String(section || 'notes').toLowerCase().trim();
     if (!validSections.includes(cleanSection)) {
-      return res.status(400).json({ error: "Invalid section. Must be one of: notes, question_papers, videos" });
+      return res.status(400).json({ error: "Invalid section. Must be one of: notes, question_papers, videos, others" });
     }
 
     const validProviders = ['bunny', 'vimeo', 'youtube_unlisted', 'hls', 'none'];
@@ -1043,7 +1048,7 @@ router.post("/", authenticateToken, isAdmin, handleOptionalPdfUpload, async (req
         title: title.trim(),
         subject: (subject || "").trim(),
         classLevel: (classLevel || "").trim(),
-        category: (category || (cleanSection === 'question_papers' ? 'Question Bank' : 'Study Notes')).trim(),
+        category: (category || (cleanSection === 'question_papers' ? 'Question Bank' : (cleanSection === 'others' ? 'Other Material' : 'Study Notes'))).trim(),
         description: (description || "").trim(),
         coverImage: (coverImage || "").trim(),
         pdfUrl: randomKey,
@@ -1065,9 +1070,10 @@ router.post("/", authenticateToken, isAdmin, handleOptionalPdfUpload, async (req
       throw createErr;
     }
 
+    const itemLabel = cleanSection === 'question_papers' ? 'Question paper' : (cleanSection === 'others' ? 'Other item' : 'Note');
     return res.status(201).json({
       success: true,
-      message: `${cleanSection === 'question_papers' ? 'Question paper' : 'Note'} uploaded and created successfully`,
+      message: `${itemLabel} uploaded and created successfully`,
       note: sanitizeNote(note)
     });
   } catch (err) {
@@ -1093,9 +1099,9 @@ router.put("/:id", authenticateToken, isAdmin, handleOptionalPdfUpload, async (r
     }
 
     const targetSection = req.body.section ? String(req.body.section).toLowerCase().trim() : (note.section || 'notes');
-    const validSections = ['notes', 'question_papers', 'videos'];
+    const validSections = ['notes', 'question_papers', 'videos', 'others'];
     if (req.body.section !== undefined && !validSections.includes(targetSection)) {
-      return res.status(400).json({ error: "Invalid section. Must be one of: notes, question_papers, videos" });
+      return res.status(400).json({ error: "Invalid section. Must be one of: notes, question_papers, videos, others" });
     }
 
     const validProviders = ['bunny', 'vimeo', 'youtube_unlisted', 'hls', 'none'];

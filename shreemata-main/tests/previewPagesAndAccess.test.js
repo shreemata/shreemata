@@ -32,8 +32,10 @@ describe('PDF Preview Pages & Access Control', () => {
   let noteWithIsFreeTrue;
   let noteLocked;
   let qpNote;
+  let othersNote;
   let freeVideo;
   let paidVideo;
+  let othersSubUser, othersSubToken;
 
   const JWT_SECRET = 'test_jwt_secret_preview_pages_99';
 
@@ -44,6 +46,7 @@ describe('PDF Preview Pages & Access Control', () => {
     process.env.ENABLE_READ_NOTES = 'true';
     process.env.ENABLE_QUESTION_PAPERS = 'true';
     process.env.ENABLE_VIDEOS = 'true';
+    process.env.ENABLE_OTHERS = 'true';
 
     // 1. Prepare storage dir and create a real 5-page PDF fixture using pdf-lib
     testStorageDir = path.resolve(__dirname, '../storage/notes/private');
@@ -131,6 +134,15 @@ describe('PDF Preview Pages & Access Control', () => {
     });
     grantToken = jwt.sign({ id: grantUser._id, role: 'user' }, JWT_SECRET);
 
+    othersSubUser = await User.create({
+      name: 'Others Sub User',
+      email: 'others.preview@shreemata.test',
+      phone: '9100000006',
+      password: 'password123',
+      role: 'user'
+    });
+    othersSubToken = jwt.sign({ id: othersSubUser._id, role: 'user' }, JWT_SECRET);
+
     // 4. Seed Subscriptions
     const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     await NoteSubscription.create({
@@ -155,6 +167,19 @@ describe('PDF Preview Pages & Access Control', () => {
       razorpayOrderId: 'ord_qp_test',
       razorpayPaymentId: 'pay_qp_test',
       razorpaySignature: 'sig_qp_test',
+      status: 'active',
+      expiresAt: futureDate
+    });
+
+    await NoteSubscription.create({
+      userId: othersSubUser._id,
+      section: 'others',
+      planType: 'standard',
+      durationDays: 30,
+      amountPaid: 99,
+      razorpayOrderId: 'ord_others_test',
+      razorpayPaymentId: 'pay_others_test',
+      razorpaySignature: 'sig_others_test',
       status: 'active',
       expiresAt: futureDate
     });
@@ -232,6 +257,21 @@ describe('PDF Preview Pages & Access Control', () => {
       uploadedBy: adminUser._id
     });
 
+    othersNote = await Note.create({
+      section: 'others',
+      title: 'Other Item with 2 Preview Pages',
+      subject: 'Guidance',
+      classLevel: 'Class 10',
+      pdfUrl: samplePdfKey,
+      fileSize: sampleBytes.length,
+      totalPages: 5,
+      previewPages: 2,
+      isFree: false,
+      isPublished: true,
+      allowDownload: true,
+      uploadedBy: adminUser._id
+    });
+
     freeVideo = await Note.create({
       section: 'videos',
       title: 'Free Video Lecture',
@@ -251,13 +291,6 @@ describe('PDF Preview Pages & Access Control', () => {
       isPublished: true,
       uploadedBy: adminUser._id
     });
-  });
-
-  afterAll(async () => {
-    if (server) {
-      await new Promise((resolve) => server.close(resolve));
-    }
-    await teardownTestDB();
   });
 
   // =========================================================================
@@ -413,6 +446,39 @@ describe('PDF Preview Pages & Access Control', () => {
     expect(qpDoc.getPageCount()).toBe(5);
   });
 
+  it('enforces section isolation between notes and others section', async () => {
+    // Unauthenticated guest gets 401 on others
+    const resGuest = await client.get(`/api/notes/${othersNote._id}/stream`);
+    expect(resGuest.status).toBe(401);
+
+    // Notes subscriber gets only preview of others
+    const resOtherForNotesUser = await client.get(`/api/notes/${othersNote._id}/stream`, {
+      headers: { Authorization: `Bearer ${notesSubToken}` },
+      responseType: 'arraybuffer'
+    });
+    expect(resOtherForNotesUser.status).toBe(200);
+    const otherDocForNotes = await PDFDocument.load(resOtherForNotesUser.data);
+    expect(otherDocForNotes.getPageCount()).toBe(2);
+
+    // Others subscriber gets only preview of notes
+    const resNoteForOthersUser = await client.get(`/api/notes/${noteWithPreview._id}/stream`, {
+      headers: { Authorization: `Bearer ${othersSubToken}` },
+      responseType: 'arraybuffer'
+    });
+    expect(resNoteForOthersUser.status).toBe(200);
+    const noteDocForOthers = await PDFDocument.load(resNoteForOthersUser.data);
+    expect(noteDocForOthers.getPageCount()).toBe(2);
+
+    // Others subscriber gets FULL access to others
+    const resOtherForOthersUser = await client.get(`/api/notes/${othersNote._id}/stream`, {
+      headers: { Authorization: `Bearer ${othersSubToken}` },
+      responseType: 'arraybuffer'
+    });
+    expect(resOtherForOthersUser.status).toBe(200);
+    const fullOtherDoc = await PDFDocument.load(resOtherForOthersUser.data);
+    expect(fullOtherDoc.getPageCount()).toBe(5);
+  });
+
   // =========================================================================
   // 10. VIDEOS RULES REMAIN UNAFFECTED
   // =========================================================================
@@ -465,5 +531,12 @@ describe('PDF Preview Pages & Access Control', () => {
     expect(resRange.headers['accept-ranges']).toBe('bytes');
     expect(resRange.headers['content-range']).toMatch(/^bytes 0-100\/\d+/);
     expect(resRange.data.length).toBe(101);
+  });
+
+  afterAll(async () => {
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+    }
+    await teardownTestDB();
   });
 });

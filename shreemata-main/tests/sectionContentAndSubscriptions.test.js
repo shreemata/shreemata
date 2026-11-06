@@ -67,6 +67,7 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
     process.env.ENABLE_READ_NOTES = 'true';
     process.env.ENABLE_QUESTION_PAPERS = 'true';
     process.env.ENABLE_VIDEOS = 'true';
+    process.env.ENABLE_OTHERS = 'true';
 
     // Prepare private storage directory and valid PDF fixture
     testStorageDir = path.resolve(__dirname, '../storage/notes/private');
@@ -197,6 +198,13 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
           durationDays: 30,
           active: true,
           description: 'Unlimited video lectures'
+        },
+        others: {
+          name: 'Others Pass',
+          price: 99,
+          durationDays: 30,
+          active: true,
+          description: 'Unlimited other study material'
         }
       }
     });
@@ -692,7 +700,7 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
   // =========================================================================
   // SCENARIO 9: Inactive plan -> create-order rejected (400)
   // =========================================================================
-  describe('9. question_papers/videos plan inactive -> create-order rejected', () => {
+  describe('9. question_papers/videos/others plan inactive -> create-order rejected', () => {
     it('rejects create-order if the section plan is marked inactive in AdminSettings', async () => {
       // Disable question_papers plan in AdminSettings
       await AdminSettings.updateOne({}, { $set: { 'sectionSubscriptionPlans.question_papers.active': false } });
@@ -709,6 +717,21 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
       // Restore active flag
       await AdminSettings.updateOne({}, { $set: { 'sectionSubscriptionPlans.question_papers.active': true } });
     });
+
+    it('rejects create-order if others plan is marked inactive in AdminSettings', async () => {
+      await AdminSettings.updateOne({}, { $set: { 'sectionSubscriptionPlans.others.active': false } });
+
+      const res = await client.post(
+        '/api/subscriptions/create-order',
+        { section: 'others' },
+        { headers: { Authorization: `Bearer ${guestToken}` } }
+      );
+
+      expect(res.status).toBe(400);
+      expect(res.data.error).toMatch(/disabled|unavailable/i);
+
+      await AdminSettings.updateOne({}, { $set: { 'sectionSubscriptionPlans.others.active': true } });
+    });
   });
 
   // =========================================================================
@@ -718,6 +741,7 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
     afterEach(() => {
       process.env.ENABLE_QUESTION_PAPERS = 'true';
       process.env.ENABLE_VIDEOS = 'true';
+      process.env.ENABLE_OTHERS = 'true';
     });
 
     it('returns 404 when non-admin requests a section whose feature flag is false', async () => {
@@ -730,10 +754,30 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
       expect(res.data.error).toMatch(/disabled|not available/i);
     });
 
+    it('returns 404 when non-admin requests others section when ENABLE_OTHERS is false', async () => {
+      process.env.ENABLE_OTHERS = 'false';
+
+      const res = await client.get('/api/notes?section=others', {
+        headers: { Authorization: `Bearer ${guestToken}` }
+      });
+      expect(res.status).toBe(404);
+      expect(res.data.error).toMatch(/disabled|not available/i);
+    });
+
     it('allows admin to access catalog even when feature flag is false', async () => {
       process.env.ENABLE_QUESTION_PAPERS = 'false';
 
       const res = await client.get('/api/notes?section=question_papers', {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(res.status).toBe(200);
+      expect(res.data).toHaveProperty('notes');
+    });
+
+    it('allows admin to access others catalog even when ENABLE_OTHERS is false', async () => {
+      process.env.ENABLE_OTHERS = 'false';
+
+      const res = await client.get('/api/notes?section=others', {
         headers: { Authorization: `Bearer ${adminToken}` }
       });
       expect(res.status).toBe(200);
@@ -1071,6 +1115,29 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
       expect(res.data.settings.sectionSubscriptionPlans.notes.durationDays).toBe(45);
       expect(res.data.settings.sectionSubscriptionPlans.videos.price).toBe(299);
       expect(res.data.settings.sectionSubscriptionPlans.videos.durationDays).toBe(60);
+    });
+
+    it('allows admin to update sectionSubscriptionPlans.others with valid price and duration', async () => {
+      const updatePayload = {
+        sectionSubscriptionPlans: {
+          others: {
+            name: 'Updated Others Pass',
+            price: 129,
+            durationDays: 35,
+            active: true,
+            description: 'Updated others description'
+          }
+        }
+      };
+
+      const res = await client.put('/api/admin/settings', updatePayload, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.data.settings.sectionSubscriptionPlans.others.price).toBe(129);
+      expect(res.data.settings.sectionSubscriptionPlans.others.durationDays).toBe(35);
+      expect(res.data.settings.sectionSubscriptionPlans.others.active).toBe(true);
     });
 
     it('rejects invalid plan pricing (price < 1)', async () => {

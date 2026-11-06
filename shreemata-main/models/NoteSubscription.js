@@ -9,10 +9,10 @@ const noteSubscriptionSchema = new mongoose.Schema({
     required: true,
     index: true
   },
-  // Section discriminator (notes, question_papers, videos)
+  // Section discriminator (notes, question_papers, videos, others)
   section: {
     type: String,
-    enum: ['notes', 'question_papers', 'videos'],
+    enum: ['notes', 'question_papers', 'videos', 'others'],
     default: 'notes',
     required: true,
     index: true

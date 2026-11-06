@@ -18,7 +18,7 @@ const noteSchema = new mongoose.Schema({
   // Section discriminator (4-Section architecture)
   section: {
     type: String,
-    enum: ['notes', 'question_papers', 'videos'],
+    enum: ['notes', 'question_papers', 'videos', 'others'],
     default: 'notes',
     required: true,
     index: true
@@ -54,7 +54,7 @@ const noteSchema = new mongoose.Schema({
   },
   // Private internal storage key or path (e.g., 'private/notes/uuid.pdf')
   // Digital assets MUST NEVER be stored in public folders or exposed via public permanent URLs.
-  // Conditional: Required for 'notes' and 'question_papers', not required for 'videos'
+  // Conditional: Required for 'notes', 'question_papers', and 'others', not required for 'videos'
   pdfUrl: {
     type: String,
     default: '',
@@ -67,7 +67,7 @@ const noteSchema = new mongoose.Schema({
         }
         return typeof val === 'string' && val.trim().length > 0;
       },
-      message: 'pdfUrl is required for notes and question_papers'
+      message: 'pdfUrl is required for notes, question_papers, and others'
     }
   },
   // Hosted video URL or ID (Bunny / Vimeo / YouTube unlisted / HLS)

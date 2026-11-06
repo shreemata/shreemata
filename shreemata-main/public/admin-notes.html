@@ -305,6 +305,11 @@
             color: #6d28d9;
         }
 
+        .badge-section-others {
+            background-color: #f1f5f9;
+            color: #475569;
+        }
+
         .badge-free {
             background-color: #dcfce7;
             color: #15803d;
@@ -651,6 +656,9 @@
                 <button type="button" class="btn btn-primary" onclick="openUploadModal('videos')" title="Add Video Lecture (Stream / Embed URL)">
                     <span>➕ Add Video Lecture (URL)</span>
                 </button>
+                <button type="button" class="btn btn-primary" onclick="openUploadModal('others')" title="Add Other (PDF Document)">
+                    <span>➕ Add Other (PDF)</span>
+                </button>
             </div>
         </div>
 
@@ -679,6 +687,7 @@
                     <button class="sub-tab-btn" data-sec="notes" onclick="switchSection('notes')">📖 Notes</button>
                     <button class="sub-tab-btn" data-sec="question_papers" onclick="switchSection('question_papers')">📝 Question Papers</button>
                     <button class="sub-tab-btn" data-sec="videos" onclick="switchSection('videos')">🎥 Video Lectures</button>
+                    <button class="sub-tab-btn" data-sec="others" onclick="switchSection('others')">📁 Others</button>
                 </div>
                 <div id="activeSectionIndicator" style="font-size: 13px; color: #64748b; font-weight: 600;">
                     Showing: <span>All Sections</span>
@@ -797,6 +806,7 @@
                             <option value="notes">Notes</option>
                             <option value="question_papers">Question Papers</option>
                             <option value="videos">Video Lectures</option>
+                            <option value="others">Others</option>
                         </select>
                     </div>
                     <div>
@@ -875,6 +885,7 @@
                                 <option value="notes">Notes</option>
                                 <option value="question_papers">Question Papers</option>
                                 <option value="videos">Video Lectures</option>
+                                <option value="others">Others</option>
                             </select>
                         </div>
                         <div class="form-group" style="margin: 0;">
@@ -918,6 +929,7 @@
                             <option value="notes">Notes</option>
                             <option value="question_papers">Question Papers</option>
                             <option value="videos">Video Lectures</option>
+                            <option value="others">Others</option>
                         </select>
                     </div>
                     <div>
@@ -991,6 +1003,7 @@
                                 <option value="notes">Notes (Digital PDF)</option>
                                 <option value="question_papers">Question Papers (Digital PDF)</option>
                                 <option value="videos">Video Lectures</option>
+                                <option value="others">Others (Digital PDF)</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -1131,6 +1144,7 @@
                                 <option value="notes">Notes (Digital PDF)</option>
                                 <option value="question_papers">Question Papers (Digital PDF)</option>
                                 <option value="videos">Video Lectures</option>
+                                <option value="others">Others (Digital PDF)</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -1313,12 +1327,14 @@
         function sectionLabel(sec) {
             if (sec === 'videos') return '🎥 Video';
             if (sec === 'question_papers') return '📝 Q-Papers';
+            if (sec === 'others') return '📁 Others';
             return '📖 Notes';
         }
 
         function sectionBadgeClass(sec) {
             if (sec === 'videos') return 'badge-section-videos';
             if (sec === 'question_papers') return 'badge-section-question_papers';
+            if (sec === 'others') return 'badge-section-others';
             return 'badge-section-notes';
         }
 
@@ -1365,7 +1381,8 @@
                     'all': 'All Sections',
                     'notes': 'Notes (PDF Study Materials)',
                     'question_papers': 'Question Papers (PDF Model & Previous Papers)',
-                    'videos': 'Video Lectures (Streaming Videos)'
+                    'videos': 'Video Lectures (Streaming Videos)',
+                    'others': 'Others (PDF Study Materials & Resources)'
                 };
                 ind.innerHTML = 'Showing: <span>' + (labels[sec] || sec) + '</span>';
             }
@@ -1429,19 +1446,21 @@
                 let totalItemsCount = 0;
 
                 if (currentSection === 'all') {
-                    // Query all 3 sections concurrently and merge
-                    const [resNotes, resQP, resVid] = await Promise.all([
+                    // Query all 4 sections concurrently and merge
+                    const [resNotes, resQP, resVid, resOthers] = await Promise.all([
                         fetch(`${window.API_URL}/notes?${buildQuery('notes')}`, { headers: { 'Authorization': `Bearer ${token}` } }),
                         fetch(`${window.API_URL}/notes?${buildQuery('question_papers')}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                        fetch(`${window.API_URL}/notes?${buildQuery('videos')}`, { headers: { 'Authorization': `Bearer ${token}` } })
+                        fetch(`${window.API_URL}/notes?${buildQuery('videos')}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                        fetch(`${window.API_URL}/notes?${buildQuery('others')}`, { headers: { 'Authorization': `Bearer ${token}` } })
                     ]);
 
                     const dataNotes = resNotes.ok ? await resNotes.json() : { notes: [] };
                     const dataQP = resQP.ok ? await resQP.json() : { notes: [] };
                     const dataVid = resVid.ok ? await resVid.json() : { notes: [] };
+                    const dataOthers = resOthers.ok ? await resOthers.json() : { notes: [] };
 
-                    items = [...(dataNotes.notes || []), ...(dataQP.notes || []), ...(dataVid.notes || [])];
-                    totalItemsCount = (dataNotes.pagination?.totalNotes || 0) + (dataQP.pagination?.totalNotes || 0) + (dataVid.pagination?.totalNotes || 0);
+                    items = [...(dataNotes.notes || []), ...(dataQP.notes || []), ...(dataVid.notes || []), ...(dataOthers.notes || [])];
+                    totalItemsCount = (dataNotes.pagination?.totalNotes || 0) + (dataQP.pagination?.totalNotes || 0) + (dataVid.pagination?.totalNotes || 0) + (dataOthers.pagination?.totalNotes || 0);
                     totalPages = Math.ceil(totalItemsCount / 15) || 1;
                 } else {
                     const response = await fetch(`${window.API_URL}/notes?${buildQuery(currentSection)}`, {
@@ -1542,6 +1561,7 @@
                 if (sec === 'notes') titleEl.textContent = 'Add Study Note (PDF Document)';
                 else if (sec === 'question_papers') titleEl.textContent = 'Add Question Paper (PDF Document)';
                 else if (sec === 'videos') titleEl.textContent = 'Add Video Lecture (Stream / Embed URL)';
+                else if (sec === 'others') titleEl.textContent = 'Add Other (PDF Document)';
                 else titleEl.textContent = 'Add New Content Item';
             }
             document.getElementById('uploadProgressBox').style.display = 'none';
