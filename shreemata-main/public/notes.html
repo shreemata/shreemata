@@ -582,6 +582,198 @@
             line-height: 1.5;
             margin: 0 0 20px 0;
         }
+
+        /* Payment Result Modal Styles */
+        .pay-modal-card {
+            background: #ffffff;
+            border-radius: 18px;
+            max-width: 440px;
+            width: 100%;
+            padding: 28px 24px;
+            text-align: center;
+            box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.35);
+            position: relative;
+            outline: none;
+            animation: payModalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes payModalPop {
+            from { transform: scale(0.92); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .pay-modal-icon-wrap {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            margin: 0 auto 16px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+
+        .pay-modal-icon-wrap.verifying {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .pay-modal-icon-wrap.success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .pay-modal-icon-wrap.failed {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .pay-modal-icon-wrap.cancelled {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .pay-modal-icon-wrap.pending {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .pay-modal-spinner {
+            width: 36px;
+            height: 36px;
+            border: 3.5px solid #dbeafe;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: paySpin 0.8s linear infinite;
+        }
+
+        @keyframes paySpin {
+            to { transform: rotate(360deg); }
+        }
+
+        .pay-modal-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--brand-navy);
+            margin: 0 0 8px 0;
+            line-height: 1.3;
+        }
+
+        .pay-modal-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.55;
+            margin: 0 0 20px 0;
+            word-break: break-word;
+        }
+
+        .pay-details-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 20px;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        .pay-details-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            color: #334155;
+        }
+
+        .pay-details-row strong {
+            color: var(--brand-navy);
+        }
+
+        .pay-copy-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            background: #e2e8f0;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #0f172a;
+            cursor: pointer;
+            border: 1px dashed #cbd5e1;
+        }
+
+        .pay-copy-badge:hover {
+            background: #cbd5e1;
+        }
+
+        .pay-modal-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-pay-primary {
+            background: linear-gradient(135deg, #F68048 0%, #e06d36 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-size: 14.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            min-height: 44px;
+        }
+
+        .btn-pay-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(246, 128, 72, 0.35);
+            color: #ffffff;
+        }
+
+        .btn-pay-secondary {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 11px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-decoration: none;
+            min-height: 42px;
+        }
+
+        .btn-pay-secondary:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .btn-pay-link {
+            background: none;
+            border: none;
+            color: var(--brand-orange);
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 6px;
+            text-decoration: underline;
+        }
+
+        .btn-pay-link:hover {
+            color: #e06d36;
+        }
     </style>
 </head>
 <body>
@@ -803,6 +995,43 @@
                 <button type="button" class="btn-reset-filter" onclick="closeLockedModal()" style="width: 100%;">
                     Close
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Result Modal (5 states: verifying, success, failed, cancelled, pending) -->
+    <div id="paymentResultModal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="payModalTitle" tabindex="-1">
+        <div class="pay-modal-card">
+            <div id="payModalIconWrap" class="pay-modal-icon-wrap verifying">
+                <div id="payModalSpinner" class="pay-modal-spinner"></div>
+                <span id="payModalIconChar" style="display: none;">✓</span>
+            </div>
+            <h3 id="payModalTitle" class="pay-modal-title">Confirming payment...</h3>
+            <p id="payModalDesc" class="pay-modal-desc">Please wait while we verify your payment with the bank. Do not close this page or pay again.</p>
+
+            <div id="payModalDetails" class="pay-details-box" style="display: none;">
+                <div class="pay-details-row" id="payDetailPlanRow">
+                    <span>Plan:</span>
+                    <strong id="payDetailPlanName">—</strong>
+                </div>
+                <div class="pay-details-row" id="payDetailAmountRow">
+                    <span>Amount:</span>
+                    <strong id="payDetailAmount">—</strong>
+                </div>
+                <div class="pay-details-row" id="payDetailExpiryRow">
+                    <span>Valid Until:</span>
+                    <strong id="payDetailExpiry">—</strong>
+                </div>
+                <div class="pay-details-row" id="payDetailPaymentIdRow" style="display: none;">
+                    <span>Payment ID:</span>
+                    <span id="payDetailPaymentId" class="pay-copy-badge" onclick="copyPaymentId()" title="Click to copy">
+                        <span id="payDetailPaymentIdText">—</span> 📋
+                    </span>
+                </div>
+            </div>
+
+            <div id="payModalActions" class="pay-modal-actions">
+                <!-- Injected dynamically by showPaymentModal -->
             </div>
         </div>
     </div>
@@ -1117,10 +1346,207 @@
             handleSubscribe();
         }
 
+        // =========================================================================
+        // Payment Result Modal Controller (5 States)
+        // =========================================================================
+        let currentModalState = null;
+        let lastPaymentId = '';
+        let isSubscribing = false;
+
+        function copyPaymentId() {
+            if (!lastPaymentId) return;
+            navigator.clipboard.writeText(lastPaymentId).then(() => {
+                const el = document.getElementById('payDetailPaymentIdText');
+                if (el) {
+                    const original = el.textContent;
+                    el.textContent = 'Copied!';
+                    setTimeout(() => { el.textContent = original; }, 1500);
+                }
+            }).catch(() => {});
+        }
+
+        function closePaymentModal() {
+            // Dismissal is not allowed during 'verifying' state
+            if (currentModalState === 'verifying') return;
+            const modal = document.getElementById('paymentResultModal');
+            if (modal) modal.style.display = 'none';
+            currentModalState = null;
+        }
+
+        function showPaymentModal(state, data = {}) {
+            currentModalState = state;
+            const modal = document.getElementById('paymentResultModal');
+            const iconWrap = document.getElementById('payModalIconWrap');
+            const spinner = document.getElementById('payModalSpinner');
+            const iconChar = document.getElementById('payModalIconChar');
+            const titleEl = document.getElementById('payModalTitle');
+            const descEl = document.getElementById('payModalDesc');
+            const detailsBox = document.getElementById('payModalDetails');
+            const planRow = document.getElementById('payDetailPlanRow');
+            const amountRow = document.getElementById('payDetailAmountRow');
+            const expiryRow = document.getElementById('payDetailExpiryRow');
+            const payIdRow = document.getElementById('payDetailPaymentIdRow');
+            const actionsEl = document.getElementById('payModalActions');
+
+            if (!modal) return;
+
+            // Reset classes
+            iconWrap.className = 'pay-modal-icon-wrap ' + state;
+            actionsEl.innerHTML = '';
+            detailsBox.style.display = 'none';
+            planRow.style.display = 'flex';
+            amountRow.style.display = 'flex';
+            expiryRow.style.display = 'flex';
+            payIdRow.style.display = 'none';
+
+            if (state === 'verifying') {
+                spinner.style.display = 'block';
+                iconChar.style.display = 'none';
+                titleEl.textContent = 'Confirming your payment...';
+                descEl.textContent = 'Please wait while we confirm your payment with the bank. Do not close this page or pay again.';
+            } else if (state === 'success') {
+                spinner.style.display = 'none';
+                iconChar.style.display = 'block';
+                iconChar.textContent = '✓';
+                titleEl.textContent = '🎉 Payment Successful!';
+                descEl.textContent = 'Your subscription is now active! You have full unlimited access to all materials in this section.';
+
+                detailsBox.style.display = 'block';
+                document.getElementById('payDetailPlanName').textContent = data.planName || (sectionPlan?.name) || 'Subscription Pass';
+                document.getElementById('payDetailAmount').textContent = '₹' + (data.amount || sectionPlan?.price || '—');
+                
+                let expiryStr = '—';
+                if (data.expiresAt) {
+                    expiryStr = new Date(data.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                } else if (sectionPlan?.durationDays) {
+                    const exp = new Date(Date.now() + sectionPlan.durationDays * 86400000);
+                    expiryStr = exp.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                }
+                document.getElementById('payDetailExpiry').textContent = expiryStr;
+
+                actionsEl.innerHTML = `
+                    <button type="button" class="btn-pay-primary" id="btnStartReading" onclick="closePaymentModal(); checkUserSubscription(currentSection); loadCatalog(currentPage);">
+                        📖 Start Reading Now
+                    </button>
+                    <a href="/account.html" class="btn-pay-secondary">
+                        👤 See My Subscriptions
+                    </a>
+                `;
+            } else if (state === 'failed') {
+                spinner.style.display = 'none';
+                iconChar.style.display = 'block';
+                iconChar.textContent = '✕';
+                titleEl.textContent = 'Payment Failed';
+                
+                const reasonText = data.reason || 'Your payment was declined or could not be completed.';
+                descEl.textContent = `${reasonText} No money was deducted. If any amount was charged, it will be refunded by your bank automatically within a few working days.`;
+
+                actionsEl.innerHTML = `
+                    <button type="button" class="btn-pay-primary" onclick="closePaymentModal(); handleSubscribe();">
+                        🔄 Try Again
+                    </button>
+                    <button type="button" class="btn-pay-secondary" onclick="closePaymentModal();">
+                        Close
+                    </button>
+                `;
+            } else if (state === 'cancelled') {
+                spinner.style.display = 'none';
+                iconChar.style.display = 'block';
+                iconChar.textContent = '✕';
+                titleEl.textContent = 'Payment Cancelled';
+                descEl.textContent = 'The checkout window was closed before completing payment. You were not charged.';
+
+                actionsEl.innerHTML = `
+                    <button type="button" class="btn-pay-primary" onclick="closePaymentModal(); handleSubscribe();">
+                        ⚡ Try Again
+                    </button>
+                    <button type="button" class="btn-pay-secondary" onclick="closePaymentModal();">
+                        Close
+                    </button>
+                `;
+            } else if (state === 'pending') {
+                spinner.style.display = 'none';
+                iconChar.style.display = 'block';
+                iconChar.textContent = '⏳';
+                titleEl.textContent = 'Payment Confirmation Pending';
+                descEl.textContent = 'We received your payment, but our system is still completing activation. Please DO NOT pay again. It will activate automatically shortly. If it remains inactive after 30 minutes, contact support with your Payment ID below.';
+
+                if (data.paymentId) {
+                    lastPaymentId = data.paymentId;
+                    detailsBox.style.display = 'block';
+                    planRow.style.display = 'none';
+                    amountRow.style.display = 'none';
+                    expiryRow.style.display = 'none';
+                    payIdRow.style.display = 'flex';
+                    document.getElementById('payDetailPaymentIdText').textContent = data.paymentId;
+                }
+
+                actionsEl.innerHTML = `
+                    <button type="button" class="btn-pay-primary" id="btnCheckPendingStatus" onclick="recheckSubscriptionStatus();">
+                        🔄 Check Status Again
+                    </button>
+                    <button type="button" class="btn-pay-secondary" onclick="closePaymentModal();">
+                        Close
+                    </button>
+                    <a href="/track-order.html" class="btn-pay-link">Need Help? Contact Support</a>
+                `;
+            }
+
+            modal.style.display = 'flex';
+            modal.focus();
+        }
+
+        async function recheckSubscriptionStatus() {
+            const checkBtn = document.getElementById('btnCheckPendingStatus');
+            if (checkBtn) {
+                checkBtn.disabled = true;
+                checkBtn.textContent = 'Checking...';
+            }
+            try {
+                const res = await fetch(`${window.API_URL}/subscriptions/my-status?section=${currentSection}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.hasActiveSubscription && data.subscription) {
+                        showPaymentModal('success', {
+                            planName: sectionPlan?.name,
+                            amount: sectionPlan?.price,
+                            expiresAt: data.subscription.expiresAt
+                        });
+                        return;
+                    }
+                }
+                descEl.textContent = 'Still awaiting payment confirmation from the gateway. Please check back shortly or reach out to support if needed.';
+            } catch (_) {
+                // Ignore network error during manual re-check
+            } finally {
+                if (checkBtn) {
+                    checkBtn.disabled = false;
+                    checkBtn.textContent = '🔄 Check Status Again';
+                }
+            }
+        }
+
+        // Expose showPaymentModal and closePaymentModal globally for testing / verification
+        window.showPaymentModal = showPaymentModal;
+        window.closePaymentModal = closePaymentModal;
+
+        // Keyboard accessibility: ESC key dismisses non-verifying modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && currentModalState && currentModalState !== 'verifying') {
+                closePaymentModal();
+            }
+        });
+
         // Razorpay Subscription Purchase
         async function handleSubscribe() {
+            if (isSubscribing) return;
+
             if (!sectionPlan || !sectionPlan.enabled) {
-                alert("Subscriptions for this section are not open yet.");
+                showPaymentModal('failed', {
+                    reason: "Subscriptions for this section are not open yet. Free previews are available."
+                });
                 return;
             }
 
@@ -1129,6 +1555,7 @@
                 return;
             }
 
+            isSubscribing = true;
             try {
                 // 1. Create order
                 const orderRes = await fetch(`${window.API_URL}/subscriptions/create-order`, {
@@ -1147,7 +1574,8 @@
 
                 const orderData = await orderRes.json();
 
-                // 2. Open Razorpay Modal
+                // 2. Configure Razorpay Modal
+                let checkoutDismissed = false;
                 const options = {
                     key: orderData.keyId || window.RAZORPAY_KEY_ID,
                     amount: orderData.amount,
@@ -1164,7 +1592,24 @@
                     theme: {
                         color: "#F68048"
                     },
+                    modal: {
+                        ondismiss: function () {
+                            checkoutDismissed = true;
+                            isSubscribing = false;
+                            // Only show cancelled if verification hasn't already begun
+                            if (currentModalState !== 'verifying' && currentModalState !== 'success') {
+                                showPaymentModal('cancelled');
+                            }
+                        }
+                    },
                     handler: async function (response) {
+                        // Immediately transition to verifying state
+                        showPaymentModal('verifying');
+
+                        const paymentId = response.razorpay_payment_id;
+                        let verifiedSuccessfully = false;
+                        let verifyErrorMsg = '';
+
                         try {
                             const verifyRes = await fetch(`${window.API_URL}/subscriptions/verify-order`, {
                                 method: 'POST',
@@ -1173,6 +1618,10 @@
                                     'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify({
+                                    // Send BOTH snake_case and camelCase to satisfy any backend layer
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature,
                                     razorpayOrderId: response.razorpay_order_id,
                                     razorpayPaymentId: response.razorpay_payment_id,
                                     razorpaySignature: response.razorpay_signature,
@@ -1180,25 +1629,73 @@
                                 })
                             });
 
-                            if (!verifyRes.ok) {
+                            if (verifyRes.ok) {
+                                const vData = await verifyRes.json();
+                                verifiedSuccessfully = true;
+                                isSubscribing = false;
+                                showPaymentModal('success', {
+                                    planName: orderData.planName || sectionPlan?.name,
+                                    amount: (orderData.amount ? orderData.amount / 100 : sectionPlan?.price),
+                                    expiresAt: vData.subscription?.expiresAt
+                                });
+                                return;
+                            } else {
                                 const vErr = await verifyRes.json().catch(() => ({}));
-                                throw new Error(vErr.error || "Payment verification failed");
+                                verifyErrorMsg = vErr.error || "Payment verification failed";
                             }
-
-                            alert("🎉 Payment successful! Your subscription is now unlocked.");
-                            await checkUserSubscription(currentSection);
-                            loadCatalog(currentPage);
                         } catch (err) {
-                            alert("Verification error: " + err.message);
+                            verifyErrorMsg = err.message || "Network error during verification";
                         }
+
+                        // If verifyRes failed, poll /api/subscriptions/my-status for up to 30s
+                        // to see if the webhook already activated it in the background
+                        const pollStartTime = Date.now();
+                        const POLL_MAX_MS = 30000;
+                        const POLL_INTERVAL_MS = 2500;
+
+                        while (Date.now() - pollStartTime < POLL_MAX_MS) {
+                            await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+                            try {
+                                const statusRes = await fetch(`${window.API_URL}/subscriptions/my-status?section=${currentSection}`, {
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                });
+                                if (statusRes.ok) {
+                                    const sData = await statusRes.json();
+                                    if (sData.hasActiveSubscription && sData.subscription) {
+                                        isSubscribing = false;
+                                        showPaymentModal('success', {
+                                            planName: orderData.planName || sectionPlan?.name,
+                                            amount: (orderData.amount ? orderData.amount / 100 : sectionPlan?.price),
+                                            expiresAt: sData.subscription.expiresAt
+                                        });
+                                        return;
+                                    }
+                                }
+                            } catch (_) {
+                                // continue polling
+                            }
+                        }
+
+                        // Polling timed out without confirmation: show pending modal with payment ID
+                        isSubscribing = false;
+                        showPaymentModal('pending', {
+                            paymentId: paymentId,
+                            error: verifyErrorMsg
+                        });
                     }
                 };
 
                 const rzp = new Razorpay(options);
+                rzp.on('payment.failed', function (resp) {
+                    isSubscribing = false;
+                    const failReason = resp?.error?.description || resp?.error?.reason || "Payment declined by bank";
+                    showPaymentModal('failed', { reason: failReason });
+                });
                 rzp.open();
 
             } catch (err) {
-                alert("Subscription error: " + err.message);
+                isSubscribing = false;
+                showPaymentModal('failed', { reason: err.message || "Could not initialize checkout" });
             }
         }
 

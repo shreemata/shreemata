@@ -442,11 +442,260 @@ router.post("/create-order", authenticateToken, async (req, res) => {
 });
 
 // =========================================================================
+// Shared, Idempotent Subscription Activation Function
+// =========================================================================
+async function activateSubscriptionForOrder({ subOrder, paymentId, signature = null, paymentDetails = {} }) {
+  const userId = subOrder.userId.toString();
+  const targetSection = subOrder.section || 'notes';
+  const targetDurationDays = subOrder.durationDays;
+  const orderId = subOrder.razorpayOrderId;
+
+  return await withUserRenewalLock(userId, targetSection, async (dbLock) => {
+    // 1. Idempotency & replay check
+    const existingSub = await NoteSubscription.findOne({ razorpayPaymentId: paymentId });
+    if (existingSub) {
+      if (
+        existingSub.userId.toString() === userId &&
+        existingSub.razorpayOrderId === orderId
+      ) {
+        if (subOrder.status !== "paid" || !subOrder.subscriptionId) {
+          subOrder.status = "paid";
+          subOrder.subscriptionId = existingSub._id;
+          subOrder.razorpayPaymentId = paymentId;
+          if (signature) subOrder.razorpaySignature = signature;
+          await subOrder.save();
+        }
+        return {
+          success: true,
+          duplicate: true,
+          subscription: existingSub
+        };
+      }
+
+      console.warn(`SECURITY ALERT: Existing payment record mismatch for user ${userId}, order ${orderId}, payment ${paymentId}`);
+      const conflictErr = new Error("Duplicate payment verification conflict. Payment belongs to a different subscription or user.");
+      conflictErr.status = 409;
+      throw conflictErr;
+    }
+
+    // 2. Fencing check
+    if (dbLock && typeof dbLock.isValid === 'function') {
+      const isLeaseValid = await dbLock.isValid();
+      if (!isLeaseValid) {
+        const leaseErr = new Error("Subscription renewal lease expired before activation could complete. Please retry.");
+        leaseErr.status = 409;
+        throw leaseErr;
+      }
+    }
+
+    const timelineId = getTimelineId(userId, targetSection);
+
+    // 3. Stacking & Expiry Calculation
+    let createdSub = null;
+    let allocatedTimeline = null;
+    let allocatedReservation = null;
+    const MAX_STACKING_ATTEMPTS = 5;
+
+    for (let attempt = 0; attempt < MAX_STACKING_ATTEMPTS; attempt++) {
+      let timeline = await NoteSubscriptionTimeline.findById(timelineId);
+
+      const existingRes = timeline?.reservations?.find(r => r.paymentId === paymentId);
+      if (existingRes) {
+        allocatedTimeline = timeline;
+        allocatedReservation = existingRes;
+      } else {
+        const now = new Date();
+        let baseDate = now;
+
+        const currentActiveSub = await NoteSubscription.findOne({
+          userId: userId,
+          section: targetSection,
+          status: "active",
+          expiresAt: { $gt: now }
+        }).sort({ expiresAt: -1 });
+
+        if (currentActiveSub && new Date(currentActiveSub.expiresAt) > baseDate) {
+          baseDate = new Date(currentActiveSub.expiresAt);
+        }
+        if (timeline && timeline.activeExpiresAt && new Date(timeline.activeExpiresAt) > baseDate) {
+          baseDate = new Date(timeline.activeExpiresAt);
+        }
+
+        let calculatedExpiresAt;
+        if (targetDurationDays && typeof targetDurationDays === 'number' && targetDurationDays >= 1) {
+          calculatedExpiresAt = new Date(baseDate.getTime() + targetDurationDays * 86400000);
+        } else {
+          calculatedExpiresAt = addOneCalendarMonth(baseDate);
+        }
+
+        const expectedPreviousExpiry = timeline ? timeline.activeExpiresAt : null;
+        const expectedPreviousSequence = timeline ? (timeline.sequenceNumber || 0) : 0;
+        const nextSequence = expectedPreviousSequence + 1;
+
+        let casResult = null;
+        try {
+          if (!timeline) {
+            casResult = await NoteSubscriptionTimeline.findOneAndUpdate(
+              {
+                _id: timelineId,
+                sequenceNumber: { $in: [null, 0] }
+              },
+              {
+                $set: {
+                  activeExpiresAt: calculatedExpiresAt,
+                  sequenceNumber: 1
+                },
+                $push: {
+                  reservations: {
+                    paymentId,
+                    orderId,
+                    expiresAt: calculatedExpiresAt,
+                    sequenceNumber: 1,
+                    status: "reserved",
+                    createdAt: new Date()
+                  }
+                }
+              },
+              { upsert: true, new: true }
+            );
+          } else {
+            casResult = await NoteSubscriptionTimeline.findOneAndUpdate(
+              {
+                _id: timelineId,
+                activeExpiresAt: expectedPreviousExpiry,
+                sequenceNumber: expectedPreviousSequence,
+                "reservations.paymentId": { $ne: paymentId }
+              },
+              {
+                $set: {
+                  activeExpiresAt: calculatedExpiresAt
+                },
+                $inc: { sequenceNumber: 1 },
+                $push: {
+                  reservations: {
+                    paymentId,
+                    orderId,
+                    expiresAt: calculatedExpiresAt,
+                    sequenceNumber: nextSequence,
+                    status: "reserved",
+                    createdAt: new Date()
+                  }
+                }
+              },
+              { new: true }
+            );
+          }
+        } catch (err) {
+          if (err.code === 11000 || (err.message && err.message.includes('E11000'))) {
+            await new Promise((r) => setTimeout(r, 40 * (attempt + 1)));
+            continue;
+          }
+          throw err;
+        }
+
+        if (!casResult) {
+          const reloaded = await NoteSubscriptionTimeline.findById(timelineId);
+          const selfRes = reloaded?.reservations?.find(r => r.paymentId === paymentId);
+          if (selfRes) {
+            allocatedTimeline = reloaded;
+            allocatedReservation = selfRes;
+          } else {
+            await new Promise((r) => setTimeout(r, 40 * (attempt + 1)));
+            continue;
+          }
+        } else {
+          allocatedTimeline = casResult;
+          allocatedReservation = casResult.reservations.find(r => r.paymentId === paymentId);
+        }
+      }
+
+      if (!allocatedReservation) continue;
+
+      const finalExpiresAt = allocatedReservation.expiresAt;
+      const finalSequence = allocatedReservation.sequenceNumber;
+
+      try {
+        const amountInRupees = subOrder.amountPaise ? (subOrder.amountPaise / 100) : 99;
+        const signatureToSave = signature || `sig_auto_${paymentId}`;
+
+        const subscriptionDocs = await NoteSubscription.create([{
+          userId: userId,
+          section: targetSection,
+          planType: subOrder.planType || "standard",
+          durationDays: targetDurationDays || 30,
+          amountPaid: amountInRupees,
+          currency: subOrder.currency || "INR",
+          status: "active",
+          startDate: new Date(),
+          expiresAt: finalExpiresAt,
+          subscriptionIndex: finalSequence,
+          razorpayOrderId: orderId,
+          razorpayPaymentId: paymentId,
+          razorpaySignature: signatureToSave,
+          paymentDetails: {
+            method: paymentDetails.method || "razorpay",
+            capturedAt: paymentDetails.capturedAt || new Date()
+          }
+        }]);
+
+        createdSub = subscriptionDocs[0];
+
+        await NoteSubscriptionTimeline.updateOne(
+          { _id: timelineId, "reservations.paymentId": paymentId },
+          { $set: { "reservations.$.status": "committed" } }
+        ).catch(() => {});
+
+        break;
+      } catch (insertErr) {
+        if (insertErr.code === 11000) {
+          const isPaymentIdCollision = Boolean(
+            (insertErr.keyPattern && insertErr.keyPattern.razorpayPaymentId) ||
+            (insertErr.message && insertErr.message.includes("razorpayPaymentId"))
+          );
+
+          if (isPaymentIdCollision) {
+            const existing = await NoteSubscription.findOne({ razorpayPaymentId: paymentId });
+            if (existing) {
+              createdSub = existing;
+              break;
+            }
+          }
+
+          if (attempt < MAX_STACKING_ATTEMPTS - 1) {
+            continue;
+          }
+        }
+        throw insertErr;
+      }
+    }
+
+    if (!createdSub) {
+      const conflictErr = new Error("Subscription timeline conflict during renewal. Please retry in a few seconds.");
+      conflictErr.status = 409;
+      throw conflictErr;
+    }
+
+    subOrder.status = "paid";
+    subOrder.subscriptionId = createdSub._id;
+    subOrder.razorpayPaymentId = paymentId;
+    if (signature) subOrder.razorpaySignature = signature;
+    await subOrder.save();
+
+    return {
+      success: true,
+      subscription: createdSub
+    };
+  });
+}
+
+// =========================================================================
 // 4. POST /api/subscriptions/verify-order (Authenticated & Hardened)
 // =========================================================================
 router.post("/verify-order", authenticateToken, async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const razorpay_order_id = req.body.razorpay_order_id || req.body.razorpayOrderId;
+    const razorpay_payment_id = req.body.razorpay_payment_id || req.body.razorpayPaymentId;
+    const razorpay_signature = req.body.razorpay_signature || req.body.razorpaySignature;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({ error: "Missing required payment verification parameters" });
@@ -486,273 +735,84 @@ router.post("/verify-order", authenticateToken, async (req, res) => {
       return res.status(403).json({ error: "Order ownership mismatch. Access denied." });
     }
 
-    // Use ONLY subOrder.section and subOrder.durationDays (ignore client-sent values)
-    const targetSection = subOrder.section || 'notes';
-    const targetDurationDays = subOrder.durationDays;
-
-    return await withUserRenewalLock(req.user.id, targetSection, async (dbLock) => {
-      // Gate 3: Idempotency & replay check
-      const existingSub = await NoteSubscription.findOne({ razorpayPaymentId: paymentId });
-      if (existingSub) {
-        if (
-          existingSub.userId.toString() === req.user.id.toString() &&
-          existingSub.razorpayOrderId === orderId
-        ) {
-          if (subOrder.status !== "paid" || !subOrder.subscriptionId) {
-            subOrder.status = "paid";
-            subOrder.subscriptionId = existingSub._id;
-            subOrder.razorpayPaymentId = paymentId;
-            subOrder.razorpaySignature = signature;
-            await subOrder.save();
-          }
-          return res.json({
-            success: true,
-            message: "Subscription already active for this payment",
-            duplicate: true,
-            subscription: existingSub
-          });
+    // Fast-path replay check before gateway call
+    const existingSub = await NoteSubscription.findOne({ razorpayPaymentId: paymentId });
+    if (existingSub) {
+      if (
+        existingSub.userId.toString() === req.user.id.toString() &&
+        existingSub.razorpayOrderId === orderId
+      ) {
+        if (subOrder.status !== "paid" || !subOrder.subscriptionId) {
+          subOrder.status = "paid";
+          subOrder.subscriptionId = existingSub._id;
+          subOrder.razorpayPaymentId = paymentId;
+          subOrder.razorpaySignature = signature;
+          await subOrder.save();
         }
-
-        console.warn(`SECURITY ALERT: Existing payment record mismatch for user ${req.user.id}, order ${orderId}, payment ${paymentId}`);
-        return res.status(409).json({
-          error: "Duplicate payment verification conflict. Payment belongs to a different subscription or user."
+        return res.json({
+          success: true,
+          message: "Subscription already active for this payment",
+          duplicate: true,
+          subscription: existingSub
         });
       }
 
-      // Gate 4: Live Razorpay gateway fetch
-      let livePayment;
-      try {
-        livePayment = await razorpay.payments.fetch(paymentId);
-      } catch (rzpErr) {
-        console.error("Razorpay payments.fetch error:", rzpErr.message);
-        return res.status(502).json({ error: "Unable to verify payment status with payment gateway" });
-      }
-
-      if (livePayment.order_id !== orderId) {
-        return res.status(400).json({ error: "Payment does not correspond to the requested order ID" });
-      }
-
-      if (livePayment.status !== "captured") {
-        return res.status(400).json({ error: `Payment not captured. Current gateway status: ${livePayment.status}` });
-      }
-
-      if (livePayment.currency !== "INR") {
-        return res.status(400).json({ error: "Invalid currency. Only INR payments are supported" });
-      }
-
-      if (Number(livePayment.amount) !== Number(subOrder.amountPaise)) {
-        return res.status(400).json({
-          error: `Payment amount (${livePayment.amount}) does not match expected order amount (${subOrder.amountPaise})`
-        });
-      }
-
-      // Gate 5: Fencing check
-      if (dbLock && typeof dbLock.isValid === 'function') {
-        const isLeaseValid = await dbLock.isValid();
-        if (!isLeaseValid) {
-          return res.status(409).json({
-            error: "Subscription renewal lease expired before activation could complete. Please retry."
-          });
-        }
-      }
-
-      const timelineId = getTimelineId(req.user.id, targetSection);
-
-      // Gate 6: Stacking & Expiry Calculation
-      let createdSub = null;
-      let allocatedTimeline = null;
-      let allocatedReservation = null;
-      const MAX_STACKING_ATTEMPTS = 5;
-
-      for (let attempt = 0; attempt < MAX_STACKING_ATTEMPTS; attempt++) {
-        let timeline = await NoteSubscriptionTimeline.findById(timelineId);
-
-        const existingRes = timeline?.reservations?.find(r => r.paymentId === paymentId);
-        if (existingRes) {
-          allocatedTimeline = timeline;
-          allocatedReservation = existingRes;
-        } else {
-          const now = new Date();
-          let baseDate = now;
-
-          const currentActiveSub = await NoteSubscription.findOne({
-            userId: req.user.id,
-            section: targetSection,
-            status: "active",
-            expiresAt: { $gt: now }
-          }).sort({ expiresAt: -1 });
-
-          if (currentActiveSub && new Date(currentActiveSub.expiresAt) > baseDate) {
-            baseDate = new Date(currentActiveSub.expiresAt);
-          }
-          if (timeline && timeline.activeExpiresAt && new Date(timeline.activeExpiresAt) > baseDate) {
-            baseDate = new Date(timeline.activeExpiresAt);
-          }
-
-          // Expiry calculation: durationDays if defined, fallback to addOneCalendarMonth for legacy notes
-          let calculatedExpiresAt;
-          if (targetDurationDays && typeof targetDurationDays === 'number' && targetDurationDays >= 1) {
-            calculatedExpiresAt = new Date(baseDate.getTime() + targetDurationDays * 86400000);
-          } else {
-            calculatedExpiresAt = addOneCalendarMonth(baseDate);
-          }
-
-          const expectedPreviousExpiry = timeline ? timeline.activeExpiresAt : null;
-          const expectedPreviousSequence = timeline ? (timeline.sequenceNumber || 0) : 0;
-          const nextSequence = expectedPreviousSequence + 1;
-
-          let casResult = null;
-          try {
-            if (!timeline) {
-              casResult = await NoteSubscriptionTimeline.findOneAndUpdate(
-                {
-                  _id: timelineId,
-                  sequenceNumber: { $in: [null, 0] }
-                },
-                {
-                  $set: {
-                    activeExpiresAt: calculatedExpiresAt,
-                    sequenceNumber: 1
-                  },
-                  $push: {
-                    reservations: {
-                      paymentId,
-                      orderId,
-                      expiresAt: calculatedExpiresAt,
-                      sequenceNumber: 1,
-                      status: "reserved",
-                      createdAt: new Date()
-                    }
-                  }
-                },
-                { upsert: true, new: true }
-              );
-            } else {
-              casResult = await NoteSubscriptionTimeline.findOneAndUpdate(
-                {
-                  _id: timelineId,
-                  activeExpiresAt: expectedPreviousExpiry,
-                  sequenceNumber: expectedPreviousSequence,
-                  "reservations.paymentId": { $ne: paymentId }
-                },
-                {
-                  $set: {
-                    activeExpiresAt: calculatedExpiresAt
-                  },
-                  $inc: { sequenceNumber: 1 },
-                  $push: {
-                    reservations: {
-                      paymentId,
-                      orderId,
-                      expiresAt: calculatedExpiresAt,
-                      sequenceNumber: nextSequence,
-                      status: "reserved",
-                      createdAt: new Date()
-                    }
-                  }
-                },
-                { new: true }
-              );
-            }
-          } catch (err) {
-            if (err.code === 11000 || (err.message && err.message.includes('E11000'))) {
-              await new Promise((r) => setTimeout(r, 40 * (attempt + 1)));
-              continue;
-            }
-            throw err;
-          }
-
-          if (!casResult) {
-            const reloaded = await NoteSubscriptionTimeline.findById(timelineId);
-            const selfRes = reloaded?.reservations?.find(r => r.paymentId === paymentId);
-            if (selfRes) {
-              allocatedTimeline = reloaded;
-              allocatedReservation = selfRes;
-            } else {
-              await new Promise((r) => setTimeout(r, 40 * (attempt + 1)));
-              continue;
-            }
-          } else {
-            allocatedTimeline = casResult;
-            allocatedReservation = casResult.reservations.find(r => r.paymentId === paymentId);
-          }
-        }
-
-        if (!allocatedReservation) continue;
-
-        const finalExpiresAt = allocatedReservation.expiresAt;
-        const finalSequence = allocatedReservation.sequenceNumber;
-
-        try {
-          const subscriptionDocs = await NoteSubscription.create([{
-            userId: req.user.id,
-            section: targetSection,
-            planType: subOrder.planType || "standard",
-            durationDays: targetDurationDays || 30,
-            amountPaid: livePayment.amount / 100,
-            currency: "INR",
-            status: "active",
-            startDate: new Date(),
-            expiresAt: finalExpiresAt,
-            subscriptionIndex: finalSequence,
-            razorpayOrderId: orderId,
-            razorpayPaymentId: paymentId,
-            razorpaySignature: signature,
-            paymentDetails: {
-              method: livePayment.method || "razorpay",
-              capturedAt: new Date()
-            }
-          }]);
-
-          createdSub = subscriptionDocs[0];
-
-          await NoteSubscriptionTimeline.updateOne(
-            { _id: timelineId, "reservations.paymentId": paymentId },
-            { $set: { "reservations.$.status": "committed" } }
-          ).catch(() => {});
-
-          break;
-        } catch (insertErr) {
-          if (insertErr.code === 11000) {
-            const isPaymentIdCollision = Boolean(
-              (insertErr.keyPattern && insertErr.keyPattern.razorpayPaymentId) ||
-              (insertErr.message && insertErr.message.includes("razorpayPaymentId"))
-            );
-
-            if (isPaymentIdCollision) {
-              const existing = await NoteSubscription.findOne({ razorpayPaymentId: paymentId });
-              if (existing) {
-                createdSub = existing;
-                break;
-              }
-            }
-
-            if (attempt < MAX_STACKING_ATTEMPTS - 1) {
-              continue;
-            }
-          }
-          throw insertErr;
-        }
-      }
-
-      if (!createdSub) {
-        return res.status(409).json({
-          error: "Subscription timeline conflict during renewal. Please retry in a few seconds."
-        });
-      }
-
-      subOrder.status = "paid";
-      subOrder.subscriptionId = createdSub._id;
-      subOrder.razorpayPaymentId = paymentId;
-      subOrder.razorpaySignature = signature;
-      await subOrder.save();
-
-      return res.json({
-        success: true,
-        message: "Subscription activated successfully",
-        subscription: createdSub
+      console.warn(`SECURITY ALERT: Existing payment record mismatch for user ${req.user.id}, order ${orderId}, payment ${paymentId}`);
+      return res.status(409).json({
+        error: "Duplicate payment verification conflict. Payment belongs to a different subscription or user."
       });
+    }
+
+    // Gate 3: Live Razorpay gateway fetch
+    let livePayment;
+    try {
+      livePayment = await razorpay.payments.fetch(paymentId);
+    } catch (rzpErr) {
+      console.error("Razorpay payments.fetch error:", rzpErr.message);
+      return res.status(502).json({ error: "Unable to verify payment status with payment gateway" });
+    }
+
+    if (livePayment.order_id !== orderId) {
+      return res.status(400).json({ error: "Payment does not correspond to the requested order ID" });
+    }
+
+    if (livePayment.status !== "captured") {
+      return res.status(400).json({ error: `Payment not captured. Current gateway status: ${livePayment.status}` });
+    }
+
+    if (livePayment.currency !== "INR") {
+      return res.status(400).json({ error: "Invalid currency. Only INR payments are supported" });
+    }
+
+    if (Number(livePayment.amount) !== Number(subOrder.amountPaise)) {
+      return res.status(400).json({
+        error: `Payment amount (${livePayment.amount}) does not match expected order amount (${subOrder.amountPaise})`
+      });
+    }
+
+    // Gate 4: Activate through shared idempotent engine
+    const activationResult = await activateSubscriptionForOrder({
+      subOrder,
+      paymentId,
+      signature,
+      paymentDetails: {
+        method: livePayment.method || "razorpay",
+        capturedAt: new Date()
+      }
     });
+
+    const responsePayload = {
+      success: true,
+      message: activationResult.duplicate
+        ? "Subscription already active for this payment"
+        : "Subscription activated successfully",
+      subscription: activationResult.subscription
+    };
+    if (activationResult.duplicate) {
+      responsePayload.duplicate = true;
+    }
+
+    return res.json(responsePayload);
   } catch (outerErr) {
     if (outerErr.isLockTimeout || outerErr.status === 409) {
       return res.status(409).json({
@@ -761,6 +821,279 @@ router.post("/verify-order", authenticateToken, async (req, res) => {
     }
     console.error("Unexpected subscription verification error:", outerErr);
     return res.status(500).json({ error: "Failed to process subscription verification" });
+  }
+});
+
+// =========================================================================
+// 4B. POST /api/subscriptions/webhook/razorpay (Raw HMAC Verified Webhook)
+// =========================================================================
+router.post("/webhook/razorpay", async (req, res) => {
+  try {
+    const webhookSecret = (process.env.RAZORPAY_WEBHOOK_SECRET || "").trim();
+    if (!webhookSecret) {
+      console.warn("Razorpay webhook received but RAZORPAY_WEBHOOK_SECRET is not configured on server");
+      return res.status(500).json({ error: "Webhook secret not configured" });
+    }
+
+    const signature = req.headers["x-razorpay-signature"];
+    if (!signature) {
+      return res.status(400).json({ error: "Missing X-Razorpay-Signature header" });
+    }
+
+    const rawBody = Buffer.isBuffer(req.body)
+      ? req.body
+      : (typeof req.body === 'string' ? Buffer.from(req.body) : Buffer.from(JSON.stringify(req.body || {})));
+
+    const expectedSignature = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(rawBody)
+      .digest("hex");
+
+    const sigBuf = Buffer.from(signature);
+    const expBuf = Buffer.from(expectedSignature);
+
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      console.warn("Invalid Razorpay webhook signature");
+      return res.status(400).json({ error: "Invalid webhook signature" });
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(rawBody.toString("utf8"));
+    } catch (parseErr) {
+      return res.status(400).json({ error: "Invalid JSON payload" });
+    }
+
+    const event = payload.event;
+    if (event !== "payment.captured" && event !== "order.paid") {
+      return res.status(200).json({ received: true, ignored: true, reason: `Ignored event: ${event}` });
+    }
+
+    let paymentEntity = null;
+    let orderId = null;
+
+    if (event === "payment.captured") {
+      paymentEntity = payload.payload?.payment?.entity;
+      orderId = paymentEntity?.order_id;
+    } else if (event === "order.paid") {
+      orderId = payload.payload?.order?.entity?.id;
+      paymentEntity = payload.payload?.payment?.entity;
+    }
+
+    if (!orderId || !paymentEntity) {
+      return res.status(200).json({ received: true, ignored: true, reason: "Missing order_id or payment entity" });
+    }
+
+    const subOrder = await SubscriptionOrder.findOne({ razorpayOrderId: orderId });
+    if (!subOrder) {
+      return res.status(200).json({ received: true, ignored: true, reason: "Order not found or non-subscription order" });
+    }
+
+    if (Number(paymentEntity.amount) !== Number(subOrder.amountPaise)) {
+      return res.status(400).json({ error: `Amount mismatch: expected ${subOrder.amountPaise}, got ${paymentEntity.amount}` });
+    }
+    if (paymentEntity.currency && paymentEntity.currency !== subOrder.currency) {
+      return res.status(400).json({ error: `Currency mismatch: expected ${subOrder.currency}, got ${paymentEntity.currency}` });
+    }
+
+    const paymentId = paymentEntity.id;
+    const activationResult = await activateSubscriptionForOrder({
+      subOrder,
+      paymentId,
+      signature: null,
+      paymentDetails: {
+        method: paymentEntity.method || "razorpay_webhook",
+        capturedAt: new Date(paymentEntity.created_at ? paymentEntity.created_at * 1000 : Date.now())
+      }
+    });
+
+    return res.status(200).json({
+      received: true,
+      activated: true,
+      duplicate: activationResult.duplicate || false,
+      subscriptionId: activationResult.subscription?._id
+    });
+  } catch (err) {
+    console.error("Webhook processing error:", err);
+    return res.status(500).json({ error: "Internal webhook processing error" });
+  }
+});
+
+// =========================================================================
+// 4C. GET /api/subscriptions/admin/orders (Admin Only)
+// =========================================================================
+router.get("/admin/orders", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 15));
+    const skip = (page - 1) * limit;
+
+    const sectionFilter = (req.query.section || "all").toLowerCase().trim();
+    const statusFilter = (req.query.status || "all").toLowerCase().trim();
+    const search = (req.query.search || "").trim();
+
+    const query = {};
+    if (sectionFilter !== "all" && ['notes', 'question_papers', 'videos', 'others'].includes(sectionFilter)) {
+      query.section = sectionFilter;
+    }
+    if (statusFilter !== "all" && ['created', 'paid', 'failed'].includes(statusFilter)) {
+      query.status = statusFilter;
+    }
+
+    if (search) {
+      const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const matchedUsers = await User.find({
+        $or: [
+          { name: searchRegex },
+          { email: searchRegex },
+          { phone: searchRegex }
+        ]
+      }).select('_id').lean();
+
+      const matchedUserIds = matchedUsers.map(u => u._id);
+      query.$or = [
+        { razorpayOrderId: searchRegex },
+        { razorpayPaymentId: searchRegex },
+        { userId: { $in: matchedUserIds } }
+      ];
+    }
+
+    const [orders, totalOrders] = await Promise.all([
+      SubscriptionOrder.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('userId', 'name email phone')
+        .lean(),
+      SubscriptionOrder.countDocuments(query)
+    ]);
+
+    const formattedOrders = orders.map(o => ({
+      id: o._id,
+      razorpayOrderId: o.razorpayOrderId,
+      razorpayPaymentId: o.razorpayPaymentId || null,
+      section: o.section || 'notes',
+      planName: o.planName,
+      amountPaise: o.amountPaise,
+      currency: o.currency || 'INR',
+      durationDays: o.durationDays || 30,
+      status: o.status,
+      subscriptionId: o.subscriptionId || null,
+      createdAt: o.createdAt,
+      user: o.userId ? {
+        id: o.userId._id,
+        name: o.userId.name,
+        email: o.userId.email,
+        phone: o.userId.phone
+      } : { name: 'Unknown User', email: '' }
+    }));
+
+    return res.json({
+      success: true,
+      orders: formattedOrders,
+      pagination: {
+        page,
+        limit,
+        totalOrders,
+        totalPages: Math.ceil(totalOrders / limit) || 1
+      }
+    });
+  } catch (err) {
+    console.error("Admin list subscription orders error:", err);
+    return res.status(500).json({ error: "Failed to list subscription orders" });
+  }
+});
+
+// =========================================================================
+// 4D. POST /api/subscriptions/admin/orders/:id/reconcile (Admin Only)
+// =========================================================================
+router.post("/admin/orders/:id/reconcile", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    let subOrder;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      subOrder = await SubscriptionOrder.findById(id);
+    }
+    if (!subOrder) {
+      subOrder = await SubscriptionOrder.findOne({ razorpayOrderId: id });
+    }
+
+    if (!subOrder) {
+      return res.status(404).json({ error: "Subscription order record not found" });
+    }
+
+    // If order already paid & linked to subscription
+    if (subOrder.status === "paid" && subOrder.subscriptionId) {
+      const sub = await NoteSubscription.findById(subOrder.subscriptionId);
+      return res.json({
+        success: true,
+        reconciled: true,
+        message: "Order already paid and activated",
+        subscription: sub,
+        order: subOrder
+      });
+    }
+
+    // Gateway client
+    const rzpConfig = getRazorpayConfig();
+    const razorpay = getRazorpayClient();
+    if (!rzpConfig || !razorpay) {
+      return res.status(500).json({ error: "Razorpay credentials not configured on server" });
+    }
+
+    let payments = [];
+    try {
+      if (typeof razorpay.orders?.fetchPayments === 'function') {
+        const resp = await razorpay.orders.fetchPayments(subOrder.razorpayOrderId);
+        payments = resp.items || [];
+      } else if (subOrder.razorpayPaymentId) {
+        const p = await razorpay.payments.fetch(subOrder.razorpayPaymentId);
+        if (p) payments = [p];
+      }
+    } catch (fetchErr) {
+      console.error("Razorpay order payments fetch error:", fetchErr.message);
+      return res.status(502).json({ error: "Failed to fetch payments from Razorpay gateway" });
+    }
+
+    const capturedPayment = payments.find(p =>
+      p.status === "captured" &&
+      Number(p.amount) === Number(subOrder.amountPaise) &&
+      p.currency === subOrder.currency
+    );
+
+    if (!capturedPayment) {
+      return res.status(200).json({
+        success: false,
+        reconciled: false,
+        message: `No captured payment found matching ₹${subOrder.amountPaise / 100} on Razorpay for order ${subOrder.razorpayOrderId}`,
+        orderStatus: subOrder.status,
+        gatewayPaymentsCount: payments.length
+      });
+    }
+
+    // Activate subscription using captured payment
+    const activationResult = await activateSubscriptionForOrder({
+      subOrder,
+      paymentId: capturedPayment.id,
+      paymentDetails: {
+        method: capturedPayment.method || "razorpay",
+        capturedAt: new Date(capturedPayment.created_at ? capturedPayment.created_at * 1000 : Date.now())
+      }
+    });
+
+    return res.json({
+      success: true,
+      reconciled: true,
+      message: "Payment successfully reconciled and subscription activated",
+      subscription: activationResult.subscription,
+      order: subOrder
+    });
+  } catch (err) {
+    if (err && err.status) {
+      return res.status(err.status).json({ error: err.error });
+    }
+    console.error("Admin reconcile error:", err);
+    return res.status(500).json({ error: "Failed to reconcile subscription order" });
   }
 });
 
@@ -1236,6 +1569,7 @@ router._testHelpers = {
   withUserRenewalLock,
   getLockKey,
   getTimelineId,
+  activateSubscriptionForOrder,
   NoteSubscriptionLock,
   NoteSubscriptionTimeline
 };

@@ -37,7 +37,7 @@ app.use(cors({
 }));
 
 // =====================================
-// 1️⃣ RAW BODY FOR RAZORPAY WEBHOOK 
+// 1️⃣ RAW BODY FOR RAZORPAY WEBHOOKS
 // must be BEFORE express.json()
 // =====================================
 app.post(
@@ -45,6 +45,15 @@ app.post(
   express.raw({ type: "application/json" }),
   (req, res, next) => {
     req.isWebhook = true;
+    next();
+  }
+);
+
+app.post(
+  "/api/subscriptions/webhook/razorpay",
+  express.raw({ type: "application/json" }),
+  (req, res, next) => {
+    req.isSubscriptionWebhook = true;
     next();
   }
 );
