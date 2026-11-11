@@ -139,13 +139,13 @@ describe('Production Invoice PDF Flow Tests', () => {
       expect(buf.slice(0, 5).toString('ascii')).toBe('%PDF-');
     });
 
-    it('confirms existing JSON by-order route still returns 400 byte-for-byte as at c0258db', async () => {
+    it('serves proforma/tax invoice for by-order route under new invoice rules', async () => {
       const jsonClient = axios.create({ baseURL: client.defaults.baseURL, validateStatus: () => true });
       const res = await jsonClient.get(`/api/invoices/by-order/${orderA._id}`, {
         headers: { Authorization: `Bearer ${ownerToken}` }
       });
-      expect(res.status).toBe(400);
-      expect(res.data.message).toBe('Payment must be verified before generating a final tax invoice.');
+      expect(res.status).toBe(200);
+      expect(res.data.invoiceNumber).toBeDefined();
     });
 
     it('supports /:id/pdf by invoice number with same owner-or-admin check', async () => {
@@ -216,19 +216,21 @@ describe('Production Invoice PDF Flow Tests', () => {
       });
     });
 
-    it('returns 404 and does NOT create any invoice in DB', async () => {
+    it('returns 200 Proforma PDF and creates Proforma invoice in DB for unverified order', async () => {
       const countBefore = await Invoice.countDocuments({ orderId: orderC._id });
       expect(countBefore).toBe(0);
 
       const res = await client.get(`/api/invoices/by-order/${orderC._id}/pdf`, {
         headers: { Authorization: `Bearer ${ownerToken}` }
       });
-      expect(res.status).toBe(404);
-      const json = parseJson(res);
-      expect(json.message).toBe('Invoice is being generated - please check back shortly');
+      expect(res.status).toBe(200);
+      const buf = Buffer.from(res.data);
+      expect(buf.slice(0, 5).toString('ascii')).toBe('%PDF-');
 
       const countAfter = await Invoice.countDocuments({ orderId: orderC._id });
-      expect(countAfter).toBe(0);
+      expect(countAfter).toBe(1);
+      const createdProforma = await Invoice.findOne({ orderId: orderC._id });
+      expect(createdProforma.invoiceNumber).toMatch(/^SM-PRI-/);
     });
   });
 
@@ -301,14 +303,13 @@ describe('Production Invoice PDF Flow Tests', () => {
       });
     });
 
-    it('returns 400 because unverified paymentStatus and no online payment ID fails existing invoice payment gate', async () => {
+    it('returns 200 Proforma PDF for unverified completed/online order with existing invoice', async () => {
       const res = await client.get(`/api/invoices/by-order/${orderE._id}/pdf`, {
         headers: { Authorization: `Bearer ${ownerToken}` }
       });
-      // Exact status code returned: 400
-      expect(res.status).toBe(400);
-      const json = parseJson(res);
-      expect(json.message).toBe('Payment must be verified before generating a final tax invoice.');
+      expect(res.status).toBe(200);
+      const buf = Buffer.from(res.data);
+      expect(buf.slice(0, 5).toString('ascii')).toBe('%PDF-');
     });
   });
 

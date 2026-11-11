@@ -2642,26 +2642,27 @@
                     `;
                 }
 
-                let invoiceActionBtn = '';
-                if (!isVerified) {
-                    invoiceActionBtn = `
-                        <button class="btn btn-disabled" disabled title="Payment must be verified before viewing or generating tax invoice">
-                            🧾 Invoice locked (Pending Payment)
-                        </button>
-                    `;
-                } else if (linkedInvoice) {
-                    invoiceActionBtn = `
-                        <a href="/admin-invoice-print.html?id=${encodeURIComponent(linkedInvoice.invoiceNumber)}" target="_blank" class="btn btn-invoice" title="View Invoice ${linkedInvoice.invoiceNumber}">
-                            🧾 View Invoice
-                        </a>
-                    `;
-                } else {
-                    invoiceActionBtn = `
-                        <button class="btn btn-disabled" disabled title="No invoice generated yet">
-                            🧾 Invoice pending
+                let rzpReconcileBtn = '';
+                const rzpOrderId = order.razorpay_order_id || order.paymentDetails?.razorpay_order_id;
+                if (rzpOrderId && (!isVerified || order.paymentStatus !== 'completed')) {
+                    rzpReconcileBtn = `
+                        <button class="btn btn-warning" style="background: #f59e0b; color: white; border: none; font-weight: 600;" onclick="checkWithRazorpayAndFinish('${order._id}')" title="Check with Razorpay & finish">
+                            ⚡ Check with Razorpay & finish
                         </button>
                     `;
                 }
+
+                const invoiceTitle = isVerified ? "View Tax Invoice" : "View Proforma Invoice";
+                const invoiceBtnText = isVerified ? "🧾 View Tax Invoice" : "🧾 View Proforma Invoice";
+                const invoiceUrl = `/admin-invoice-print.html?orderId=${order._id}`;
+                const invoiceActionBtn = `
+                    <a href="${invoiceUrl}" target="_blank" class="btn btn-invoice" title="${invoiceTitle}">
+                        ${invoiceBtnText}
+                    </a>
+                    <button class="btn btn-secondary" style="border-color: #2563eb; color: #2563eb; background: #eff6ff;" onclick="downloadOrderPdf('${order._id}')" title="Download Server PDF">
+                        ⬇️ Download PDF
+                    </button>
+                `;
 
                 let commissionBtn = '';
                 if (!isVerified) {
@@ -2730,6 +2731,7 @@
                                 👁️ Details
                             </button>
                             ${verifyPaymentBtn}
+                            ${rzpReconcileBtn}
                             <button class="btn btn-secondary" onclick="updateDelivery('${order._id}')" title="Update Delivery Status">
                                 🚚 Status
                             </button>
@@ -2818,26 +2820,28 @@
                 `;
             }
 
-            let invoiceMobileBtn = '';
-            if (!isVerified) {
-                invoiceMobileBtn = `
-                    <button class="btn btn-disabled" disabled style="width: 100%;" title="Payment must be verified before viewing or generating tax invoice">
-                        🧾 Invoice locked (Pending Payment)
-                    </button>
-                `;
-            } else if (linkedInvoice) {
-                invoiceMobileBtn = `
-                    <a href="/admin-invoice-print.html?id=${encodeURIComponent(linkedInvoice.invoiceNumber)}" target="_blank" class="btn btn-invoice" style="width: 100%;">
-                        🧾 View Invoice (${linkedInvoice.invoiceNumber})
-                    </a>
-                `;
-            } else {
-                invoiceMobileBtn = `
-                    <button class="btn btn-disabled" disabled style="width: 100%;">
-                        🧾 Invoice pending
+            let rzpMobileReconcileBtn = '';
+            const rzpOrderIdMobile = order.razorpay_order_id || order.paymentDetails?.razorpay_order_id;
+            if (rzpOrderIdMobile && (!isVerified || order.paymentStatus !== 'completed')) {
+                rzpMobileReconcileBtn = `
+                    <button class="btn btn-warning" style="width: 100%; background: #f59e0b; color: white; border: none; font-weight: 600;" onclick="checkWithRazorpayAndFinish('${order._id}')">
+                        ⚡ Check with Razorpay & finish
                     </button>
                 `;
             }
+
+            const invoiceMobileText = isVerified ? "🧾 View Tax Invoice" : "🧾 View Proforma Invoice";
+            const invoiceMobileUrl = `/admin-invoice-print.html?orderId=${order._id}`;
+            const invoiceMobileBtn = `
+                <div style="display: flex; gap: 8px; width: 100%;">
+                    <a href="${invoiceMobileUrl}" target="_blank" class="btn btn-invoice" style="flex: 1; text-align: center;">
+                        ${invoiceMobileText}
+                    </a>
+                    <button class="btn btn-secondary" style="border-color: #2563eb; color: #2563eb; background: #eff6ff; padding: 6px 12px;" onclick="downloadOrderPdf('${order._id}')" title="Download Server PDF">
+                        ⬇️ PDF
+                    </button>
+                </div>
+            `;
 
             let commissionMobileBtn = '';
             if (!isVerified) {
@@ -2919,6 +2923,7 @@
                         👁️ View Order Details
                     </button>
                     ${verifyMobileBtn}
+                    ${rzpMobileReconcileBtn}
                     <button class="btn btn-secondary" style="width: 100%;" onclick="updateDelivery('${order._id}')">
                         🚚 Update Delivery Status
                     </button>
@@ -3314,6 +3319,90 @@
 
             XLSX.writeFile(wb, finalFilename);
             alert(`✅ Successfully exported ${orders.length} orders to ${finalFilename}`);
+        }
+
+        async function checkWithRazorpayAndFinish(orderId) {
+            if (!confirm('Fetch latest payment status from Razorpay for this order and finish if payment is captured?')) {
+                return;
+            }
+            const token = localStorage.getItem('token');
+            const btn = event?.target;
+            const originalText = btn ? btn.textContent : '';
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = '⏳ Checking Razorpay...';
+                }
+                const res = await fetch(`${API}/orders/admin/reconcile-razorpay/${orderId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(`❌ Error: ${data.error || 'Failed to check with Razorpay'}`);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = originalText || '⚡ Check with Razorpay & finish';
+                    }
+                    return;
+                }
+
+                if (data.captured) {
+                    const commMsg = data.commissionsApplied
+                        ? `Commissions applied: YES (Status: ${data.commissionStatus || 'distributed'})`
+                        : `Commissions applied: NO (Status: ${data.commissionStatus || 'pending'})`;
+                    alert(`✅ ${data.message}\n${commMsg}\nInvoice: ${data.invoiceNumber || 'Generated'}`);
+                    loadOrders(); // Refresh table
+                } else {
+                    alert(`ℹ️ Razorpay result:\n${data.message}`);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = originalText || '⚡ Check with Razorpay & finish';
+                    }
+                }
+            } catch (err) {
+                console.error('Error checking Razorpay:', err);
+                alert(`Network error checking with Razorpay: ${err.message}`);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = originalText || '⚡ Check with Razorpay & finish';
+                }
+            }
+        }
+
+        async function downloadOrderPdf(orderId) {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch(`${API}/invoices/by-order/${orderId}/pdf`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    alert(err.message || 'Failed to download invoice PDF');
+                    return;
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const disposition = response.headers.get('Content-Disposition');
+                let filename = 'invoice.pdf';
+                if (disposition && disposition.indexOf('filename=') !== -1) {
+                    const match = disposition.match(/filename="?([^"]+)"?/);
+                    if (match && match[1]) filename = match[1];
+                }
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('Download error:', err);
+                alert('Failed to download invoice PDF');
+            }
         }
 
         function updateDelivery(orderId) {
@@ -4706,11 +4795,22 @@
                 `;
             }
 
-            if (linkedInvoice && isVerified) {
+            const invoiceModalBtnText = isVerified ? "🧾 View Tax Invoice" : "🧾 View Proforma Invoice";
+            footerActionsHtml += `
+                <a href="/admin-invoice-print.html?orderId=${order._id}" target="_blank" class="btn btn-invoice">
+                    ${invoiceModalBtnText}
+                </a>
+                <button class="btn btn-secondary" style="border-color: #2563eb; color: #2563eb; background: #eff6ff;" onclick="closeOrderDetailsModal(); downloadOrderPdf('${order._id}');">
+                    ⬇️ Download PDF
+                </button>
+            `;
+
+            const rzpOrderIdModal = order.razorpay_order_id || order.paymentDetails?.razorpay_order_id;
+            if (rzpOrderIdModal && (!isVerified || order.paymentStatus !== 'completed')) {
                 footerActionsHtml += `
-                    <a href="/admin-invoice-print.html?id=${encodeURIComponent(linkedInvoice.invoiceNumber)}" target="_blank" class="btn btn-invoice">
-                        🧾 View Invoice
-                    </a>
+                    <button class="btn btn-warning" style="background: #f59e0b; color: white; border: none; font-weight: 600;" onclick="closeOrderDetailsModal(); checkWithRazorpayAndFinish('${order._id}');">
+                        ⚡ Check with Razorpay & finish
+                    </button>
                 `;
             }
 

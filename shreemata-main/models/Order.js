@@ -149,7 +149,11 @@ const orderSchema = new mongoose.Schema({
     },
 
     // Google Form submission data (for check/transfer payments)
-    allResponses: { type: mongoose.Schema.Types.Mixed, default: {} }
+    allResponses: { type: mongoose.Schema.Types.Mixed, default: {} },
+
+    // Email notification idempotency tracking
+    confirmationEmailSent: { type: Boolean, default: false },
+    emailSentAt: { type: Date }
 
 }, { timestamps: true });
 

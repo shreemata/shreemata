@@ -767,6 +767,7 @@
                 </select>
             </div>
             <button id="btnEditCashChallan" onclick="openCashChallanModal()" style="display: none; padding: 8px 16px; background: #0f172a; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; white-space: nowrap; transition: all 0.2s;">✏️ Edit Cash Invoice Data</button>
+            <button type="button" onclick="downloadAdminPdfServer()" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; background: #4f46e5; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 700; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; white-space: nowrap;">⬇️ Download PDF</button>
             <button type="button" onclick="window.print()" class="print-button">🖨️ Print Document</button>
             <button type="button" onclick="openQuickShareModal()" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 18px; background: #25d366; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 700; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); transition: all 0.2s ease; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; white-space: nowrap;">📤 Quick Share</button>
         </div>
@@ -1188,6 +1189,7 @@
         // Get invoice data from URL parameters or localStorage
         const urlParams = new URLSearchParams(window.location.search);
         const invoiceId = urlParams.get('id');
+        const orderIdParam = urlParams.get('orderId');
         const initialDocType = urlParams.get('docType') || urlParams.get('documentType');
         let currentDocType = detectDocType(invoiceId, initialDocType, null);
 
@@ -1493,6 +1495,30 @@
                 return;
             }
 
+            if (orderIdParam) {
+                try {
+                    const token = localStorage.getItem('token') || urlParams.get('token');
+                    if (urlParams.get('token')) {
+                        localStorage.setItem('token', urlParams.get('token'));
+                    }
+                    const response = await fetch(`${API_URL}/invoices/by-order/${encodeURIComponent(orderIdParam)}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const invoice = await response.json();
+                        currentInvoice = invoice;
+                        currentDocType = detectDocType(invoice.invoiceNumber, initialDocType, invoice);
+                        populateInvoice(invoice);
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error loading invoice by order ID:', error);
+                }
+            }
+
             if (invoiceId) {
                 try {
                     const token = localStorage.getItem('token') || urlParams.get('token');
@@ -1518,9 +1544,54 @@
                     console.error('Error loading invoice:', error);
                     alert('Failed to load invoice');
                 }
-            } else {
+            } else if (!orderIdParam) {
                 currentDocType = detectDocType(invoiceId, initialDocType, null);
                 populateSampleData();
+            }
+        }
+
+        async function downloadAdminPdfServer() {
+            try {
+                const token = localStorage.getItem('token') || urlParams.get('token');
+                const targetUrl = orderIdParam
+                    ? `${API_URL}/invoices/by-order/${encodeURIComponent(orderIdParam)}/pdf`
+                    : (currentInvoice?.orderId?._id || currentInvoice?.orderId
+                        ? `${API_URL}/invoices/by-order/${encodeURIComponent(currentInvoice.orderId._id || currentInvoice.orderId)}/pdf`
+                        : (currentInvoice?._id ? `${API_URL}/invoices/${encodeURIComponent(currentInvoice._id)}/pdf` : (invoiceId ? `${API_URL}/invoices/${encodeURIComponent(invoiceId)}/pdf` : null)));
+
+                if (!targetUrl) {
+                    window.print();
+                    return;
+                }
+
+                const response = await fetch(targetUrl, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    alert(errData.message || 'Failed to download PDF');
+                    return;
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const disposition = response.headers.get('Content-Disposition');
+                let filename = 'invoice.pdf';
+                if (disposition && disposition.indexOf('filename=') !== -1) {
+                    const match = disposition.match(/filename="?([^"]+)"?/);
+                    if (match && match[1]) filename = match[1];
+                }
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (e) {
+                console.error('Download PDF error:', e);
+                window.print();
             }
         }
 

@@ -814,7 +814,7 @@
             <button onclick="window.print()" class="btn-invoice-action btn-inv-print">
                 <span>🖨️</span> Print Receipt
             </button>
-            <button onclick="window.print()" class="btn-invoice-action btn-inv-download">
+            <button onclick="downloadPdfServer()" class="btn-invoice-action btn-inv-download">
                 <span>⬇️</span> Download PDF
             </button>
             <button onclick="openQuickShareModal()" class="btn-invoice-action btn-inv-share" title="Quick Share Invoice">
@@ -830,7 +830,7 @@
                 <img src="/images/shiva.png" alt="Shree Mata Logo" onerror="this.src='/images/logo.png'">
             </div>
             <div class="header-center-box">
-                <div class="proforma-tag">TAX INVOICE</div>
+                <div class="proforma-tag" id="documentHeaderTag">TAX INVOICE</div>
                 <div class="company-title">SHREE MATA</div>
                 <div class="company-address-text">
                     Nekar Bhavan, Opp. K.H. Patil College, Vidyanagar, Hubballi, Karnataka - 580031
@@ -1084,29 +1084,27 @@
 
         // Load invoice data for customer
         async function loadInvoiceData() {
-            // First check if there's preview data in localStorage
-            const previewData = localStorage.getItem('invoicePreview');
-            if (previewData) {
-                const invoice = JSON.parse(previewData);
-                populateInvoice(invoice);
-                localStorage.removeItem('invoicePreview'); // Clear after use
+            const token = localStorage.getItem('token');
+            if (!token) {
+                const currentPath = window.location.pathname + window.location.search;
+                localStorage.setItem('redirectAfterLogin', currentPath);
+                window.location.href = `/login.html?redirect=${encodeURIComponent(currentPath)}`;
                 return;
             }
 
-            if (!orderId) {
+            const invoiceIdParam = urlParams.get('invoiceId');
+            if (!orderId && !invoiceIdParam) {
                 // If no order ID, populate sample data
                 populateSampleData();
                 return;
             }
 
             try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    showErrorState("Please log in to view your invoice.");
-                    return;
-                }
+                const fetchUrl = orderId
+                    ? `${API_URL}/invoices/by-order/${orderId}`
+                    : `${API_URL}/invoices/${encodeURIComponent(invoiceIdParam)}`;
 
-                const response = await fetch(`${API_URL}/invoices/by-order/${orderId}`, {
+                const response = await fetch(fetchUrl, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1115,6 +1113,10 @@
                 if (response.ok) {
                     const invoice = await response.json();
                     populateInvoice(invoice);
+                } else if (response.status === 401) {
+                    const currentPath = window.location.pathname + window.location.search;
+                    localStorage.setItem('redirectAfterLogin', currentPath);
+                    window.location.href = `/login.html?redirect=${encodeURIComponent(currentPath)}`;
                 } else if (response.status === 403) {
                     showErrorState("You don't have access to this invoice.");
                 } else if (response.status === 404) {
@@ -1129,12 +1131,82 @@
             }
         }
 
+        async function downloadPdfServer() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    const currentPath = window.location.pathname + window.location.search;
+                    localStorage.setItem('redirectAfterLogin', currentPath);
+                    window.location.href = `/login.html?redirect=${encodeURIComponent(currentPath)}`;
+                    return;
+                }
+
+                const invoiceIdParam = urlParams.get('invoiceId');
+                const targetUrl = orderId
+                    ? `${API_URL}/invoices/by-order/${orderId}/pdf`
+                    : (invoiceIdParam ? `${API_URL}/invoices/${encodeURIComponent(invoiceIdParam)}/pdf` : null);
+
+                if (!targetUrl) {
+                    window.print();
+                    return;
+                }
+
+                const response = await fetch(targetUrl, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    alert(errData.message || 'Failed to download PDF');
+                    return;
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const disposition = response.headers.get('Content-Disposition');
+                let filename = 'invoice.pdf';
+                if (disposition && disposition.indexOf('filename=') !== -1) {
+                    const match = disposition.match(/filename="?([^"]+)"?/);
+                    if (match && match[1]) filename = match[1];
+                }
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (e) {
+                console.error('Download PDF error:', e);
+                window.print();
+            }
+        }
+
         function populateInvoice(invoice) {
-            // Header & Meta (Customer view is strictly Tax Invoice)
-            const invoiceNum = (invoice.documentNumbers && invoice.documentNumbers.tax_invoice) || invoice.invoiceNumber || 'SM-HBL-0000000001';
+            const isProforma = invoice.documentType === 'proforma_invoice' || Boolean(invoice.isProforma);
+            
+            // Header Tag & Title
+            const headerTag = document.getElementById('documentHeaderTag');
+            if (headerTag) {
+                headerTag.textContent = isProforma ? 'PROFORMA INVOICE' : 'TAX INVOICE';
+            }
+            document.title = isProforma ? 'Proforma Invoice - Shree Mata' : 'Tax Invoice - Shree Mata';
+
+            // Top action bar badge
+            const badgeTag = document.querySelector('.inv-badge-tag');
+            if (badgeTag) {
+                badgeTag.textContent = isProforma ? 'Proforma Invoice (Awaiting Verification)' : 'Official GST Tax Invoice';
+            }
+
+            // Invoice Number
+            let invoiceNum = '';
+            if (isProforma) {
+                invoiceNum = (invoice.documentNumbers && invoice.documentNumbers.proforma_invoice) || invoice.invoiceNumber || 'SM-PRI-0000000001';
+            } else {
+                invoiceNum = (invoice.documentNumbers && invoice.documentNumbers.tax_invoice) || invoice.invoiceNumber || 'SM-HBL-0000000001';
+            }
             setText('invoiceNumber', invoiceNum);
             renderTrackingQRCode(invoiceNum);
-            document.title = 'Tax Invoice - Shree Mata';
             
             const invDate = invoice.invoiceDate ? new Date(invoice.invoiceDate) : new Date();
             const formattedDate = String(invDate.getDate()).padStart(2, '0') + '-' + 

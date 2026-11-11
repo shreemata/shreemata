@@ -13,6 +13,7 @@ const { checkAndActivateMembership } = require("../services/membershipService");
 const Book = require("../models/Book");
 const Bundle = require("../models/Bundle");
 const { autoGenerateInvoiceForOrder } = require("./invoices");
+const { finalizePaidOrder } = require("../services/orderFinalizer");
 
 const router = express.Router();
 
@@ -586,186 +587,17 @@ router.post("/verify", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    // If order was already completed / processed by webhook
-    if (order.status === "completed" || order.rewardApplied) {
-      console.log("⚠️ Verify: Order already marked as completed/rewardApplied, returning success");
-      return res.json({ success: true, message: "Payment already processed", order });
-    }
-
-    // Update order status & real payment fields
-    order.status = "completed";
-    order.paymentStatus = "completed";
-    order.paymentDetails = order.paymentDetails || {};
-    order.paymentDetails.status = "verified";
-    order.paymentDetails.verifiedAt = new Date();
-    order.razorpay_payment_id = razorpay_payment_id;
-    if (items && Array.isArray(items) && items.length > 0) {
-      order.items = items;
-    }
-    if (totalAmount && !isNaN(totalAmount) && Number(totalAmount) > 0) {
-      order.totalAmount = Number(totalAmount);
-    }
-    if (deliveryAddress && typeof deliveryAddress === 'object' && Object.keys(deliveryAddress).length > 0) {
-      order.deliveryAddress = deliveryAddress;
-    }
-    order.rewardApplied = true;
-    await order.save();
-
-    console.log("✅ Verify: Order marked as completed, applying rewards...");
-    console.log("✅ Order details:", {
-      id: order._id,
-      user_id: order.user_id,
-      totalAmount: order.totalAmount,
-      itemsCount: order.items?.length,
-      status: order.status,
-      rewardApplied: order.rewardApplied
+    // Execute shared, idempotent order finalization
+    const result = await finalizePaidOrder(order, {
+      razorpay_payment_id,
+      razorpay_order_id,
+      razorpay_signature,
+      items,
+      totalAmount,
+      deliveryAddress
     });
 
-    // Auto-generate invoice for completed online order quietly in background
-    try {
-      await autoGenerateInvoiceForOrder(order);
-    } catch (invErr) {
-      console.error("⚠️ Invoice auto-generation error in /verify:", invErr.message);
-    }
-
-    // Automatic commission distribution for completed online orders
-    try {
-      await processAutomaticCommissionForOrder(order);
-    } catch (commErr) {
-      console.error("⚠️ Automatic commission distribution error in /verify:", commErr.message);
-    }
-
-    // Check and activate membership if product subtotal >= ₹100
-    try {
-      await checkAndActivateMembership(order);
-    } catch (memErr) {
-      console.error("⚠️ Error checking/activating membership:", memErr.message);
-    }
-
-    // Check user membership status after checkAndActivateMembership
-    try {
-      const user = await User.findById(order.user_id);
-      if (user && user.isMember && (user.treeLevel === 0 || !user.treeParent)) {
-        await createTreePlacementOnFirstPurchase(user._id);
-        console.log(`🌳 Created tree placement on qualifying purchase for user: ${user.email}`);
-      }
-    } catch (userErr) {
-      console.error("⚠️ Error checking tree placement for user:", userErr.message);
-    }
-
-    // AWARD POINTS FOR PURCHASED ITEMS
-    try {
-      console.log("🎁 Awarding points for order:", order._id);
-      for (const item of order.items) {
-        let points = 0;
-        
-        if (item.type === 'book') {
-          const book = await Book.findById(item.id);
-          if (book && book.rewardPoints > 0) {
-            points = book.rewardPoints * item.quantity;
-          }
-        } else if (item.type === 'bundle') {
-          const bundle = await Bundle.findById(item.id);
-          if (bundle && bundle.rewardPoints > 0) {
-            points = bundle.rewardPoints * item.quantity;
-          }
-        }
-        
-        if (points > 0) {
-          await awardPoints(
-            order.user_id,
-            points,
-            item.type === 'book' ? 'book_purchase' : 'bundle_purchase',
-            item.id,
-            order._id
-          );
-          console.log(`✅ Awarded ${points} points for ${item.title}`);
-        }
-      }
-    } catch (pointsError) {
-      console.error("❌ Points awarding error:", pointsError);
-      // Log error but don't fail the payment verification
-    }
-
-    // AWARD CASHBACK FOR PURCHASED ITEMS
-    try {
-    // LEGACY STANDALONE BOOK CASHBACK DISABLED
-    // Buyer Cashback is now exclusively managed via central profit distribution in commissionDistribution.js
-    console.log("💰 Legacy standalone product cashback disabled. Buyer Cashback managed via central profit commission engine.");
-    } catch (cashbackError) {
-      console.error("===== CASHBACK PROCESSING ERROR =====");
-      console.error("Cashback processing error:", cashbackError);
-      console.error("Error stack:", cashbackError.stack);
-      // Log error but don't fail the payment verification
-    }
-
-    // OLD REFERRAL SYSTEM DISABLED - Using new commission distribution system only
-    // The old system was causing double payments by adding to wallet twice
-    // const result = await applyReferralRewardForOrder(order);
-    // console.log("Referral Result:", result);
-
-    // SEND EMAIL NOTIFICATIONS - ALWAYS EXECUTE
-    console.log("\n🔍 ===== EMAIL NOTIFICATION PROCESS STARTED =====");
-    
-    // Fetch user
-    console.log("🔍 Fetching user for order:", order.user_id);
-    const user = await User.findById(order.user_id);
-    
-    if (!user) {
-      console.error("❌ CRITICAL: User not found for order:", order.user_id);
-      console.log("🔍 ===== EMAIL NOTIFICATION PROCESS ENDED (NO USER) =====\n");
-    } else {
-      console.log("✅ User found:", user.name);
-      console.log("   User email:", user.email || "❌ NO EMAIL SET");
-      
-      if (!user.email) {
-        console.error("❌ CRITICAL: User has no email address!");
-        console.log("🔍 ===== EMAIL NOTIFICATION PROCESS ENDED (NO EMAIL) =====\n");
-      } else {
-        // Send customer confirmation email
-        console.log("\n📧 Attempting to send order confirmation email...");
-        console.log("   To:", user.email);
-        console.log("   Order ID:", order._id);
-        
-        try {
-          const customerEmail = await sendOrderConfirmationEmail(order, user);
-          if (customerEmail.success) {
-            console.log("✅ SUCCESS: Customer email sent!");
-            console.log("   Message ID:", customerEmail.messageId);
-          } else {
-            console.error("❌ FAILED: Customer email not sent");
-            console.error("   Error:", customerEmail.error);
-          }
-        } catch (emailError) {
-          console.error("❌ EXCEPTION: Error sending customer email");
-          console.error("   Error:", emailError.message);
-          console.error("   Stack:", emailError.stack);
-        }
-
-        // Send admin notification email
-        console.log("\n📧 Attempting to send admin notification...");
-        console.log("   To:", process.env.MAIL_USER);
-        
-        try {
-          const adminEmail = await sendAdminNotification(order, user);
-          if (adminEmail.success) {
-            console.log("✅ SUCCESS: Admin notification sent!");
-            console.log("   Message ID:", adminEmail.messageId);
-          } else {
-            console.error("❌ FAILED: Admin notification not sent");
-            console.error("   Error:", adminEmail.error);
-          }
-        } catch (emailError) {
-          console.error("❌ EXCEPTION: Error sending admin notification");
-          console.error("   Error:", emailError.message);
-          console.error("   Stack:", emailError.stack);
-        }
-        
-        console.log("\n🔍 ===== EMAIL NOTIFICATION PROCESS COMPLETED =====\n");
-      }
-    }
-
-    res.json({ success: true, message: "Payment verified", order });
+    res.json({ success: true, message: "Payment verified", order: result.order });
 
   } catch (err) {
     console.error("Verify error:", err);
@@ -852,7 +684,7 @@ router.post("/cleanup-abandoned", async (req, res) => {
 });
 
 // =====================================================
-// 3️⃣ WEBHOOK (backup referral application)
+// 3️⃣ WEBHOOK (Razorpay Payment & Order Notifications)
 // =====================================================
 router.post("/webhook", async (req, res) => {
   try {
@@ -860,218 +692,69 @@ router.post("/webhook", async (req, res) => {
     const signature = req.headers["x-razorpay-signature"];
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
+    if (!secret) {
+      console.error("❌ RAZORPAY_WEBHOOK_SECRET is not configured");
+      return res.status(500).send("Webhook secret not configured");
+    }
+
+    if (!signature) {
+      console.error("❌ Missing x-razorpay-signature header");
+      return res.status(400).send("Missing signature");
+    }
+
+    const rawBuffer = Buffer.isBuffer(rawBody)
+      ? rawBody
+      : Buffer.from(typeof rawBody === "string" ? rawBody : JSON.stringify(rawBody), "utf8");
+
     const expected = crypto
       .createHmac("sha256", secret)
-      .update(rawBody)
+      .update(rawBuffer)
       .digest("hex");
 
     if (expected !== signature) {
+      console.error("❌ Webhook: Invalid signature received");
       return res.status(400).send("Invalid signature");
     }
 
-    const data = JSON.parse(rawBody);
+    const data = Buffer.isBuffer(rawBody)
+      ? JSON.parse(rawBody.toString("utf8"))
+      : (typeof rawBody === "string" ? JSON.parse(rawBody) : rawBody);
+
     const event = data.event;
 
-    if (!data.payload?.payment?.entity) {
-      return res.send("OK");
-    }
+    if (event === "payment.captured" || event === "order.paid") {
+      const payment = data.payload?.payment?.entity;
+      const orderEntity = data.payload?.order?.entity;
 
-    const payment = data.payload.payment.entity;
+      const razorpay_order_id = payment?.order_id || orderEntity?.id;
+      const razorpay_payment_id = payment?.id;
 
-    if (event === "payment.captured") {
-      // ATOMIC UPDATE: Only process if not already done
-      const order = await Order.findOneAndUpdate(
-        { 
-          razorpay_order_id: payment.order_id,
-          rewardApplied: false  // Only update if not already processed
-        },
-        {
-          status: "completed",
-          paymentStatus: "completed",
-          "paymentDetails.status": "verified",
-          "paymentDetails.verifiedAt": new Date(),
-          razorpay_payment_id: payment.id,
-          rewardApplied: true  // Mark immediately
-        },
-        { new: true }
-      );
+      if (!razorpay_order_id) {
+        console.log("⚠️ Webhook: Missing order_id in payload, skipping");
+        return res.send("OK");
+      }
 
+      const order = await Order.findOne({ razorpay_order_id });
       if (order) {
-        console.log("✅ Webhook: Order marked as processed, applying rewards...");
-        
-        // Auto-generate invoice for completed online order quietly in background
-        try {
-          await autoGenerateInvoiceForOrder(order);
-        } catch (invErr) {
-          console.error("⚠️ Invoice auto-generation error in webhook:", invErr.message);
-        }
-
-        // Automatic commission distribution for completed online orders
-        try {
-          await processAutomaticCommissionForOrder(order);
-        } catch (commErr) {
-          console.error("⚠️ Automatic commission distribution error in webhook:", commErr.message);
-        }
-        
-        // Check and activate membership if product subtotal >= ₹100
-        try {
-          await checkAndActivateMembership(order);
-        } catch (memErr) {
-          console.error("⚠️ Error checking/activating membership:", memErr.message);
-        }
-
-        // Mark user's first purchase as done and create tree placement
-        try {
-          const user = await User.findById(order.user_id);
-          if (user) {
-            if (!user.firstPurchaseDone) {
-              user.firstPurchaseDone = true;
-              user.firstPurchaseDate = new Date();
-              await user.save();
-              console.log(`✅ Webhook: Marked first purchase as done for user: ${user.email} at ${user.firstPurchaseDate}`);
-            }
-            if (user.treeLevel === 0 || !user.treeParent) {
-              await createTreePlacementOnFirstPurchase(user._id);
-              console.log(`🌳 Webhook: Created tree placement for user: ${user.email}`);
-            }
-          }
-        } catch (webhookTreeErr) {
-          console.error("⚠️ Webhook tree placement error:", webhookTreeErr.message);
-        }
-
-        // AWARD POINTS FOR PURCHASED ITEMS
-        try {
-          console.log("🎁 Webhook: Awarding points for order:", order._id);
-          for (const item of order.items) {
-            let points = 0;
-            
-            if (item.type === 'book') {
-              const book = await Book.findById(item.id);
-              if (book && book.rewardPoints > 0) {
-                points = book.rewardPoints * item.quantity;
-              }
-            } else if (item.type === 'bundle') {
-              const bundle = await Bundle.findById(item.id);
-              if (bundle && bundle.rewardPoints > 0) {
-                points = bundle.rewardPoints * item.quantity;
-              }
-            }
-            
-            if (points > 0) {
-              await awardPoints(
-                order.user_id,
-                points,
-                item.type === 'book' ? 'book_purchase' : 'bundle_purchase',
-                item.id,
-                order._id
-              );
-              console.log(`✅ Webhook: Awarded ${points} points for ${item.title}`);
-            }
-          }
-        } catch (pointsError) {
-          console.error("❌ Webhook: Points awarding error:", pointsError);
-        }
-
-        // AWARD CASHBACK FOR PURCHASED ITEMS
-        try {
-          console.log("💰 Webhook: Processing cashback for order:", order._id);
-          console.log("💰 Webhook: Order items:", order.items.map(item => ({ id: item.id, title: item.title, type: item.type, quantity: item.quantity })));
-          let totalCashback = 0;
-          
-          for (const item of order.items) {
-            let itemCashback = 0;
-            
-            console.log(`💰 Webhook: Processing cashback for item: ${item.title} (${item.type})`);
-            
-            if (item.type === 'book') {
-              const book = await Book.findById(item.id);
-              console.log(`💰 Webhook: Book found:`, book ? {
-                id: book._id,
-                title: book.title,
-                price: book.price,
-                cashbackAmount: book.cashbackAmount,
-                cashbackPercentage: book.cashbackPercentage
-              } : 'NOT FOUND');
-              
-              if (book) {
-                const bookCashback = book.getCashbackAmount();
-                itemCashback = bookCashback * item.quantity;
-                console.log(`💰 Webhook: Book cashback calculation: ₹${bookCashback} × ${item.quantity} = ₹${itemCashback}`);
-              }
-            } else if (item.type === 'bundle') {
-              const bundle = await Bundle.findById(item.id);
-              console.log(`💰 Webhook: Bundle found:`, bundle ? {
-                id: bundle._id,
-                title: bundle.title,
-                bundlePrice: bundle.bundlePrice,
-                cashbackAmount: bundle.cashbackAmount,
-                cashbackPercentage: bundle.cashbackPercentage
-              } : 'NOT FOUND');
-              
-              if (bundle) {
-                const bundleCashback = bundle.getCashbackAmount();
-                itemCashback = bundleCashback * item.quantity;
-                console.log(`💰 Webhook: Bundle cashback calculation: ₹${bundleCashback} × ${item.quantity} = ₹${itemCashback}`);
-              }
-            }
-            
-            if (itemCashback > 0) {
-              totalCashback += itemCashback;
-              console.log(`💰 Webhook: Cashback for ${item.title}: ₹${itemCashback.toFixed(2)}`);
-            } else {
-              console.log(`💰 Webhook: No cashback for ${item.title}`);
-            }
-          }
-          
-          console.log(`💰 Webhook: Total cashback calculated: ₹${totalCashback.toFixed(2)}`);
-          
-          if (totalCashback > 0) {
-            // Add cashback to user's wallet
-            const user = await User.findById(order.user_id);
-            if (user) {
-              const previousBalance = user.wallet || 0;
-              user.wallet = previousBalance + totalCashback;
-              await user.save();
-              
-              console.log("Webhook: Added " + totalCashback.toFixed(2) + " cashback to user wallet");
-              console.log("Webhook: User wallet balance: " + previousBalance.toFixed(2) + " -> " + user.wallet.toFixed(2));
-            } else {
-              console.log(`❌ Webhook: User not found for cashback: ${order.user_id}`);
-            }
-          } else {
-            console.log("Webhook: No cashback to add (total: " + totalCashback.toFixed(2) + ")");
-          }
-        } catch (cashbackError) {
-          console.error("❌ Webhook: Cashback processing error:", cashbackError);
-        }
-        
-        // OLD REFERRAL SYSTEM DISABLED - Using new commission distribution system only
-        // The old system was causing double payments by adding to wallet twice
-        // await applyReferralRewardForOrder(order);
-        
-        // Send email notification from webhook as backup
-        console.log("🔍 Webhook: Sending email notification...");
-        try {
-          const user = await User.findById(order.user_id);
-          if (user && user.email) {
-            await sendOrderConfirmationEmail(order, user);
-            await sendAdminNotification(order, user);
-            console.log("✅ Webhook: Email notifications sent");
-          }
-        } catch (emailError) {
-          console.error("❌ Webhook: Email error:", emailError.message);
-        }
+        await finalizePaidOrder(order, {
+          razorpay_payment_id,
+          razorpay_order_id
+        });
+        console.log(`✅ Webhook: Order ${order._id} (${razorpay_order_id}) finalized successfully`);
       } else {
-        console.log("⚠️ Webhook: Order already processed or not found, skipping");
+        console.log(`⚠️ Webhook: Order not found for razorpay_order_id: ${razorpay_order_id}`);
       }
     }
 
     if (event === "payment.failed") {
-      await Order.findOneAndUpdate(
-        { razorpay_order_id: payment.order_id },
-        { status: "failed" }
-      );
-      console.log(`✅ Webhook: Order marked as failed for payment ${payment.id}`);
+      const payment = data.payload?.payment?.entity;
+      if (payment?.order_id) {
+        await Order.findOneAndUpdate(
+          { razorpay_order_id: payment.order_id, status: { $ne: "completed" } },
+          { status: "failed" }
+        );
+        console.log(`✅ Webhook: Order marked as failed for payment ${payment.id}`);
+      }
     }
 
     res.send("OK");

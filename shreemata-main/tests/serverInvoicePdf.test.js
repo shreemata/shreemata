@@ -194,14 +194,17 @@ describe('Server Invoice PDF Endpoint Tests', () => {
       expect(buffer.slice(0, 5).toString('ascii')).toBe('%PDF-');
     });
 
-    it('rejects unverified payment (400)', async () => {
+    it('serves proforma invoice PDF (200) for unverified payment', async () => {
       const res = await client.get(`/api/invoices/by-order/${unverifiedOrder._id}/pdf`, {
         headers: { Authorization: `Bearer ${ownerToken}` }
       });
 
-      expect(res.status).toBe(400);
-      const json = parseJson(res);
-      expect(json.message).toBe('Payment must be verified before generating a final tax invoice.');
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toBe('application/pdf');
+      const disposition = res.headers['content-disposition'] || '';
+      expect(disposition).toContain('SM-PRI-');
+      const buffer = Buffer.from(res.data);
+      expect(buffer.slice(0, 5).toString('ascii')).toBe('%PDF-');
     });
 
     it('returns 404 for unknown order ID', async () => {

@@ -498,9 +498,14 @@ async function generateInvoicePdf(invoice, options = {}) {
           }
         }
 
+        const isProformaDoc = invoice.documentType === 'proforma_invoice' || Boolean(invoice.isProforma);
+        const headerTitleText = isProformaDoc ? 'PROFORMA INVOICE' : 'TAX INVOICE';
+        const docNumLabelText = isProformaDoc ? 'Proforma Inv No:' : 'Invoice No:';
+        const docDateLabelText = isProformaDoc ? 'Proforma Date:' : 'Invoice Date:';
+
         // Title Box (Right)
         doc.rect(margin + contentWidth - 140, y + 6, 132, 24).fillAndStroke('#f3f4f6', '#333333');
-        doc.fillColor('#000000').font('NotoSans-Bold').fontSize(12).text('TAX INVOICE', margin + contentWidth - 140, y + 12, { width: 132, align: 'center' });
+        doc.fillColor('#000000').font('NotoSans-Bold').fontSize(11).text(headerTitleText, margin + contentWidth - 140, y + 12, { width: 132, align: 'center' });
 
         // Company Details (Center)
         const compLeft = margin + 64;
@@ -527,8 +532,8 @@ async function generateInvoicePdf(invoice, options = {}) {
         const metaLeftX = margin + 8;
         const metaLeftValX = margin + 80;
         doc.font('NotoSans-Bold').fontSize(7.5).fillColor('#374151');
-        doc.text('Invoice No:', metaLeftX, y + 5);
-        doc.text('Invoice Date:', metaLeftX, y + 16);
+        doc.text(docNumLabelText, metaLeftX, y + 5);
+        doc.text(docDateLabelText, metaLeftX, y + 16);
         doc.text('Representative:', metaLeftX, y + 27);
 
         doc.font('NotoSans-Bold').fillColor('#111827');

@@ -402,11 +402,12 @@
                             </a>
                         ` : ''}
 
-                        ${isBillable ? `
-                            <a href="/invoice.html?orderId=${encodeURIComponent(orderId)}" target="_blank" rel="noopener" class="btn-order-action gold">
-                                📄 Invoice
-                            </a>
-                        ` : ''}
+                        <a href="/invoice.html?orderId=${encodeURIComponent(orderId)}" target="_blank" rel="noopener" class="btn-order-action gold" title="View Invoice">
+                            📄 View Invoice
+                        </a>
+                        <button type="button" class="btn-order-action secondary" onclick="downloadCustomerPdf('${encodeURIComponent(orderId)}')" title="Download PDF" style="cursor: pointer;">
+                            ⬇️ Download PDF
+                        </button>
                     </div>
                 </div>
             </article>
@@ -611,14 +612,14 @@
         // Update modal actions
         const modalFooter = document.getElementById('orderDetailsModalFooter');
         if (modalFooter) {
-            const isBillable = order.status !== 'cancelled' && order.status !== 'failed';
             modalFooter.innerHTML = `
                 <button type="button" class="btn-order-action outline" onclick="window.closeOrderDetailsModal()">Close</button>
-                ${isBillable ? `
-                    <a href="/invoice.html?orderId=${encodeURIComponent(orderId)}" target="_blank" rel="noopener" class="btn-order-action gold">
-                        📄 Download Invoice
-                    </a>
-                ` : ''}
+                <a href="/invoice.html?orderId=${encodeURIComponent(orderId)}" target="_blank" rel="noopener" class="btn-order-action gold">
+                    📄 View Invoice
+                </a>
+                <button type="button" class="btn-order-action secondary" onclick="downloadCustomerPdf('${encodeURIComponent(orderId)}')">
+                    ⬇️ Download PDF
+                </button>
                 ${!deliveryMeta.isPickup ? `
                     <a href="/track-order.html?billNumber=${encodeURIComponent(order.invoiceNumber || orderId)}" class="btn-order-action primary">
                         📦 Track Order
@@ -642,6 +643,43 @@
         document.body.style.overflow = '';
     }
     window.closeOrderDetailsModal = closeOrderDetailsModal;
+
+    async function downloadCustomerPdf(orderId) {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+            return;
+        }
+        try {
+            const response = await fetch(`/api/invoices/by-order/${encodeURIComponent(orderId)}/pdf`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                alert(err.message || 'Failed to download invoice PDF');
+                return;
+            }
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const disposition = response.headers.get('Content-Disposition');
+            let filename = 'invoice.pdf';
+            if (disposition && disposition.indexOf('filename=') !== -1) {
+                const match = disposition.match(/filename="?([^"]+)"?/);
+                if (match && match[1]) filename = match[1];
+            }
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Download error:', err);
+            alert('Failed to download invoice PDF');
+        }
+    }
+    window.downloadCustomerPdf = downloadCustomerPdf;
 
     // ── EVENT INITIALIZATION ──
     function initOrderEvents() {

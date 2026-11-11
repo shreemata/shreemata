@@ -1,9 +1,22 @@
 
 
 document.addEventListener("DOMContentLoaded", () => {
+    // Capture redirect URL parameter if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectParam = urlParams.get('redirect');
+    if (redirectParam) {
+        localStorage.setItem('redirectAfterLogin', redirectParam);
+    }
+
     // Check if user is already logged in
     const token = localStorage.getItem('token');
     if (token) {
+        const redirectUrl = localStorage.getItem('redirectAfterLogin') || redirectParam;
+        if (redirectUrl) {
+            localStorage.removeItem('redirectAfterLogin');
+            window.location.href = redirectUrl;
+            return;
+        }
         window.location.href = '/';
         return;
     }

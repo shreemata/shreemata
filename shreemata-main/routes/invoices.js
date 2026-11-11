@@ -11,11 +11,8 @@ const { generateInvoicePdf } = require('../utils/invoicePdf');
 // Local helper: check if an existing invoice is eligible for PDF download
 function isEligibleForExistingInvoicePdf(order) {
   if (!order) return false;
-  if (isPaymentVerified(order)) return true;
-  if (order.status === 'completed' && order.paymentType === 'online' && Boolean(order.razorpay_payment_id && String(order.razorpay_payment_id).trim())) {
-    return true;
-  }
-  return false;
+  // Any non-cancelled/non-failed order is eligible for PDF (Tax Invoice if verified, Proforma Invoice if unverified)
+  return order.status !== 'cancelled' && order.status !== 'failed';
 }
 
 // Document Types Configuration
@@ -297,6 +294,28 @@ async function autoGenerateInvoiceForOrder(orderOrId) {
     // Check if invoice already exists for this order
     const existing = await Invoice.findOne({ orderId: order._id });
     if (existing) {
+      // If it already has a tax invoice number, return it
+      if (existing.documentNumbers && existing.documentNumbers.tax_invoice) {
+        return existing;
+      }
+      if (existing.invoiceNumber && existing.invoiceNumber.startsWith('SM-HBL-')) {
+        if (!existing.documentNumbers) existing.documentNumbers = {};
+        existing.documentNumbers.tax_invoice = existing.invoiceNumber;
+        existing.documentType = 'tax_invoice';
+        await existing.save();
+        return existing;
+      }
+      // If it exists as a proforma invoice, PROMOTE it to Tax Invoice now that payment is verified
+      const taxInvoiceNumber = await generateInvoiceNumber('tax_invoice');
+      if (!existing.documentNumbers) existing.documentNumbers = {};
+      existing.documentNumbers.tax_invoice = taxInvoiceNumber;
+      existing.invoiceNumber = taxInvoiceNumber;
+      existing.documentType = 'tax_invoice';
+      await existing.save();
+
+      await Order.findByIdAndUpdate(order._id, {
+        $set: { 'documentNumbers.tax_invoice': taxInvoiceNumber }
+      });
       return existing;
     }
 
@@ -412,6 +431,147 @@ async function autoGenerateInvoiceForOrder(orderOrId) {
   }
 }
 
+/**
+ * Auto-generates a Proforma Invoice document from an Order document (for unverified/pending orders)
+ * Uses sequential SM-PRI- numbering without consuming Tax Invoice numbers.
+ * @param {Object|String} orderOrId - Order document or Order ID
+ * @returns {Promise<Object|null>} - Saved Invoice document or null
+ */
+async function autoGenerateProformaInvoiceForOrder(orderOrId) {
+  try {
+    let order = orderOrId;
+    if (typeof orderOrId === 'string' || (mongoose.Types.ObjectId.isValid(orderOrId) && !orderOrId.items)) {
+      order = await Order.findById(orderOrId).populate('user_id', 'name email phone');
+    } else if (order && order.user_id && !order.user_id.name && mongoose.Types.ObjectId.isValid(order.user_id)) {
+      order = await Order.findById(order._id).populate('user_id', 'name email phone');
+    }
+
+    if (!order) {
+      console.error('❌ autoGenerateProformaInvoiceForOrder: Order not found');
+      return null;
+    }
+
+    // Check if an invoice already exists for this order
+    const existing = await Invoice.findOne({ orderId: order._id });
+    if (existing) {
+      // If it already has a proforma number, return it
+      if (existing.documentNumbers && existing.documentNumbers.proforma_invoice) {
+        return existing;
+      }
+      if (existing.invoiceNumber && existing.invoiceNumber.startsWith('SM-PRI-')) {
+        if (!existing.documentNumbers) existing.documentNumbers = {};
+        existing.documentNumbers.proforma_invoice = existing.invoiceNumber;
+        await existing.save();
+        return existing;
+      }
+      // If it is already a tax invoice (e.g. verified), return it
+      if (existing.documentNumbers?.tax_invoice || existing.invoiceNumber.startsWith('SM-HBL-')) {
+        return existing;
+      }
+    }
+
+    const user = order.user_id || {};
+    const addr = order.deliveryAddress || {};
+
+    const customerName = user.name || (addr.street ? 'Customer' : 'Valued Customer');
+    const phoneNumber = user.phone || addr.phone || '';
+    const district = addr.district || addr.taluk || '';
+    const state = addr.state || 'Karnataka';
+    const pinCode = addr.pincode || '';
+
+    const addressParts = [
+      addr.street,
+      addr.taluk,
+      addr.district,
+      addr.state,
+      addr.pincode ? `PIN: ${addr.pincode}` : ''
+    ].filter(Boolean);
+    const fullAddress = addressParts.join(', ') || 'Address on file';
+
+    const rawItems = order.items && order.items.length > 0 ? order.items : [];
+    const products = rawItems.map((item) => {
+      const qty = Number(item.quantity) || 1;
+      const unitPrice = Number(item.price) || 0;
+      const taxableAmount = qty * unitPrice;
+      return {
+        productName: item.title || 'Book/Product',
+        hsnCode: '4901',
+        unitPrice,
+        bundles: qty,
+        gstPercent: 0,
+        taxableAmount,
+        sgstAmount: 0,
+        cgstAmount: 0,
+        total: taxableAmount
+      };
+    });
+
+    const forwardingCharges = Number(order.courierCharge) || 0;
+    const discount = (order.appliedOffer && order.appliedOffer.savings) ? Number(order.appliedOffer.savings) : 0;
+    const invDateObj = order.updatedAt || order.createdAt || new Date();
+    const invoiceDate = invDateObj.toISOString();
+
+    // Generate unique sequential Proforma Invoice number (SM-PRI- format)
+    const proformaNumber = await generateInvoiceNumber('proforma_invoice');
+
+    const docNumbers = {
+      tax_invoice: '',
+      delivery_challan: '',
+      quotation: '',
+      proforma_invoice: proformaNumber,
+      cash_challan: ''
+    };
+
+    const newInvoice = new Invoice({
+      orderId: order._id,
+      invoiceNumber: proformaNumber,
+      documentType: 'proforma_invoice',
+      documentNumbers: docNumbers,
+      invoiceDate,
+      customerName,
+      phoneNumber,
+      gstNumber: addr.gstNumber || '',
+      district,
+      state,
+      pinCode,
+      billingAddress: fullAddress,
+      shipToName: customerName,
+      shippingPhone: phoneNumber,
+      shippingAddress: fullAddress,
+      shippingDistrict: district,
+      shippingPinCode: pinCode,
+      transportationName: order.deliveryMethod === 'pickup' ? 'Self Pickup' : (order.trackingInfo?.courierName || 'Road Transport'),
+      vehicleNo: order.trackingInfo?.trackingId || '',
+      products,
+      forwardingCharges,
+      forwardingGstPercent: 5,
+      discount,
+      otherCharges: 0,
+      bankName: 'IDFC FIRST',
+      accountNumber: '10198316912',
+      ifscCode: 'IDFB0080281',
+      branch: 'HUBBALLI',
+      receivedBy: user.name || '',
+      sentBy: 'Shree Mata',
+      digitalSignature: true,
+      dispatchStatus: 'pending',
+      courierNumber: order.trackingInfo?.trackingId || ''
+    });
+
+    await newInvoice.save();
+
+    await Order.findByIdAndUpdate(order._id, {
+      $set: { 'documentNumbers.proforma_invoice': proformaNumber }
+    });
+
+    console.log(`✅ Auto-generated Proforma Invoice ${proformaNumber} for Order ${order._id}`);
+    return newInvoice;
+  } catch (error) {
+    console.error('❌ Error in autoGenerateProformaInvoiceForOrder:', error);
+    return null;
+  }
+}
+
 // =========================================================================
 // PUBLIC TRACKING ROUTE: GET INVOICE DISPATCH STATUS (NO AUTH REQUIRED)
 // =========================================================================
@@ -489,8 +649,9 @@ router.get('/qr', handleQRCodeRequest);
 router.get('/qr/:invoiceNumber', handleQRCodeRequest);
 
 // =========================================================================
-// CUSTOMER-FACING ROUTE: GET INVOICE BY ORDER ID
-// STRICT OVERRIDE: Always returns strictly Tax Invoice (SM-HBL-)
+// CUSTOMER & ADMIN ROUTE: GET INVOICE BY ORDER ID
+// If order payment is verified -> returns Tax Invoice (SM-HBL-)
+// If order payment is not verified -> returns Proforma Invoice (SM-PRI-)
 // =========================================================================
 router.get('/by-order/:orderId', authenticateToken, async (req, res) => {
   try {
@@ -507,7 +668,7 @@ router.get('/by-order/:orderId', authenticateToken, async (req, res) => {
     // Check ownership: requesting user must be the order owner or an admin
     const orderUserId = order.user_id ? (order.user_id._id ? order.user_id._id.toString() : order.user_id.toString()) : '';
     const isOwner = orderUserId === req.user.id.toString();
-    const isAdminUser = req.user.role === 'admin';
+    const isAdminUser = req.user && (req.user.role === 'admin' || req.user.role === 'superadmin');
 
     if (!isOwner && !isAdminUser) {
       return res.status(403).json({ message: "You don't have access to this invoice." });
@@ -517,35 +678,56 @@ router.get('/by-order/:orderId', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Cannot generate invoice for a cancelled or failed order.' });
     }
 
-    if (!isPaymentVerified(order)) {
-      return res.status(400).json({ message: 'Payment must be verified before generating a final tax invoice.' });
-    }
-
     let invoice = await Invoice.findOne({ orderId: order._id });
 
-    if (!invoice) {
-      invoice = await autoGenerateInvoiceForOrder(order);
-    }
+    if (isPaymentVerified(order)) {
+      // Payment is verified: ensure Tax Invoice exists (SM-HBL- format)
+      if (!invoice || !invoice.documentNumbers?.tax_invoice) {
+        invoice = await autoGenerateInvoiceForOrder(order);
+      }
 
-    if (!invoice) {
-      return res.status(404).json({ message: 'Invoice is being generated — please check back shortly' });
-    }
+      if (!invoice) {
+        return res.status(404).json({ message: 'Invoice is being generated — please check back shortly' });
+      }
 
-    // Customer view strict enforcement: Ensure Tax Invoice number is used
-    const invoiceObj = invoice.toObject ? invoice.toObject() : { ...invoice };
-    if (invoiceObj.documentNumbers && invoiceObj.documentNumbers.tax_invoice) {
-      invoiceObj.invoiceNumber = invoiceObj.documentNumbers.tax_invoice;
-    }
-    invoiceObj.documentType = 'tax_invoice';
+      const invoiceObj = invoice.toObject ? invoice.toObject() : { ...invoice };
+      if (invoiceObj.documentNumbers && invoiceObj.documentNumbers.tax_invoice) {
+        invoiceObj.invoiceNumber = invoiceObj.documentNumbers.tax_invoice;
+      }
+      invoiceObj.documentType = 'tax_invoice';
+      invoiceObj.isProforma = false;
+      return res.json(invoiceObj);
+    } else {
+      // Payment is not verified: show Proforma Invoice (SM-PRI- format)
+      if (!invoice) {
+        invoice = await autoGenerateProformaInvoiceForOrder(order);
+      } else if (!invoice.documentNumbers?.proforma_invoice) {
+        const proformaNumber = await generateInvoiceNumber('proforma_invoice');
+        if (!invoice.documentNumbers) invoice.documentNumbers = {};
+        invoice.documentNumbers.proforma_invoice = proformaNumber;
+        await invoice.save();
+        await Order.findByIdAndUpdate(order._id, {
+          $set: { 'documentNumbers.proforma_invoice': proformaNumber }
+        });
+      }
 
-    res.json(invoiceObj);
+      if (!invoice) {
+        return res.status(404).json({ message: 'Invoice is being generated — please check back shortly' });
+      }
+
+      const invoiceObj = invoice.toObject ? invoice.toObject() : { ...invoice };
+      invoiceObj.invoiceNumber = invoiceObj.documentNumbers?.proforma_invoice || invoiceObj.invoiceNumber;
+      invoiceObj.documentType = 'proforma_invoice';
+      invoiceObj.isProforma = true;
+      return res.json(invoiceObj);
+    }
   } catch (error) {
     console.error('Error in GET /invoices/by-order/:orderId:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// GET /api/invoices/by-order/:orderId/pdf - Generate server-side tax invoice PDF
+// GET /api/invoices/by-order/:orderId/pdf - Generate server-side invoice PDF (Tax if verified, Proforma if unverified)
 router.get('/by-order/:orderId/pdf', authenticateToken, async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -561,7 +743,7 @@ router.get('/by-order/:orderId/pdf', authenticateToken, async (req, res) => {
     // Check ownership: requesting user must be the order owner or an admin
     const orderUserId = order.user_id ? (order.user_id._id ? order.user_id._id.toString() : order.user_id.toString()) : '';
     const isOwner = orderUserId === req.user.id.toString();
-    const isAdminUser = req.user.role === 'admin';
+    const isAdminUser = req.user && (req.user.role === 'admin' || req.user.role === 'superadmin');
 
     if (!isOwner && !isAdminUser) {
       return res.status(403).json({ message: "You don't have access to this invoice." });
@@ -572,31 +754,45 @@ router.get('/by-order/:orderId/pdf', authenticateToken, async (req, res) => {
     }
 
     let invoice = await Invoice.findOne({ orderId: order._id });
+    const verified = isPaymentVerified(order);
 
-    if (!invoice) {
-      if (!isPaymentVerified(order)) {
-        return res.status(404).json({ message: 'Invoice is being generated - please check back shortly' });
+    if (verified) {
+      if (!invoice || !invoice.documentNumbers?.tax_invoice) {
+        invoice = await autoGenerateInvoiceForOrder(order);
       }
-      invoice = await autoGenerateInvoiceForOrder(order);
+    } else {
+      if (!invoice) {
+        invoice = await autoGenerateProformaInvoiceForOrder(order);
+      } else if (!invoice.documentNumbers?.proforma_invoice) {
+        const proformaNumber = await generateInvoiceNumber('proforma_invoice');
+        if (!invoice.documentNumbers) invoice.documentNumbers = {};
+        invoice.documentNumbers.proforma_invoice = proformaNumber;
+        await invoice.save();
+        await Order.findByIdAndUpdate(order._id, {
+          $set: { 'documentNumbers.proforma_invoice': proformaNumber }
+        });
+      }
     }
 
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice is being generated - please check back shortly' });
     }
 
-    if (!isEligibleForExistingInvoicePdf(order)) {
-      return res.status(400).json({ message: 'Payment must be verified before generating a final tax invoice.' });
-    }
-
-    // Customer view strict enforcement: Ensure Tax Invoice number is used
     const invoiceObj = invoice.toObject ? invoice.toObject() : { ...invoice };
-    if (invoiceObj.documentNumbers && invoiceObj.documentNumbers.tax_invoice) {
-      invoiceObj.invoiceNumber = invoiceObj.documentNumbers.tax_invoice;
+    if (verified) {
+      if (invoiceObj.documentNumbers && invoiceObj.documentNumbers.tax_invoice) {
+        invoiceObj.invoiceNumber = invoiceObj.documentNumbers.tax_invoice;
+      }
+      invoiceObj.documentType = 'tax_invoice';
+      invoiceObj.isProforma = false;
+    } else {
+      invoiceObj.invoiceNumber = invoiceObj.documentNumbers?.proforma_invoice || invoiceObj.invoiceNumber;
+      invoiceObj.documentType = 'proforma_invoice';
+      invoiceObj.isProforma = true;
     }
-    invoiceObj.documentType = 'tax_invoice';
 
     const pdfBuffer = await generateInvoicePdf(invoiceObj, { req });
-    const cleanInvoiceNum = (invoiceObj.invoiceNumber || 'tax-invoice').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanInvoiceNum = (invoiceObj.invoiceNumber || (verified ? 'tax-invoice' : 'proforma-invoice')).replace(/[^a-zA-Z0-9_-]/g, '_');
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="' + cleanInvoiceNum + '.pdf"');
@@ -763,8 +959,9 @@ router.get('/:id/pdf', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
+    let linkedOrder = null;
     if (invoice.orderId) {
-      const linkedOrder = await Order.findById(invoice.orderId).populate('user_id', 'name email phone');
+      linkedOrder = await Order.findById(invoice.orderId).populate('user_id', 'name email phone');
       if (!linkedOrder) {
         if (req.user.role !== 'admin') {
           return res.status(403).json({ message: "You don't have access to this invoice." });
@@ -783,21 +980,32 @@ router.get('/:id/pdf', authenticateToken, async (req, res) => {
         }
 
         if (!isEligibleForExistingInvoicePdf(linkedOrder)) {
-          return res.status(400).json({ message: 'Payment must be verified before generating a final tax invoice.' });
+          return res.status(400).json({ message: 'Cannot generate invoice for a cancelled or failed order.' });
         }
       }
-    } else if (req.user.role !== 'admin') {
+    } else if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
       return res.status(403).json({ message: "You don't have access to this invoice." });
     }
 
     const invoiceObj = invoice.toObject ? invoice.toObject() : { ...invoice };
-    if (invoiceObj.documentNumbers && invoiceObj.documentNumbers.tax_invoice) {
-      invoiceObj.invoiceNumber = invoiceObj.documentNumbers.tax_invoice;
+    const isOrderVerified = linkedOrder ? isPaymentVerified(linkedOrder) : true;
+
+    if (isOrderVerified && invoiceObj.documentType !== 'proforma_invoice') {
+      if (invoiceObj.documentNumbers && invoiceObj.documentNumbers.tax_invoice) {
+        invoiceObj.invoiceNumber = invoiceObj.documentNumbers.tax_invoice;
+      }
+      invoiceObj.documentType = invoiceObj.documentType || 'tax_invoice';
+      invoiceObj.isProforma = false;
+    } else {
+      if (invoiceObj.documentNumbers && invoiceObj.documentNumbers.proforma_invoice) {
+        invoiceObj.invoiceNumber = invoiceObj.documentNumbers.proforma_invoice;
+      }
+      invoiceObj.documentType = 'proforma_invoice';
+      invoiceObj.isProforma = true;
     }
-    invoiceObj.documentType = 'tax_invoice';
 
     const pdfBuffer = await generateInvoicePdf(invoiceObj, { req });
-    const cleanInvoiceNum = (invoiceObj.invoiceNumber || 'tax-invoice').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanInvoiceNum = (invoiceObj.invoiceNumber || 'invoice').replace(/[^a-zA-Z0-9_-]/g, '_');
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="' + cleanInvoiceNum + '.pdf"');
@@ -847,7 +1055,13 @@ router.get('/:id', authenticateToken, isAdmin, async (req, res) => {
     if (invoice.orderId) {
       const linkedOrder = await Order.findById(invoice.orderId);
       if (linkedOrder && !isPaymentVerified(linkedOrder)) {
-        return res.status(400).json({ message: 'Payment must be verified before generating a final tax invoice.' });
+        const invoiceObj = invoice.toObject ? invoice.toObject() : { ...invoice };
+        if (invoiceObj.documentNumbers && invoiceObj.documentNumbers.proforma_invoice) {
+          invoiceObj.invoiceNumber = invoiceObj.documentNumbers.proforma_invoice;
+        }
+        invoiceObj.documentType = 'proforma_invoice';
+        invoiceObj.isProforma = true;
+        return res.json(invoiceObj);
       }
     }
 
@@ -1043,5 +1257,6 @@ module.exports = router;
 module.exports.Invoice = Invoice;
 module.exports.generateInvoiceNumber = generateInvoiceNumber;
 module.exports.autoGenerateInvoiceForOrder = autoGenerateInvoiceForOrder;
+module.exports.autoGenerateProformaInvoiceForOrder = autoGenerateProformaInvoiceForOrder;
 module.exports.DOCUMENT_CONFIG = DOCUMENT_CONFIG;
 module.exports.normalizeDocType = normalizeDocType;

@@ -465,6 +465,99 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
 });
 
 /**
+ * ADMIN — CHECK WITH RAZORPAY & FINISH ORDER
+ * Fetches payments for razorpay_order_id from Razorpay server-side.
+ * If one is captured, calls finalizePaidOrder.
+ * Indicates whether commissions were already applied. No bulk run.
+ */
+async function handleReconcileRazorpay(req, res) {
+    try {
+        const orderId = req.params.id;
+        const order = await Order.findById(orderId).populate("user_id", "name email phone");
+        if (!order) {
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        const razorpayOrderId = order.razorpay_order_id || order.paymentDetails?.razorpay_order_id;
+        if (!razorpayOrderId) {
+            return res.status(400).json({
+                error: "Order does not have a Razorpay Order ID. Cannot verify with Razorpay."
+            });
+        }
+
+        const Razorpay = require("razorpay");
+        const keyId = process.env.RAZORPAY_KEY_ID;
+        const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+        if (!keyId || !keySecret) {
+            return res.status(500).json({
+                error: "Razorpay credentials are not configured on the server."
+            });
+        }
+
+        const razorpayInstance = new Razorpay({ key_id: keyId, key_secret: keySecret });
+        let paymentsData;
+        try {
+            paymentsData = await razorpayInstance.orders.fetchPayments(razorpayOrderId);
+        } catch (rzpErr) {
+            console.error("Razorpay fetchPayments error:", rzpErr.message);
+            return res.status(502).json({
+                error: `Razorpay API error: ${rzpErr.message}`
+            });
+        }
+
+        const items = paymentsData?.items || [];
+        const capturedPayment = items.find(p => p.status === 'captured');
+
+        if (!capturedPayment) {
+            const statuses = items.map(p => `${p.id}: ${p.status}`).join(', ') || 'none';
+            return res.json({
+                success: true,
+                captured: false,
+                orderNumber: order.orderNumber || order._id,
+                paymentsFound: items.length,
+                paymentStatuses: statuses,
+                message: items.length === 0
+                    ? "No payments found in Razorpay for this order."
+                    : `No captured payment found in Razorpay for this order (found ${items.length}: ${statuses}).`
+            });
+        }
+
+        // A captured payment was found! Finalize the order idempotently
+        const { finalizePaidOrder } = require("../services/orderFinalizer");
+        const finalResult = await finalizePaidOrder(order, {
+            razorpay_payment_id: capturedPayment.id,
+            razorpay_order_id: razorpayOrderId
+        });
+
+        const refreshedOrder = finalResult.order;
+        const commissionsAlreadyApplied = Boolean(
+            refreshedOrder.commissionStatus === 'distributed' || refreshedOrder.rewardApplied
+        );
+
+        return res.json({
+            success: true,
+            captured: true,
+            paymentId: capturedPayment.id,
+            orderId: refreshedOrder._id,
+            orderStatus: refreshedOrder.status,
+            paymentStatus: refreshedOrder.paymentStatus,
+            commissionsApplied: commissionsAlreadyApplied,
+            commissionStatus: refreshedOrder.commissionStatus,
+            invoiceNumber: finalResult.invoice?.invoiceNumber || refreshedOrder.documentNumbers?.tax_invoice || null,
+            message: `Payment verified as captured (${capturedPayment.id}). Order marked completed and invoice generated. Commissions: ${refreshedOrder.commissionStatus}.`
+        });
+
+    } catch (err) {
+        console.error("Error in reconcile-razorpay:", err);
+        return res.status(500).json({ error: err.message || "Failed to reconcile order with Razorpay" });
+    }
+}
+
+router.post("/admin/reconcile-razorpay/:id", authenticateToken, isAdmin, handleReconcileRazorpay);
+router.post("/:id/reconcile-razorpay", authenticateToken, isAdmin, handleReconcileRazorpay);
+
+/**
  * UPDATE UTR NUMBER (User can add UTR after check clears)
  */
 router.put("/update-utr/:orderId", authenticateToken, async (req, res) => {
