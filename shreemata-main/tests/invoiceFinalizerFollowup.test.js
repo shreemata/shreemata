@@ -171,6 +171,178 @@ describe('1. Idempotency & Commission Safety (Part A Item 3)', () => {
     emailSpy.mockRestore();
     adminEmailSpy.mockRestore();
   });
+
+  test('5 parallel calls to finalizePaidOrder on a 3-level referral chain produce exactly 1 run of wallet/points/email/invoice entries', async () => {
+    const emailSpy = jest.spyOn(emailService, 'sendOrderConfirmationEmail').mockResolvedValue(true);
+    const adminEmailSpy = jest.spyOn(emailService, 'sendAdminNotification').mockResolvedValue(true);
+
+    // Create 3-level referral hierarchy
+    // Level 1: Root Referrer / Member
+    const level1 = await User.create({
+      name: 'Level 1 Root',
+      email: 'level1_root@test.com',
+      password: 'password123',
+      role: 'customer',
+      referralCode: 'REF_LVL1_123',
+      wallet: 100,
+      points: 0,
+      isMember: true,
+      treeLevel: 1
+    });
+
+    // Level 2: Direct Referrer of Buyer
+    const level2 = await User.create({
+      name: 'Level 2 Parent',
+      email: 'level2_parent@test.com',
+      password: 'password123',
+      role: 'customer',
+      referralCode: 'REF_LVL2_456',
+      referredBy: 'REF_LVL1_123',
+      wallet: 50,
+      points: 0,
+      isMember: true,
+      treeParent: level1._id,
+      treeLevel: 2
+    });
+
+    // Level 3: Buyer
+    const level3Buyer = await User.create({
+      name: 'Level 3 Buyer',
+      email: 'level3_buyer@test.com',
+      password: 'password123',
+      role: 'customer',
+      referredBy: 'REF_LVL2_456',
+      wallet: 0,
+      points: 0,
+      isMember: false
+    });
+
+    const initialL1Wallet = level1.wallet;
+    const initialL2Wallet = level2.wallet;
+    const initialL3Wallet = level3Buyer.wallet;
+
+    const order = await Order.create({
+      user_id: level3Buyer._id,
+      items: [{
+        id: testBook._id,
+        type: 'book',
+        title: testBook.title,
+        price: 350,
+        quantity: 1,
+        profit: 150
+      }],
+      totalAmount: 350,
+      orderProfitTotal: 150,
+      status: 'pending',
+      paymentStatus: 'pending',
+      paymentType: 'online',
+      razorpay_order_id: 'order_parallel_5x_123',
+      deliveryAddress: { address: '321 Pine St', city: 'Hubli', pincode: '580020' }
+    });
+
+    const paymentInfo = {
+      razorpay_payment_id: 'pay_parallel_5x_999',
+      razorpay_order_id: 'order_parallel_5x_123'
+    };
+
+    // Execute 5 simultaneous parallel calls to finalizePaidOrder
+    const results = await Promise.all([
+      finalizePaidOrder(order._id, paymentInfo),
+      finalizePaidOrder(order._id, paymentInfo),
+      finalizePaidOrder(order._id, paymentInfo),
+      finalizePaidOrder(order._id, paymentInfo),
+      finalizePaidOrder(order._id, paymentInfo)
+    ]);
+
+    // All 5 calls must report success: true
+    expect(results).toHaveLength(5);
+    results.forEach(res => {
+      expect(res.success).toBe(true);
+    });
+
+    // Exactly 1 winner executed the side effects; the other 4 safely polled/acknowledged alreadyProcessed
+    const winners = results.filter(r => r.alreadyProcessed === false);
+    const alreadyProcessedResults = results.filter(r => r.alreadyProcessed === true);
+    expect(winners).toHaveLength(1);
+    expect(alreadyProcessedResults).toHaveLength(4);
+
+    // Exactly 1 invoice, 1 commission tx, 1 points tx, 1 confirmation email
+    const invoiceCount = await Invoice.countDocuments({ orderId: order._id });
+    const commTxCount = await CommissionTransaction.countDocuments({ orderId: order._id });
+    const pointsTxCount = await PointsTransaction.countDocuments({ orderId: order._id });
+    const emailCalls = emailSpy.mock.calls.length;
+
+    expect(invoiceCount).toBe(1);
+    expect(commTxCount).toBe(1);
+    expect(pointsTxCount).toBe(1);
+    expect(emailCalls).toBe(1);
+
+    // Wallets: assert exact single-run credits (no 5x commission duplication)
+    const commTx = await CommissionTransaction.findOne({ orderId: order._id });
+    expect(commTx).not.toBeNull();
+
+    const freshL1 = await User.findById(level1._id);
+    const freshL2 = await User.findById(level2._id);
+    const freshL3 = await User.findById(level3Buyer._id);
+
+    // Level 3 Buyer: only single cashback credited
+    expect(freshL3.wallet).toBe(initialL3Wallet + commTx.directCommissionAmount);
+
+    // Level 2 Referrer: only single referral bonus credited
+    expect(freshL2.wallet).toBe(initialL2Wallet + commTx.referralCommissionAmount);
+
+    emailSpy.mockRestore();
+    adminEmailSpy.mockRestore();
+  });
+
+  test('simultaneous webhook and verify callbacks execute atomically without duplicate finalization', async () => {
+    const emailSpy = jest.spyOn(emailService, 'sendOrderConfirmationEmail').mockResolvedValue(true);
+    const adminEmailSpy = jest.spyOn(emailService, 'sendAdminNotification').mockResolvedValue(true);
+
+    const order = await Order.create({
+      user_id: testUser._id,
+      items: [{
+        id: testBook._id,
+        type: 'book',
+        title: testBook.title,
+        price: 350,
+        quantity: 1,
+        profit: 150
+      }],
+      totalAmount: 350,
+      orderProfitTotal: 150,
+      status: 'pending',
+      paymentStatus: 'pending',
+      paymentType: 'online',
+      razorpay_order_id: 'order_race_webhook_verify_123',
+      deliveryAddress: { address: '555 Race Ave', city: 'Hubli', pincode: '580020' }
+    });
+
+    const paymentInfo = {
+      razorpay_payment_id: 'pay_race_wh_ver_789',
+      razorpay_order_id: 'order_race_webhook_verify_123'
+    };
+
+    // Simulate webhook and verify arriving simultaneously
+    const [resWebhook, resVerify] = await Promise.all([
+      finalizePaidOrder(order._id, paymentInfo),
+      finalizePaidOrder(order._id, paymentInfo)
+    ]);
+
+    expect(resWebhook.success).toBe(true);
+    expect(resVerify.success).toBe(true);
+
+    // Exactly one Tax Invoice created
+    const invoiceCount = await Invoice.countDocuments({ orderId: order._id });
+    expect(invoiceCount).toBe(1);
+
+    // Exactly one Commission Transaction created
+    const commTxCount = await CommissionTransaction.countDocuments({ orderId: order._id });
+    expect(commTxCount).toBe(1);
+
+    emailSpy.mockRestore();
+    adminEmailSpy.mockRestore();
+  });
 });
 
 describe('2. Legacy Orders (Part B Item 4)', () => {
@@ -223,6 +395,49 @@ describe('2. Legacy Orders (Part B Item 4)', () => {
 
     emailSpy.mockRestore();
     adminEmailSpy.mockRestore();
+  });
+
+  test('unpaid pending order with razorpay_order_id and rewardApplied: true is not treated as already processed and can be finalized by reconcile', async () => {
+    // Simulate an order where rewardApplied was set during a pending manual flow or repair
+    const pendingOrder = await Order.create({
+      user_id: testUser._id,
+      items: [{
+        id: testBook._id,
+        type: 'book',
+        title: testBook.title,
+        price: 350,
+        quantity: 1,
+        profit: 150
+      }],
+      totalAmount: 350,
+      orderProfitTotal: 150,
+      status: 'pending',
+      paymentStatus: 'pending',
+      paymentType: 'online',
+      razorpay_order_id: 'order_unpaid_reward_set_456',
+      rewardApplied: true // Erroneous flag on unfinalized order
+    });
+
+    const paymentInfo = {
+      razorpay_payment_id: 'pay_reconcile_unpaid_reward_789',
+      razorpay_order_id: 'order_unpaid_reward_set_456'
+    };
+
+    // Because finalizedAt is absent and no invoice exists, rewardApplied does NOT block finalization
+    const result = await finalizePaidOrder(pendingOrder._id, paymentInfo);
+    expect(result.success).toBe(true);
+    expect(result.alreadyProcessed).toBe(false);
+
+    const updated = await Order.findById(pendingOrder._id);
+    expect(updated.status).toBe('completed');
+    expect(updated.paymentStatus).toBe('completed');
+    expect(updated.finalizedAt).toBeInstanceOf(Date);
+    expect(updated.finalizationStatus).toBe('completed');
+
+    const invoice = await Invoice.findOne({ orderId: pendingOrder._id });
+    expect(invoice).not.toBeNull();
+    expect(invoice.documentType).toBe('tax_invoice');
+    expect(invoice.invoiceNumber).toMatch(/^SM-HBL-\d{10}$/);
   });
 });
 
@@ -325,6 +540,29 @@ describe('4. Invoice Sequence & Proforma Promotion (Part B Item 6)', () => {
     const promotedInv2 = await autoGenerateInvoiceForOrder(order);
     expect(promotedInv2.invoiceNumber).toBe(allocatedTaxNum);
     expect(promotedInv2._id.toString()).toBe(promotedInv1._id.toString());
+  });
+
+  test('tax invoice sequence continues from existing counter (seeded at 500 -> next is 501, never 1)', async () => {
+    const InvoiceSequence = mongoose.models.InvoiceSequence;
+
+    // Seed sequence explicitly at 500
+    await InvoiceSequence.findOneAndUpdate(
+      { key: 'SM_HBL_GLOBAL' },
+      { $set: { seq: 500 } },
+      { upsert: true, new: true }
+    );
+
+    // Generating next invoice number MUST increment from 500 to 501, never resetting to 1
+    const nextNumber1 = await generateInvoiceNumber('tax_invoice');
+    expect(nextNumber1).toBe('SM-HBL-0000000501');
+
+    // Generating another number increments to 502
+    const nextNumber2 = await generateInvoiceNumber('tax_invoice');
+    expect(nextNumber2).toBe('SM-HBL-0000000502');
+
+    // Verify counter document in database
+    const counterDoc = await InvoiceSequence.findOne({ key: 'SM_HBL_GLOBAL' });
+    expect(counterDoc.seq).toBe(502);
   });
 });
 

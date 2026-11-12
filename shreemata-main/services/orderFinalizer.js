@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const User = require('../models/User');
 
+const LOCK_TIMEOUT_MS = 60 * 1000;
+
 /**
  * Shared, idempotent function to finalize a paid order.
  * Has exactly the same side effects as the successful /api/payments/verify path:
@@ -12,194 +14,312 @@ const User = require('../models/User');
  * - Awards points for purchased books/bundles (once)
  * - Creates tree placement for qualified first purchases
  * - Sends customer order confirmation and admin notification emails (once)
- * - Safe on repeated delivery: Calling twice does not duplicate commissions, points, emails, or invoices.
+ * - Atomic concurrency: Safe under simultaneous execution (parallel webhooks, verify callbacks, or admin reconcile).
  *
  * @param {Object|String} orderOrId - Order Mongoose document or Order ID
  * @param {Object} [paymentInfo] - Details from Razorpay callback/webhook
  * @returns {Promise<{success: boolean, order: Object, invoice: Object|null, alreadyProcessed: boolean}>}
  */
 async function finalizePaidOrder(orderOrId, paymentInfo = {}) {
-  let order = orderOrId;
-  if (typeof orderOrId === 'string' || (mongoose.Types.ObjectId.isValid(orderOrId) && !orderOrId.save)) {
-    order = await Order.findById(orderOrId).populate('user_id');
-  } else if (order && order.user_id && !order.user_id.email && mongoose.Types.ObjectId.isValid(order.user_id)) {
-    order = await Order.findById(order._id).populate('user_id');
+  const orderId = orderOrId?._id || orderOrId;
+  if (!orderId || !mongoose.Types.ObjectId.isValid(orderId)) {
+    throw new Error('Invalid order ID provided to finalizePaidOrder');
   }
 
+  let order = await Order.findById(orderId).populate('user_id');
   if (!order) {
     throw new Error('Order not found');
   }
 
-  // Track if this order was already processed prior to this invocation
-  // (handles: 1. Modern completed orders with rewardApplied or confirmationEmailSent;
-  //          2. Legacy orders with status completed & verified payment status;
-  //          3. Orders with existing invoice or commission transactions)
+  // 1. Check if already completed prior to this invocation
+  // Notice: order.rewardApplied is deliberately NOT used here, because manual admin status changes
+  // or repair scripts can set rewardApplied=true on pending/unfinalized orders.
+  // Instead, rely on finalizedAt, completed finalizationStatus, completed payment status,
+  // or existing Invoice / CommissionTransaction.
   let wasAlreadyProcessed = Boolean(
-    order.rewardApplied ||
-    order.confirmationEmailSent ||
+    order.finalizedAt ||
+    order.finalizationStatus === 'completed' ||
     (order.status === 'completed' && (order.paymentStatus === 'completed' || order.paymentDetails?.status === 'verified'))
   );
 
-  if (!wasAlreadyProcessed) {
-    const InvoiceModel = mongoose.models.Invoice;
-    const CommissionModel = mongoose.models.CommissionTransaction;
-    if (InvoiceModel || CommissionModel) {
-      const [existingInv, existingComm] = await Promise.all([
-        InvoiceModel ? InvoiceModel.findOne({ orderId: order._id }).lean().catch(() => null) : null,
-        CommissionModel ? CommissionModel.findOne({ orderId: order._id }).lean().catch(() => null) : null
-      ]);
-      if (existingInv || existingComm) {
-        wasAlreadyProcessed = true;
-      }
+  const InvoiceModel = mongoose.models.Invoice;
+  const CommissionModel = mongoose.models.CommissionTransaction;
+
+  if (!wasAlreadyProcessed && (InvoiceModel || CommissionModel)) {
+    const [existingTaxInv, existingComm] = await Promise.all([
+      InvoiceModel ? InvoiceModel.findOne({
+        orderId: order._id,
+        $or: [
+          { documentType: 'tax_invoice' },
+          { invoiceNumber: /^SM-HBL-/ },
+          { 'documentNumbers.tax_invoice': { $exists: true, $ne: '' } }
+        ]
+      }).lean().catch(() => null) : null,
+      CommissionModel ? CommissionModel.findOne({ orderId: order._id }).lean().catch(() => null) : null
+    ]);
+    if (existingTaxInv || existingComm) {
+      wasAlreadyProcessed = true;
     }
   }
 
-  // Guard legacy orders from receiving retroactive emails
-  if (wasAlreadyProcessed && !order.confirmationEmailSent) {
-    order.confirmationEmailSent = true;
-  }
-
-  // 1. Update order status & payment details
-  order.status = 'completed';
-  order.paymentStatus = 'completed';
-  order.paymentDetails = order.paymentDetails || {};
-  order.paymentDetails.status = 'verified';
-  order.paymentDetails.verifiedAt = order.paymentDetails.verifiedAt || new Date();
-
-  if (paymentInfo.razorpay_payment_id) {
-    order.razorpay_payment_id = paymentInfo.razorpay_payment_id;
-    order.paymentDetails.razorpay_payment_id = paymentInfo.razorpay_payment_id;
-  }
-  if (paymentInfo.razorpay_order_id) {
-    order.razorpay_order_id = paymentInfo.razorpay_order_id;
-    order.paymentDetails.razorpay_order_id = paymentInfo.razorpay_order_id;
-  }
-  if (paymentInfo.razorpay_signature) {
-    order.paymentDetails.razorpay_signature = paymentInfo.razorpay_signature;
-  }
-  if (paymentInfo.items && Array.isArray(paymentInfo.items) && paymentInfo.items.length > 0) {
-    order.items = paymentInfo.items;
-  }
-  if (paymentInfo.totalAmount && !isNaN(paymentInfo.totalAmount) && Number(paymentInfo.totalAmount) > 0) {
-    order.totalAmount = Number(paymentInfo.totalAmount);
-  }
-  if (paymentInfo.deliveryAddress && typeof paymentInfo.deliveryAddress === 'object' && Object.keys(paymentInfo.deliveryAddress).length > 0) {
-    order.deliveryAddress = paymentInfo.deliveryAddress;
-  }
-
-  await order.save();
-
-  // 2. Auto-generate Tax Invoice (Idempotent: returns existing Tax Invoice if already generated)
-  let invoice = null;
-  try {
-    const { autoGenerateInvoiceForOrder } = require('../routes/invoices');
-    invoice = await autoGenerateInvoiceForOrder(order);
-  } catch (invErr) {
-    console.error('⚠️ Invoice auto-generation error in finalizePaidOrder:', invErr.message);
-  }
-
-  // 3. Automatic commission distribution (Idempotent: guarded by commissionStatus === 'distributed' and CommissionTransaction lookup)
-  try {
-    const { processAutomaticCommissionForOrder } = require('./commissionDistribution');
-    await processAutomaticCommissionForOrder(order);
-  } catch (commErr) {
-    console.error('⚠️ Automatic commission distribution error in finalizePaidOrder:', commErr.message);
-  }
-
-  // 4. Check and activate membership if product subtotal >= ₹100
-  try {
-    const { checkAndActivateMembership } = require('./membershipService');
-    await checkAndActivateMembership(order);
-  } catch (memErr) {
-    console.error('⚠️ Membership activation error in finalizePaidOrder:', memErr.message);
-  }
-
-  // 5. Tree placement & First Purchase tracking
-  try {
-    const user = await User.findById(order.user_id?._id || order.user_id);
-    if (user) {
-      if (!user.firstPurchaseDone) {
-        user.firstPurchaseDone = true;
-        user.firstPurchaseDate = user.firstPurchaseDate || new Date();
-        await user.save();
-      }
-      if (user.isMember && (user.treeLevel === 0 || !user.treeParent)) {
-        const { createTreePlacementOnFirstPurchase } = require('./treePlacement');
-        await createTreePlacementOnFirstPurchase(user._id);
-      }
-    }
-  } catch (treeErr) {
-    console.error('⚠️ Tree placement error in finalizePaidOrder:', treeErr.message);
-  }
-
-  // 6. Award Points for purchased items (Idempotent: check if points were already awarded for this orderId)
-  try {
-    const PointsTransaction = require('../models/PointsTransaction');
-    const existingPointsTx = await PointsTransaction.findOne({ orderId: order._id });
-
-    if (!existingPointsTx && order.items && order.items.length > 0) {
-      const { awardPoints } = require('./pointsService');
-      const Book = require('../models/Book');
-      const Bundle = require('../models/Bundle');
-
-      for (const item of order.items) {
-        let points = 0;
-        if (item.type === 'book') {
-          const book = await Book.findById(item.id);
-          if (book && book.rewardPoints > 0) {
-            points = book.rewardPoints * (item.quantity || 1);
-          }
-        } else if (item.type === 'bundle') {
-          const bundle = await Bundle.findById(item.id);
-          if (bundle && bundle.rewardPoints > 0) {
-            points = bundle.rewardPoints * (item.quantity || 1);
+  if (wasAlreadyProcessed) {
+    // If not already stamped, stamp finalizedAt and finalizationStatus for faster future checks
+    if (!order.finalizedAt || order.finalizationStatus !== 'completed') {
+      await Order.updateOne(
+        { _id: order._id },
+        {
+          $set: {
+            finalizationStatus: 'completed',
+            finalizedAt: order.finalizedAt || order.updatedAt || new Date(),
+            confirmationEmailSent: order.confirmationEmailSent ?? true
           }
         }
-
-        if (points > 0) {
-          await awardPoints(
-            order.user_id?._id || order.user_id,
-            points,
-            item.type === 'book' ? 'book_purchase' : 'bundle_purchase',
-            item.id,
-            order._id
-          );
-        }
-      }
+      ).catch(() => {});
     }
-  } catch (pointsErr) {
-    console.error('⚠️ Points awarding error in finalizePaidOrder:', pointsErr.message);
+    const inv = InvoiceModel ? await InvoiceModel.findOne({ orderId: order._id }).lean().catch(() => null) : null;
+    return {
+      success: true,
+      order,
+      invoice: inv,
+      alreadyProcessed: true
+    };
   }
 
-  // 7. Send confirmation emails (Idempotent: track confirmationEmailSent flag on order)
-  try {
-    if (!order.confirmationEmailSent && !wasAlreadyProcessed) {
-      const { sendOrderConfirmationEmail, sendAdminNotification } = require('../utils/emailService');
-      const user = await User.findById(order.user_id?._id || order.user_id);
-      if (user && user.email) {
-        await sendOrderConfirmationEmail(order, user);
-        await sendAdminNotification(order, user);
+  // 2. ATOMIC CLAIM FOR CONCURRENCY:
+  // Only ONE caller claiming this order can run the side effects.
+  // Condition:
+  // - finalizedAt does not exist or is null
+  // - finalizationStatus is not 'completed'
+  // - finalizationStatus is pending/failed OR lock is stale (claimed > 60s ago)
+  const now = new Date();
+  const staleThreshold = new Date(now.getTime() - LOCK_TIMEOUT_MS);
+
+  const claimFilter = {
+    _id: order._id,
+    $and: [
+      {
+        $or: [
+          { finalizedAt: { $exists: false } },
+          { finalizedAt: null }
+        ]
+      },
+      {
+        finalizationStatus: { $ne: 'completed' }
+      },
+      {
+        $or: [
+          { finalizationStatus: { $in: ['pending', 'failed', null] } },
+          { finalizationStatus: { $exists: false } },
+          { finalizationClaimedAt: { $lt: staleThreshold } },
+          { finalizationClaimedAt: { $exists: false } }
+        ]
       }
-      order.confirmationEmailSent = true;
-      order.emailSentAt = new Date();
-    }
-  } catch (emailErr) {
-    console.error('⚠️ Email notification error in finalizePaidOrder:', emailErr.message);
-  }
-
-  // 8. Mark reward applied and save final state
-  order.rewardApplied = true;
-  await order.save();
-
-  return {
-    success: true,
-    order,
-    invoice,
-    alreadyProcessed: wasAlreadyProcessed
+    ]
   };
+
+  const claimedOrder = await Order.findOneAndUpdate(
+    claimFilter,
+    {
+      $set: {
+        finalizationStatus: 'in_progress',
+        finalizationClaimedAt: now
+      }
+    },
+    { new: true }
+  ).populate('user_id');
+
+  // If another process won the claim:
+  if (!claimedOrder) {
+    // Poll briefly until the winning process finishes or lock becomes stale
+    const maxPollMs = 5000;
+    const pollIntervalMs = 150;
+    const startPoll = Date.now();
+    while (Date.now() - startPoll < maxPollMs) {
+      await new Promise(r => setTimeout(r, pollIntervalMs));
+      const current = await Order.findById(order._id).populate('user_id');
+      if (current && (current.finalizedAt || current.finalizationStatus === 'completed')) {
+        const inv = InvoiceModel ? await InvoiceModel.findOne({ orderId: current._id }).lean().catch(() => null) : null;
+        return {
+          success: true,
+          order: current,
+          invoice: inv,
+          alreadyProcessed: true
+        };
+      }
+      // If winner failed or lock expired, re-attempt claim
+      if (current && (current.finalizationStatus === 'failed' || (current.finalizationClaimedAt && current.finalizationClaimedAt < new Date(Date.now() - LOCK_TIMEOUT_MS)))) {
+        return finalizePaidOrder(order._id, paymentInfo);
+      }
+    }
+
+    const latest = await Order.findById(order._id).populate('user_id');
+    return {
+      success: true,
+      order: latest || order,
+      invoice: null,
+      alreadyProcessed: Boolean(latest && (latest.finalizedAt || latest.finalizationStatus === 'completed'))
+    };
+  }
+
+  // WINNER: Execute side effects with safety catch block to release lock on failure
+  try {
+    // 3. Update order status & payment details
+    claimedOrder.status = 'completed';
+    claimedOrder.paymentStatus = 'completed';
+    claimedOrder.paymentDetails = claimedOrder.paymentDetails || {};
+    claimedOrder.paymentDetails.status = 'verified';
+    claimedOrder.paymentDetails.verifiedAt = claimedOrder.paymentDetails.verifiedAt || new Date();
+
+    if (paymentInfo.razorpay_payment_id) {
+      claimedOrder.razorpay_payment_id = paymentInfo.razorpay_payment_id;
+      claimedOrder.paymentDetails.razorpay_payment_id = paymentInfo.razorpay_payment_id;
+    }
+    if (paymentInfo.razorpay_order_id) {
+      claimedOrder.razorpay_order_id = paymentInfo.razorpay_order_id;
+      claimedOrder.paymentDetails.razorpay_order_id = paymentInfo.razorpay_order_id;
+    }
+    if (paymentInfo.razorpay_signature) {
+      claimedOrder.paymentDetails.razorpay_signature = paymentInfo.razorpay_signature;
+    }
+    if (paymentInfo.items && Array.isArray(paymentInfo.items) && paymentInfo.items.length > 0) {
+      claimedOrder.items = paymentInfo.items;
+    }
+    if (paymentInfo.totalAmount && !isNaN(paymentInfo.totalAmount) && Number(paymentInfo.totalAmount) > 0) {
+      claimedOrder.totalAmount = Number(paymentInfo.totalAmount);
+    }
+    if (paymentInfo.deliveryAddress && typeof paymentInfo.deliveryAddress === 'object' && Object.keys(paymentInfo.deliveryAddress).length > 0) {
+      claimedOrder.deliveryAddress = paymentInfo.deliveryAddress;
+    }
+
+    await claimedOrder.save();
+
+    // 4. Auto-generate Tax Invoice (Idempotent)
+    let invoice = null;
+    try {
+      const { autoGenerateInvoiceForOrder } = require('../routes/invoices');
+      invoice = await autoGenerateInvoiceForOrder(claimedOrder);
+    } catch (invErr) {
+      console.error('⚠️ Invoice auto-generation error in finalizePaidOrder:', invErr.message);
+    }
+
+    // 5. Automatic commission distribution (Idempotent)
+    try {
+      const { processAutomaticCommissionForOrder } = require('./commissionDistribution');
+      await processAutomaticCommissionForOrder(claimedOrder);
+    } catch (commErr) {
+      console.error('⚠️ Automatic commission distribution error in finalizePaidOrder:', commErr.message);
+    }
+
+    // 6. Check and activate membership if product subtotal >= ₹100
+    try {
+      const { checkAndActivateMembership } = require('./membershipService');
+      await checkAndActivateMembership(claimedOrder);
+    } catch (memErr) {
+      console.error('⚠️ Membership activation error in finalizePaidOrder:', memErr.message);
+    }
+
+    // 7. Tree placement & First Purchase tracking
+    try {
+      const user = await User.findById(claimedOrder.user_id?._id || claimedOrder.user_id);
+      if (user) {
+        if (!user.firstPurchaseDone) {
+          user.firstPurchaseDone = true;
+          user.firstPurchaseDate = user.firstPurchaseDate || new Date();
+          await user.save();
+        }
+        if (user.isMember && (user.treeLevel === 0 || !user.treeParent)) {
+          const { createTreePlacementOnFirstPurchase } = require('./treePlacement');
+          await createTreePlacementOnFirstPurchase(user._id);
+        }
+      }
+    } catch (treeErr) {
+      console.error('⚠️ Tree placement error in finalizePaidOrder:', treeErr.message);
+    }
+
+    // 8. Award Points for purchased items (Idempotent)
+    try {
+      const PointsTransaction = require('../models/PointsTransaction');
+      const existingPointsTx = await PointsTransaction.findOne({ orderId: claimedOrder._id });
+
+      if (!existingPointsTx && claimedOrder.items && claimedOrder.items.length > 0) {
+        const { awardPoints } = require('./pointsService');
+        const Book = require('../models/Book');
+        const Bundle = require('../models/Bundle');
+
+        for (const item of claimedOrder.items) {
+          let points = 0;
+          if (item.type === 'book') {
+            const book = await Book.findById(item.id);
+            if (book && book.rewardPoints > 0) {
+              points = book.rewardPoints * (item.quantity || 1);
+            }
+          } else if (item.type === 'bundle') {
+            const bundle = await Bundle.findById(item.id);
+            if (bundle && bundle.rewardPoints > 0) {
+              points = bundle.rewardPoints * (item.quantity || 1);
+            }
+          }
+
+          if (points > 0) {
+            await awardPoints(
+              claimedOrder.user_id?._id || claimedOrder.user_id,
+              points,
+              item.type === 'book' ? 'book_purchase' : 'bundle_purchase',
+              item.id,
+              claimedOrder._id
+            );
+          }
+        }
+      }
+    } catch (pointsErr) {
+      console.error('⚠️ Points awarding error in finalizePaidOrder:', pointsErr.message);
+    }
+
+    // 9. Send confirmation emails (Idempotent)
+    try {
+      if (!claimedOrder.confirmationEmailSent) {
+        const { sendOrderConfirmationEmail, sendAdminNotification } = require('../utils/emailService');
+        const user = await User.findById(claimedOrder.user_id?._id || claimedOrder.user_id);
+        if (user && user.email) {
+          await sendOrderConfirmationEmail(claimedOrder, user);
+          await sendAdminNotification(claimedOrder, user);
+        }
+        claimedOrder.confirmationEmailSent = true;
+        claimedOrder.emailSentAt = new Date();
+      }
+    } catch (emailErr) {
+      console.error('⚠️ Email notification error in finalizePaidOrder:', emailErr.message);
+    }
+
+    // 10. Mark completed, set finalizedAt, rewardApplied, clear lock
+    claimedOrder.finalizationStatus = 'completed';
+    claimedOrder.finalizedAt = new Date();
+    claimedOrder.finalizationError = '';
+    claimedOrder.rewardApplied = true;
+    await claimedOrder.save();
+
+    return {
+      success: true,
+      order: claimedOrder,
+      invoice,
+      alreadyProcessed: false
+    };
+  } catch (err) {
+    // If winner crashes, mark status as failed so retry/reconcile can re-claim immediately
+    await Order.updateOne(
+      { _id: claimedOrder._id },
+      {
+        $set: {
+          finalizationStatus: 'failed',
+          finalizationError: err.message || String(err),
+          finalizationClaimedAt: null
+        }
+      }
+    ).catch(() => {});
+    throw err;
+  }
 }
 
 module.exports = {
   finalizePaidOrder
 };
-

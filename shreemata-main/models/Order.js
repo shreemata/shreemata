@@ -153,7 +153,17 @@ const orderSchema = new mongoose.Schema({
 
     // Email notification idempotency tracking
     confirmationEmailSent: { type: Boolean, default: false },
-    emailSentAt: { type: Date }
+    emailSentAt: { type: Date },
+
+    // Finalization concurrency lock & audit
+    finalizedAt: { type: Date },
+    finalizationStatus: { 
+        type: String, 
+        enum: ['pending', 'in_progress', 'completed', 'failed'], 
+        default: 'pending' 
+    },
+    finalizationClaimedAt: { type: Date },
+    finalizationError: { type: String, default: "" }
 
 }, { timestamps: true });
 
