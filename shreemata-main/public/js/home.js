@@ -148,26 +148,6 @@ async function loadClassesAndSubjects() {
                 });
                 console.log(`Added ${subjects.length} subject options`);
             }
-
-            // Populate dynamic Subject Cards with Real Book Thumbnails from catalog
-            const subjectChipsContainer = document.getElementById('subjectChipsContainer');
-            if (subjectChipsContainer) {
-                subjectChipsContainer.innerHTML = subjects.map(subject => {
-                    const matchingBooks = books.filter(b => b.subject && b.subject.toLowerCase() === subject.toLowerCase());
-                    const repBook = matchingBooks[0] || books[0];
-                    const minPrice = Math.min(...matchingBooks.map(b => parseFloat(b.price) || 99));
-                    return `
-                        <div class="subject-real-card" onclick="selectSubjectChip('${subject}')">
-                            <div class="subject-thumb-box">
-                                <img src="${repBook.cover_image || 'images/press.png'}" alt="${subject}" loading="lazy" />
-                            </div>
-                            <div class="subject-title">${subject}</div>
-                            <div class="subject-meta">${matchingBooks.length} Book${matchingBooks.length > 1 ? 's' : ''} • From ₹${minPrice.toFixed(0)}</div>
-                            <span class="subject-explore-link">Explore Subject →</span>
-                        </div>
-                    `;
-                }).join('');
-            }
             
             console.log(`Successfully loaded ${classes.length} classes and ${subjects.length} subjects`);
         } else {
