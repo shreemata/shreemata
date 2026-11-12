@@ -77,7 +77,17 @@ const noteSubscriptionSchema = new mongoose.Schema({
   },
   razorpaySignature: {
     type: String,
-    required: function() { return this.planType !== 'admin_grant'; },
+    required: function() {
+      if (this.planType === 'admin_grant') return false;
+      if (this.paymentDetails && (
+        this.paymentDetails.method === 'razorpay_webhook' ||
+        this.paymentDetails.method === 'reconcile' ||
+        this.paymentDetails.source === 'reconcile'
+      )) {
+        return false;
+      }
+      return true;
+    },
     trim: true
   },
   grantedBy: {
@@ -105,6 +115,7 @@ const noteSubscriptionSchema = new mongoose.Schema({
   },
   paymentDetails: {
     method: { type: String, default: 'razorpay' },
+    source: { type: String },
     capturedAt: { type: Date }
   }
 }, {

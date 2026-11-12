@@ -855,4 +855,152 @@ describe('5. Concurrency: verify-order and webhook racing', () => {
     expect(subs.length).toBe(1);
     expect(subs[0].status).toBe('active');
   });
+
+  describe('6. NoteSubscription Schema Signature Validation & Webhook/Reconcile Exemption', () => {
+    it('activates subscription via webhook path and saves valid subscription document', async () => {
+      const orderId = 'order_wh_sig_rule_99';
+      const paymentId = 'pay_wh_sig_rule_99';
+
+      const subOrder = await SubscriptionOrder.create({
+        userId: testStudentUser._id,
+        section: 'notes',
+        durationDays: 30,
+        amountPaise: 9900,
+        currency: 'INR',
+        planType: 'standard',
+        razorpayOrderId: orderId,
+        status: 'created'
+      });
+
+      const activateSubscriptionForOrder = subscriptionsRouter._testHelpers.activateSubscriptionForOrder;
+      const result = await activateSubscriptionForOrder({
+        subOrder,
+        paymentId,
+        signature: null,
+        paymentDetails: {
+          method: 'razorpay_webhook',
+          capturedAt: new Date()
+        }
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.subscription).toBeDefined();
+
+      const savedSub = await NoteSubscription.findById(result.subscription._id);
+      expect(savedSub).toBeTruthy();
+      expect(savedSub.status).toBe('active');
+      expect(savedSub.planType).toBe('standard');
+      expect(savedSub.razorpaySignature).toBeTruthy();
+      expect(savedSub.paymentDetails?.method).toBe('razorpay_webhook');
+
+      // Schema validation must pass cleanly on the saved document
+      await expect(savedSub.validate()).resolves.toBeUndefined();
+    });
+
+    it('activates subscription via reconcile path and saves valid subscription document', async () => {
+      const orderId = 'order_rec_sig_rule_99';
+      const paymentId = 'pay_rec_sig_rule_99';
+
+      const subOrder = await SubscriptionOrder.create({
+        userId: testStudentUser._id,
+        section: 'question_papers',
+        durationDays: 30,
+        amountPaise: 9900,
+        currency: 'INR',
+        planType: 'standard',
+        razorpayOrderId: orderId,
+        status: 'created'
+      });
+
+      const activateSubscriptionForOrder = subscriptionsRouter._testHelpers.activateSubscriptionForOrder;
+      const result = await activateSubscriptionForOrder({
+        subOrder,
+        paymentId,
+        paymentDetails: {
+          method: 'upi',
+          source: 'reconcile',
+          capturedAt: new Date()
+        }
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.subscription).toBeDefined();
+
+      const savedSub = await NoteSubscription.findById(result.subscription._id);
+      expect(savedSub).toBeTruthy();
+      expect(savedSub.status).toBe('active');
+      expect(savedSub.planType).toBe('standard');
+      expect(savedSub.razorpaySignature).toBeTruthy();
+      expect(savedSub.paymentDetails?.source).toBe('reconcile');
+
+      // Schema validation must pass cleanly on the saved document
+      await expect(savedSub.validate()).resolves.toBeUndefined();
+    });
+
+    it('NoteSubscription schema exempts webhook and reconcile from razorpaySignature requirement, while requiring it for checkout', async () => {
+      const now = new Date();
+      const expires = new Date(now.getTime() + 30 * 86400000);
+
+      // A) Webhook activation without signature: VALID
+      const webhookSub = new NoteSubscription({
+        userId: testStudentUser._id,
+        section: 'notes',
+        planType: 'standard',
+        durationDays: 30,
+        amountPaid: 99,
+        status: 'active',
+        startDate: now,
+        expiresAt: expires,
+        razorpayOrderId: 'order_wh_nosig_1',
+        razorpayPaymentId: 'pay_wh_nosig_1',
+        paymentDetails: { method: 'razorpay_webhook' }
+      });
+      await expect(webhookSub.validate()).resolves.toBeUndefined();
+
+      // B) Reconcile activation without signature: VALID
+      const reconcileSub = new NoteSubscription({
+        userId: testStudentUser._id,
+        section: 'notes',
+        planType: 'standard',
+        durationDays: 30,
+        amountPaid: 99,
+        status: 'active',
+        startDate: now,
+        expiresAt: expires,
+        razorpayOrderId: 'order_rec_nosig_1',
+        razorpayPaymentId: 'pay_rec_nosig_1',
+        paymentDetails: { source: 'reconcile' }
+      });
+      await expect(reconcileSub.validate()).resolves.toBeUndefined();
+
+      // C) Admin grant without signature: VALID
+      const adminGrantSub = new NoteSubscription({
+        userId: testStudentUser._id,
+        section: 'notes',
+        planType: 'admin_grant',
+        durationDays: 30,
+        amountPaid: 0,
+        status: 'active',
+        startDate: now,
+        expiresAt: expires
+      });
+      await expect(adminGrantSub.validate()).resolves.toBeUndefined();
+
+      // D) Standard checkout subscription without signature: INVALID (fails validation)
+      const invalidCheckoutSub = new NoteSubscription({
+        userId: testStudentUser._id,
+        section: 'notes',
+        planType: 'standard',
+        durationDays: 30,
+        amountPaid: 99,
+        status: 'active',
+        startDate: now,
+        expiresAt: expires,
+        razorpayOrderId: 'order_invalid_checkout_1',
+        razorpayPaymentId: 'pay_invalid_checkout_1',
+        paymentDetails: { method: 'razorpay', source: 'checkout' }
+      });
+      await expect(invalidCheckoutSub.validate()).rejects.toThrow(/razorpaySignature/);
+    });
+  });
 });

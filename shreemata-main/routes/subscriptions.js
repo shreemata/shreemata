@@ -634,6 +634,7 @@ async function activateSubscriptionForOrder({ subOrder, paymentId, signature = n
           razorpaySignature: signatureToSave,
           paymentDetails: {
             method: paymentDetails.method || "razorpay",
+            source: paymentDetails.source || (paymentDetails.method === "razorpay_webhook" ? "webhook" : "checkout"),
             capturedAt: paymentDetails.capturedAt || new Date()
           }
         }]);
@@ -1077,6 +1078,7 @@ router.post("/admin/orders/:id/reconcile", authenticateToken, isAdmin, async (re
       paymentId: capturedPayment.id,
       paymentDetails: {
         method: capturedPayment.method || "razorpay",
+        source: "reconcile",
         capturedAt: new Date(capturedPayment.created_at ? capturedPayment.created_at * 1000 : Date.now())
       }
     });
