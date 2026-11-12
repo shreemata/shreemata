@@ -1,32 +1,73 @@
 
 
-document.addEventListener("DOMContentLoaded", () => {
-    // Capture redirect URL parameter if present
-    const urlParams = new URLSearchParams(window.location.search);
-    const redirectParam = urlParams.get('redirect');
-    if (redirectParam) {
-        localStorage.setItem('redirectAfterLogin', redirectParam);
-    }
+function getSafeRedirectUrl(target) {
+    if (!target || typeof target !== 'string') return null;
+    const raw = target.trim();
+    if (!raw) return null;
 
-    // Check if user is already logged in
-    const token = localStorage.getItem('token');
-    if (token) {
-        const redirectUrl = localStorage.getItem('redirectAfterLogin') || redirectParam;
-        if (redirectUrl) {
+    // Reject control characters or backslashes immediately
+    if (raw.includes('\\') || /[\r\n\t]/.test(raw)) return null;
+
+    // Reject encoded backslashes (%5c) or double slashes (%2f%2f)
+    if (/%5c/i.test(raw) || /%2f%2f/i.test(raw)) return null;
+
+    // Iteratively decode to prevent nested URI encoding bypasses
+    let decoded = raw;
+    for (let i = 0; i < 3; i++) {
+        try {
+            const next = decodeURIComponent(decoded);
+            if (next === decoded) break;
+            decoded = next;
+        } catch (_) {
+            return null; // Malformed URI encoding
+        }
+    }
+    decoded = decoded.trim();
+
+    // Must still contain no backslashes after decoding
+    if (decoded.includes('\\')) return null;
+
+    // Must start with a single '/' and not with '//'
+    if (!decoded.startsWith('/') || decoded.startsWith('//')) return null;
+
+    // Disallow absolute URI schemes (http:, https:, javascript:, data:, etc.)
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/i.test(decoded)) return null;
+    if (/javascript:/i.test(decoded)) return null;
+
+    return raw;
+}
+
+if (typeof document !== 'undefined') {
+    document.addEventListener("DOMContentLoaded", () => {
+        // Capture redirect URL parameter if present and safely relative
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectParam = getSafeRedirectUrl(urlParams.get('redirect'));
+        if (redirectParam) {
+            localStorage.setItem('redirectAfterLogin', redirectParam);
+        } else {
             localStorage.removeItem('redirectAfterLogin');
-            window.location.href = redirectUrl;
+        }
+
+        // Check if user is already logged in
+        const token = localStorage.getItem('token');
+        if (token) {
+            const redirectUrl = getSafeRedirectUrl(localStorage.getItem('redirectAfterLogin')) || redirectParam;
+            if (redirectUrl) {
+                localStorage.removeItem('redirectAfterLogin');
+                window.location.href = redirectUrl;
+                return;
+            }
+            window.location.href = '/';
             return;
         }
-        window.location.href = '/';
-        return;
-    }
 
-    setupEmailLoginForm();
-    setupPhoneLoginForm();
-    setupInputValidation();
-    setupPasswordToggle();
-    loadRememberedCredentials();
-});
+        setupEmailLoginForm();
+        setupPhoneLoginForm();
+        setupInputValidation();
+        setupPasswordToggle();
+        loadRememberedCredentials();
+    });
+}
 
 function setupInputValidation() {
     const emailInput = document.getElementById("email");
@@ -192,9 +233,9 @@ function setupEmailLoginForm() {
 
             // Redirect
             setTimeout(() => {
-                const redirectUrl = localStorage.getItem("redirectAfterLogin");
+                const redirectUrl = getSafeRedirectUrl(localStorage.getItem("redirectAfterLogin"));
+                localStorage.removeItem("redirectAfterLogin");
                 if (redirectUrl) {
-                    localStorage.removeItem("redirectAfterLogin");
                     window.location.href = redirectUrl;
                 } else if (data.user && data.user.role === 'admin') {
                     window.location.href = "/admin.html";
@@ -290,9 +331,9 @@ function setupPhoneLoginForm() {
 
             // Redirect
             setTimeout(() => {
-                const redirectUrl = localStorage.getItem("redirectAfterLogin");
+                const redirectUrl = getSafeRedirectUrl(localStorage.getItem("redirectAfterLogin"));
+                localStorage.removeItem("redirectAfterLogin");
                 if (redirectUrl) {
-                    localStorage.removeItem("redirectAfterLogin");
                     window.location.href = redirectUrl;
                 } else if (data.user && data.user.role === 'admin') {
                     window.location.href = "/admin.html";
@@ -386,6 +427,7 @@ function setupPasswordToggle() {
     }
 }
 
-
-
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { getSafeRedirectUrl };
+}
 

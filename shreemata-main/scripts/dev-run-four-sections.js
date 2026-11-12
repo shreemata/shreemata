@@ -660,6 +660,109 @@ async function bootstrap() {
   await Note.create(digitalNotes);
   console.log(`[Seed] Seeded ${digitalNotes.length} digital study materials (Notes, QPs, Videos, Others).`);
 
+  // E. Seed Sample Orders for Invoices and Reconcile Review
+  const Order = require('../models/Order');
+  const { Invoice } = require('../routes/invoices');
+  const seededBook = await Book.findOne();
+
+  const completedOrder = await Order.create({
+    user_id: guestStudent._id,
+    items: [{
+      id: seededBook._id.toString(),
+      title: seededBook.title,
+      author: seededBook.author,
+      price: seededBook.price,
+      quantity: 1,
+      profit: seededBook.profit || 50
+    }],
+    totalAmount: seededBook.price,
+    orderProfitTotal: seededBook.profit || 50,
+    status: 'completed',
+    paymentStatus: 'completed',
+    paymentType: 'online',
+    paymentDetails: {
+      status: 'verified',
+      razorpay_payment_id: 'pay_dev_comp_001',
+      razorpay_order_id: 'order_dev_comp_001',
+      verifiedAt: new Date()
+    },
+    razorpay_order_id: 'order_dev_comp_001',
+    razorpay_payment_id: 'pay_dev_comp_001',
+    invoice_number: 'SM-HBL-0000000001',
+    invoiceGenerated: true,
+    documentNumbers: { tax_invoice: 'SM-HBL-0000000001' },
+    confirmationEmailSent: true,
+    rewardApplied: true,
+    deliveryAddress: { address: 'Plot 42, Vidyanagar', city: 'Hubballi', pincode: '580021', phone: guestStudent.phone }
+  });
+
+  await Invoice.create({
+    orderId: completedOrder._id,
+    invoiceNumber: 'SM-HBL-0000000001',
+    invoiceDate: new Date(),
+    documentType: 'tax_invoice',
+    documentNumbers: { tax_invoice: 'SM-HBL-0000000001' },
+    customerName: guestStudent.name,
+    customerEmail: guestStudent.email,
+    customerPhone: guestStudent.phone,
+    billingAddress: 'Plot 42, Vidyanagar, Hubballi, Karnataka 580021',
+    products: [{
+      productName: seededBook.title,
+      hsnCode: '4901',
+      unitPrice: seededBook.price,
+      bundles: 1,
+      gstPercent: 0,
+      taxableAmount: seededBook.price,
+      sgstAmount: 0,
+      cgstAmount: 0,
+      total: seededBook.price
+    }],
+    grandTotal: seededBook.price
+  });
+
+  const pendingOrder = await Order.create({
+    user_id: guestStudent._id,
+    items: [{
+      id: seededBook._id.toString(),
+      title: seededBook.title,
+      author: seededBook.author,
+      price: seededBook.price,
+      quantity: 1,
+      profit: seededBook.profit || 50
+    }],
+    totalAmount: seededBook.price,
+    orderProfitTotal: seededBook.profit || 50,
+    status: 'pending',
+    paymentStatus: 'pending',
+    paymentType: 'online',
+    razorpay_order_id: 'order_dev_unverified_002',
+    paymentDetails: {
+      status: 'pending_verification',
+      razorpay_order_id: 'order_dev_unverified_002'
+    },
+    deliveryAddress: { address: 'Plot 42, Vidyanagar', city: 'Hubballi', pincode: '580021', phone: guestStudent.phone }
+  });
+
+  const cancelledOrder = await Order.create({
+    user_id: guestStudent._id,
+    items: [{
+      id: seededBook._id.toString(),
+      title: seededBook.title,
+      author: seededBook.author,
+      price: seededBook.price,
+      quantity: 1,
+      profit: seededBook.profit || 50
+    }],
+    totalAmount: seededBook.price,
+    orderProfitTotal: seededBook.profit || 50,
+    status: 'cancelled',
+    paymentStatus: 'failed',
+    paymentType: 'online',
+    paymentDetails: { status: 'rejected' },
+    deliveryAddress: { address: 'Plot 42, Vidyanagar', city: 'Hubballi', pincode: '580021', phone: guestStudent.phone }
+  });
+  console.log(`[Seed] Seeded 3 sample orders (Completed: ${completedOrder._id}, Pending unverified: ${pendingOrder._id}, Cancelled: ${cancelledOrder._id}).`);
+
   // 8. Start Real Express App from server.js
   console.log('[Server] Launching Express application on port 3100...');
   require('../server.js');

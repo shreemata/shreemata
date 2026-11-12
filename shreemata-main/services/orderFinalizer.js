@@ -31,12 +31,33 @@ async function finalizePaidOrder(orderOrId, paymentInfo = {}) {
   }
 
   // Track if this order was already processed prior to this invocation
-  const wasAlreadyProcessed = Boolean(
-    order.status === 'completed' &&
-    order.paymentStatus === 'completed' &&
-    order.paymentDetails?.status === 'verified' &&
-    order.rewardApplied
+  // (handles: 1. Modern completed orders with rewardApplied or confirmationEmailSent;
+  //          2. Legacy orders with status completed & verified payment status;
+  //          3. Orders with existing invoice or commission transactions)
+  let wasAlreadyProcessed = Boolean(
+    order.rewardApplied ||
+    order.confirmationEmailSent ||
+    (order.status === 'completed' && (order.paymentStatus === 'completed' || order.paymentDetails?.status === 'verified'))
   );
+
+  if (!wasAlreadyProcessed) {
+    const InvoiceModel = mongoose.models.Invoice;
+    const CommissionModel = mongoose.models.CommissionTransaction;
+    if (InvoiceModel || CommissionModel) {
+      const [existingInv, existingComm] = await Promise.all([
+        InvoiceModel ? InvoiceModel.findOne({ orderId: order._id }).lean().catch(() => null) : null,
+        CommissionModel ? CommissionModel.findOne({ orderId: order._id }).lean().catch(() => null) : null
+      ]);
+      if (existingInv || existingComm) {
+        wasAlreadyProcessed = true;
+      }
+    }
+  }
+
+  // Guard legacy orders from receiving retroactive emails
+  if (wasAlreadyProcessed && !order.confirmationEmailSent) {
+    order.confirmationEmailSent = true;
+  }
 
   // 1. Update order status & payment details
   order.status = 'completed';
