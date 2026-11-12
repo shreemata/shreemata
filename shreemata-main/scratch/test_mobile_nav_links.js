@@ -41,7 +41,7 @@ function testMobileNavLinks() {
     assert('index.html: 📚 All Books -> /#booksSection', indexHtml.includes('href="/#booksSection" class="drawer-link">📚 All Books</a>'));
     assert('index.html: 🎁 Complete Book Sets -> /bundles.html', indexHtml.includes('href="/bundles.html" class="drawer-link">🎁 Complete Book Sets</a>'));
     assert('index.html: 🎓 Class 10 Curriculum -> /#classSection', indexHtml.includes('href="/#classSection" class="drawer-link">🎓 Class 10 Curriculum</a>'));
-    assert('index.html: 🏷️ Categories & Subjects -> /#subjectSection', indexHtml.includes('href="/#subjectSection" class="drawer-link">🏷️ Categories & Subjects</a>'));
+    assert('index.html: 🏷️ Categories & Subjects -> /#classSection', indexHtml.includes('href="/#classSection" class="drawer-link">🏷️ Categories & Subjects</a>'));
     assert('index.html: 🎉 Offers & Deals -> /#notificationsSection', indexHtml.includes('href="/#notificationsSection" class="drawer-link">🎉 Offers & Deals</a>'));
     assert('index.html drawer: Track Your Order === /track-order.html', indexHtml.includes('href="/track-order.html" class="drawer-link">📦 Track Your Order</a>'));
     assert('index.html drawer: My Orders === /orders.html', indexHtml.includes('href="/orders.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">📦 My Orders</a>'));
@@ -68,7 +68,7 @@ function testMobileNavLinks() {
     // Check ensureMobileDrawerDOM in global-nav.js
     assert('global-nav.js: Dynamic drawer generates /bundles.html', globalNavJs.includes('href="/bundles.html" class="drawer-link">🎁 Complete Book Sets</a>'));
     assert('global-nav.js: Dynamic drawer generates /#classSection', globalNavJs.includes('href="/#classSection" class="drawer-link">🎓 Class 10 Curriculum</a>'));
-    assert('global-nav.js: Dynamic drawer generates /#subjectSection', globalNavJs.includes('href="/#subjectSection" class="drawer-link">🏷️ Categories & Subjects</a>'));
+    assert('global-nav.js: Dynamic drawer generates /#classSection', globalNavJs.includes('href="/#classSection" class="drawer-link">🏷️ Categories & Subjects</a>'));
     assert('global-nav.js: Dynamic drawer generates /#notificationsSection', globalNavJs.includes('href="/#notificationsSection" class="drawer-link">🎉 Offers & Deals</a>'));
     assert('global-nav.js drawer: Track Your Order === /track-order.html', globalNavJs.includes('href="/track-order.html" class="drawer-link">📦 Track Your Order</a>'));
     assert('global-nav.js drawer: My Orders === /orders.html', globalNavJs.includes('href="/orders.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">📦 My Orders</a>'));

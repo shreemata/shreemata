@@ -226,7 +226,7 @@
                     </div>
                     <nav class="drawer-nav">
                         <a href="/#booksSection" class="drawer-link">📚 All Books</a>
-                        <a href="/#subjectSection" class="drawer-link">🏷️ Categories & Subjects</a>
+                        <a href="/#classSection" class="drawer-link">🏷️ Categories & Subjects</a>
                         <a href="/#notificationsSection" class="drawer-link">🎉 Offers & Deals</a>
                         <a href="/track-order.html" class="drawer-link">📦 Track Your Order</a>
                         <a href="/cart.html" class="drawer-link">🛒 Shopping Cart</a>

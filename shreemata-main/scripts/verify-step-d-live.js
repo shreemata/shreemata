@@ -334,7 +334,7 @@ async function runStepDVerification() {
     <div style="font-weight: 800; font-size: 18px; color: #102a43;">Shree Mata</div>
     <div class="nav-links">
       <a href="#booksSection">Books</a>
-      <a href="#subjectSection">Categories</a>
+      <a href="#classSection">Categories</a>
       <a href="#notificationsSection">Offers</a>
       <a href="/orders.html">Orders</a>
       <a href="/cart.html">Cart (0)</a>
@@ -365,7 +365,7 @@ async function runStepDVerification() {
     <div style="font-weight: 800; font-size: 18px; color: #102a43;">Shree Mata</div>
     <div class="nav-links">
       <a href="#booksSection">Books</a>
-      <a href="#subjectSection">Categories</a>
+      <a href="#classSection">Categories</a>
       <a href="#notificationsSection">Offers</a>
       <a href="/notes.html" class="highlight">📖 Study Material</a>
       <a href="/orders.html">Orders</a>
