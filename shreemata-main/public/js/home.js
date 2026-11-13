@@ -82,58 +82,6 @@ async function loadClassesAndSubjects() {
                 console.log(`Added ${classes.length} class options`);
             }
 
-            // Populate dynamic Class Container (Adaptive Class 10 Hub or multi-class chips)
-            const classChipsContainer = document.getElementById('classChipsContainer');
-            if (classChipsContainer) {
-                if (classes.length === 1 && classes[0] === '10') {
-                    const mathBook = books.find(b => (b.subject && b.subject.toLowerCase().includes('math')) || (b.title && b.title.toLowerCase().includes('math'))) || books[0];
-                    const sciBook = books.find(b => (b.subject && b.subject.toLowerCase().includes('science')) || (b.title && b.title.toLowerCase().includes('science'))) || books[1] || books[0];
-                    const kanBook = books.find(b => (b.subject && b.subject.toLowerCase().includes('kannada')) || (b.title && b.title.toLowerCase().includes('kannada'))) || books[2] || books[0];
-
-                    classChipsContainer.innerHTML = `
-                        <div class="class-feature-banner">
-                            <div class="class-feature-info">
-                                <span class="class-feature-pill">Curriculum Spotlight</span>
-                                <h3 class="class-feature-title">Everything for Class 10</h3>
-                                <p class="class-feature-desc">
-                                    Complete official syllabus textbooks, practice workbooks, and discounted all-in-one sets covering Mathematics, Science, Social Science, English, Kannada, and Hindi.
-                                </p>
-                                <div class="class-feature-badges">
-                                    <span class="class-subject-tag">📐 Mathematics</span>
-                                    <span class="class-subject-tag">🔬 Science</span>
-                                    <span class="class-subject-tag">🌍 Social Science</span>
-                                    <span class="class-subject-tag">📖 Languages</span>
-                                </div>
-                                <div class="class-feature-actions">
-                                    <button type="button" class="btn-class-primary" onclick="selectClassChip(this, '10')">Explore Class 10 Books →</button>
-                                    <a href="#bundlesSection" class="btn-class-secondary">Buy Complete 10th Set (₹325)</a>
-                                </div>
-                            </div>
-                            <div class="class-feature-visual" aria-hidden="true">
-                                <div class="class-book-thumb">
-                                    <img src="${mathBook.cover_image || 'https://res.cloudinary.com/degwjha60/image/upload/v1789113792/fgof9q3orqhgeg0swcdf.jpg'}" alt="Mathematics" loading="lazy">
-                                </div>
-                                <div class="class-book-thumb">
-                                    <img src="${sciBook.cover_image || 'https://res.cloudinary.com/degwjha60/image/upload/v1789113820/rqu2wvoroihouoe6vjgx.jpg'}" alt="Science" loading="lazy">
-                                </div>
-                                <div class="class-book-thumb">
-                                    <img src="${kanBook.cover_image || 'https://res.cloudinary.com/degwjha60/image/upload/v1789117103/jfaydvq4wucvvyrj7b9h.jpg'}" alt="Kannada" loading="lazy">
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    classChipsContainer.innerHTML = `
-                        <div class="class-chips-scroll">
-                            <button type="button" class="class-chip-pill active" data-class="" onclick="selectClassChip(this, '')">All Grades</button>
-                            ${classes.map(className => `
-                                <button type="button" class="class-chip-pill" data-class="${className}" onclick="selectClassChip(this, '${className}')">Class ${className}</button>
-                            `).join('')}
-                        </div>
-                    `;
-                }
-            }
-            
             // Populate subject filter dropdown
             const subjectFilter = document.getElementById('subjectFilter');
             console.log('Subject filter element:', subjectFilter);

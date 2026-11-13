@@ -1713,122 +1713,7 @@ body.hero-stage-dragging * {
     background: var(--bg-ivory-surface);
 }
 
-/* ── 10. CLASS 10 CAMPAIGN BANNER ── */
-.class-feature-banner {
-    background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy-deep) 100%);
-    border-radius: var(--radius-xl);
-    padding: 52px 56px;
-    color: var(--bg-white-pure);
-    display: grid;
-    grid-template-columns: 1.15fr 1fr;
-    align-items: center;
-    gap: 48px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 20px 50px -10px rgba(11, 30, 48, 0.35);
-}
-
-.class-feature-banner::before {
-    content: '';
-    position: absolute;
-    top: -50px;
-    right: -50px;
-    width: 360px;
-    height: 360px;
-    background: radial-gradient(circle, rgba(201, 154, 53, 0.16) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-}
-
-.class-feature-info {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    z-index: 2;
-}
-
-.class-feature-pill {
-    background: rgba(201, 154, 53, 0.22);
-    border: 1px solid var(--gold-muted);
-    color: var(--gold-soft);
-    font-size: 11.5px;
-    font-weight: 700;
-    padding: 4px 14px;
-    border-radius: var(--radius-full);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    width: fit-content;
-}
-
-.class-feature-title {
-    font-family: var(--font-serif);
-    font-size: clamp(2rem, 2.4vw + 0.5rem, 2.85rem);
-    font-weight: 700;
-    line-height: 1.15;
-    color: var(--bg-white-pure);
-}
-
-.class-feature-desc {
-    font-size: 15.5px;
-    color: #CBD5E1;
-    line-height: 1.65;
-    max-width: 520px;
-}
-
-.class-feature-badges {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.class-subject-tag {
-    background: rgba(255, 255, 255, 0.09);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    padding: 5px 12px;
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    color: #E2E8F0;
-}
-
-.class-feature-actions {
-    display: flex;
-    gap: 16px;
-    margin-top: 6px;
-    flex-wrap: wrap;
-}
-
-.btn-class-primary {
-    background: var(--gold-muted);
-    color: var(--text-ink);
-    font-size: 14.5px;
-    font-weight: 700;
-    padding: 13px 26px;
-    border-radius: var(--radius-full);
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(201, 154, 53, 0.3);
-    transition: background var(--transition-fast), transform var(--transition-fast);
-}
-
-.btn-class-primary:hover {
-    background: var(--gold-soft);
-    transform: translateY(-2px);
-}
-
-.btn-class-secondary {
-    background: transparent;
-    color: var(--bg-white-pure);
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    font-size: 14.5px;
-    font-weight: 600;
-    padding: 13px 24px;
-    border-radius: var(--radius-full);
-    transition: all var(--transition-fast);
-}
-
-.btn-class-secondary:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: var(--bg-white-pure);
-}
+/* ── 10. BOOK THUMB VISUAL (SHARED BY NOTIFICATIONS/HOME) ── */
 
 /* Layered 3D Book Visual in Class 10 Banner */
 .class-feature-visual {
@@ -2985,11 +2870,6 @@ footer {
         gap: 32px;
         padding: 36px;
     }
-    
-    .class-feature-banner {
-        grid-template-columns: 1fr;
-        padding: 40px 32px;
-    }
 }
 
 /* ==========================================================================
@@ -3666,53 +3546,7 @@ footer {
         font-size: 13.5px;
     }
 
-    /* ── Class 10 Campaign Banner ── */
-    .class-feature-banner {
-        grid-template-columns: 1fr;
-        padding: clamp(28px, 6vw, 36px) clamp(16px, 4vw, 24px);
-        gap: 26px;
-        border-radius: var(--radius-lg);
-        width: 100%;
-        max-width: 100%;
-    }
-
-    .class-feature-title {
-        font-size: clamp(24px, 6.2vw, 28px);
-        line-height: 1.2;
-    }
-
-    .class-feature-desc {
-        font-size: 14px;
-        line-height: 1.55;
-    }
-
-    .class-feature-badges {
-        gap: 6px;
-    }
-
-    .class-subject-tag {
-        font-size: 12px;
-        padding: 4px 9px;
-    }
-
-    .class-feature-actions {
-        flex-direction: column;
-        width: 100%;
-        gap: 10px;
-    }
-
-    .btn-class-primary,
-    .btn-class-secondary {
-        width: 100%;
-        min-height: 44px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 12px 16px;
-        font-size: 14px;
-    }
-
+    /* ── Book Visual Mobile ── */
     .class-feature-visual {
         display: flex;
         align-items: center;

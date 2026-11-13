@@ -226,7 +226,7 @@
                     </div>
                     <nav class="drawer-nav">
                         <a href="/#booksSection" class="drawer-link">📚 All Books</a>
-                        <a href="/#classSection" class="drawer-link">🏷️ Categories & Subjects</a>
+                        <a href="/#booksSection" class="drawer-link">🏷️ Categories & Subjects</a>
                         <a href="/#notificationsSection" class="drawer-link">🎉 Offers & Deals</a>
                         <a href="/track-order.html" class="drawer-link">📦 Track Your Order</a>
                         <a href="/cart.html" class="drawer-link">🛒 Shopping Cart</a>
@@ -363,16 +363,15 @@
                 const targetId = hash.replace("#", "");
                 closeDrawer();
 
-                if (targetId === "classSection" && typeof window.filterByClass === "function") {
-                    window.filterByClass("10");
-                } else {
+
+
+
                     setTimeout(() => {
-                        const el = document.getElementById(targetId);
-                        if (el) {
-                            el.scrollIntoView({ behavior: "smooth", block: "start" });
-                        }
-                    }, 120);
-                }
+                    const el = document.getElementById(targetId);
+                    if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                }, 120);
                 return;
             }
 
