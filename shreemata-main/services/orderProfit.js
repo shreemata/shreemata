@@ -17,7 +17,15 @@ const Bundle = require('../models/Bundle');
 function calculateProductUnitProfit(product, actualUnitPrice = 0) {
   const validUnitPrice = Math.max(0, Number(actualUnitPrice) || 0);
 
-  if (!product || !product.profitConfigured) {
+  const isConfigured = Boolean(
+    product && (
+      product.profitConfigured === true ||
+      product.profitConfigured === 'true' ||
+      (typeof product.profitValue === 'number' && product.profitValue > 0)
+    )
+  );
+
+  if (!product || !isConfigured) {
     return {
       profitTypeSnapshot: (product && product.profitType) || 'fixed',
       profitValueSnapshot: (product && typeof product.profitValue === 'number') ? product.profitValue : 0,
@@ -72,24 +80,30 @@ async function buildOrderProfitSnapshot(items = []) {
   for (const item of items) {
     const itemCopy = typeof item.toObject === 'function' ? item.toObject() : { ...item };
     
-    // Check if snapshot already exists and is complete (write-once guarantee)
-    if (typeof itemCopy.unitProfitSnapshot === 'number' && typeof itemCopy.lineProfitSnapshot === 'number' && itemCopy.unitProfitSnapshot >= 0) {
+    // Check if snapshot already exists and is non-zero (write-once guarantee)
+    const hasExistingSnapshot = typeof itemCopy.unitProfitSnapshot === 'number' &&
+      itemCopy.unitProfitSnapshot > 0 &&
+      typeof itemCopy.lineProfitSnapshot === 'number' &&
+      itemCopy.lineProfitSnapshot > 0;
+
+    if (hasExistingSnapshot) {
       snapshotItems.push(itemCopy);
       continue;
     }
 
     const itemPrice = Math.max(0, Number(itemCopy.price) || 0);
     const quantity = Math.max(1, Number(itemCopy.quantity) || 1);
+    const productId = itemCopy.id || itemCopy._id || itemCopy.bookId || itemCopy.bundleId;
     let productDoc = null;
 
     try {
       if (itemCopy.type === 'bundle') {
-        productDoc = await Bundle.findById(itemCopy.id);
+        productDoc = await Bundle.findById(productId);
       } else {
-        productDoc = await Book.findById(itemCopy.id);
+        productDoc = await Book.findById(productId);
       }
     } catch (err) {
-      console.error(`Error loading product ${itemCopy.id} for profit snapshot:`, err.message);
+      console.error(`Error loading product ${productId} for profit snapshot:`, err.message);
     }
 
     const profitData = calculateProductUnitProfit(productDoc, itemPrice);

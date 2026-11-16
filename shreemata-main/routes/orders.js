@@ -123,11 +123,17 @@ router.post("/", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "No items in order" });
         }
 
+        const { buildOrderProfitSnapshot, calculateOrderProfitTotal } = require("../services/orderProfit");
+        const orderItems = await buildOrderProfitSnapshot(items);
+        const calculatedProfit = calculateOrderProfitTotal(orderItems);
+
         // Create Order - rewards will be applied after payment is verified
         const order = await Order.create({
             user_id: req.user.id,
-            items,
+            items: orderItems,
             totalAmount,
+            orderProfitTotal: calculatedProfit,
+            profitAmount: calculatedProfit,
             status: "pending",
             rewardApplied: false
         });
@@ -230,11 +236,17 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
             paymentType
         });
 
+        const { buildOrderProfitSnapshot, calculateOrderProfitTotal } = require("../services/orderProfit");
+        const orderItems = await buildOrderProfitSnapshot(items);
+        const calculatedProfit = calculateOrderProfitTotal(orderItems);
+
         // Create Order in pending state
         const order = await Order.create({
             user_id: req.user.id,
-            items,
+            items: orderItems,
             totalAmount,
+            orderProfitTotal: calculatedProfit,
+            profitAmount: calculatedProfit,
             deliveryMethod,
             courierCharge,
             paymentType, // 'cheque' or 'transfer'
@@ -687,11 +699,17 @@ router.post("/create-cart-pending", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "No valid items found in cart" });
         }
 
+        const { buildOrderProfitSnapshot, calculateOrderProfitTotal } = require("../services/orderProfit");
+        const orderItems = await buildOrderProfitSnapshot(processedItems);
+        const calculatedProfit = calculateOrderProfitTotal(orderItems);
+
         // Create Order in pending state with all cart items
         const order = await Order.create({
             user_id: req.user.id,
-            items: processedItems,
+            items: orderItems,
             totalAmount,
+            orderProfitTotal: calculatedProfit,
+            profitAmount: calculatedProfit,
             deliveryMethod,
             courierCharge,
             paymentType, // 'cheque' or 'transfer'
@@ -702,7 +720,7 @@ router.post("/create-cart-pending", authenticateToken, async (req, res) => {
                 status: 'awaiting_upload',
                 createdAt: new Date(),
                 cartOrder: true, // Flag to indicate this was a cart order
-                itemCount: processedItems.length
+                itemCount: orderItems.length
             }
         });
 
@@ -986,11 +1004,11 @@ router.post(["/admin/:id/preview-commissions", "/:id/preview-commissions"], auth
             return res.status(400).json({ error: "Payment must be verified before previewing commissions." });
         }
 
-        let profitAmount = typeof order.orderProfitTotal === 'number' && order.orderProfitTotal >= 0
+        let profitAmount = typeof order.orderProfitTotal === 'number' && order.orderProfitTotal > 0
             ? order.orderProfitTotal
             : Number(req.body.profitAmount);
 
-        if (isNaN(profitAmount) || profitAmount < 0) {
+        if (isNaN(profitAmount) || profitAmount <= 0) {
             // Build snapshot if missing
             order.items = await buildOrderProfitSnapshot(order.items);
             order.orderProfitTotal = calculateOrderProfitTotal(order.items);
@@ -1030,7 +1048,7 @@ router.post(["/admin/:id/distribute-commissions", "/:id/distribute-commissions"]
         }
 
         // Authoritative Write-Once Snapshot Check
-        if (typeof order.orderProfitTotal !== 'number' || !order.items.some(i => typeof i.unitProfitSnapshot === 'number')) {
+        if (typeof order.orderProfitTotal !== 'number' || order.orderProfitTotal <= 0 || !order.items.some(i => (Number(i.unitProfitSnapshot) || 0) > 0)) {
             order.items = await buildOrderProfitSnapshot(order.items);
             order.orderProfitTotal = calculateOrderProfitTotal(order.items);
             await order.save();

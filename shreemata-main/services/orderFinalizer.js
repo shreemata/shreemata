@@ -205,13 +205,56 @@ async function finalizePaidOrder(orderOrId, paymentInfo = {}) {
       claimedOrder.paymentDetails.razorpay_signature = paymentInfo.razorpay_signature;
     }
     if (paymentInfo.items && Array.isArray(paymentInfo.items) && paymentInfo.items.length > 0) {
-      claimedOrder.items = paymentInfo.items;
+      const existingSnapshots = new Map();
+      if (Array.isArray(claimedOrder.items)) {
+        claimedOrder.items.forEach(it => {
+          const key = String(it.id || it._id || '');
+          if (key && (Number(it.unitProfitSnapshot) || 0) > 0) {
+            existingSnapshots.set(key, it);
+          }
+        });
+      }
+
+      claimedOrder.items = paymentInfo.items.map(newItem => {
+        const key = String(newItem.id || newItem._id || '');
+        const existing = existingSnapshots.get(key);
+        if (existing) {
+          const qty = Math.max(1, Number(newItem.quantity) || 1);
+          return {
+            ...newItem,
+            profitTypeSnapshot: existing.profitTypeSnapshot,
+            profitValueSnapshot: existing.profitValueSnapshot,
+            unitProfitSnapshot: existing.unitProfitSnapshot,
+            lineProfitSnapshot: Number((existing.unitProfitSnapshot * qty).toFixed(2)),
+            cashbackAmount: existing.cashbackAmount,
+            cashbackPercentage: existing.cashbackPercentage
+          };
+        }
+        return newItem;
+      });
     }
     if (paymentInfo.totalAmount && !isNaN(paymentInfo.totalAmount) && Number(paymentInfo.totalAmount) > 0) {
       claimedOrder.totalAmount = Number(paymentInfo.totalAmount);
     }
     if (paymentInfo.deliveryAddress && typeof paymentInfo.deliveryAddress === 'object' && Object.keys(paymentInfo.deliveryAddress).length > 0) {
       claimedOrder.deliveryAddress = paymentInfo.deliveryAddress;
+    }
+
+    // Ensure authoritative profit snapshot and orderProfitTotal exist on claimedOrder
+    const { buildOrderProfitSnapshot, calculateOrderProfitTotal } = require('./orderProfit');
+    const hasValidSnapshots = Array.isArray(claimedOrder.items) &&
+      claimedOrder.items.length > 0 &&
+      claimedOrder.items.some(i => (Number(i.unitProfitSnapshot) || 0) > 0);
+
+    const hasValidProfitTotal = typeof claimedOrder.orderProfitTotal === 'number' && claimedOrder.orderProfitTotal > 0;
+
+    if (!hasValidProfitTotal || !hasValidSnapshots) {
+      claimedOrder.items = await buildOrderProfitSnapshot(claimedOrder.items || []);
+      const calculatedTotal = calculateOrderProfitTotal(claimedOrder.items);
+      if (!hasValidProfitTotal || calculatedTotal > 0) {
+        claimedOrder.orderProfitTotal = calculatedTotal;
+        claimedOrder.profitAmount = calculatedTotal;
+      }
     }
 
     await claimedOrder.save();

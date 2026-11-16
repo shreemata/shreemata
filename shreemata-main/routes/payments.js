@@ -601,6 +601,7 @@ router.post("/verify", authenticateToken, async (req, res) => {
       success: true,
       message: result.message || "Payment verified",
       processing: Boolean(result.processing),
+      alreadyProcessed: Boolean(result.alreadyProcessed),
       order: result.order
     });
 

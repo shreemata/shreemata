@@ -95,7 +95,11 @@ const bundleSchema = new mongoose.Schema({
 
 // Helper to get unit profit based on actual selling price
 bundleSchema.methods.getUnitProfit = function(sellingPrice) {
-  if (!this.profitConfigured) return 0;
+  const isConfigured = Boolean(
+    this.profitConfigured === true ||
+    (typeof this.profitValue === 'number' && this.profitValue > 0)
+  );
+  if (!isConfigured) return 0;
   const price = Math.max(0, Number(sellingPrice !== undefined ? sellingPrice : this.bundlePrice) || 0);
   if (this.profitType === 'percentage') {
     const val = (price * (this.profitValue || 0)) / 100;
