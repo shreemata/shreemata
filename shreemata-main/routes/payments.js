@@ -14,7 +14,7 @@ const Book = require("../models/Book");
 const Bundle = require("../models/Bundle");
 const { autoGenerateInvoiceForOrder } = require("./invoices");
 const { finalizePaidOrder } = require("../services/orderFinalizer");
-const { validateCourierAddress } = require("../utils/deliveryAddressValidator");
+const { validateCourierAddress, isServerOrderDigitalOnly } = require("../utils/deliveryAddressValidator");
 
 const router = express.Router();
 
@@ -124,7 +124,7 @@ async function applyReferralRewardForOrder(order) {
 
   // Note: rewardApplied is already set to true by the atomic update
   // No need to save again here
-  
+
   console.log(`✅ Rewards applied for order ${order._id}`);
 
   return { applied: true, chain: results };
@@ -137,10 +137,10 @@ router.post("/create-order", authenticateToken, async (req, res) => {
   try {
     let { amount, items, deliveryAddress, appliedOffer, courierCharge, totalWeight, deliveryMethod, paymentMethod } = req.body;
 
-    console.log("Create order request:", { 
-      amount, 
-      itemsCount: items?.length, 
-      hasAddress: !!deliveryAddress, 
+    console.log("Create order request:", {
+      amount,
+      itemsCount: items?.length,
+      hasAddress: !!deliveryAddress,
       deliveryMethod: deliveryMethod,
       paymentMethod: paymentMethod || 'online',
       hasOffer: !!appliedOffer,
@@ -148,22 +148,20 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       totalWeight
     });
     console.log("Items type:", typeof items, "Is array:", Array.isArray(items));
-    
+
     // Ensure items is an array
     if (!Array.isArray(items)) {
       console.error("Items is not an array:", items);
       return res.status(400).json({ error: "Items must be an array" });
     }
 
-    // Check if order contains digital items
-    const hasDigitalItems = items.some(item => item.isDigital === true);
-    const isDigitalOnly = items.length > 0 && items.every(item => item.isDigital === true);
-    
-    console.log("Order type analysis:", { hasDigitalItems, isDigitalOnly });
+    // Authoritatively compute digital-only status on the server from database records (never from req.body)
+    const isDigitalOnly = await isServerOrderDigitalOnly(items);
+    console.log("Order type analysis (server authoritative):", { isDigitalOnly });
 
     // 🚨 MANDATORY DELIVERY ADDRESS VALIDATION (Skip for digital-only orders and pickup orders)
     const isPickupOrder = (deliveryMethod === 'pickup');
-    
+
     if (isPickupOrder) {
       console.log("✅ Pickup order detected, skipping delivery address validation");
     } else if (!isDigitalOnly) {
@@ -186,49 +184,39 @@ router.post("/create-order", authenticateToken, async (req, res) => {
     console.log("📦 Validating stock availability for order items...");
     const Book = require("../models/Book");
     const Bundle = require("../models/Bundle");
-    
+
     for (const item of items) {
       try {
+        let isItemDigital = false;
+        if (item.type === 'notes' || item.type === 'note' || item.type === 'pdf') {
+          isItemDigital = true;
+        } else if (item.type === 'bundle') {
+          const b = await Bundle.findById(item.id);
+          isItemDigital = Boolean(b && b.isDigital === true);
+        } else {
+          const b = await Book.findById(item.id);
+          isItemDigital = Boolean(b && b.isDigital === true);
+        }
+
         // Skip stock validation for digital items
-        if (item.isDigital) {
+        if (isItemDigital) {
           console.log(`📱 Skipping stock validation for digital item: ${item.title}`);
-          
-          // Validate digital content availability
-          if (item.type === 'book') {
-            const book = await Book.findById(item.id);
-            if (!book) {
-              return res.status(400).json({ 
-                error: "Book not found",
-                message: `The book "${item.title}" is no longer available`
-              });
-            }
-            
-            const hasDigital = typeof book.hasDigitalContent === 'function'
-              ? book.hasDigitalContent()
-              : Boolean(book.pdfUrl || book.digitalPrice || book.isDigitalAvailable || true);
-            if (!hasDigital) {
-              return res.status(400).json({ 
-                error: "Digital content not available",
-                message: `Digital reading is not available for "${book.title}"`
-              });
-            }
-          }
           continue;
         }
-        
+
         if (item.type === 'book') {
           const book = await Book.findById(item.id);
           if (!book) {
-            return res.status(400).json({ 
+            return res.status(400).json({
               error: "Book not found",
               message: `The book "${item.title}" is no longer available`
             });
           }
-          
+
           // Check stock availability
           if (book.trackStock) {
             if (book.stockStatus === 'out_of_stock' || book.stockQuantity < item.quantity) {
-              return res.status(400).json({ 
+              return res.status(400).json({
                 error: "Insufficient stock",
                 message: `Sorry, "${book.title}" is ${book.stockStatus === 'out_of_stock' ? 'out of stock' : `only available in quantity of ${book.stockQuantity}`}. Please update your cart.`,
                 outOfStockItem: {
@@ -243,19 +231,19 @@ router.post("/create-order", authenticateToken, async (req, res) => {
         } else if (item.type === 'bundle') {
           const bundle = await Bundle.findById(item.id).populate('books');
           if (!bundle) {
-            return res.status(400).json({ 
+            return res.status(400).json({
               error: "Bundle not found",
               message: `The bundle "${item.title}" is no longer available`
             });
           }
-          
+
           // Check stock for each book in the bundle
           if (bundle.books) {
             for (const bundleBook of bundle.books) {
               const book = await Book.findById(bundleBook._id || bundleBook.id);
               if (book && book.trackStock) {
                 if (book.stockStatus === 'out_of_stock' || book.stockQuantity < item.quantity) {
-                  return res.status(400).json({ 
+                  return res.status(400).json({
                     error: "Insufficient stock in bundle",
                     message: `Sorry, the book "${book.title}" in bundle "${bundle.title}" is ${book.stockStatus === 'out_of_stock' ? 'out of stock' : `only available in quantity of ${book.stockQuantity}`}. Please update your cart.`,
                     outOfStockItem: {
@@ -274,7 +262,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
         }
       } catch (stockError) {
         console.error(`❌ Error validating stock for item ${item.id}:`, stockError);
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: "Stock validation failed",
           message: "Unable to verify stock availability. Please try again."
         });
@@ -287,7 +275,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
     // =====================================================
     if (paymentMethod === 'cheque') {
       console.log("📝 Creating pending order for cheque payment...");
-      
+
       // Prepare delivery address with defaults (null for digital-only orders and pickup orders)
       const addressData = (!isDigitalOnly && !isPickupOrder && deliveryAddress) ? {
         name: deliveryAddress.name || req.user?.name || "",
@@ -306,17 +294,29 @@ router.post("/create-order", authenticateToken, async (req, res) => {
         phone: String(deliveryAddress.phone || "").trim()
       } : null;
 
-      // Prepare items array properly with profit snapshot
-      const rawOrderItems = items.map(item => ({
-        id: item.id,
-        title: item.title,
-        author: item.author,
-        price: Number(item.price),
-        quantity: Number(item.quantity),
-        coverImage: item.coverImage,
-        type: item.type || 'book',
-        isDigital: Boolean(item.isDigital),
-        digitalPrice: item.isDigital ? Number(item.price) : null
+      // Prepare items array properly with authoritative profit and digital snapshots
+      const rawOrderItems = await Promise.all(items.map(async item => {
+        let isDigitalItem = false;
+        if (item.type === 'notes' || item.type === 'note' || item.type === 'pdf') {
+          isDigitalItem = true;
+        } else if (item.type === 'bundle') {
+          const b = await Bundle.findById(item.id).lean().catch(() => null);
+          isDigitalItem = Boolean(b && b.isDigital === true);
+        } else {
+          const b = await Book.findById(item.id).lean().catch(() => null);
+          isDigitalItem = Boolean(b && b.isDigital === true);
+        }
+        return {
+          id: item.id,
+          title: item.title,
+          author: item.author,
+          price: Number(item.price),
+          quantity: Number(item.quantity),
+          coverImage: item.coverImage,
+          type: item.type || 'book',
+          isDigital: isDigitalItem,
+          digitalPrice: isDigitalItem ? Number(item.price) : null
+        };
       }));
 
       const orderItems = await buildOrderProfitSnapshot(rawOrderItems);
@@ -367,12 +367,12 @@ router.post("/create-order", authenticateToken, async (req, res) => {
 
       // Get user details for Google Form pre-filling
       const user = await User.findById(req.user.id);
-      
+
       // Create Google Form URL with pre-filled data (using your working form)
       const googleFormUrl = `https://docs.google.com/forms/d/e/1FAIpQLSdkaIGD87RUORM210G8kCWeIx60Fdc88KKkxcnmuee1bOL2Pg/viewform?usp=pp_url` +
         `&entry.1788264298=${pendingOrder._id}` +
         `&entry.1894225499=${amount}` +
-        
+
         `&entry.774046160=${encodeURIComponent(user.email || '')}` +
         `&entry.1406386079=${encodeURIComponent(user.name || '')}` +
         `&entry.632794616=${encodeURIComponent(user.phone || '')}` +
@@ -382,7 +382,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       console.log('✅ Generated Google Form URL:', googleFormUrl);
       console.log('✅ User details:', { name: user.name, email: user.email, phone: user.phone });
 
-      return res.json({ 
+      return res.json({
         success: true,
         orderType: 'check',
         order: pendingOrder,
@@ -422,17 +422,29 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       phone: String(deliveryAddress.phone || "").trim()
     } : null;
 
-    // Prepare items array properly with profit snapshot
-    const rawOrderItems = items.map(item => ({
-      id: item.id,
-      title: item.title,
-      author: item.author,
-      price: Number(item.price),
-      quantity: Number(item.quantity),
-      coverImage: item.coverImage,
-      type: item.type || 'book',
-      isDigital: Boolean(item.isDigital),
-      digitalPrice: item.isDigital ? Number(item.price) : null
+    // Prepare items array properly with authoritative profit and digital snapshots
+    const rawOrderItems = await Promise.all(items.map(async item => {
+      let isDigitalItem = false;
+      if (item.type === 'notes' || item.type === 'note' || item.type === 'pdf') {
+        isDigitalItem = true;
+      } else if (item.type === 'bundle') {
+        const b = await Bundle.findById(item.id).lean().catch(() => null);
+        isDigitalItem = Boolean(b && b.isDigital === true);
+      } else {
+        const b = await Book.findById(item.id).lean().catch(() => null);
+        isDigitalItem = Boolean(b && b.isDigital === true);
+      }
+      return {
+        id: item.id,
+        title: item.title,
+        author: item.author,
+        price: Number(item.price),
+        quantity: Number(item.quantity),
+        coverImage: item.coverImage,
+        type: item.type || 'book',
+        isDigital: isDigitalItem,
+        digitalPrice: isDigitalItem ? Number(item.price) : null
+      };
     }));
 
     const orderItems = await buildOrderProfitSnapshot(rawOrderItems);
@@ -484,8 +496,8 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       field: err.error?.field
     });
     console.error("Create order error:", err);
-    res.status(500).json({ 
-      error: "Unable to create Razorpay order", 
+    res.status(500).json({
+      error: "Unable to create Razorpay order",
       details: err.error?.description || err.message,
       code: err.error?.code || 'ORDER_CREATION_FAILED'
     });
@@ -506,7 +518,7 @@ router.post("/verify", authenticateToken, async (req, res) => {
   console.log("   Razorpay Order ID:", req.body.razorpay_order_id);
   console.log("   Razorpay Payment ID:", req.body.razorpay_payment_id);
   console.log("   Server Time:", new Date().toISOString());
-  
+
   try {
     const {
       razorpay_order_id,
@@ -584,14 +596,14 @@ router.post("/verify", authenticateToken, async (req, res) => {
 router.post("/cancel", authenticateToken, async (req, res) => {
   try {
     const { razorpay_order_id } = req.body;
-    
+
     if (!razorpay_order_id) {
       return res.status(400).json({ error: "Razorpay order ID is required" });
     }
 
     // Mark order as cancelled only if strictly pending and NOT paid/finalized
     const order = await Order.findOneAndUpdate(
-      { 
+      {
         razorpay_order_id,
         user_id: req.user.id, // Ensure user can only cancel their own orders
         status: "pending", // Only allow cancelling pending orders
@@ -599,7 +611,7 @@ router.post("/cancel", authenticateToken, async (req, res) => {
         finalizationStatus: { $nin: ["completed", "in_progress"] },
         finalizedAt: null
       },
-      { 
+      {
         status: "cancelled",
         cancelledAt: new Date()
       },
@@ -607,16 +619,16 @@ router.post("/cancel", authenticateToken, async (req, res) => {
     );
 
     if (!order) {
-      return res.status(404).json({ 
-        error: "Order not found or cannot be cancelled" 
+      return res.status(404).json({
+        error: "Order not found or cannot be cancelled"
       });
     }
 
     console.log(`✅ Order ${order._id} cancelled by user ${req.user.id}`);
-    
-    res.json({ 
-      message: "Order cancelled successfully", 
-      orderId: order._id 
+
+    res.json({
+      message: "Order cancelled successfully",
+      orderId: order._id
     });
 
   } catch (err) {
@@ -647,10 +659,10 @@ router.post("/cleanup-abandoned", async (req, res) => {
     );
 
     console.log(`✅ Cleaned up ${abandonedOrders.modifiedCount} abandoned orders`);
-    
-    res.json({ 
-      message: "Cleanup completed", 
-      cleanedCount: abandonedOrders.modifiedCount 
+
+    res.json({
+      message: "Cleanup completed",
+      cleanedCount: abandonedOrders.modifiedCount
     });
 
   } catch (err) {
@@ -754,9 +766,9 @@ router.post("/test-cashback", authenticateToken, async (req, res) => {
     console.log("Environment:", process.env.NODE_ENV || 'development');
     console.log("Database connection:", require('mongoose').connection.readyState);
     console.log("User ID:", req.user.id);
-    
+
     const { bookId, amount } = req.body;
-    
+
     // Test book lookup
     const book = await Book.findById(bookId);
     console.log("Book found:", book ? {
@@ -766,22 +778,22 @@ router.post("/test-cashback", authenticateToken, async (req, res) => {
       cashbackAmount: book.cashbackAmount,
       cashbackPercentage: book.cashbackPercentage
     } : 'NOT FOUND');
-    
+
     if (!book) {
       return res.status(404).json({ error: "Book not found" });
     }
-    
+
     // Test cashback calculation
     const cashbackAmount = book.getCashbackAmount();
     console.log("Cashback calculation:", cashbackAmount);
-    
+
     if (cashbackAmount <= 0) {
-      return res.json({ 
+      return res.json({
         message: "No cashback configured for this book",
         book: { title: book.title, cashbackAmount: book.cashbackAmount, cashbackPercentage: book.cashbackPercentage }
       });
     }
-    
+
     // Test user lookup and wallet update
     const user = await User.findById(req.user.id);
     console.log("User found:", user ? {
@@ -789,21 +801,21 @@ router.post("/test-cashback", authenticateToken, async (req, res) => {
       name: user.name,
       currentWallet: user.wallet || 0
     } : 'NOT FOUND');
-    
+
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    
+
     const previousBalance = user.wallet || 0;
     user.wallet = previousBalance + cashbackAmount;
     await user.save();
-    
+
     console.log("Wallet updated:", previousBalance, "->", user.wallet);
-    
+
     // Verify the update
     const verifyUser = await User.findById(req.user.id);
     console.log("Verification wallet:", verifyUser ? verifyUser.wallet : 'USER NOT FOUND');
-    
+
     res.json({
       success: true,
       message: "Cashback test completed",
@@ -812,7 +824,7 @@ router.post("/test-cashback", authenticateToken, async (req, res) => {
       newBalance: user.wallet,
       verified: verifyUser ? verifyUser.wallet : null
     });
-    
+
   } catch (error) {
     console.error("Test cashback error:", error);
     res.status(500).json({ error: error.message });
@@ -825,13 +837,13 @@ router.post("/test-cashback", authenticateToken, async (req, res) => {
 router.post("/webhook/cheque-payment-submitted", async (req, res) => {
   try {
     console.log("📝 Cheque payment form submitted - RAW BODY:", JSON.stringify(req.body, null, 2));
-    
-    const { 
-      orderId, 
-      chequeNumber, 
-      bankName, 
-      chequeDate, 
-      utrNumber, 
+
+    const {
+      orderId,
+      chequeNumber,
+      bankName,
+      chequeDate,
+      utrNumber,
       formResponseId,
       driveFileIds,
       chequeImageUrl,
@@ -857,8 +869,8 @@ router.post("/webhook/cheque-payment-submitted", async (req, res) => {
     const mongoose = require('mongoose');
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
       console.log(`❌ Invalid ObjectId format: "${orderId}"`);
-      return res.status(400).json({ 
-        error: "Invalid Order ID format", 
+      return res.status(400).json({
+        error: "Invalid Order ID format",
         message: "Order ID must be a valid MongoDB ObjectId",
         receivedOrderId: orderId,
         expectedFormat: "24-character hex string (e.g., 507f1f77bcf86cd799439011)"
@@ -890,14 +902,14 @@ router.post("/webhook/cheque-payment-submitted", async (req, res) => {
     } else {
       console.log('💾 ❌ No chequeImageUrl provided');
     }
-    
+
     if (chequeImageDriveId) {
       updateData['paymentDetails.chequeImageDriveId'] = chequeImageDriveId;
       console.log('💾 ✅ Saving chequeImageDriveId:', chequeImageDriveId);
     } else {
       console.log('💾 ❌ No chequeImageDriveId provided');
     }
-    
+
     if (driveFileIds && Array.isArray(driveFileIds) && driveFileIds.length > 0) {
       updateData['paymentDetails.driveFileIds'] = driveFileIds;
       console.log('💾 ✅ Saving driveFileIds:', driveFileIds);
@@ -936,8 +948,8 @@ router.post("/webhook/cheque-payment-submitted", async (req, res) => {
       console.error("Error sending admin notification:", emailError);
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: "Cheque payment details received",
       orderId: orderId,
       status: "pending_verification"
@@ -955,16 +967,16 @@ router.post("/webhook/cheque-payment-submitted", async (req, res) => {
 router.post("/webhook/check-payment-submitted", async (req, res) => {
   // Redirect to the new cheque payment webhook for backward compatibility
   console.log("📝 Legacy check payment webhook called - redirecting to cheque webhook");
-  
+
   // Forward the request to the cheque payment handler
   try {
     // Re-use the same logic as the cheque payment webhook
-    const { 
-      orderId, 
-      chequeNumber, 
-      bankName, 
-      chequeDate, 
-      utrNumber, 
+    const {
+      orderId,
+      chequeNumber,
+      bankName,
+      chequeDate,
+      utrNumber,
       formResponseId,
       driveFileIds,
       chequeImageUrl,
@@ -994,11 +1006,11 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
     if (chequeImageUrl) {
       updateData['paymentDetails.chequeImageUrl'] = chequeImageUrl;
     }
-    
+
     if (chequeImageDriveId) {
       updateData['paymentDetails.chequeImageDriveId'] = chequeImageDriveId;
     }
-    
+
     if (driveFileIds && Array.isArray(driveFileIds) && driveFileIds.length > 0) {
       updateData['paymentDetails.driveFileIds'] = driveFileIds;
     }
@@ -1009,8 +1021,8 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: "Check payment details received (legacy endpoint)",
       orderId: orderId,
       status: "pending_verification"
@@ -1028,13 +1040,13 @@ router.post("/webhook/check-payment-submitted", async (req, res) => {
 router.post("/webhook/bank-transfer-submitted", async (req, res) => {
   try {
     console.log("🏦 Bank transfer form submitted - RAW BODY:", JSON.stringify(req.body, null, 2));
-    
-    const { 
-      orderId, 
-      transferNumber, 
-      bankName, 
-      transferDate, 
-      utrNumber, 
+
+    const {
+      orderId,
+      transferNumber,
+      bankName,
+      transferDate,
+      utrNumber,
       accountNumber,
       ifscCode,
       formResponseId,
@@ -1062,8 +1074,8 @@ router.post("/webhook/bank-transfer-submitted", async (req, res) => {
     const mongoose = require('mongoose');
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
       console.log(`❌ Invalid ObjectId format: "${orderId}"`);
-      return res.status(400).json({ 
-        error: "Invalid Order ID format", 
+      return res.status(400).json({
+        error: "Invalid Order ID format",
         message: "Order ID must be a valid MongoDB ObjectId",
         receivedOrderId: orderId,
         expectedFormat: "24-character hex string (e.g., 507f1f77bcf86cd799439011)"
@@ -1091,14 +1103,14 @@ router.post("/webhook/bank-transfer-submitted", async (req, res) => {
     } else {
       console.log('💾 ❌ No transferReceiptUrl provided');
     }
-    
+
     if (transferReceiptDriveId) {
       updateData['paymentDetails.transferReceiptDriveId'] = transferReceiptDriveId;
       console.log('💾 ✅ Saving transferReceiptDriveId:', transferReceiptDriveId);
     } else {
       console.log('💾 ❌ No transferReceiptDriveId provided');
     }
-    
+
     if (driveFileIds && Array.isArray(driveFileIds) && driveFileIds.length > 0) {
       updateData['paymentDetails.driveFileIds'] = driveFileIds;
       console.log('💾 ✅ Saving driveFileIds:', driveFileIds);
@@ -1137,8 +1149,8 @@ router.post("/webhook/bank-transfer-submitted", async (req, res) => {
       console.error("Error sending admin notification:", emailError);
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: "Bank transfer details received",
       orderId: orderId,
       status: "pending_verification"
@@ -1156,23 +1168,23 @@ router.post("/webhook/bank-transfer-submitted", async (req, res) => {
 router.post("/admin/check-utr-duplicate", authenticateToken, isAdmin, async (req, res) => {
   try {
     const { utrNumber, currentOrderId } = req.body;
-    
+
     if (!utrNumber) {
       return res.status(400).json({ error: 'UTR number is required' });
     }
-    
+
     console.log(`🔍 Checking UTR duplicate: ${utrNumber} (excluding order: ${currentOrderId})`);
-    
+
     // Search for orders with the same UTR number (excluding current order)
     const duplicateOrder = await Order.findOne({
       'paymentDetails.utrNumber': utrNumber,
       _id: { $ne: currentOrderId }, // Exclude current order
       status: { $in: ['completed', 'pending_payment_verification'] } // Only check processed orders
     }).populate('user_id', 'name email').sort({ createdAt: -1 });
-    
+
     if (duplicateOrder) {
       console.log(`⚠️ Duplicate UTR found: Order ${duplicateOrder._id} by ${duplicateOrder.user_id?.name}`);
-      
+
       return res.json({
         isDuplicate: true,
         existingOrder: {
@@ -1188,14 +1200,14 @@ router.post("/admin/check-utr-duplicate", authenticateToken, isAdmin, async (req
         message: `UTR number ${utrNumber} was previously used by ${duplicateOrder.user_id?.name || 'Unknown User'}`
       });
     }
-    
+
     console.log(`✅ UTR number ${utrNumber} is unique`);
-    
+
     res.json({
       isDuplicate: false,
       message: 'UTR number is unique'
     });
-    
+
   } catch (err) {
     console.error('UTR duplicate check error:', err);
     res.status(500).json({ error: 'Error checking UTR duplicate', details: err.message });
@@ -1220,7 +1232,7 @@ router.post("/admin/approve-cheque-payment/:orderId", authenticateToken, async (
 
     // Find and update the order (support both check/cheque and transfer payments)
     const order = await Order.findOneAndUpdate(
-      { 
+      {
         _id: orderId,
         $or: [
           { paymentType: 'check' },
@@ -1240,8 +1252,8 @@ router.post("/admin/approve-cheque-payment/:orderId", authenticateToken, async (
     );
 
     if (!order) {
-      return res.status(404).json({ 
-        error: "Order not found or not eligible for approval" 
+      return res.status(404).json({
+        error: "Order not found or not eligible for approval"
       });
     }
 
@@ -1250,8 +1262,8 @@ router.post("/admin/approve-cheque-payment/:orderId", authenticateToken, async (
     // Trigger all automated processes (same as online payment)
     await processApprovedChequeOrder(order, adminUser);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Cheque payment'} approved successfully`,
       orderId: orderId,
       order: order
@@ -1281,7 +1293,7 @@ router.post("/admin/reject-cheque-payment/:orderId", authenticateToken, async (r
 
     // Find and update the order (support both check/cheque and transfer payments)
     const order = await Order.findOneAndUpdate(
-      { 
+      {
         _id: orderId,
         $or: [
           { paymentType: 'check' },
@@ -1300,8 +1312,8 @@ router.post("/admin/reject-cheque-payment/:orderId", authenticateToken, async (r
     );
 
     if (!order) {
-      return res.status(404).json({ 
-        error: "Order not found or not eligible for rejection" 
+      return res.status(404).json({
+        error: "Order not found or not eligible for rejection"
       });
     }
 
@@ -1318,8 +1330,8 @@ router.post("/admin/reject-cheque-payment/:orderId", authenticateToken, async (r
       console.error("Error sending rejection notification:", emailError);
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Cheque payment'} rejected`,
       orderId: orderId,
       order: order
@@ -1338,7 +1350,7 @@ router.post("/admin/reject-cheque-payment/:orderId", authenticateToken, async (r
 // Legacy approve endpoint
 router.post("/admin/approve-check-payment/:orderId", authenticateToken, async (req, res) => {
   console.log("📝 Legacy approve-check-payment endpoint called - redirecting to cheque endpoint");
-  
+
   try {
     const { orderId } = req.params;
     const adminUser = req.user;
@@ -1349,7 +1361,7 @@ router.post("/admin/approve-check-payment/:orderId", authenticateToken, async (r
 
     // Find and update the order (support both check/cheque and transfer payments)
     const order = await Order.findOneAndUpdate(
-      { 
+      {
         _id: orderId,
         $or: [
           { paymentType: 'check' },
@@ -1374,8 +1386,8 @@ router.post("/admin/approve-check-payment/:orderId", authenticateToken, async (r
     // Trigger all automated processes
     await processApprovedChequeOrder(order, adminUser);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} approved successfully (legacy endpoint)`,
       orderId: orderId,
       order: order
@@ -1390,7 +1402,7 @@ router.post("/admin/approve-check-payment/:orderId", authenticateToken, async (r
 // Legacy reject endpoint
 router.post("/admin/reject-check-payment/:orderId", authenticateToken, async (req, res) => {
   console.log("📝 Legacy reject-check-payment endpoint called - redirecting to cheque endpoint");
-  
+
   try {
     const { orderId } = req.params;
     const adminUser = req.user;
@@ -1401,7 +1413,7 @@ router.post("/admin/reject-check-payment/:orderId", authenticateToken, async (re
 
     // Find and update the order
     const order = await Order.findOneAndUpdate(
-      { 
+      {
         _id: orderId,
         $or: [
           { paymentType: 'check' },
@@ -1422,8 +1434,8 @@ router.post("/admin/reject-check-payment/:orderId", authenticateToken, async (re
       return res.status(404).json({ error: "Order not found or already processed" });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} rejected (legacy endpoint)`,
       orderId: orderId,
       order: order
@@ -1448,7 +1460,7 @@ async function processApprovedChequeOrder(order, adminUser) {
     } catch (commErr) {
       console.error("⚠️ Automatic commission distribution error in processApprovedChequeOrder:", commErr.message);
     }
-    
+
     // Check and activate membership if product subtotal >= ₹100
     try {
       await checkAndActivateMembership(order);
@@ -1480,7 +1492,7 @@ async function processApprovedChequeOrder(order, adminUser) {
       console.log("🎁 Awarding points for approved check order:", order._id);
       for (const item of order.items) {
         let points = 0;
-        
+
         if (item.type === 'book') {
           const book = await Book.findById(item.id);
           if (book && book.rewardPoints > 0) {
@@ -1492,7 +1504,7 @@ async function processApprovedChequeOrder(order, adminUser) {
             points = bundle.rewardPoints * item.quantity;
           }
         }
-        
+
         if (points > 0) {
           await awardPoints(
             order.user_id,
@@ -1512,10 +1524,10 @@ async function processApprovedChequeOrder(order, adminUser) {
     try {
       console.log("💰 Processing cashback for approved check order:", order._id);
       let totalCashback = 0;
-      
+
       for (const item of order.items) {
         let itemCashback = 0;
-        
+
         if (item.type === 'book') {
           const book = await Book.findById(item.id);
           if (book) {
@@ -1529,20 +1541,20 @@ async function processApprovedChequeOrder(order, adminUser) {
             itemCashback = bundleCashback * item.quantity;
           }
         }
-        
+
         if (itemCashback > 0) {
           totalCashback += itemCashback;
           console.log(`💰 Cashback for ${item.title}: ₹${itemCashback.toFixed(2)}`);
         }
       }
-      
+
       if (totalCashback > 0) {
         const user = await User.findById(order.user_id);
         if (user) {
           const previousBalance = user.wallet || 0;
           user.wallet = previousBalance + totalCashback;
           await user.save();
-          
+
           console.log(`✅ Added ₹${totalCashback.toFixed(2)} cashback to user wallet`);
           console.log(`💰 User wallet: ₹${previousBalance.toFixed(2)} → ₹${user.wallet.toFixed(2)}`);
         }
@@ -1578,12 +1590,12 @@ async function processApprovedChequeOrder(order, adminUser) {
 router.post("/simple-cheque-payment-submit", authenticateToken, async (req, res) => {
   try {
     console.log("📝 Simple cheque payment form submitted:", req.body);
-    
-    const { 
-      orderId, 
-      chequeNumber, 
-      bankName, 
-      chequeDate, 
+
+    const {
+      orderId,
+      chequeNumber,
+      bankName,
+      chequeDate,
       utrNumber
     } = req.body;
 
@@ -1622,8 +1634,8 @@ router.post("/simple-cheque-payment-submit", authenticateToken, async (req, res)
     console.log(`📋 Order status: ${updatedOrder.status}`);
     console.log(`📋 Payment details status: ${updatedOrder.paymentDetails.status}`);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: "Cheque payment details submitted successfully",
       orderId: orderId,
       status: "pending_verification"
@@ -1669,7 +1681,7 @@ const upload = multer({
 router.post("/upload-check-image", authenticateToken, upload.single('checkImage'), async (req, res) => {
   try {
     const { orderId } = req.body;
-    
+
     if (!req.file) {
       return res.status(400).json({ error: "No image file uploaded" });
     }
@@ -1710,10 +1722,10 @@ router.post("/upload-check-image", authenticateToken, upload.single('checkImage'
           }
         }
       );
-      
+
       uploadStream.end(req.file.buffer);
     });
-    
+
     // Update order with Cloudinary image details
     const updateData = {
       'paymentDetails.checkImageUrl': uploadResult.secure_url,
@@ -1727,8 +1739,8 @@ router.post("/upload-check-image", authenticateToken, upload.single('checkImage'
     console.log(`✅ Check image uploaded to Cloudinary for order: ${orderId}`);
     console.log(`📷 Cloudinary URL: ${uploadResult.secure_url}`);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: "Check image uploaded successfully to Cloudinary",
       imageUrl: uploadResult.secure_url,
       publicId: uploadResult.public_id,
@@ -1737,9 +1749,9 @@ router.post("/upload-check-image", authenticateToken, upload.single('checkImage'
 
   } catch (error) {
     console.error("Check image upload error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Error uploading check image to Cloudinary",
-      details: error.message 
+      details: error.message
     });
   }
 });

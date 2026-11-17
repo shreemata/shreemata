@@ -69,6 +69,12 @@ const bookSchema = new mongoose.Schema({
     default: true
   },
 
+  // Digital / E-Book flag
+  isDigital: {
+    type: Boolean,
+    default: false
+  },
+
   // Private Admin Profit Configuration
   profitType: {
     type: String,

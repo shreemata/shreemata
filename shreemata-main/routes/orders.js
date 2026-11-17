@@ -8,7 +8,7 @@ const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { sendDeliveryStatusEmail } = require("../utils/emailService");
 const { autoGenerateInvoiceForOrder } = require("./invoices");
 const { isPaymentVerified } = require("../utils/paymentHelper");
-const { validateCourierAddress } = require("../utils/deliveryAddressValidator");
+const { validateCourierAddress, isServerOrderDigitalOnly } = require("../utils/deliveryAddressValidator");
 
 const router = express.Router();
 
@@ -124,8 +124,11 @@ router.post("/", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "No items in order" });
         }
 
+        const isDigitalOnly = await isServerOrderDigitalOnly(items);
+        const isPickupOrder = (deliveryMethod === 'pickup');
+
         let validatedAddress = null;
-        if (deliveryMethod === 'courier' || deliveryMethod === 'home') {
+        if (!isDigitalOnly && !isPickupOrder) {
             const val = validateCourierAddress(deliveryAddress, req.user);
             if (!val.isValid) {
                 return res.status(400).json({
@@ -150,7 +153,7 @@ router.post("/", authenticateToken, async (req, res) => {
             totalAmount,
             orderProfitTotal: calculatedProfit,
             profitAmount: calculatedProfit,
-            deliveryMethod: deliveryMethod || 'pickup',
+            deliveryMethod: isDigitalOnly ? 'digital' : (deliveryMethod || 'pickup'),
             deliveryAddress: validatedAddress,
             status: "pending",
             rewardApplied: false
@@ -199,21 +202,7 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "Missing required fields" });
         }
 
-        let validatedAddress = null;
-        if (deliveryMethod === 'courier' || deliveryMethod === 'home') {
-            const val = validateCourierAddress(deliveryAddress, req.user);
-            if (!val.isValid) {
-                return res.status(400).json({
-                    error: val.error,
-                    message: val.message,
-                    missingFields: val.missingFields,
-                    field: val.field,
-                    requiresAddressSetup: true
-                });
-            }
-            validatedAddress = val.sanitizedAddress;
-        }
-
+        let isDigitalItem = false;
         let itemData;
         
         if (itemType === 'bundle') {
@@ -226,7 +215,8 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
                 return res.status(404).json({ error: "Bundle not found" });
             }
             
-            console.log('Bundle found:', bundle.name);
+            isDigitalItem = Boolean(bundle.isDigital === true);
+            console.log('Bundle found:', bundle.name, 'isDigital:', isDigitalItem);
             itemData = {
                 id: bookId,
                 title: bundle.name,
@@ -234,7 +224,8 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
                 quantity: quantity,
                 price: basePrice / quantity, // Convert total price to per-item price
                 coverImage: bundle.image || "",
-                type: 'bundle'
+                type: 'bundle',
+                isDigital: isDigitalItem
             };
         } else {
             // Fetch book details
@@ -246,7 +237,8 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
                 return res.status(404).json({ error: "Book not found" });
             }
             
-            console.log('Book found:', book.title);
+            isDigitalItem = Boolean(book.isDigital === true);
+            console.log('Book found:', book.title, 'isDigital:', isDigitalItem);
             itemData = {
                 id: bookId,
                 title: book.title,
@@ -254,8 +246,26 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
                 quantity: quantity,
                 price: basePrice / quantity, // Convert total price to per-item price
                 coverImage: book.cover_image || "",
-                type: 'book'
+                type: 'book',
+                isDigital: isDigitalItem
             };
+        }
+
+        // Authoritative server-side address validation: skip for pickup and verified digital items
+        const isPickupOrder = (deliveryMethod === 'pickup');
+        let validatedAddress = null;
+        if (!isDigitalItem && !isPickupOrder) {
+            const val = validateCourierAddress(deliveryAddress, req.user);
+            if (!val.isValid) {
+                return res.status(400).json({
+                    error: val.error,
+                    message: val.message,
+                    missingFields: val.missingFields,
+                    field: val.field,
+                    requiresAddressSetup: true
+                });
+            }
+            validatedAddress = val.sanitizedAddress;
         }
 
         // Create order item with all required fields
@@ -281,7 +291,7 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
             totalAmount,
             orderProfitTotal: calculatedProfit,
             profitAmount: calculatedProfit,
-            deliveryMethod,
+            deliveryMethod: isDigitalItem ? 'digital' : (deliveryMethod || 'pickup'),
             deliveryAddress: validatedAddress,
             courierCharge,
             paymentType, // 'cheque' or 'transfer'
@@ -687,8 +697,11 @@ router.post("/create-cart-pending", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "Missing required fields" });
         }
 
+        const isDigitalOnly = await isServerOrderDigitalOnly(cartItems);
+        const isPickupOrder = (deliveryMethod === 'pickup');
+
         let validatedAddress = null;
-        if (deliveryMethod === 'courier' || deliveryMethod === 'home') {
+        if (!isDigitalOnly && !isPickupOrder) {
             const val = validateCourierAddress(deliveryAddress, req.user);
             if (!val.isValid) {
                 return res.status(400).json({
@@ -766,7 +779,7 @@ router.post("/create-cart-pending", authenticateToken, async (req, res) => {
             totalAmount,
             orderProfitTotal: calculatedProfit,
             profitAmount: calculatedProfit,
-            deliveryMethod,
+            deliveryMethod: isDigitalOnly ? 'digital' : (deliveryMethod || 'pickup'),
             deliveryAddress: validatedAddress,
             courierCharge,
             paymentType, // 'cheque' or 'transfer'

@@ -36,6 +36,7 @@ let server;
 let baseUrl;
 let testBuyer;
 let testBook;
+let digitalBook;
 let buyerToken;
 
 const JWT_SECRET = 'test_jwt_secret_courier_fast_popup_2026';
@@ -92,7 +93,20 @@ beforeAll(async () => {
     stockQuantity: 100,
     weight: 0.5,
     profitMethod: 'fixed',
-    bookProfit: 30
+    bookProfit: 30,
+    isDigital: false
+  });
+
+  digitalBook = await Book.create({
+    title: 'Digital E-Book Only',
+    author: 'Digital Author',
+    price: 120,
+    originalPrice: 150,
+    stockQuantity: 999,
+    weight: 0,
+    profitMethod: 'fixed',
+    bookProfit: 25,
+    isDigital: true
   });
 
   buyerToken = jwt.sign(
@@ -170,6 +184,63 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
       expect(err.response.data.error).toBeDefined();
       expect(err.response.data.requiresAddressSetup).toBe(true);
     }
+  });
+
+  test('POST /api/payments/create-order: rejects request marking physical book as isDigital:true with courier and no address (400)', async () => {
+    try {
+      await axios.post(
+        `${baseUrl}/api/payments/create-order`,
+        {
+          amount: 150,
+          items: [{
+            id: String(testBook._id),
+            title: testBook.title,
+            author: testBook.author,
+            price: testBook.price,
+            quantity: 1,
+            type: 'book',
+            isDigital: true // Client attempts to forge digital flag to bypass address requirement
+          }],
+          deliveryMethod: 'courier',
+          deliveryAddress: null
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+      throw new Error('Should have failed');
+    } catch (err) {
+      expect(err.response.status).toBe(400);
+      expect(err.response.data.requiresAddressSetup).toBe(true);
+    }
+  });
+
+  test('POST /api/payments/create-order: allows truly digital-only book order without delivery address', async () => {
+    const res = await axios.post(
+      `${baseUrl}/api/payments/create-order`,
+      {
+        amount: 120,
+        items: [{
+          id: String(digitalBook._id),
+          title: digitalBook.title,
+          author: digitalBook.author,
+          price: digitalBook.price,
+          quantity: 1,
+          type: 'book'
+        }],
+        deliveryMethod: 'courier', // even if client selected courier
+        deliveryAddress: null
+      },
+      { headers: { Authorization: `Bearer ${buyerToken}` } }
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.data.order).toBeDefined();
+    expect(res.data.order.id).toBeDefined();
+
+    // Verify in DB that deliveryMethod resolved to 'digital' and address is null
+    const savedOrder = await Order.findOne({ razorpay_order_id: res.data.order.id });
+    expect(savedOrder).toBeDefined();
+    expect(savedOrder.deliveryMethod).toBe('digital');
+    expect(savedOrder.toObject().deliveryAddress).toBeNull();
   });
 
   test('POST /api/payments/create-order: rejects courier order with invalid phone format (400)', async () => {
@@ -324,7 +395,38 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
       expect(err.response.data.requiresAddressSetup).toBe(true);
     }
 
-    // 2. Pickup without address -> 201/200
+    // 2. Courier with forged isDigital -> 400
+    try {
+      await axios.post(
+        `${baseUrl}/api/orders`,
+        {
+          items: [{ id: String(testBook._id), title: testBook.title, price: 150, quantity: 1, type: 'book', isDigital: true }],
+          totalAmount: 180,
+          deliveryMethod: 'courier'
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+      throw new Error('Should have failed');
+    } catch (err) {
+      expect(err.response.status).toBe(400);
+      expect(err.response.data.requiresAddressSetup).toBe(true);
+    }
+
+    // 3. Truly digital book without address -> 201/200, deliveryMethod: 'digital'
+    const digitalRes = await axios.post(
+      `${baseUrl}/api/orders`,
+      {
+        items: [{ id: String(digitalBook._id), title: digitalBook.title, price: 120, quantity: 1, type: 'book' }],
+        totalAmount: 120,
+        deliveryMethod: 'courier'
+      },
+      { headers: { Authorization: `Bearer ${buyerToken}` } }
+    );
+    expect([200, 201]).toContain(digitalRes.status);
+    expect(digitalRes.data.order).toBeDefined();
+    expect(digitalRes.data.order.deliveryMethod).toBe('digital');
+
+    // 4. Pickup without address -> 201/200
     const pickupRes = await axios.post(
       `${baseUrl}/api/orders`,
       {
@@ -339,7 +441,8 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
     expect(pickupRes.data.order.deliveryMethod).toBe('pickup');
   });
 
-  test('POST /api/orders/create-pending: rejects courier without address (400)', async () => {
+  test('POST /api/orders/create-pending: rejects courier without address, rejects forged isDigital, allows digital & pickup', async () => {
+    // 1. Courier without address -> 400
     try {
       await axios.post(
         `${baseUrl}/api/orders/create-pending`,
@@ -359,9 +462,69 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
       expect(err.response.status).toBe(400);
       expect(err.response.data.requiresAddressSetup).toBe(true);
     }
+
+    // 2. Forged isDigital on physical book -> 400
+    try {
+      await axios.post(
+        `${baseUrl}/api/orders/create-pending`,
+        {
+          bookId: String(testBook._id),
+          quantity: 1,
+          paymentType: 'cheque',
+          deliveryMethod: 'courier',
+          basePrice: 150,
+          courierCharge: 30,
+          totalAmount: 180,
+          isDigital: true
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+      throw new Error('Should have failed');
+    } catch (err) {
+      expect(err.response.status).toBe(400);
+      expect(err.response.data.requiresAddressSetup).toBe(true);
+    }
+
+    // 3. Truly digital book -> 200, deliveryMethod: 'digital'
+    const digitalRes = await axios.post(
+      `${baseUrl}/api/orders/create-pending`,
+      {
+        bookId: String(digitalBook._id),
+        quantity: 1,
+        paymentType: 'cheque',
+        deliveryMethod: 'courier',
+        basePrice: 120,
+        courierCharge: 0,
+        totalAmount: 120
+      },
+      { headers: { Authorization: `Bearer ${buyerToken}` } }
+    );
+    expect(digitalRes.status).toBe(200);
+    expect(digitalRes.data.orderId).toBeDefined();
+    const digitalSaved = await Order.findById(digitalRes.data.orderId);
+    expect(digitalSaved.deliveryMethod).toBe('digital');
+
+    // 4. Pickup without address -> 200, deliveryMethod: 'pickup'
+    const pickupRes = await axios.post(
+      `${baseUrl}/api/orders/create-pending`,
+      {
+        bookId: String(testBook._id),
+        quantity: 1,
+        paymentType: 'cheque',
+        deliveryMethod: 'pickup',
+        basePrice: 150,
+        courierCharge: 0,
+        totalAmount: 150
+      },
+      { headers: { Authorization: `Bearer ${buyerToken}` } }
+    );
+    expect(pickupRes.status).toBe(200);
+    expect(pickupRes.data.orderId).toBeDefined();
+    const pickupSaved = await Order.findById(pickupRes.data.orderId);
+    expect(pickupSaved.deliveryMethod).toBe('pickup');
   });
 
-  test('POST /api/orders/create-cart-pending: rejects courier without address (400) and allows pickup without address', async () => {
+  test('POST /api/orders/create-cart-pending: rejects courier without address, rejects forged isDigital, allows digital & pickup', async () => {
     // 1. Courier without address -> 400
     try {
       await axios.post(
@@ -383,7 +546,47 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
       expect(err.response.data.requiresAddressSetup).toBe(true);
     }
 
-    // 2. Pickup without address -> 200
+    // 2. Forged isDigital on physical book -> 400
+    try {
+      await axios.post(
+        `${baseUrl}/api/orders/create-cart-pending`,
+        {
+          cartItems: [{ id: String(testBook._id), title: testBook.title, price: 150, quantity: 1, type: 'book', isDigital: true }],
+          paymentType: 'cheque',
+          deliveryMethod: 'courier',
+          itemsTotal: 150,
+          courierCharge: 30,
+          totalAmount: 180,
+          totalWeight: 0.5
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+      throw new Error('Should have failed');
+    } catch (err) {
+      expect(err.response.status).toBe(400);
+      expect(err.response.data.requiresAddressSetup).toBe(true);
+    }
+
+    // 3. Truly digital book -> 200, deliveryMethod: 'digital'
+    const digitalRes = await axios.post(
+      `${baseUrl}/api/orders/create-cart-pending`,
+      {
+        cartItems: [{ id: String(digitalBook._id), title: digitalBook.title, price: 120, quantity: 1, type: 'book' }],
+        paymentType: 'cheque',
+        deliveryMethod: 'courier',
+        itemsTotal: 120,
+        courierCharge: 0,
+        totalAmount: 120,
+        totalWeight: 0
+      },
+      { headers: { Authorization: `Bearer ${buyerToken}` } }
+    );
+    expect(digitalRes.status).toBe(200);
+    expect(digitalRes.data.orderId).toBeDefined();
+    const digitalSaved = await Order.findById(digitalRes.data.orderId);
+    expect(digitalSaved.deliveryMethod).toBe('digital');
+
+    // 4. Pickup without address -> 200
     const pickupRes = await axios.post(
       `${baseUrl}/api/orders/create-cart-pending`,
       {
@@ -446,14 +649,13 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
   // --- Delivery Method Matrix & Fallback Tests ---
   test('POST /api/payments/create-order: allows digital-only order without address or deliveryMethod', async () => {
     const res = await axios.post(`${baseUrl}/api/payments/create-order`, {
-      amount: 199,
+      amount: 120,
       items: [{
-        id: String(testBook._id),
-        title: 'Digital PDF Notes',
-        price: 199,
+        id: String(digitalBook._id),
+        title: digitalBook.title,
+        price: 120,
         quantity: 1,
-        isDigital: true,
-        type: 'notes'
+        type: 'book'
       }]
       // deliveryMethod omitted, deliveryAddress omitted
     }, {
@@ -540,13 +742,13 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
 
     // Digital item + unknown deliveryMethod -> allowed (200, deliveryMethod set to 'digital')
     const digiRes = await axios.post(`${baseUrl}/api/payments/create-order`, {
-      amount: 99,
+      amount: 120,
       items: [{
-        id: String(testBook._id),
-        title: 'Digital E-Book',
-        price: 99,
+        id: String(digitalBook._id),
+        title: digitalBook.title,
+        price: 120,
         quantity: 1,
-        isDigital: true
+        type: 'book'
       }],
       deliveryMethod: 'unknown_drone_delivery',
       deliveryAddress: null

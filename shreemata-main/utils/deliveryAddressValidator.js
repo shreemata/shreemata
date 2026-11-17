@@ -1,4 +1,5 @@
-// utils/deliveryAddressValidator.js
+const mongoose = require('mongoose');
+
 /**
  * Shared validator for courier delivery addresses.
  * Enforces: name, phone (10 digits), address line, city, state, pincode (6 digits).
@@ -81,6 +82,95 @@ function validateCourierAddress(deliveryAddress, user = {}) {
   };
 }
 
+/**
+ * Authoritatively determines on the server whether an order contains exclusively digital items
+ * by looking up the actual Book, Bundle, and Note records from the database.
+ * NEVER trusts client-supplied isDigital or isDigitalOnly flags in req.body.
+ */
+async function isServerOrderDigitalOnly(rawItems) {
+  if (!Array.isArray(rawItems) || rawItems.length === 0) {
+    return false;
+  }
+
+  const Book = mongoose.models.Book || require('../models/Book');
+  const Bundle = mongoose.models.Bundle || require('../models/Bundle');
+  let Note = null;
+  try {
+    Note = mongoose.models.Note || require('../models/Note');
+  } catch (e) {
+    Note = null;
+  }
+
+  for (const item of rawItems) {
+    if (!item || typeof item !== 'object') {
+      return false;
+    }
+
+    const rawId = item.id || item._id || item.bookId || item.bundleId || item.noteId;
+    const itemId = String(rawId || '').trim();
+    const itemType = String(item.type || item.itemType || '').toLowerCase();
+
+    // Check Note / digital section items
+    if (itemType === 'note' || itemType === 'notes' || itemType === 'pdf') {
+      if (Note && itemId && mongoose.Types.ObjectId.isValid(itemId)) {
+        const noteDoc = await Note.findById(itemId).lean().catch(() => null);
+        if (noteDoc) continue; // Verified note in DB
+      }
+      // If note or pdf item type specified without Note model, verify it doesn't match a physical book
+      if (itemId && mongoose.Types.ObjectId.isValid(itemId)) {
+        const bookDoc = await Book.findById(itemId).lean().catch(() => null);
+        if (bookDoc && bookDoc.isDigital !== true) {
+          return false; // Physical book masquerading as note/pdf
+        }
+      }
+      continue;
+    }
+
+    // Check Bundle items
+    if (itemType === 'bundle' || item.isBundle || item.bundleId) {
+      if (!itemId || !mongoose.Types.ObjectId.isValid(itemId)) {
+        return false; // Missing or malformed ID -> safe fallback to physical
+      }
+      const bundleDoc = await Bundle.findById(itemId).populate('books').lean().catch(() => null);
+      if (!bundleDoc) {
+        return false; // Not found -> safe fallback to physical
+      }
+      if (bundleDoc.isDigital !== true) {
+        return false; // Physical bundle -> order requires delivery address
+      }
+      if (Array.isArray(bundleDoc.books) && bundleDoc.books.length > 0) {
+        const allBooksDigital = bundleDoc.books.every(b => b && b.isDigital === true);
+        if (!allBooksDigital) return false;
+      }
+      continue;
+    }
+
+    // Default: Book item
+    if (!itemId || !mongoose.Types.ObjectId.isValid(itemId)) {
+      return false; // Missing or malformed ID -> safe fallback to physical
+    }
+
+    const bookDoc = await Book.findById(itemId).lean().catch(() => null);
+    if (!bookDoc) {
+      // Check if it exists in Note collection
+      if (Note) {
+        const noteDoc = await Note.findById(itemId).lean().catch(() => null);
+        if (noteDoc) continue; // Verified note
+      }
+      return false; // Not found -> safe fallback to physical
+    }
+
+    // Authoritative check on DB document:
+    if (bookDoc.isDigital !== true) {
+      return false; // Physical book in database -> order requires delivery address!
+    }
+  }
+
+  // All items verified digital against database records
+  return true;
+}
+
 module.exports = {
-  validateCourierAddress
+  validateCourierAddress,
+  isServerOrderDigitalOnly
 };

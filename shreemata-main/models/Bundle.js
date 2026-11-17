@@ -75,6 +75,12 @@ const bundleSchema = new mongoose.Schema({
         type: Date // Optional expiry date
     },
 
+    // Digital bundle flag
+    isDigital: {
+        type: Boolean,
+        default: false
+    },
+
     // Private Admin Profit Configuration
     profitType: {
         type: String,
