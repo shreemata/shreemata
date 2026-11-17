@@ -37,6 +37,7 @@ let baseUrl;
 let testBuyer;
 let testBook;
 let digitalBook;
+let legacyDigitalBook;
 let buyerToken;
 
 const JWT_SECRET = 'test_jwt_secret_courier_fast_popup_2026';
@@ -107,6 +108,20 @@ beforeAll(async () => {
     profitMethod: 'fixed',
     bookProfit: 25,
     isDigital: true
+  });
+
+  legacyDigitalBook = await Book.create({
+    title: 'Legacy Digital Book (Old Schema Field)',
+    author: 'Old Schema Author',
+    price: 99,
+    originalPrice: 120,
+    stockQuantity: 999,
+    weight: 0,
+    profitMethod: 'fixed',
+    bookProfit: 20,
+    pdfUrl: 'https://storage.googleapis.com/shreemata-books/legacy.pdf',
+    isDigitalAvailable: true
+    // isDigital is NOT set (defaults to false in schema)
   });
 
   buyerToken = jwt.sign(
@@ -241,6 +256,71 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
     expect(savedOrder).toBeDefined();
     expect(savedOrder.deliveryMethod).toBe('digital');
     expect(savedOrder.toObject().deliveryAddress).toBeNull();
+  });
+
+  test('POST /api/payments/create-order: an existing digital product with only legacy fields (no isDigital) is address-free', async () => {
+    const res = await axios.post(
+      `${baseUrl}/api/payments/create-order`,
+      {
+        amount: 99,
+        items: [{
+          id: String(legacyDigitalBook._id),
+          title: legacyDigitalBook.title,
+          author: legacyDigitalBook.author,
+          price: legacyDigitalBook.price,
+          quantity: 1,
+          type: 'book'
+        }],
+        deliveryMethod: 'courier',
+        deliveryAddress: null
+      },
+      { headers: { Authorization: `Bearer ${buyerToken}` } }
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.data.order).toBeDefined();
+    expect(res.data.order.id).toBeDefined();
+
+    const savedOrder = await Order.findOne({ razorpay_order_id: res.data.order.id });
+    expect(savedOrder).toBeDefined();
+    expect(savedOrder.deliveryMethod).toBe('digital');
+    expect(savedOrder.toObject().deliveryAddress).toBeNull();
+  });
+
+  test('POST /api/payments/create-order: a mixed cart (one physical book + one digital book) requires delivery address (400)', async () => {
+    try {
+      await axios.post(
+        `${baseUrl}/api/payments/create-order`,
+        {
+          amount: 270,
+          items: [
+            {
+              id: String(testBook._id),
+              title: testBook.title,
+              author: testBook.author,
+              price: testBook.price,
+              quantity: 1,
+              type: 'book'
+            },
+            {
+              id: String(digitalBook._id),
+              title: digitalBook.title,
+              author: digitalBook.author,
+              price: digitalBook.price,
+              quantity: 1,
+              type: 'book'
+            }
+          ],
+          deliveryMethod: 'courier',
+          deliveryAddress: null
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+      throw new Error('Should have failed');
+    } catch (err) {
+      expect(err.response.status).toBe(400);
+      expect(err.response.data.requiresAddressSetup).toBe(true);
+    }
   });
 
   test('POST /api/payments/create-order: rejects courier order with invalid phone format (400)', async () => {

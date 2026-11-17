@@ -80,6 +80,13 @@ const bundleSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    isDigitalAvailable: {
+        type: Boolean,
+        default: false
+    },
+    digitalContent: {
+        available: { type: Boolean, default: false }
+    },
 
     // Private Admin Profit Configuration
     profitType: {

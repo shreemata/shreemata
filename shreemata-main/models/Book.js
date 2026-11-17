@@ -74,6 +74,22 @@ const bookSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isDigitalAvailable: {
+    type: Boolean,
+    default: false
+  },
+  pdfUrl: {
+    type: String,
+    default: ''
+  },
+  digitalPrice: {
+    type: Number
+  },
+  digitalContent: {
+    available: { type: Boolean, default: false },
+    pdfFile: { type: String, default: '' },
+    onlinePrice: { type: Number }
+  },
 
   // Private Admin Profit Configuration
   profitType: {

@@ -83,6 +83,41 @@ function validateCourierAddress(deliveryAddress, user = {}) {
 }
 
 /**
+ * Checks whether a Book entity (Mongoose document or plain object) represents a digital item
+ * by checking both legacy/existing fields and the new isDigital field.
+ */
+function isBookEntityDigital(book) {
+  if (!book || typeof book !== 'object') return false;
+  return Boolean(
+    book.isDigital === true ||
+    book.isDigitalAvailable === true ||
+    book.digitalContent?.available === true ||
+    (typeof book.pdfUrl === 'string' && book.pdfUrl.trim().length > 0) ||
+    (typeof book.digitalPrice === 'number' && book.digitalPrice > 0) ||
+    (typeof book.hasDigitalContent === 'function' ? book.hasDigitalContent() : false)
+  );
+}
+
+/**
+ * Checks whether a Bundle entity represents a digital bundle
+ * by checking both legacy/existing fields and the new isDigital field.
+ */
+function isBundleEntityDigital(bundle) {
+  if (!bundle || typeof bundle !== 'object') return false;
+  if (
+    bundle.isDigital === true ||
+    bundle.isDigitalAvailable === true ||
+    bundle.digitalContent?.available === true
+  ) {
+    return true;
+  }
+  if (Array.isArray(bundle.books) && bundle.books.length > 0) {
+    return bundle.books.every(b => isBookEntityDigital(b));
+  }
+  return false;
+}
+
+/**
  * Authoritatively determines on the server whether an order contains exclusively digital items
  * by looking up the actual Book, Bundle, and Note records from the database.
  * NEVER trusts client-supplied isDigital or isDigitalOnly flags in req.body.
@@ -119,7 +154,7 @@ async function isServerOrderDigitalOnly(rawItems) {
       // If note or pdf item type specified without Note model, verify it doesn't match a physical book
       if (itemId && mongoose.Types.ObjectId.isValid(itemId)) {
         const bookDoc = await Book.findById(itemId).lean().catch(() => null);
-        if (bookDoc && bookDoc.isDigital !== true) {
+        if (bookDoc && !isBookEntityDigital(bookDoc)) {
           return false; // Physical book masquerading as note/pdf
         }
       }
@@ -135,12 +170,8 @@ async function isServerOrderDigitalOnly(rawItems) {
       if (!bundleDoc) {
         return false; // Not found -> safe fallback to physical
       }
-      if (bundleDoc.isDigital !== true) {
+      if (!isBundleEntityDigital(bundleDoc)) {
         return false; // Physical bundle -> order requires delivery address
-      }
-      if (Array.isArray(bundleDoc.books) && bundleDoc.books.length > 0) {
-        const allBooksDigital = bundleDoc.books.every(b => b && b.isDigital === true);
-        if (!allBooksDigital) return false;
       }
       continue;
     }
@@ -161,7 +192,7 @@ async function isServerOrderDigitalOnly(rawItems) {
     }
 
     // Authoritative check on DB document:
-    if (bookDoc.isDigital !== true) {
+    if (!isBookEntityDigital(bookDoc)) {
       return false; // Physical book in database -> order requires delivery address!
     }
   }
@@ -172,5 +203,7 @@ async function isServerOrderDigitalOnly(rawItems) {
 
 module.exports = {
   validateCourierAddress,
-  isServerOrderDigitalOnly
+  isServerOrderDigitalOnly,
+  isBookEntityDigital,
+  isBundleEntityDigital
 };

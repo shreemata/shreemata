@@ -8,7 +8,7 @@ const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { sendDeliveryStatusEmail } = require("../utils/emailService");
 const { autoGenerateInvoiceForOrder } = require("./invoices");
 const { isPaymentVerified } = require("../utils/paymentHelper");
-const { validateCourierAddress, isServerOrderDigitalOnly } = require("../utils/deliveryAddressValidator");
+const { validateCourierAddress, isServerOrderDigitalOnly, isBookEntityDigital, isBundleEntityDigital } = require("../utils/deliveryAddressValidator");
 
 const router = express.Router();
 
@@ -215,7 +215,7 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
                 return res.status(404).json({ error: "Bundle not found" });
             }
             
-            isDigitalItem = Boolean(bundle.isDigital === true);
+            isDigitalItem = isBundleEntityDigital(bundle);
             console.log('Bundle found:', bundle.name, 'isDigital:', isDigitalItem);
             itemData = {
                 id: bookId,
@@ -237,7 +237,7 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
                 return res.status(404).json({ error: "Book not found" });
             }
             
-            isDigitalItem = Boolean(book.isDigital === true);
+            isDigitalItem = isBookEntityDigital(book);
             console.log('Book found:', book.title, 'isDigital:', isDigitalItem);
             itemData = {
                 id: bookId,
