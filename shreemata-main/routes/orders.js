@@ -8,6 +8,7 @@ const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { sendDeliveryStatusEmail } = require("../utils/emailService");
 const { autoGenerateInvoiceForOrder } = require("./invoices");
 const { isPaymentVerified } = require("../utils/paymentHelper");
+const { validateCourierAddress } = require("../utils/deliveryAddressValidator");
 
 const router = express.Router();
 
@@ -117,10 +118,25 @@ router.get("/check-payments/pending", authenticateToken, isAdmin, async (req, re
  */
 router.post("/", authenticateToken, async (req, res) => {
     try {
-        const { items, totalAmount } = req.body;
+        const { items, totalAmount, deliveryMethod, deliveryAddress } = req.body;
 
         if (!items || items.length === 0) {
             return res.status(400).json({ error: "No items in order" });
+        }
+
+        let validatedAddress = null;
+        if (deliveryMethod === 'courier' || deliveryMethod === 'home') {
+            const val = validateCourierAddress(deliveryAddress, req.user);
+            if (!val.isValid) {
+                return res.status(400).json({
+                    error: val.error,
+                    message: val.message,
+                    missingFields: val.missingFields,
+                    field: val.field,
+                    requiresAddressSetup: true
+                });
+            }
+            validatedAddress = val.sanitizedAddress;
         }
 
         const { buildOrderProfitSnapshot, calculateOrderProfitTotal } = require("../services/orderProfit");
@@ -134,6 +150,8 @@ router.post("/", authenticateToken, async (req, res) => {
             totalAmount,
             orderProfitTotal: calculatedProfit,
             profitAmount: calculatedProfit,
+            deliveryMethod: deliveryMethod || 'pickup',
+            deliveryAddress: validatedAddress,
             status: "pending",
             rewardApplied: false
         });
@@ -161,6 +179,7 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
             basePrice, 
             courierCharge, 
             totalAmount,
+            deliveryAddress,
             itemType = 'book' // Default to book, can be 'bundle'
         } = req.body;
 
@@ -178,6 +197,21 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
         if (!bookId || !quantity || !paymentType) {
             console.error('Missing required fields:', { bookId, quantity, paymentType });
             return res.status(400).json({ error: "Missing required fields" });
+        }
+
+        let validatedAddress = null;
+        if (deliveryMethod === 'courier' || deliveryMethod === 'home') {
+            const val = validateCourierAddress(deliveryAddress, req.user);
+            if (!val.isValid) {
+                return res.status(400).json({
+                    error: val.error,
+                    message: val.message,
+                    missingFields: val.missingFields,
+                    field: val.field,
+                    requiresAddressSetup: true
+                });
+            }
+            validatedAddress = val.sanitizedAddress;
         }
 
         let itemData;
@@ -248,6 +282,7 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
             orderProfitTotal: calculatedProfit,
             profitAmount: calculatedProfit,
             deliveryMethod,
+            deliveryAddress: validatedAddress,
             courierCharge,
             paymentType, // 'cheque' or 'transfer'
             status: "pending_payment_verification",
@@ -639,11 +674,27 @@ router.post("/create-cart-pending", authenticateToken, async (req, res) => {
             itemsTotal,
             courierCharge, 
             totalAmount,
-            totalWeight
+            totalWeight,
+            deliveryAddress
         } = req.body;
 
         if (!cartItems || cartItems.length === 0 || !paymentType) {
             return res.status(400).json({ error: "Missing required fields" });
+        }
+
+        let validatedAddress = null;
+        if (deliveryMethod === 'courier' || deliveryMethod === 'home') {
+            const val = validateCourierAddress(deliveryAddress, req.user);
+            if (!val.isValid) {
+                return res.status(400).json({
+                    error: val.error,
+                    message: val.message,
+                    missingFields: val.missingFields,
+                    field: val.field,
+                    requiresAddressSetup: true
+                });
+            }
+            validatedAddress = val.sanitizedAddress;
         }
 
         // Process cart items and fetch details for each
@@ -711,6 +762,7 @@ router.post("/create-cart-pending", authenticateToken, async (req, res) => {
             orderProfitTotal: calculatedProfit,
             profitAmount: calculatedProfit,
             deliveryMethod,
+            deliveryAddress: validatedAddress,
             courierCharge,
             paymentType, // 'cheque' or 'transfer'
             status: "pending_payment_verification",

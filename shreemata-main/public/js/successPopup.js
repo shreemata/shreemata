@@ -195,12 +195,17 @@ function showSuccessPopup(orderData) {
 
     // Extract order ID for invoice linking
     const invoiceOrderId = (orderData && (orderData.mongoOrderId || orderData.orderId)) || '';
+    const isProcessing = Boolean(orderData && orderData.processing);
+    const titleText = isProcessing ? "⏳ Payment Received!" : "🎉 Order Confirmed!";
+    const subtitleText = isProcessing
+        ? "Payment verified successfully. We are finishing your order details and invoice in the background."
+        : "Your payment has been processed successfully and your order has been placed. You can view or download your official Tax Invoice immediately below.";
 
     // Build card content
     card.innerHTML = `
         <div class="success-checkmark"></div>
-        <h2 class="success-title">🎉 Order Confirmed!</h2>
-        <p class="success-subtitle">Your payment has been processed successfully and your order has been placed. You can view or download your official Tax Invoice immediately below.</p>
+        <h2 class="success-title">${titleText}</h2>
+        <p class="success-subtitle">${subtitleText}</p>
         
         ${orderDetailsHTML}
         
@@ -285,9 +290,94 @@ function viewInvoice(orderId) {
     }
 }
 
+/**
+ * Failure / Cancellation Popup
+ * Appears instantly when Razorpay reports failure or user dismisses the payment modal
+ */
+function showFailurePopup(failureData = {}) {
+    console.log("⚠️ showFailurePopup called with data:", failureData);
+
+    const existingModal = document.getElementById('failurePopupModal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'failurePopupModal';
+    modal.style.cssText = `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: rgba(0, 0, 0, 0.75) !important;
+        z-index: 2147483647 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 20px !important;
+        animation: fadeIn 0.25s ease !important;
+        box-sizing: border-box !important;
+    `;
+
+    const card = document.createElement('div');
+    card.style.cssText = `
+        background: white !important;
+        border-radius: 20px !important;
+        padding: 35px 25px !important;
+        max-width: 460px !important;
+        width: 90% !important;
+        text-align: center !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4) !important;
+        animation: slideUp 0.3s ease !important;
+        position: relative !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    `;
+
+    const title = failureData.title || (failureData.isCancel ? "Payment Cancelled" : "Payment Failed");
+    const reason = failureData.reason || failureData.message || (failureData.isCancel ? "You closed the payment window. No charge was made." : "The transaction could not be completed. Your card or account was not charged.");
+
+    card.innerHTML = `
+        <div style="width: 70px; height: 70px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: bold; margin: 0 auto 15px;">✕</div>
+        <h2 style="font-size: 24px; font-weight: 700; color: #dc2626; margin: 0 0 10px 0;">${title}</h2>
+        <p style="font-size: 15px; color: #4b5563; margin: 0 0 20px 0; line-height: 1.5;">${reason}</p>
+        <div style="display: flex; gap: 12px; margin-top: 25px;">
+            <button onclick="closeFailurePopup(); if (window.retryCurrentPayment) window.retryCurrentPayment();" style="flex: 1; padding: 12px 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; transition: transform 0.2s ease;">
+                🔄 Try Again
+            </button>
+            <button onclick="closeFailurePopup()" style="flex: 1; padding: 12px 20px; background: #f3f4f6; color: #4b5563; border: 2px solid #e5e7eb; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px;">
+                Close
+            </button>
+        </div>
+    `;
+
+    modal.appendChild(card);
+    document.body.appendChild(modal);
+    window.currentFailureModal = modal;
+
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) closeFailurePopup();
+    });
+
+    const escapeHandler = function(e) {
+        if (e.key === 'Escape') {
+            closeFailurePopup();
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+}
+
+function closeFailurePopup() {
+    if (window.currentFailureModal) {
+        window.currentFailureModal.remove();
+        window.currentFailureModal = null;
+    }
+}
+
 // Make functions globally available
 window.showSuccessPopup = showSuccessPopup;
 window.closeSuccessPopup = closeSuccessPopup;
+window.showFailurePopup = showFailurePopup;
+window.closeFailurePopup = closeFailurePopup;
 window.viewMyOrders = viewMyOrders;
 window.viewInvoice = viewInvoice;
 

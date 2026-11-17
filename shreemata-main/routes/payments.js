@@ -14,6 +14,7 @@ const Book = require("../models/Book");
 const Bundle = require("../models/Bundle");
 const { autoGenerateInvoiceForOrder } = require("./invoices");
 const { finalizePaidOrder } = require("../services/orderFinalizer");
+const { validateCourierAddress } = require("../utils/deliveryAddressValidator");
 
 const router = express.Router();
 
@@ -134,7 +135,7 @@ async function applyReferralRewardForOrder(order) {
 // =====================================================
 router.post("/create-order", authenticateToken, async (req, res) => {
   try {
-    const { amount, items, deliveryAddress, appliedOffer, courierCharge, totalWeight, deliveryMethod, paymentMethod } = req.body;
+    let { amount, items, deliveryAddress, appliedOffer, courierCharge, totalWeight, deliveryMethod, paymentMethod } = req.body;
 
     console.log("Create order request:", { 
       amount, 
@@ -161,80 +162,24 @@ router.post("/create-order", authenticateToken, async (req, res) => {
     console.log("Order type analysis:", { hasDigitalItems, isDigitalOnly });
 
     // 🚨 MANDATORY DELIVERY ADDRESS VALIDATION (Skip for digital-only orders and pickup orders)
-    const isPickupOrder = deliveryMethod === 'pickup' || deliveryMethod === 'home';
+    const isPickupOrder = (deliveryMethod === 'pickup');
     
     if (isPickupOrder) {
       console.log("✅ Pickup order detected, skipping delivery address validation");
-    }
-    
-    if (!isDigitalOnly && !isPickupOrder && (!deliveryAddress || 
-        !deliveryAddress.homeAddress1 || 
-        !deliveryAddress.taluk || 
-        !deliveryAddress.district || 
-        !deliveryAddress.state || 
-        !deliveryAddress.pincode || 
-        !deliveryAddress.phone)) {
-      
-      console.log("❌ Delivery address validation failed:", deliveryAddress);
-      
-      return res.status(400).json({ 
-        error: "Complete delivery address is required",
-        message: "Please set your complete delivery address before proceeding with payment",
-        missingFields: {
-          homeAddress1: !deliveryAddress?.homeAddress1,
-          taluk: !deliveryAddress?.taluk,
-          district: !deliveryAddress?.district,
-          state: !deliveryAddress?.state,
-          pincode: !deliveryAddress?.pincode,
-          phone: !deliveryAddress?.phone
-        },
-        requiresAddressSetup: true
-      });
-    }
-
-    // Validate address fields are not empty strings (Skip for digital-only orders and pickup orders)
-    if (!isDigitalOnly && !isPickupOrder && deliveryAddress) {
-      const addressFields = ['homeAddress1', 'taluk', 'district', 'state', 'pincode', 'phone'];
-      const emptyFields = addressFields.filter(field => 
-        !deliveryAddress[field] || deliveryAddress[field].trim() === ''
-      );
-
-      if (emptyFields.length > 0) {
-        console.log("❌ Empty address fields found:", emptyFields);
-        
-        return res.status(400).json({ 
-          error: "All delivery address fields must be filled",
-          message: "Please complete your delivery address information",
-          emptyFields: emptyFields,
+    } else if (!isDigitalOnly) {
+      const addressValidation = validateCourierAddress(deliveryAddress, req.user);
+      if (!addressValidation.isValid) {
+        console.log("❌ Delivery address validation failed:", addressValidation.error);
+        return res.status(400).json({
+          error: addressValidation.error,
+          message: addressValidation.message,
+          missingFields: addressValidation.missingFields,
+          field: addressValidation.field,
           requiresAddressSetup: true
         });
       }
-
-      // Validate phone number format (basic validation)
-      const phoneRegex = /^[6-9]\d{9}$/;
-      if (!phoneRegex.test(deliveryAddress.phone)) {
-        return res.status(400).json({ 
-          error: "Invalid phone number",
-          message: "Please enter a valid 10-digit Indian mobile number",
-          requiresAddressSetup: true
-        });
-      }
-
-      // Validate pincode format (basic validation)
-      const pincodeRegex = /^\d{6}$/;
-      if (!pincodeRegex.test(deliveryAddress.pincode)) {
-        return res.status(400).json({ 
-          error: "Invalid pincode",
-          message: "Please enter a valid 6-digit pincode",
-          requiresAddressSetup: true
-        });
-      }
-    }
-
-    if (!isDigitalOnly) {
-      console.log("✅ Delivery address validation passed");
-    } else {
-      console.log("✅ Digital-only order, skipping delivery address validation");
+      deliveryAddress = addressValidation.sanitizedAddress;
+      console.log("✅ Courier delivery address validation passed");
     }
 
     // 📦 STOCK VALIDATION - Check if all items are available (Skip for digital items)
@@ -342,17 +287,20 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       
       // Prepare delivery address with defaults (null for digital-only orders and pickup orders)
       const addressData = (!isDigitalOnly && !isPickupOrder && deliveryAddress) ? {
-        street: deliveryAddress.homeAddress1 || deliveryAddress.street || "", // Legacy compatibility
-        homeAddress1: deliveryAddress.homeAddress1 || "",
-        homeAddress2: deliveryAddress.homeAddress2 || "",
+        name: deliveryAddress.name || req.user?.name || "",
+        street: deliveryAddress.addressLine || deliveryAddress.homeAddress1 || deliveryAddress.street || "",
+        addressLine: deliveryAddress.addressLine || deliveryAddress.homeAddress1 || deliveryAddress.street || "",
+        homeAddress1: deliveryAddress.homeAddress1 || deliveryAddress.addressLine || deliveryAddress.street || "",
+        homeAddress2: deliveryAddress.homeAddress2 || deliveryAddress.address2 || "",
         streetName: deliveryAddress.streetName || "",
         landmark: deliveryAddress.landmark || "",
         village: deliveryAddress.village || "",
-        taluk: deliveryAddress.taluk || "",
-        district: deliveryAddress.district || "",
+        city: deliveryAddress.city || deliveryAddress.taluk || deliveryAddress.district || "",
+        taluk: deliveryAddress.taluk || deliveryAddress.city || "",
+        district: deliveryAddress.district || deliveryAddress.city || "",
         state: deliveryAddress.state || "",
-        pincode: deliveryAddress.pincode || "",
-        phone: deliveryAddress.phone || ""
+        pincode: String(deliveryAddress.pincode || "").trim(),
+        phone: String(deliveryAddress.phone || "").trim()
       } : null;
 
       // Prepare items array properly with profit snapshot
@@ -455,17 +403,20 @@ router.post("/create-order", authenticateToken, async (req, res) => {
 
     // Prepare delivery address with defaults (null for digital-only orders and pickup orders)
     const addressData = (!isDigitalOnly && !isPickupOrder && deliveryAddress) ? {
-      street: deliveryAddress.homeAddress1 || deliveryAddress.street || "", // Legacy compatibility
-      homeAddress1: deliveryAddress.homeAddress1 || "",
-      homeAddress2: deliveryAddress.homeAddress2 || "",
+      name: deliveryAddress.name || req.user?.name || "",
+      street: deliveryAddress.addressLine || deliveryAddress.homeAddress1 || deliveryAddress.street || "",
+      addressLine: deliveryAddress.addressLine || deliveryAddress.homeAddress1 || deliveryAddress.street || "",
+      homeAddress1: deliveryAddress.homeAddress1 || deliveryAddress.addressLine || deliveryAddress.street || "",
+      homeAddress2: deliveryAddress.homeAddress2 || deliveryAddress.address2 || "",
       streetName: deliveryAddress.streetName || "",
       landmark: deliveryAddress.landmark || "",
       village: deliveryAddress.village || "",
-      taluk: deliveryAddress.taluk || "",
-      district: deliveryAddress.district || "",
+      city: deliveryAddress.city || deliveryAddress.taluk || deliveryAddress.district || "",
+      taluk: deliveryAddress.taluk || deliveryAddress.city || "",
+      district: deliveryAddress.district || deliveryAddress.city || "",
       state: deliveryAddress.state || "",
-      pincode: deliveryAddress.pincode || "",
-      phone: deliveryAddress.phone || ""
+      pincode: String(deliveryAddress.pincode || "").trim(),
+      phone: String(deliveryAddress.phone || "").trim()
     } : null;
 
     // Prepare items array properly with profit snapshot
@@ -587,14 +538,15 @@ router.post("/verify", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    // Execute shared, idempotent order finalization
+    // Execute shared, idempotent order finalization (with async background emails for rapid popup response)
     const result = await finalizePaidOrder(order, {
       razorpay_payment_id,
       razorpay_order_id,
       razorpay_signature,
       items,
       totalAmount,
-      deliveryAddress
+      deliveryAddress,
+      asyncEmails: true
     });
 
     res.json({
@@ -604,6 +556,18 @@ router.post("/verify", authenticateToken, async (req, res) => {
       alreadyProcessed: Boolean(result.alreadyProcessed),
       order: result.order
     });
+
+    // Run slow, non-critical steps (confirmation emails) asynchronously AFTER HTTP response is sent
+    if (result.order && !result.order.confirmationEmailSent && !result.processing) {
+      setImmediate(async () => {
+        try {
+          const { dispatchOrderEmails } = require("../services/orderFinalizer");
+          await dispatchOrderEmails(result.order._id);
+        } catch (emailErr) {
+          console.error("⚠️ Background email dispatch error in /verify:", emailErr.message);
+        }
+      });
+    }
 
   } catch (err) {
     console.error("Verify error:", err);

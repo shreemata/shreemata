@@ -1074,16 +1074,22 @@ async function checkApplicableOffersForCart(cartTotal) {
             currentOffer = data;
             showOfferModalForCart(data);
         } else {
-            console.log("ℹ️ No applicable offer found. Going to billing address collection...");
-            // No offer applicable, go to billing address collection first
+            console.log("ℹ️ No applicable offer found.");
             currentOffer = null;
-            showCartBillingAddressModal();
+            if (getSelectedDeliveryMethod() === 'pickup') {
+                continueToCartPayment();
+            } else {
+                showCartBillingAddressModal();
+            }
         }
     } catch (err) {
         console.error("❌ Error checking offers:", err);
-        // Continue to billing address collection even if offer check fails
         currentOffer = null;
-        showCartBillingAddressModal();
+        if (getSelectedDeliveryMethod() === 'pickup') {
+            continueToCartPayment();
+        } else {
+            showCartBillingAddressModal();
+        }
     }
 }
 
@@ -1132,7 +1138,11 @@ function showOfferModalForCart(offerData) {
 
 async function acceptOfferAndContinueToPayment() {
     document.getElementById("offerModal").style.display = "none";
-    showCartBillingAddressModal();
+    if (getSelectedDeliveryMethod() === 'pickup') {
+        continueToCartPayment();
+    } else {
+        showCartBillingAddressModal();
+    }
 }
 
 /* ------------------------------
@@ -1779,79 +1789,71 @@ async function saveAddressFromModal() {
 async function proceedToPayment() {
     const token = localStorage.getItem("token");
     const API = window.API_URL || '';
+    const user = JSON.parse(localStorage.getItem("user") || "null");
 
     console.log('🔍 proceedToPayment called');
-    console.log('📍 Current userAddress:', userAddress);
+    const deliveryMethod = getSelectedDeliveryMethod();
+    const isPickup = (deliveryMethod === 'pickup');
 
-    // If userAddress is not set, try to load it from server first
-    if (!userAddress) {
-        console.log('⚠️ userAddress not set, loading from server...');
-        try {
-            const res = await fetch(`${API}/users/profile`, {
-                headers: { "Authorization": "Bearer " + token }
-            });
-            const data = await res.json();
-            if (data.user && data.user.address) {
-                userAddress = data.user.address;
-                console.log('✅ Loaded address from server:', userAddress);
+    let resolvedAddress = null;
+
+    if (!isPickup) {
+        // Courier delivery requires a valid address
+        resolvedAddress = window.cartDeliveryAddress || window.cartBillingAddress || userAddress;
+
+        if (!resolvedAddress && token) {
+            console.log('⚠️ Address not set, attempting to load from user profile...');
+            try {
+                const res = await fetch(`${API}/users/profile`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                const data = await res.json();
+                if (data.user && data.user.address) {
+                    userAddress = data.user.address;
+                    resolvedAddress = userAddress;
+                }
+            } catch (err) {
+                console.error('❌ Error loading address from server:', err);
             }
-        } catch (err) {
-            console.error('❌ Error loading address from server:', err);
         }
+
+        const recipientName = (resolvedAddress?.name || user?.name || '').trim();
+        const recipientPhone = String(resolvedAddress?.phone || user?.phone || '').trim();
+        const addressLine = (resolvedAddress?.address1 || resolvedAddress?.addressLine || resolvedAddress?.homeAddress1 || resolvedAddress?.street || '').trim();
+        const cityTaluk = (resolvedAddress?.taluk || resolvedAddress?.city || '').trim();
+        const stateName = (resolvedAddress?.state || '').trim();
+        const pincodeVal = String(resolvedAddress?.pincode || '').trim();
+
+        const isAddressComplete = recipientName &&
+            /^\d{10}$/.test(recipientPhone) &&
+            addressLine &&
+            cityTaluk &&
+            stateName &&
+            /^\d{6}$/.test(pincodeVal);
+
+        if (!isAddressComplete) {
+            console.log('⚠️ Courier delivery selected but address incomplete, opening address modal');
+            showCartBillingAddressModal();
+            return;
+        }
+
+        // Format clean address payload for backend
+        resolvedAddress = {
+            name: recipientName,
+            phone: recipientPhone,
+            street: addressLine,
+            addressLine: addressLine,
+            homeAddress1: addressLine,
+            homeAddress2: (resolvedAddress.address2 || resolvedAddress.homeAddress2 || '').trim(),
+            taluk: cityTaluk,
+            city: cityTaluk,
+            district: (resolvedAddress.district || cityTaluk).trim(),
+            state: stateName,
+            pincode: pincodeVal
+        };
     }
 
-    // 🚨 MANDATORY ADDRESS VALIDATION
-    if (!userAddress || !userAddress.street || !userAddress.taluk || !userAddress.district || !userAddress.state || !userAddress.pincode || !userAddress.phone) {
-        console.log('❌ Address validation failed - missing userAddress or required fields');
-        console.log('   userAddress:', userAddress);
-        
-        alert("❌ Delivery address is required!\n\nPlease set your complete delivery address before proceeding with payment.\n\nYou will be redirected to your account page to set the address.");
-        
-        // Redirect to account page to set address
-        window.location.href = "/account.html?tab=address&redirect=cart";
-        return;
-    }
-
-    // Validate address fields are not empty
-    const requiredFields = ['street', 'taluk', 'district', 'state', 'pincode', 'phone'];
-    const emptyFields = requiredFields.filter(field => 
-        !userAddress[field] || userAddress[field].toString().trim() === ''
-    );
-
-    console.log('🔍 Address field validation:');
-    requiredFields.forEach(field => {
-        const value = userAddress[field];
-        const isEmpty = !value || value.toString().trim() === '';
-        console.log(`   ${field}: "${value}" ${isEmpty ? '❌ EMPTY' : '✅ OK'}`);
-    });
-
-    if (emptyFields.length > 0) {
-        console.log('❌ Empty fields detected:', emptyFields);
-        alert(`❌ Please complete your delivery address!\n\nMissing: ${emptyFields.join(', ')}\n\nYou will be redirected to your account page to complete the address.`);
-        window.location.href = "/account.html?tab=address&redirect=cart";
-        return;
-    }
-
-    // Validate phone number format (Indian mobile numbers)
-    const phoneRegex = /^[6-9]\d{9}$/;
-    if (!phoneRegex.test(userAddress.phone)) {
-        console.log('❌ Invalid phone format:', userAddress.phone);
-        alert("❌ Please enter a valid 10-digit Indian mobile number in your delivery address.");
-        window.location.href = "/account.html?tab=address&redirect=cart";
-        return;
-    }
-
-    // Validate pincode format
-    const pincodeRegex = /^\d{6}$/;
-    if (!pincodeRegex.test(userAddress.pincode)) {
-        console.log('❌ Invalid pincode format:', userAddress.pincode);
-        alert("❌ Please enter a valid 6-digit pincode in your delivery address.");
-        window.location.href = "/account.html?tab=address&redirect=cart";
-        return;
-    }
-
-    console.log('✅ Address validation passed, proceeding to payment');
-    console.log('📍 userAddress being sent to server:', JSON.stringify(userAddress, null, 2));
+    console.log('✅ Validation passed for checkout. Delivery:', deliveryMethod, 'Address:', resolvedAddress);
 
     console.log("✅ Address validation passed", userAddress);
 
@@ -1954,7 +1956,7 @@ async function proceedToPayment() {
         const requestPayload = { 
             amount: finalAmount, 
             items: orderItems,
-            deliveryAddress: userAddress,
+            deliveryAddress: resolvedAddress,
             appliedOffer: appliedOffer,
             courierCharge: courierCharge,
             totalWeight: totalWeight,
@@ -1964,7 +1966,7 @@ async function proceedToPayment() {
         console.log('📤 Sending create-order request with payload:');
         console.log('   Amount:', finalAmount);
         console.log('   Items count:', orderItems.length);
-        console.log('   DeliveryAddress:', JSON.stringify(userAddress, null, 2));
+        console.log('   DeliveryAddress:', JSON.stringify(resolvedAddress, null, 2));
         console.log('   CourierCharge:', courierCharge);
         console.log('   TotalWeight:', totalWeight);
         console.log('   DeliveryMethod:', deliveryMethod);
@@ -1987,7 +1989,6 @@ async function proceedToPayment() {
         }
 
         const rzpOrder = createData.order; // contains id and amount (in paise)
-        // Some Razorpay SDK fields expect amount in paise - rzpOrder.amount is already in paise
 
         // 2) Open Razorpay checkout
         const RZP_KEY = createData.key || window.RAZORPAY_KEY || "rzp_live_TYHRMUCCtwZWzQ";
@@ -2019,7 +2020,7 @@ async function proceedToPayment() {
                             razorpay_signature: response.razorpay_signature,
                             items: orderItems,
                             totalAmount: total,
-                            deliveryAddress: userAddress
+                            deliveryAddress: resolvedAddress
                         })
                     });
 
@@ -2029,9 +2030,17 @@ async function proceedToPayment() {
 
                     if (!verifyRes.ok || (!verifyData.success && !verifyData.order)) {
                         const msg = verifyData.error || "Payment verification failed";
-                        alert(msg);
                         console.error("❌ Verify failed:", verifyData);
                         resetCheckoutButton();
+                        if (typeof showFailurePopup === 'function') {
+                            showFailurePopup({
+                                title: 'Payment Verification Failed',
+                                reason: msg,
+                                orderId: response.razorpay_payment_id
+                            });
+                        } else {
+                            alert(msg);
+                        }
                         return;
                     }
 
@@ -2046,15 +2055,16 @@ async function proceedToPayment() {
                     }
                     
                     // Get cart data BEFORE clearing it
-                    const cart = getCart();
+                    const currentCart = getCart();
                     const mongoOrderId = (verifyData.order && (verifyData.order._id || verifyData.order.id)) || '';
                     const orderData = {
                         orderId: response.razorpay_payment_id,
                         mongoOrderId: mongoOrderId,
-                        items: cart.length,
+                        items: currentCart.length,
                         amount: (rzpOrder.amount / 100), // Convert from paise to rupees
                         deliveryMethod: deliveryMethod === 'pickup' ? 'Store Pickup' : 'Courier Delivery',
-                        paymentMethod: 'Online Payment'
+                        paymentMethod: 'Online Payment',
+                        processing: Boolean(verifyData.processing)
                     };
                     
                     console.log("📋 Order data for popup:", orderData);
@@ -2065,72 +2075,60 @@ async function proceedToPayment() {
                     // Clear cart AFTER getting the data
                     clearCart();
                     
-                    // Show success popup with order details & direct invoice view
+                    // Show success popup immediately with order details
                     console.log("🎉 Calling showSuccessPopup with data:", orderData);
                     
-                    // Check if showSuccessPopup function exists
                     if (typeof showSuccessPopup === 'function') {
-                        console.log("✅ showSuccessPopup function found, calling it...");
                         showSuccessPopup(orderData);
                     } else {
-                        console.error("❌ showSuccessPopup function not found!");
-                        // Direct redirect to customer invoice
                         if (mongoOrderId) {
                             window.location.href = `/customer-invoice.html?orderId=${mongoOrderId}`;
                         } else {
                             window.location.href = "/account.html?section=orders";
                         }
                     }
-                    
-                    return; // Exit the handler
-
-if (!response.razorpay_payment_id) {
-    alert("Payment failed or cancelled. Order not placed.");
-    return;
-}
-
-
                 } catch (err) {
                     console.error("Error during payment verification:", err);
-                    alert("Payment succeeded but verification failed. We'll investigate.");
                     resetCheckoutButton();
+                    if (typeof showFailurePopup === 'function') {
+                        showFailurePopup({
+                            title: 'Payment Verification Error',
+                            reason: err.message || "Payment succeeded but verification had an issue. Please contact support.",
+                            orderId: response.razorpay_payment_id
+                        });
+                    } else {
+                        alert("Payment succeeded but verification failed. We'll investigate.");
+                    }
                 }
             },
-            // if the user closes the popup without paying
             modal: {
-                ondismiss: async function () {
+                ondismiss: function () {
                     console.log("Payment popup closed. No charge made.");
 
-                    // Cancel the order in the backend
-                    try {
-                        const cancelRes = await fetch(`${API}/payments/cancel`, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Authorization": "Bearer " + token
-                            },
-                            body: JSON.stringify({
-                                razorpay_order_id: rzpOrder.id
-                            })
-                        });
-
-                        if (cancelRes.ok) {
-                            console.log("✅ Order cancelled successfully");
-                        } else {
-                            console.log("⚠️ Could not cancel order (may have already been processed)");
-                        }
-                    } catch (err) {
-                        console.error("Error cancelling order:", err);
-                    }
-
-                    // Do NOT redirect, do NOT clear cart.
-                    alert("Payment was cancelled. The order has NOT been placed.");
+                    // Cancel the order in the backend asynchronously (do not block user feedback)
+                    fetch(`${API}/payments/cancel`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": "Bearer " + token
+                        },
+                        body: JSON.stringify({
+                            razorpay_order_id: rzpOrder.id
+                        })
+                    }).catch(err => console.warn("Background cancel warning:", err));
 
                     resetCheckoutButton();
+
+                    if (typeof showFailurePopup === 'function') {
+                        showFailurePopup({
+                            title: "Payment Cancelled",
+                            reason: "You closed the payment window. No payment was deducted.",
+                            isCancel: true
+                        });
+                    }
                 }
             },
             prefill: {
-                // You can prefill with logged-in user details if you store them
                 name: (JSON.parse(localStorage.getItem("user") || "null") || {}).name || "",
                 email: (JSON.parse(localStorage.getItem("user") || "null") || {}).email || ""
             },
@@ -2139,8 +2137,19 @@ if (!response.razorpay_payment_id) {
             }
         };
 
-        // open checkout
+        // Open checkout
         const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (resp) {
+            console.error("Razorpay payment failed:", resp.error);
+            resetCheckoutButton();
+            if (typeof showFailurePopup === 'function') {
+                showFailurePopup({
+                    title: "Payment Failed",
+                    reason: resp.error?.description || resp.error?.reason || "Your card or account was not charged. Please try again.",
+                    orderId: resp.error?.metadata?.payment_id
+                });
+            }
+        });
         rzp.open();
 
     } catch (err) {
@@ -2597,6 +2606,43 @@ function toggleCartDeliveryAddress() {
     }
 }
 
+// Inline error handling helpers for cart checkout
+function clearCartInlineFieldErrors(container) {
+    if (!container) return;
+    const errorMsgs = container.querySelectorAll('.field-error-msg');
+    errorMsgs.forEach(el => el.remove());
+    const badFields = container.querySelectorAll('.field-has-error');
+    badFields.forEach(el => {
+        el.classList.remove('field-has-error');
+        el.style.borderColor = '#e0e0e0';
+    });
+}
+
+function setCartInlineFieldError(inputEl, message) {
+    if (!inputEl) return;
+    inputEl.classList.add('field-has-error');
+    inputEl.style.borderColor = '#dc3545';
+    let msgEl = inputEl.parentNode ? inputEl.parentNode.querySelector('.field-error-msg') : null;
+    if (!msgEl && inputEl.parentNode) {
+        msgEl = document.createElement('div');
+        msgEl.className = 'field-error-msg';
+        msgEl.style.color = '#dc3545';
+        msgEl.style.fontSize = '12px';
+        msgEl.style.marginTop = '4px';
+        msgEl.style.fontWeight = '500';
+        inputEl.parentNode.appendChild(msgEl);
+    }
+    if (msgEl) msgEl.textContent = message;
+
+    const onInput = function() {
+        inputEl.classList.remove('field-has-error');
+        inputEl.style.borderColor = '#e0e0e0';
+        if (msgEl && msgEl.parentNode) msgEl.remove();
+        inputEl.removeEventListener('input', onInput);
+    };
+    inputEl.addEventListener('input', onInput);
+}
+
 // Setup cart billing address form submission
 function setupCartBillingAddressForm() {
     // Use a timeout to ensure DOM is ready
@@ -2607,109 +2653,139 @@ function setupCartBillingAddressForm() {
                 e.preventDefault();
                 
                 console.log("Cart billing form submitted, processing...");
-                
+                clearCartInlineFieldErrors(billingForm);
+
+                const getEl = (id) => document.getElementById(id);
+                const getVal = (id) => {
+                    const el = getEl(id);
+                    return el ? el.value.trim() : "";
+                };
+
                 // Validate billing address
                 const billingData = {
-                    name: document.getElementById("cartBillingName").value.trim(),
-                    phone: document.getElementById("cartBillingPhone").value.trim(),
-                    email: document.getElementById("cartBillingEmail").value.trim(),
-                    address1: document.getElementById("cartBillingAddress1").value.trim(),
-                    address2: document.getElementById("cartBillingAddress2").value.trim(),
-                    taluk: document.getElementById("cartBillingTaluk").value.trim(),
-                    district: document.getElementById("cartBillingDistrict").value.trim(),
-                    state: document.getElementById("cartBillingState").value.trim(),
-                    pincode: document.getElementById("cartBillingPincode").value.trim()
+                    name: getVal("cartBillingName"),
+                    phone: getVal("cartBillingPhone"),
+                    email: getVal("cartBillingEmail"),
+                    address1: getVal("cartBillingAddress1"),
+                    address2: getVal("cartBillingAddress2"),
+                    taluk: getVal("cartBillingTaluk"),
+                    district: getVal("cartBillingDistrict"),
+                    state: getVal("cartBillingState"),
+                    pincode: getVal("cartBillingPincode")
                 };
-                
-                // Validate required billing fields
-                if (!billingData.name || !billingData.phone || !billingData.email || 
-                    !billingData.address1 || !billingData.taluk || !billingData.district || 
-                    !billingData.state || !billingData.pincode) {
-                    alert("Please fill in all required billing fields (marked with *)");
-                    return;
-                }
-                
-                // Validate formats
-                if (!/^\d{6}$/.test(billingData.pincode)) {
-                    alert("Please enter a valid 6-digit pincode for billing address");
-                    return;
-                }
-                
-                if (!/^\d{10}$/.test(billingData.phone)) {
-                    alert("Please enter a valid 10-digit phone number for billing");
-                    return;
-                }
-                
-                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billingData.email)) {
-                    alert("Please enter a valid email address");
-                    return;
-                }
-                
-                // Check if courier delivery is selected
+
                 const selectedDeliveryMethod = getSelectedDeliveryMethod();
                 const needsCourierDelivery = selectedDeliveryMethod === 'home';
-                
-                // Validate delivery address if courier delivery needed
+                const usePermanent = getEl("cartUsePermanentAddress") ? getEl("cartUsePermanentAddress").checked : true;
+
+                const validationErrors = [];
+
+                if (needsCourierDelivery) {
+                    if (usePermanent) {
+                        // Billing fields are used as delivery address
+                        if (!billingData.name) {
+                            validationErrors.push({ el: getEl("cartBillingName"), msg: "Full recipient name is required" });
+                        }
+                        if (!billingData.phone) {
+                            validationErrors.push({ el: getEl("cartBillingPhone"), msg: "10-digit phone number is required" });
+                        } else if (!/^\d{10}$/.test(billingData.phone)) {
+                            validationErrors.push({ el: getEl("cartBillingPhone"), msg: "Please enter a valid 10-digit mobile number" });
+                        }
+                        if (!billingData.address1) {
+                            validationErrors.push({ el: getEl("cartBillingAddress1"), msg: "Street/House delivery address is required" });
+                        }
+                        if (!billingData.taluk) {
+                            validationErrors.push({ el: getEl("cartBillingTaluk"), msg: "City or Taluk is required" });
+                        }
+                        if (!billingData.state) {
+                            validationErrors.push({ el: getEl("cartBillingState"), msg: "State is required" });
+                        }
+                        if (!billingData.pincode) {
+                            validationErrors.push({ el: getEl("cartBillingPincode"), msg: "6-digit delivery pincode is required" });
+                        } else if (!/^\d{6}$/.test(billingData.pincode)) {
+                            validationErrors.push({ el: getEl("cartBillingPincode"), msg: "Please enter a valid 6-digit pincode" });
+                        }
+                    } else {
+                        // Separate delivery address fields
+                        const delName = getVal("cartDeliveryName");
+                        const delPhone = getVal("cartDeliveryPhone");
+                        const delAddr1 = getVal("cartDeliveryAddress1");
+                        const delTaluk = getVal("cartDeliveryTaluk");
+                        const delState = getVal("cartDeliveryState");
+                        const delPincode = getVal("cartDeliveryPincode");
+
+                        if (!delName) {
+                            validationErrors.push({ el: getEl("cartDeliveryName"), msg: "Delivery recipient name is required" });
+                        }
+                        if (!delPhone) {
+                            validationErrors.push({ el: getEl("cartDeliveryPhone"), msg: "10-digit phone number is required" });
+                        } else if (!/^\d{10}$/.test(delPhone)) {
+                            validationErrors.push({ el: getEl("cartDeliveryPhone"), msg: "Please enter a valid 10-digit mobile number" });
+                        }
+                        if (!delAddr1) {
+                            validationErrors.push({ el: getEl("cartDeliveryAddress1"), msg: "Delivery street/house address is required" });
+                        }
+                        if (!delTaluk) {
+                            validationErrors.push({ el: getEl("cartDeliveryTaluk"), msg: "City or Taluk is required" });
+                        }
+                        if (!delState) {
+                            validationErrors.push({ el: getEl("cartDeliveryState"), msg: "State is required" });
+                        }
+                        if (!delPincode) {
+                            validationErrors.push({ el: getEl("cartDeliveryPincode"), msg: "6-digit delivery pincode is required" });
+                        } else if (!/^\d{6}$/.test(delPincode)) {
+                            validationErrors.push({ el: getEl("cartDeliveryPincode"), msg: "Please enter a valid 6-digit pincode" });
+                        }
+                    }
+                }
+
+                if (validationErrors.length > 0) {
+                    validationErrors.forEach(err => setCartInlineFieldError(err.el, err.msg));
+                    if (validationErrors[0] && validationErrors[0].el) {
+                        validationErrors[0].el.focus();
+                        validationErrors[0].el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return; // Stop: do not proceed to payment
+                }
+
+                // Prepare delivery data
                 let deliveryData = null;
                 if (needsCourierDelivery) {
-                    const usePermanent = document.getElementById("cartUsePermanentAddress").checked;
-                    
                     if (usePermanent) {
-                        // Use billing address for delivery
                         deliveryData = {
                             name: billingData.name,
                             phone: billingData.phone,
                             address1: billingData.address1,
                             address2: billingData.address2,
                             taluk: billingData.taluk,
-                            district: billingData.district,
+                            district: billingData.district || billingData.taluk,
                             state: billingData.state,
                             pincode: billingData.pincode
                         };
                     } else {
-                        // Use separate delivery address
                         deliveryData = {
-                            name: document.getElementById("cartDeliveryName").value.trim(),
-                            phone: document.getElementById("cartDeliveryPhone").value.trim(),
-                            address1: document.getElementById("cartDeliveryAddress1").value.trim(),
-                            address2: document.getElementById("cartDeliveryAddress2").value.trim(),
-                            taluk: document.getElementById("cartDeliveryTaluk").value.trim(),
-                            district: document.getElementById("cartDeliveryDistrict").value.trim(),
-                            state: document.getElementById("cartDeliveryState").value.trim(),
-                            pincode: document.getElementById("cartDeliveryPincode").value.trim()
+                            name: getVal("cartDeliveryName"),
+                            phone: getVal("cartDeliveryPhone"),
+                            address1: getVal("cartDeliveryAddress1"),
+                            address2: getVal("cartDeliveryAddress2"),
+                            taluk: getVal("cartDeliveryTaluk"),
+                            district: getVal("cartDeliveryDistrict") || getVal("cartDeliveryTaluk"),
+                            state: getVal("cartDeliveryState"),
+                            pincode: getVal("cartDeliveryPincode")
                         };
-                        
-                        // Validate delivery fields
-                        if (!deliveryData.name || !deliveryData.phone || !deliveryData.address1 || 
-                            !deliveryData.taluk || !deliveryData.district || !deliveryData.state || 
-                            !deliveryData.pincode) {
-                            alert("Please fill in all required delivery fields or use permanent address");
-                            return;
-                        }
-                        
-                        if (!/^\d{6}$/.test(deliveryData.pincode)) {
-                            alert("Please enter a valid 6-digit pincode for delivery address");
-                            return;
-                        }
-                        
-                        if (!/^\d{10}$/.test(deliveryData.phone)) {
-                            alert("Please enter a valid 10-digit phone number for delivery");
-                            return;
-                        }
                     }
                 }
-                
+
                 // Store addresses globally for later use
                 window.cartBillingAddress = billingData;
                 window.cartDeliveryAddress = deliveryData;
-                
+
                 console.log("Cart billing address stored:", window.cartBillingAddress);
                 console.log("Cart delivery address stored:", window.cartDeliveryAddress);
-                
+
                 // Close billing modal and continue to payment
                 closeCartBillingAddressModal();
-                
-                // Add a small delay to ensure modal transition
+
                 setTimeout(() => {
                     continueToCartPayment();
                 }, 100);

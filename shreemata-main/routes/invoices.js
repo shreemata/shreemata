@@ -322,17 +322,18 @@ async function autoGenerateInvoiceForOrder(orderOrId) {
     const user = order.user_id || {};
     const addr = order.deliveryAddress || {};
 
-    const customerName = user.name || (addr.street ? 'Customer' : 'Valued Customer');
-    const phoneNumber = user.phone || addr.phone || '';
-    const district = addr.district || addr.taluk || '';
+    const customerName = addr.name || user.name || (addr.street ? 'Customer' : 'Valued Customer');
+    const phoneNumber = addr.phone || user.phone || '';
+    const district = addr.city || addr.district || addr.taluk || '';
     const state = addr.state || 'Karnataka';
     const pinCode = addr.pincode || '';
     
     // Construct full address
     const addressParts = [
-      addr.street,
-      addr.taluk,
-      addr.district,
+      addr.addressLine || addr.homeAddress1 || addr.street,
+      addr.homeAddress2 || addr.address2,
+      addr.city || addr.taluk,
+      addr.district && addr.district !== (addr.city || addr.taluk) ? addr.district : '',
       addr.state,
       addr.pincode ? `PIN: ${addr.pincode}` : ''
     ].filter(Boolean);
@@ -473,16 +474,17 @@ async function autoGenerateProformaInvoiceForOrder(orderOrId) {
     const user = order.user_id || {};
     const addr = order.deliveryAddress || {};
 
-    const customerName = user.name || (addr.street ? 'Customer' : 'Valued Customer');
-    const phoneNumber = user.phone || addr.phone || '';
-    const district = addr.district || addr.taluk || '';
+    const customerName = addr.name || user.name || (addr.street ? 'Customer' : 'Valued Customer');
+    const phoneNumber = addr.phone || user.phone || '';
+    const district = addr.city || addr.district || addr.taluk || '';
     const state = addr.state || 'Karnataka';
     const pinCode = addr.pincode || '';
 
     const addressParts = [
-      addr.street,
-      addr.taluk,
-      addr.district,
+      addr.addressLine || addr.homeAddress1 || addr.street,
+      addr.homeAddress2 || addr.address2,
+      addr.city || addr.taluk,
+      addr.district && addr.district !== (addr.city || addr.taluk) ? addr.district : '',
       addr.state,
       addr.pincode ? `PIN: ${addr.pincode}` : ''
     ].filter(Boolean);

@@ -971,12 +971,17 @@ async function proceedToPayment() {
 
     // Validate address only for courier delivery
     if (deliveryMethod === "courier") {
-        if (!userAddress || !userAddress.street || !userAddress.taluk || !userAddress.district || !userAddress.state || !userAddress.pincode || !userAddress.phone) {
-            const proceed = confirm("You haven't set a delivery address. Do you want to proceed anyway?");
-            if (!proceed) {
-                return;
-            }
-            userAddress = null;
+        const hasValidAddress = userAddress &&
+            (userAddress.street || userAddress.homeAddress1 || userAddress.address1) &&
+            (userAddress.taluk || userAddress.city) &&
+            userAddress.state &&
+            /^\d{6}$/.test(String(userAddress.pincode || '')) &&
+            /^\d{10}$/.test(String(userAddress.phone || ''));
+
+        if (!hasValidAddress) {
+            console.log("Courier delivery requires delivery address, opening modal");
+            showBillingAddressModal("courier");
+            return;
         }
     }
 
@@ -1083,37 +1088,46 @@ async function proceedToPayment() {
                     const verifyData = await verifyRes.json();
 
                     if (!verifyRes.ok || (!verifyData.success && !verifyData.order)) {
-                        alert(verifyData.error || "Payment verification failed");
+                        const failMsg = verifyData.error || "Payment verification failed";
                         if (buyBtn) {
                             buyBtn.disabled = false;
                             buyBtn.textContent = "Buy Now";
+                        }
+                        if (typeof showFailurePopup === 'function') {
+                            showFailurePopup({
+                                title: "Payment Verification Failed",
+                                reason: failMsg,
+                                orderId: response.razorpay_payment_id
+                            });
+                        } else {
+                            alert(failMsg);
                         }
                         return;
                     }
 
                     // ✅ Payment verification successful!
                     console.log("✅ Payment verified successfully!");
+                    if (buyBtn) {
+                        buyBtn.disabled = false;
+                        buyBtn.textContent = "Buy Now";
+                    }
                     
                     const mongoOrderId = (verifyData.order && (verifyData.order._id || verifyData.order.id)) || '';
-                    // Show success popup with order details
                     const orderData = {
                         orderId: response.razorpay_payment_id,
                         mongoOrderId: mongoOrderId,
                         items: quantity,
                         amount: totalAmount,
                         deliveryMethod: deliveryMethod === 'pickup' ? 'Store Pickup' : 'Courier Delivery',
-                        paymentMethod: 'Online Payment'
+                        paymentMethod: 'Online Payment',
+                        processing: Boolean(verifyData.processing)
                     };
                     
                     console.log("📋 Order data for popup:", orderData);
                     
-                    // Check if showSuccessPopup function exists
                     if (typeof showSuccessPopup === 'function') {
-                        console.log("✅ showSuccessPopup function found, calling it...");
                         showSuccessPopup(orderData);
                     } else {
-                        console.error("❌ showSuccessPopup function not found!");
-                        // Direct redirect to customer invoice
                         if (mongoOrderId) {
                             window.location.href = `/customer-invoice.html?orderId=${mongoOrderId}`;
                         } else {
@@ -1123,45 +1137,51 @@ async function proceedToPayment() {
 
                 } catch (err) {
                     console.error("Verification error:", err);
-                    alert("Payment succeeded but verification failed. Contact support.");
                     if (buyBtn) {
                         buyBtn.disabled = false;
                         buyBtn.textContent = "Buy Now";
                     }
+                    if (typeof showFailurePopup === 'function') {
+                        showFailurePopup({
+                            title: "Payment Verification Error",
+                            reason: err.message || "Payment succeeded but verification failed. Please contact support.",
+                            orderId: response.razorpay_payment_id
+                        });
+                    } else {
+                        alert("Payment succeeded but verification failed. Contact support.");
+                    }
                 }
             },
-modal: {
-    ondismiss: async function () {
-        console.log("Payment popup closed. No charge made.");
+            modal: {
+                ondismiss: function () {
+                    console.log("Payment popup closed. No charge made.");
 
-        // Cancel the order in the backend
-        try {
-            const cancelRes = await fetch(`${API}/payments/cancel`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + token
-                },
-                body: JSON.stringify({
-                    razorpay_order_id: rzpOrder.id
-                })
-            });
+                    // Fire cancel in background without blocking
+                    fetch(`${API}/payments/cancel`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": "Bearer " + token
+                        },
+                        body: JSON.stringify({
+                            razorpay_order_id: rzpOrder.id
+                        })
+                    }).catch(err => console.warn("Background cancel warning:", err));
 
-            if (cancelRes.ok) {
-                console.log("✅ Order cancelled successfully");
-            } else {
-                console.log("⚠️ Could not cancel order (may have already been processed)");
+                    if (buyBtn) {
+                        buyBtn.disabled = false;
+                        buyBtn.textContent = "Buy Now";
+                    }
+
+                    if (typeof showFailurePopup === 'function') {
+                        showFailurePopup({
+                            title: "Payment Cancelled",
+                            reason: "You closed the payment window. No payment was deducted.",
+                            isCancel: true
+                        });
+                    }
+                }
             }
-        } catch (err) {
-            console.error("Error cancelling order:", err);
-        }
-
-        alert("Payment cancelled. No order was placed.");
-
-        if (buyBtn) {
-            buyBtn.disabled = false;
-            buyBtn.textContent = "Buy Now";
-        }
 
         // OPTIONAL: Do not keep half-created pending orders visible
         // Just stay on the same page without redirecting.
@@ -2120,6 +2140,43 @@ async function calculateCourierCharge(weight) {
     }
 }
 
+// Inline error handling helpers for book checkout
+function clearBookInlineFieldErrors(container) {
+    if (!container) return;
+    const errorMsgs = container.querySelectorAll('.field-error-msg');
+    errorMsgs.forEach(el => el.remove());
+    const badFields = container.querySelectorAll('.field-has-error');
+    badFields.forEach(el => {
+        el.classList.remove('field-has-error');
+        el.style.borderColor = '#e0e0e0';
+    });
+}
+
+function setBookInlineFieldError(inputEl, message) {
+    if (!inputEl) return;
+    inputEl.classList.add('field-has-error');
+    inputEl.style.borderColor = '#dc3545';
+    let msgEl = inputEl.parentNode ? inputEl.parentNode.querySelector('.field-error-msg') : null;
+    if (!msgEl && inputEl.parentNode) {
+        msgEl = document.createElement('div');
+        msgEl.className = 'field-error-msg';
+        msgEl.style.color = '#dc3545';
+        msgEl.style.fontSize = '12px';
+        msgEl.style.marginTop = '4px';
+        msgEl.style.fontWeight = '500';
+        inputEl.parentNode.appendChild(msgEl);
+    }
+    if (msgEl) msgEl.textContent = message;
+
+    const onInput = function() {
+        inputEl.classList.remove('field-has-error');
+        inputEl.style.borderColor = '#e0e0e0';
+        if (msgEl && msgEl.parentNode) msgEl.remove();
+        inputEl.removeEventListener('input', onInput);
+    };
+    inputEl.addEventListener('input', onInput);
+}
+
 // Setup billing address form submission
 function setupBillingAddressForm() {
     console.log("setupBillingAddressForm called");
@@ -2134,9 +2191,12 @@ function setupBillingAddressForm() {
 
     billingForm.addEventListener("submit", function (e) {
         e.preventDefault();
+        clearBookInlineFieldErrors(billingForm);
+
         const isPickup = window.selectedDeliveryMethod === "pickup";
+        const getEl = (id) => document.getElementById(id);
         const getVal = (id) => {
-            const el = document.getElementById(id);
+            const el = getEl(id);
             return el ? el.value.trim() : "";
         };
 
@@ -2152,57 +2212,80 @@ function setupBillingAddressForm() {
             pincode: getVal("billingPincode")
         };
 
-        if (isPickup) {
-            if (!billingData.name || !billingData.phone || !billingData.taluk || !billingData.pincode) {
-                alert("Please fill in all required fields (marked with *)");
-                return;
-            }
-            if (!/^\d{6}$/.test(billingData.pincode)) {
-                alert("Please enter a valid 6-digit pincode");
-                return;
-            }
-            if (!/^\d{10}$/.test(billingData.phone)) {
-                alert("Please enter a valid 10-digit phone number");
-                return;
-            }
+        const validationErrors = [];
 
-            const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
-            if (!billingData.email && loggedInUser.email) {
-                billingData.email = loggedInUser.email;
-            }
-            if (!billingData.address1) {
-                billingData.address1 = billingData.address2 || billingData.taluk || "Store Pickup";
-            }
-            if (!billingData.district) {
-                billingData.district = billingData.taluk || "";
-            }
-            if (!billingData.state) {
-                billingData.state = "Karnataka";
-            }
-        } else {
-            if (!billingData.name || !billingData.phone || !billingData.email || 
-                !billingData.address1 || !billingData.taluk || !billingData.district || 
-                !billingData.state || !billingData.pincode) {
-                alert("Please fill in all required billing fields (marked with *)");
-                return;
-            }
-            if (!/^\d{6}$/.test(billingData.pincode)) {
-                alert("Please enter a valid 6-digit pincode for billing address");
-                return;
-            }
-            if (!/^\d{10}$/.test(billingData.phone)) {
-                alert("Please enter a valid 10-digit phone number for billing");
-                return;
-            }
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billingData.email)) {
-                alert("Please enter a valid email address");
-                return;
+        if (!isPickup) {
+            const usePermanentCheckbox = getEl("usePermanentAddress");
+            const usePermanent = usePermanentCheckbox ? usePermanentCheckbox.checked : false;
+
+            if (usePermanent) {
+                if (!billingData.name) {
+                    validationErrors.push({ el: getEl("billingName"), msg: "Full recipient name is required" });
+                }
+                if (!billingData.phone) {
+                    validationErrors.push({ el: getEl("billingPhone"), msg: "10-digit phone number is required" });
+                } else if (!/^\d{10}$/.test(billingData.phone)) {
+                    validationErrors.push({ el: getEl("billingPhone"), msg: "Please enter a valid 10-digit mobile number" });
+                }
+                if (!billingData.address1) {
+                    validationErrors.push({ el: getEl("billingAddress1"), msg: "Street/House delivery address is required" });
+                }
+                if (!billingData.taluk) {
+                    validationErrors.push({ el: getEl("billingTaluk"), msg: "City or Taluk is required" });
+                }
+                if (!billingData.state) {
+                    validationErrors.push({ el: getEl("billingState"), msg: "State is required" });
+                }
+                if (!billingData.pincode) {
+                    validationErrors.push({ el: getEl("billingPincode"), msg: "6-digit delivery pincode is required" });
+                } else if (!/^\d{6}$/.test(billingData.pincode)) {
+                    validationErrors.push({ el: getEl("billingPincode"), msg: "Please enter a valid 6-digit pincode" });
+                }
+            } else {
+                const delName = getVal("deliveryName");
+                const delPhone = getVal("deliveryPhone");
+                const delAddr1 = getVal("deliveryAddress1");
+                const delTaluk = getVal("deliveryTaluk");
+                const delState = getVal("deliveryState");
+                const delPincode = getVal("deliveryPincode");
+
+                if (!delName) {
+                    validationErrors.push({ el: getEl("deliveryName"), msg: "Delivery recipient name is required" });
+                }
+                if (!delPhone) {
+                    validationErrors.push({ el: getEl("deliveryPhone"), msg: "10-digit phone number is required" });
+                } else if (!/^\d{10}$/.test(delPhone)) {
+                    validationErrors.push({ el: getEl("deliveryPhone"), msg: "Please enter a valid 10-digit mobile number" });
+                }
+                if (!delAddr1) {
+                    validationErrors.push({ el: getEl("deliveryAddress1"), msg: "Delivery street/house address is required" });
+                }
+                if (!delTaluk) {
+                    validationErrors.push({ el: getEl("deliveryTaluk"), msg: "City or Taluk is required" });
+                }
+                if (!delState) {
+                    validationErrors.push({ el: getEl("deliveryState"), msg: "State is required" });
+                }
+                if (!delPincode) {
+                    validationErrors.push({ el: getEl("deliveryPincode"), msg: "6-digit delivery pincode is required" });
+                } else if (!/^\d{6}$/.test(delPincode)) {
+                    validationErrors.push({ el: getEl("deliveryPincode"), msg: "Please enter a valid 6-digit pincode" });
+                }
             }
         }
 
+        if (validationErrors.length > 0) {
+            validationErrors.forEach(err => setBookInlineFieldError(err.el, err.msg));
+            if (validationErrors[0] && validationErrors[0].el) {
+                validationErrors[0].el.focus();
+                validationErrors[0].el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return; // Do NOT proceed
+        }
+
         let deliveryData = null;
-        if (window.selectedDeliveryMethod === "courier") {
-            const usePermanentCheckbox = document.getElementById("usePermanentAddress");
+        if (!isPickup) {
+            const usePermanentCheckbox = getEl("usePermanentAddress");
             const usePermanent = usePermanentCheckbox ? usePermanentCheckbox.checked : false;
 
             if (usePermanent) {
@@ -2212,7 +2295,7 @@ function setupBillingAddressForm() {
                     address1: billingData.address1,
                     address2: billingData.address2,
                     taluk: billingData.taluk,
-                    district: billingData.district,
+                    district: billingData.district || billingData.taluk,
                     state: billingData.state,
                     pincode: billingData.pincode
                 };
@@ -2223,27 +2306,10 @@ function setupBillingAddressForm() {
                     address1: getVal("deliveryAddress1"),
                     address2: getVal("deliveryAddress2"),
                     taluk: getVal("deliveryTaluk"),
-                    district: getVal("deliveryDistrict"),
+                    district: getVal("deliveryDistrict") || getVal("deliveryTaluk"),
                     state: getVal("deliveryState"),
                     pincode: getVal("deliveryPincode")
                 };
-
-                if (!deliveryData.name || !deliveryData.phone || !deliveryData.address1 || 
-                    !deliveryData.taluk || !deliveryData.district || !deliveryData.state || 
-                    !deliveryData.pincode) {
-                    alert("Please fill in all required delivery fields or use permanent address");
-                    return;
-                }
-
-                if (!/^\d{6}$/.test(deliveryData.pincode)) {
-                    alert("Please enter a valid 6-digit pincode for delivery address");
-                    return;
-                }
-
-                if (!/^\d{10}$/.test(deliveryData.phone)) {
-                    alert("Please enter a valid 10-digit phone number for delivery");
-                    return;
-                }
             }
         }
 

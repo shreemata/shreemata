@@ -48,12 +48,17 @@ const orderSchema = new mongoose.Schema({
 
     // Delivery Address
     deliveryAddress: {
-        street: String,
-        taluk: String,
-        district: String,
-        state: String,
-        pincode: String,
-        phone: String
+        name: { type: String, default: "" },
+        street: { type: String, default: "" },
+        addressLine: { type: String, default: "" },
+        homeAddress1: { type: String, default: "" },
+        homeAddress2: { type: String, default: "" },
+        city: { type: String, default: "" },
+        taluk: { type: String, default: "" },
+        district: { type: String, default: "" },
+        state: { type: String, default: "" },
+        pincode: { type: String, default: "" },
+        phone: { type: String, default: "" }
     },
 
     // ORIGINAL STATUS (PAYMENT + ORDER)

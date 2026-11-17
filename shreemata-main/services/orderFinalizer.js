@@ -321,19 +321,22 @@ async function finalizePaidOrder(orderOrId, paymentInfo = {}) {
     }
 
     // 9. Send confirmation emails (Idempotent)
-    try {
-      if (!claimedOrder.confirmationEmailSent) {
-        const { sendOrderConfirmationEmail, sendAdminNotification } = require('../utils/emailService');
-        const user = await User.findById(claimedOrder.user_id?._id || claimedOrder.user_id);
-        if (user && user.email) {
-          await sendOrderConfirmationEmail(claimedOrder, user);
-          await sendAdminNotification(claimedOrder, user);
+    // If asyncEmails option is true, email delivery is handled asynchronously after HTTP response
+    if (!paymentInfo.asyncEmails) {
+      try {
+        if (!claimedOrder.confirmationEmailSent) {
+          const { sendOrderConfirmationEmail, sendAdminNotification } = require('../utils/emailService');
+          const user = await User.findById(claimedOrder.user_id?._id || claimedOrder.user_id);
+          if (user && user.email) {
+            await sendOrderConfirmationEmail(claimedOrder, user);
+            await sendAdminNotification(claimedOrder, user);
+          }
+          claimedOrder.confirmationEmailSent = true;
+          claimedOrder.emailSentAt = new Date();
         }
-        claimedOrder.confirmationEmailSent = true;
-        claimedOrder.emailSentAt = new Date();
+      } catch (emailErr) {
+        console.error('⚠️ Email notification error in finalizePaidOrder:', emailErr.message);
       }
-    } catch (emailErr) {
-      console.error('⚠️ Email notification error in finalizePaidOrder:', emailErr.message);
     }
 
     // 10. Mark completed, set finalizedAt, rewardApplied, clear lock
@@ -369,6 +372,40 @@ async function finalizePaidOrder(orderOrId, paymentInfo = {}) {
   }
 }
 
+/**
+ * Dispatches confirmation emails asynchronously after payment response.
+ * Guarded by confirmationEmailSent to guarantee exactly-once delivery.
+ */
+async function dispatchOrderEmails(orderOrId) {
+  const orderId = orderOrId?._id || orderOrId;
+  if (!orderId) return false;
+
+  // Atomically claim email delivery to guarantee exactly-once dispatch
+  const claimed = await Order.findOneAndUpdate(
+    { _id: orderId, confirmationEmailSent: { $ne: true } },
+    { $set: { confirmationEmailSent: true, emailSentAt: new Date() } },
+    { new: true }
+  ).populate('user_id');
+
+  if (!claimed) {
+    return false; // Already claimed or sent
+  }
+
+  try {
+    const user = claimed.user_id;
+    const { sendOrderConfirmationEmail, sendAdminNotification } = require('../utils/emailService');
+    if (user && user.email) {
+      await sendOrderConfirmationEmail(claimed, user);
+      await sendAdminNotification(claimed, user);
+    }
+    return true;
+  } catch (emailErr) {
+    console.error('⚠️ Email notification error in dispatchOrderEmails:', emailErr.message);
+    return false;
+  }
+}
+
 module.exports = {
-  finalizePaidOrder
+  finalizePaidOrder,
+  dispatchOrderEmails
 };
