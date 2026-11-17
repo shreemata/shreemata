@@ -31,7 +31,7 @@ const orderSchema = new mongoose.Schema({
     // Delivery Method
     deliveryMethod: { 
         type: String, 
-        enum: ["home", "pickup", "courier"], 
+        enum: ["home", "pickup", "courier", "digital"], 
         default: "home" 
     },
 
@@ -159,6 +159,8 @@ const orderSchema = new mongoose.Schema({
     // Email notification idempotency tracking
     confirmationEmailSent: { type: Boolean, default: false },
     emailSentAt: { type: Date },
+    emailDispatchClaimedAt: { type: Date, default: null },
+    emailDispatchError: { type: String, default: null },
 
     // Finalization concurrency lock & audit
     finalizedAt: { type: Date },

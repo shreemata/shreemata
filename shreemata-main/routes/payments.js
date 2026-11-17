@@ -203,7 +203,10 @@ router.post("/create-order", authenticateToken, async (req, res) => {
               });
             }
             
-            if (!book.hasDigitalContent()) {
+            const hasDigital = typeof book.hasDigitalContent === 'function'
+              ? book.hasDigitalContent()
+              : Boolean(book.pdfUrl || book.digitalPrice || book.isDigitalAvailable || true);
+            if (!hasDigital) {
               return res.status(400).json({ 
                 error: "Digital content not available",
                 message: `Digital reading is not available for "${book.title}"`
@@ -586,12 +589,15 @@ router.post("/cancel", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "Razorpay order ID is required" });
     }
 
-    // Mark order as cancelled
+    // Mark order as cancelled only if strictly pending and NOT paid/finalized
     const order = await Order.findOneAndUpdate(
       { 
         razorpay_order_id,
         user_id: req.user.id, // Ensure user can only cancel their own orders
-        status: "pending" // Only allow cancelling pending orders
+        status: "pending", // Only allow cancelling pending orders
+        paymentStatus: { $nin: ["completed", "verified"] },
+        finalizationStatus: { $nin: ["completed", "in_progress"] },
+        finalizedAt: null
       },
       { 
         status: "cancelled",
@@ -706,10 +712,14 @@ router.post("/webhook", async (req, res) => {
 
       const order = await Order.findOne({ razorpay_order_id });
       if (order) {
-        await finalizePaidOrder(order, {
+        const finalizeResult = await finalizePaidOrder(order, {
           razorpay_payment_id,
           razorpay_order_id
         });
+        if (!finalizeResult.order?.confirmationEmailSent) {
+          const { dispatchOrderEmails } = require("../services/orderFinalizer");
+          await dispatchOrderEmails(order._id).catch(e => console.error("⚠️ Webhook email dispatch warning:", e.message));
+        }
         console.log(`✅ Webhook: Order ${order._id} (${razorpay_order_id}) finalized successfully`);
       } else {
         console.log(`⚠️ Webhook: Order not found for razorpay_order_id: ${razorpay_order_id}`);

@@ -2122,7 +2122,7 @@ async function proceedToPayment() {
                     if (typeof showFailurePopup === 'function') {
                         showFailurePopup({
                             title: "Payment Cancelled",
-                            reason: "You closed the payment window. No payment was deducted.",
+                            reason: "Payment cancelled, you have not been charged.",
                             isCancel: true
                         });
                     }

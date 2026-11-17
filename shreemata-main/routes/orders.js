@@ -571,11 +571,16 @@ async function handleReconcileRazorpay(req, res) {
         }
 
         // A captured payment was found! Finalize the order idempotently
-        const { finalizePaidOrder } = require("../services/orderFinalizer");
+        const { finalizePaidOrder, dispatchOrderEmails } = require("../services/orderFinalizer");
         const finalResult = await finalizePaidOrder(order, {
             razorpay_payment_id: capturedPayment.id,
             razorpay_order_id: razorpayOrderId
         });
+
+        // Ensure missing confirmation email is delivered on reconcile
+        if (!finalResult.order?.confirmationEmailSent) {
+            await dispatchOrderEmails(finalResult.order._id).catch(e => console.error("⚠️ Reconcile email dispatch warning:", e.message));
+        }
 
         const refreshedOrder = finalResult.order;
         const commissionsAlreadyApplied = Boolean(

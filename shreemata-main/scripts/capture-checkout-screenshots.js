@@ -1,7 +1,8 @@
 /**
  * capture-checkout-screenshots.js
  * Playwright script to launch local review server, navigate to cart with courier delivery,
- * trigger inline address validation errors, fill valid address, and show payment success popup.
+ * capture prefilled address form, empty address validation errors, valid address,
+ * payment success popup, payment cancelled popup (neutral), and payment failed popup.
  */
 
 const { spawn } = require('child_process');
@@ -112,7 +113,12 @@ async function run() {
       }
     });
     await page.waitForSelector('#cartBillingAddressModal', { state: 'visible', timeout: 5000 });
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(600);
+
+    // Screenshot Prefill: Courier address modal prefilled with user profile data
+    const prefillPath = path.join(screenshotDir, '06-courier-prefilled-profile-address.png');
+    await page.screenshot({ path: prefillPath, fullPage: false });
+    console.log(`📸 Screenshot saved to ${prefillPath}`);
 
     // Clear all address inputs to trigger inline validation errors
     console.log('🧹 Clearing address fields to trigger validation errors...');
@@ -177,7 +183,52 @@ async function run() {
     await page.screenshot({ path: screenshot3Path, fullPage: false });
     console.log(`📸 Screenshot 3 saved to ${screenshot3Path}`);
 
-    console.log('✅ All 3 screenshots captured successfully!');
+    // Trigger payment cancelled popup (neutral popup)
+    console.log('⊘ Displaying neutral payment cancelled popup...');
+    await page.evaluate(() => {
+      if (typeof closeSuccessPopup === 'function') {
+        closeSuccessPopup();
+      }
+      if (typeof showFailurePopup === 'function') {
+        showFailurePopup({
+          title: "Payment Cancelled",
+          reason: "Payment cancelled, you have not been charged.",
+          isCancel: true
+        });
+      }
+    });
+    await page.waitForSelector('#failurePopupModal', { state: 'visible', timeout: 5000 });
+    await page.waitForTimeout(600);
+
+    // Screenshot 4: Payment cancelled popup
+    const screenshot4Path = path.join(screenshotDir, '04-payment-cancelled-popup.png');
+    await page.screenshot({ path: screenshot4Path, fullPage: false });
+    console.log(`📸 Screenshot 4 saved to ${screenshot4Path}`);
+
+    // Trigger real payment failed popup (alert red popup with Razorpay reason)
+    console.log('❌ Displaying alert payment failed popup...');
+    await page.evaluate(() => {
+      if (typeof closeFailurePopup === 'function') {
+        closeFailurePopup();
+      }
+      if (typeof showFailurePopup === 'function') {
+        showFailurePopup({
+          title: "Payment Failed",
+          reason: "Payment was declined by the issuing bank. Please use another card or UPI app.",
+          orderId: "pay_failed_rzp_984502",
+          isCancel: false
+        });
+      }
+    });
+    await page.waitForSelector('#failurePopupModal', { state: 'visible', timeout: 5000 });
+    await page.waitForTimeout(600);
+
+    // Screenshot 5: Payment failed popup
+    const screenshot5Path = path.join(screenshotDir, '05-payment-failed-popup.png');
+    await page.screenshot({ path: screenshot5Path, fullPage: false });
+    console.log(`📸 Screenshot 5 saved to ${screenshot5Path}`);
+
+    console.log('✅ All screenshots captured successfully into Desktop/four-sections-review/checkout-address!');
   } finally {
     if (browser) await browser.close();
     serverProc.kill('SIGINT');

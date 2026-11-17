@@ -1176,7 +1176,7 @@ async function proceedToPayment() {
                     if (typeof showFailurePopup === 'function') {
                         showFailurePopup({
                             title: "Payment Cancelled",
-                            reason: "You closed the payment window. No payment was deducted.",
+                            reason: "Payment cancelled, you have not been charged.",
                             isCancel: true
                         });
                     }
@@ -1198,6 +1198,20 @@ async function proceedToPayment() {
         };
 
         const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (resp) {
+            console.error("Razorpay payment failed:", resp.error);
+            if (buyBtn) {
+                buyBtn.disabled = false;
+                buyBtn.textContent = "Buy Now";
+            }
+            if (typeof showFailurePopup === 'function') {
+                showFailurePopup({
+                    title: "Payment Failed",
+                    reason: resp.error?.description || resp.error?.reason || "Your card or account was not charged. Please try again.",
+                    orderId: resp.error?.metadata?.payment_id
+                });
+            }
+        });
         rzp.open();
 
     } catch (err) {
@@ -1999,6 +2013,20 @@ async function proceedWithRazorpayPaymentWithAddresses() {
         };
 
         const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (resp) {
+            console.error("Razorpay payment failed:", resp.error);
+            if (buyBtn) {
+                buyBtn.disabled = false;
+                buyBtn.textContent = "Buy Now";
+            }
+            if (typeof showFailurePopup === 'function') {
+                showFailurePopup({
+                    title: "Payment Failed",
+                    reason: resp.error?.description || resp.error?.reason || "Your card or account was not charged. Please try again.",
+                    orderId: resp.error?.metadata?.payment_id
+                });
+            }
+        });
         rzp.open();
 
     } catch (err) {

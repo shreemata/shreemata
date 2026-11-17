@@ -320,17 +320,12 @@ async function finalizePaidOrder(orderOrId, paymentInfo = {}) {
       }
     }
 
-    // 9. Send confirmation emails (Idempotent)
+    // 9. Send confirmation emails (Idempotent, retryable)
     // If asyncEmails option is true, email delivery is handled asynchronously after HTTP response
     if (!paymentInfo.asyncEmails) {
       try {
-        if (!claimedOrder.confirmationEmailSent) {
-          const { sendOrderConfirmationEmail, sendAdminNotification } = require('../utils/emailService');
-          const user = await User.findById(claimedOrder.user_id?._id || claimedOrder.user_id);
-          if (user && user.email) {
-            await sendOrderConfirmationEmail(claimedOrder, user);
-            await sendAdminNotification(claimedOrder, user);
-          }
+        const emailSent = await dispatchOrderEmails(claimedOrder._id);
+        if (emailSent) {
           claimedOrder.confirmationEmailSent = true;
           claimedOrder.emailSentAt = new Date();
         }
@@ -373,22 +368,37 @@ async function finalizePaidOrder(orderOrId, paymentInfo = {}) {
 }
 
 /**
- * Dispatches confirmation emails asynchronously after payment response.
- * Guarded by confirmationEmailSent to guarantee exactly-once delivery.
+ * Dispatches confirmation emails.
+ * Uses a short-lived atomic claim (emailDispatchClaimedAt) with a 30s stale window.
+ * confirmationEmailSent is set ONLY after successful delivery.
+ * On error, the claim is released immediately so retries do not wait for stale window.
  */
 async function dispatchOrderEmails(orderOrId) {
   const orderId = orderOrId?._id || orderOrId;
   if (!orderId) return false;
 
+  const staleWindowMs = 30 * 1000;
+  const staleThreshold = new Date(Date.now() - staleWindowMs);
+
   // Atomically claim email delivery to guarantee exactly-once dispatch
   const claimed = await Order.findOneAndUpdate(
-    { _id: orderId, confirmationEmailSent: { $ne: true } },
-    { $set: { confirmationEmailSent: true, emailSentAt: new Date() } },
+    {
+      _id: orderId,
+      confirmationEmailSent: { $ne: true },
+      $or: [
+        { emailDispatchClaimedAt: null },
+        { emailDispatchClaimedAt: { $exists: false } },
+        { emailDispatchClaimedAt: { $lt: staleThreshold } }
+      ]
+    },
+    {
+      $set: { emailDispatchClaimedAt: new Date() }
+    },
     { new: true }
   ).populate('user_id');
 
   if (!claimed) {
-    return false; // Already claimed or sent
+    return false; // Already sent or currently claimed by another active worker
   }
 
   try {
@@ -398,9 +408,31 @@ async function dispatchOrderEmails(orderOrId) {
       await sendOrderConfirmationEmail(claimed, user);
       await sendAdminNotification(claimed, user);
     }
+
+    // Set confirmationEmailSent ONLY after successful email delivery
+    await Order.findByIdAndUpdate(claimed._id, {
+      $set: {
+        confirmationEmailSent: true,
+        emailSentAt: new Date(),
+        emailDispatchError: null
+      },
+      $unset: {
+        emailDispatchClaimedAt: ""
+      }
+    });
+
     return true;
   } catch (emailErr) {
     console.error('⚠️ Email notification error in dispatchOrderEmails:', emailErr.message);
+    // Release claim immediately on error so retries do not wait for stale window
+    await Order.findByIdAndUpdate(claimed._id, {
+      $set: {
+        emailDispatchError: emailErr.message
+      },
+      $unset: {
+        emailDispatchClaimedAt: ""
+      }
+    });
     return false;
   }
 }

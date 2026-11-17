@@ -332,12 +332,19 @@ function showFailurePopup(failureData = {}) {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     `;
 
-    const title = failureData.title || (failureData.isCancel ? "Payment Cancelled" : "Payment Failed");
-    const reason = failureData.reason || failureData.message || (failureData.isCancel ? "You closed the payment window. No charge was made." : "The transaction could not be completed. Your card or account was not charged.");
+    const isCancel = Boolean(failureData.isCancel);
+    const title = failureData.title || (isCancel ? "Payment Cancelled" : "Payment Failed");
+    const reason = failureData.reason || failureData.message || (isCancel ? "Payment cancelled, you have not been charged." : "The transaction could not be completed. Your card or account was not charged.");
+
+    const iconBadge = isCancel
+        ? `<div style="width: 70px; height: 70px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; margin: 0 auto 15px; border: 2px solid #cbd5e1;">✕</div>`
+        : `<div style="width: 70px; height: 70px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: bold; margin: 0 auto 15px;">✕</div>`;
+
+    const titleColor = isCancel ? "#1e293b" : "#dc2626";
 
     card.innerHTML = `
-        <div style="width: 70px; height: 70px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: bold; margin: 0 auto 15px;">✕</div>
-        <h2 style="font-size: 24px; font-weight: 700; color: #dc2626; margin: 0 0 10px 0;">${title}</h2>
+        ${iconBadge}
+        <h2 style="font-size: 24px; font-weight: 700; color: ${titleColor}; margin: 0 0 10px 0;">${title}</h2>
         <p style="font-size: 15px; color: #4b5563; margin: 0 0 20px 0; line-height: 1.5;">${reason}</p>
         <div style="display: flex; gap: 12px; margin-top: 25px;">
             <button onclick="closeFailurePopup(); if (window.retryCurrentPayment) window.retryCurrentPayment();" style="flex: 1; padding: 12px 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; transition: transform 0.2s ease;">

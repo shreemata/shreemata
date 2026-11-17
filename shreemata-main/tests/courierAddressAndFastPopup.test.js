@@ -442,6 +442,188 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
     expect(invoice.shippingAddress).toMatch(/Belagavi/);
     expect(invoice.shippingAddress).toMatch(/590001/);
   });
+
+  // --- Delivery Method Matrix & Fallback Tests ---
+  test('POST /api/payments/create-order: allows digital-only order without address or deliveryMethod', async () => {
+    const res = await axios.post(`${baseUrl}/api/payments/create-order`, {
+      amount: 199,
+      items: [{
+        id: String(testBook._id),
+        title: 'Digital PDF Notes',
+        price: 199,
+        quantity: 1,
+        isDigital: true,
+        type: 'notes'
+      }]
+      // deliveryMethod omitted, deliveryAddress omitted
+    }, {
+      headers: { Authorization: `Bearer ${buyerToken}` }
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.data.dbOrder).toBeDefined();
+    expect(res.data.dbOrder.deliveryMethod).toBe('digital');
+    expect(res.data.dbOrder.deliveryAddress).toBeNull();
+  });
+
+  test('POST /api/payments/create-order: requires address for deliveryMethod "home"', async () => {
+    // Missing address -> 400
+    try {
+      await axios.post(`${baseUrl}/api/payments/create-order`, {
+        amount: 150,
+        items: [{
+          id: String(testBook._id),
+          title: testBook.title,
+          price: 150,
+          quantity: 1,
+          type: 'book'
+        }],
+        deliveryMethod: 'home',
+        deliveryAddress: null
+      }, {
+        headers: { Authorization: `Bearer ${buyerToken}` }
+      });
+      throw new Error('Should have failed');
+    } catch (err) {
+      expect(err.response.status).toBe(400);
+      expect(err.response.data.requiresAddressSetup).toBe(true);
+    }
+
+    // Valid address -> 200
+    const successRes = await axios.post(`${baseUrl}/api/payments/create-order`, {
+      amount: 150,
+      items: [{
+        id: String(testBook._id),
+        title: testBook.title,
+        price: 150,
+        quantity: 1,
+        type: 'book'
+      }],
+      deliveryMethod: 'home',
+      deliveryAddress: {
+        name: 'Home Customer',
+        phone: '9876543210',
+        homeAddress1: '456 Home St',
+        city: 'Dharwad',
+        state: 'Karnataka',
+        pincode: '580001'
+      }
+    }, {
+      headers: { Authorization: `Bearer ${buyerToken}` }
+    });
+    expect(successRes.status).toBe(200);
+    expect(successRes.data.dbOrder.deliveryMethod).toBe('home');
+  });
+
+  test('POST /api/payments/create-order: unknown deliveryMethod safely requires address if order contains physical items', async () => {
+    // Physical item + unknown deliveryMethod + missing address -> 400
+    try {
+      await axios.post(`${baseUrl}/api/payments/create-order`, {
+        amount: 150,
+        items: [{
+          id: String(testBook._id),
+          title: testBook.title,
+          price: 150,
+          quantity: 1,
+          type: 'book' // physical item
+        }],
+        deliveryMethod: 'unknown_drone_delivery',
+        deliveryAddress: null
+      }, {
+        headers: { Authorization: `Bearer ${buyerToken}` }
+      });
+      throw new Error('Should have failed');
+    } catch (err) {
+      expect(err.response.status).toBe(400);
+      expect(err.response.data.requiresAddressSetup).toBe(true);
+    }
+
+    // Digital item + unknown deliveryMethod -> allowed (200, deliveryMethod set to 'digital')
+    const digiRes = await axios.post(`${baseUrl}/api/payments/create-order`, {
+      amount: 99,
+      items: [{
+        id: String(testBook._id),
+        title: 'Digital E-Book',
+        price: 99,
+        quantity: 1,
+        isDigital: true
+      }],
+      deliveryMethod: 'unknown_drone_delivery',
+      deliveryAddress: null
+    }, {
+      headers: { Authorization: `Bearer ${buyerToken}` }
+    });
+    expect(digiRes.status).toBe(200);
+    expect(digiRes.data.dbOrder.deliveryMethod).toBe('digital');
+  });
+
+  // --- Cancel Route Guard & Race Condition Protection ---
+  test('POST /api/payments/cancel: cancels pending unpaid orders, but CANNOT cancel paid/completed orders', async () => {
+    // 1. Create a pending order
+    const pendingOrder = await Order.create({
+      user_id: testBuyer._id,
+      items: [{
+        id: String(testBook._id),
+        title: testBook.title,
+        price: 150,
+        quantity: 1,
+        type: 'book'
+      }],
+      totalAmount: 150,
+      deliveryMethod: 'pickup',
+      status: 'pending',
+      razorpay_order_id: 'rzp_cancel_test_pending_01'
+    });
+
+    // Cancel while pending -> 200 OK
+    const cancelRes = await axios.post(`${baseUrl}/api/payments/cancel`, {
+      razorpay_order_id: 'rzp_cancel_test_pending_01'
+    }, {
+      headers: { Authorization: `Bearer ${buyerToken}` }
+    });
+    expect(cancelRes.status).toBe(200);
+    expect(cancelRes.data.message).toBe('Order cancelled successfully');
+
+    const cancelledOrder = await Order.findById(pendingOrder._id);
+    expect(cancelledOrder.status).toBe('cancelled');
+
+    // 2. Create an order that is already paid/completed (simulating payment succeeded before dismiss arrived)
+    const paidOrder = await Order.create({
+      user_id: testBuyer._id,
+      items: [{
+        id: String(testBook._id),
+        title: testBook.title,
+        price: 150,
+        quantity: 1,
+        type: 'book'
+      }],
+      totalAmount: 150,
+      deliveryMethod: 'pickup',
+      status: 'completed',
+      paymentStatus: 'completed',
+      finalizationStatus: 'completed',
+      finalizedAt: new Date(),
+      razorpay_order_id: 'rzp_cancel_test_paid_02'
+    });
+
+    // Attempting to cancel paid order -> 404 / cannot cancel
+    try {
+      await axios.post(`${baseUrl}/api/payments/cancel`, {
+        razorpay_order_id: 'rzp_cancel_test_paid_02'
+      }, {
+        headers: { Authorization: `Bearer ${buyerToken}` }
+      });
+      throw new Error('Should have failed');
+    } catch (err) {
+      expect(err.response.status).toBe(404);
+      expect(err.response.data.error).toMatch(/cannot be cancelled/i);
+    }
+
+    // Verify paid order was NOT corrupted
+    const untouchedPaidOrder = await Order.findById(paidOrder._id);
+    expect(untouchedPaidOrder.status).toBe('completed');
+    expect(untouchedPaidOrder.paymentStatus).toBe('completed');
+  });
 });
 
 describe('Part (B): Fast Verification, Asynchronous Emails & Timing', () => {
@@ -478,8 +660,8 @@ describe('Part (B): Fast Verification, Asynchronous Emails & Timing', () => {
     expect(elapsedMs).toBeLessThan(500); // typically < 50ms in memory
   });
 
-  test('Background email failure does NOT fail order finalization', async () => {
-    const errorOrder = await Order.create({
+  test('Email retry safety: send fails then retry sends exactly once', async () => {
+    const retryOrder = await Order.create({
       user_id: testBuyer._id,
       items: [{
         id: String(testBook._id),
@@ -492,27 +674,58 @@ describe('Part (B): Fast Verification, Asynchronous Emails & Timing', () => {
       }],
       totalAmount: 150,
       deliveryMethod: 'pickup',
-      razorpay_order_id: 'order_email_fail_test'
+      razorpay_order_id: 'order_email_retry_flow_test',
+      confirmationEmailSent: false
     });
 
-    // Mock sendOrderConfirmationEmail to throw an SMTP connection error
-    const originalSend = emailService.sendOrderConfirmationEmail;
-    emailService.sendOrderConfirmationEmail = jest.fn().mockRejectedValue(new Error('SMTP Connection Timeout'));
+    let sendAttempts = 0;
+    let successfulSends = 0;
+    const originalSendConfirm = emailService.sendOrderConfirmationEmail;
+    const originalSendAdmin = emailService.sendAdminNotification;
+
+    // First attempt will fail with SMTP timeout
+    emailService.sendOrderConfirmationEmail = jest.fn().mockImplementation(async () => {
+      sendAttempts++;
+      if (sendAttempts === 1) {
+        throw new Error('SMTP Timeout');
+      }
+      successfulSends++;
+      return { success: true };
+    });
+    emailService.sendAdminNotification = jest.fn().mockResolvedValue(true);
 
     try {
-      // Background email dispatcher
-      const dispatchResult = await dispatchOrderEmails(errorOrder._id);
-      expect(dispatchResult).toBe(false); // Gracefully caught, returns false
+      // 1. First dispatch attempt fails
+      const res1 = await dispatchOrderEmails(retryOrder._id);
+      expect(res1).toBe(false);
 
-      // Order should remain completed, not broken
-      const reloadedOrder = await Order.findById(errorOrder._id);
-      expect(reloadedOrder).toBeDefined();
+      // Verify DB: confirmationEmailSent must NOT be set to true before success!
+      const failedState = await Order.findById(retryOrder._id);
+      expect(failedState.confirmationEmailSent).toBe(false);
+      expect(failedState.emailDispatchError).toBe('SMTP Timeout');
+      expect(failedState.emailDispatchClaimedAt).toBeNull(); // Claim must be released for immediate retry
+
+      // 2. Second dispatch attempt (retry) succeeds
+      const res2 = await dispatchOrderEmails(retryOrder._id);
+      expect(res2).toBe(true);
+
+      const successState = await Order.findById(retryOrder._id);
+      expect(successState.confirmationEmailSent).toBe(true);
+      expect(successState.emailSentAt).toBeDefined();
+      expect(successState.emailDispatchError).toBeNull();
+
+      // 3. Third dispatch attempt is rejected as already sent
+      const res3 = await dispatchOrderEmails(retryOrder._id);
+      expect(res3).toBe(false);
+
+      expect(successfulSends).toBe(1);
     } finally {
-      emailService.sendOrderConfirmationEmail = originalSend;
+      emailService.sendOrderConfirmationEmail = originalSendConfirm;
+      emailService.sendAdminNotification = originalSendAdmin;
     }
   });
 
-  test('Atomic dispatchOrderEmails guarantees emails are sent exactly once', async () => {
+  test('Two concurrent dispatches send exactly once', async () => {
     const emailOrder = await Order.create({
       user_id: testBuyer._id,
       items: [{
@@ -526,7 +739,7 @@ describe('Part (B): Fast Verification, Asynchronous Emails & Timing', () => {
       }],
       totalAmount: 150,
       deliveryMethod: 'pickup',
-      razorpay_order_id: 'order_email_once_test',
+      razorpay_order_id: 'order_email_concurrent_test',
       confirmationEmailSent: false
     });
 
@@ -535,6 +748,8 @@ describe('Part (B): Fast Verification, Asynchronous Emails & Timing', () => {
     const originalSendAdmin = emailService.sendAdminNotification;
 
     emailService.sendOrderConfirmationEmail = jest.fn().mockImplementation(async () => {
+      // Simulate small transport delay so concurrent calls overlap
+      await new Promise(r => setTimeout(r, 20));
       sendCount++;
     });
     emailService.sendAdminNotification = jest.fn().mockResolvedValue(true);
@@ -554,6 +769,64 @@ describe('Part (B): Fast Verification, Asynchronous Emails & Timing', () => {
       const updated = await Order.findById(emailOrder._id);
       expect(updated.confirmationEmailSent).toBe(true);
       expect(updated.emailSentAt).toBeDefined();
+    } finally {
+      emailService.sendOrderConfirmationEmail = originalSendConfirm;
+      emailService.sendAdminNotification = originalSendAdmin;
+    }
+  });
+
+  test('Process-restart simulation: missing email is picked up by next finalize/reconcile call', async () => {
+    // Simulate order finalized with asyncEmails: true, but server restarted before setImmediate could run
+    const restartedOrder = await Order.create({
+      user_id: testBuyer._id,
+      items: [{
+        id: String(testBook._id),
+        title: testBook.title,
+        price: 150,
+        quantity: 1,
+        type: 'book',
+        unitProfitSnapshot: 30,
+        lineProfitSnapshot: 30
+      }],
+      totalAmount: 150,
+      deliveryMethod: 'pickup',
+      status: 'completed',
+      paymentStatus: 'completed',
+      finalizationStatus: 'completed',
+      finalizedAt: new Date(),
+      confirmationEmailSent: false, // Never sent due to restart
+      razorpay_order_id: 'order_process_restart_sim'
+    });
+
+    let sent = false;
+    const originalSendConfirm = emailService.sendOrderConfirmationEmail;
+    const originalSendAdmin = emailService.sendAdminNotification;
+
+    emailService.sendOrderConfirmationEmail = jest.fn().mockImplementation(async () => {
+      sent = true;
+    });
+    emailService.sendAdminNotification = jest.fn().mockResolvedValue(true);
+
+    try {
+      // Next finalize/reconcile call (e.g. from admin reconcile or webhook retry)
+      const reconcileResult = await finalizePaidOrder(restartedOrder._id, {
+        razorpay_order_id: 'order_process_restart_sim',
+        razorpay_payment_id: 'pay_sim_01',
+        asyncEmails: false // default reconcile behaviour
+      });
+
+      // Both handleReconcileRazorpay and webhook check for missing email on completed orders
+      if (!reconcileResult.order?.confirmationEmailSent) {
+        await dispatchOrderEmails(restartedOrder._id);
+      }
+
+      expect(reconcileResult.success).toBe(true);
+      expect(reconcileResult.alreadyProcessed).toBe(true);
+      expect(sent).toBe(true);
+
+      const verified = await Order.findById(restartedOrder._id);
+      expect(verified.confirmationEmailSent).toBe(true);
+      expect(verified.emailSentAt).toBeDefined();
     } finally {
       emailService.sendOrderConfirmationEmail = originalSendConfirm;
       emailService.sendAdminNotification = originalSendAdmin;
