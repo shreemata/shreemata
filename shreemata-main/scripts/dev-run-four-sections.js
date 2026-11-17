@@ -763,6 +763,137 @@ async function bootstrap() {
   });
   console.log(`[Seed] Seeded 3 sample orders (Completed: ${completedOrder._id}, Pending unverified: ${pendingOrder._id}, Cancelled: ${cancelledOrder._id}).`);
 
+  // Seed CommissionSettings if not present
+  const CommissionSettings = require('../models/CommissionSettings');
+  const CommissionTransaction = require('../models/CommissionTransaction');
+  let commSettings = await CommissionSettings.findOne({ settingsId: 'default' });
+  if (!commSettings) {
+    commSettings = await CommissionSettings.create({
+      settingsId: 'default',
+      trustFundPercent: 10,
+      directCommissionPercent: 30,
+      referralCommissionPercent: 20,
+      adminCommissionPercent: 0,
+      treeCommissionPoolPercent: 40,
+      developmentFundPercent: 0,
+      totalAllocationPercent: 100,
+      directFallbackRecipient: 'trust_fund',
+      referralFallbackRecipient: 'admin',
+      treeCommissionLevels: [{ level: 1, percentage: 40 }]
+    });
+  }
+
+  // Ensure admin user has treeLevel: 1 so tree pool can resolve
+  adminUser.treeLevel = 1;
+  adminUser.referralCode = 'ADMINREF';
+  await adminUser.save();
+
+  // Create a Book matching order b4d8
+  const bookB4d8 = await Book.create({
+    title: '10TH PASSING PAKAGE ENGLISH MEDIUM',
+    author: 'Shree Mata Expert Editorial Board',
+    price: 100,
+    physicalPrice: 120,
+    sellingPrice: 100,
+    category: 'high-school',
+    class: '10',
+    subject: 'English',
+    profitType: 'fixed',
+    profitValue: 20,
+    profitConfigured: true,
+    cashbackAmount: 0,
+    cashbackPercentage: 0,
+    stockQuantity: 50,
+    stockStatus: 'in_stock'
+  });
+
+  // Referrer user
+  const referrerB4d8 = await User.create({
+    name: 'Suresh Referrer',
+    email: 'referrer.b4d8@shreemata.com',
+    phone: '9886000004',
+    password: passwordHash,
+    role: 'customer',
+    referralCode: 'REFB4D8',
+    treeLevel: 2,
+    treeParent: adminUser._id,
+    wallet: 0
+  });
+
+  // Buyer user for b4d8
+  const buyerB4d8 = await User.create({
+    name: 'Basavaraj Customer',
+    email: 'customer.b4d8@shreemata.com',
+    phone: '9886000005',
+    password: passwordHash,
+    role: 'customer',
+    referredBy: 'REFB4D8',
+    treeLevel: 3,
+    treeParent: referrerB4d8._id,
+    wallet: 0
+  });
+
+  // Order b4d8 (finalized when profit was ₹0, commission distributed as ₹0)
+  const orderB4d8 = await Order.create({
+    user_id: buyerB4d8._id,
+    items: [{
+      id: bookB4d8._id.toString(),
+      title: bookB4d8.title,
+      author: bookB4d8.author,
+      price: 100,
+      quantity: 1,
+      profitTypeSnapshot: 'fixed',
+      profitValueSnapshot: 0,
+      unitProfitSnapshot: 0,
+      lineProfitSnapshot: 0,
+      cashbackAmount: 0,
+      cashbackPercentage: 0
+    }],
+    totalAmount: 100,
+    orderProfitTotal: 0,
+    profitAmount: 0,
+    status: 'completed',
+    paymentStatus: 'completed',
+    paymentType: 'online',
+    razorpay_order_id: 'order_b4d8_live',
+    razorpay_payment_id: 'pay_b4d8_live',
+    paymentDetails: {
+      status: 'verified',
+      razorpay_order_id: 'order_b4d8_live',
+      razorpay_payment_id: 'pay_b4d8_live',
+      verifiedAt: new Date('2026-11-14T10:00:00Z')
+    },
+    commissionStatus: 'distributed',
+    rewardApplied: true,
+    invoice_number: 'SM-HBL-0000000002',
+    invoiceGenerated: true,
+    documentNumbers: { tax_invoice: 'SM-HBL-0000000002' },
+    deliveryAddress: { street: 'Station Road', taluk: 'Hubballi', district: 'Dharwad', state: 'Karnataka', pincode: '580020', phone: '9886000005' }
+  });
+
+  // Existing ₹0 CommissionTransaction for order b4d8
+  await CommissionTransaction.create({
+    orderId: orderB4d8._id,
+    purchaser: buyerB4d8._id,
+    orderAmount: 100,
+    profitAmount: 0,
+    directReferrer: buyerB4d8._id,
+    directCommissionAmount: 0,
+    referralReferrer: referrerB4d8._id,
+    referralCommissionAmount: 0,
+    adminRecipient: adminUser._id,
+    adminCommissionAmount: 0,
+    treePoolTotal: 0,
+    treeCommissions: [],
+    trustFundAmount: 0,
+    devTrustFundAmount: 0,
+    remainderToDevFund: 0,
+    status: 'completed',
+    processedAt: new Date('2026-11-14T10:05:00Z')
+  });
+
+  console.log(`[Seed] Seeded order b4d8 (${orderB4d8._id}) with ₹0 commission ready for repair review.`);
+
   // 8. Start Real Express App from server.js
   console.log('[Server] Launching Express application on port 3100...');
   require('../server.js');

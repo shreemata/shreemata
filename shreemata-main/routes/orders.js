@@ -1089,4 +1089,282 @@ router.post(["/admin/:id/distribute-commissions", "/:id/distribute-commissions"]
     }
 });
 
+/**
+ * REPAIR ZERO-PROFIT COMMISSION (Admin Only)
+ * Safe, one-order-at-a-time repair for orders finalized with ₹0 commission.
+ * Supports mode: 'preview' (dry-run, modifies nothing) and mode: 'confirm' (executes repair).
+ */
+router.post(["/admin/:id/repair-zero-profit-commission", "/:id/repair-zero-profit-commission"], authenticateToken, isAdmin, async (req, res) => {
+    let claim = null;
+    try {
+        const orderId = req.params.id;
+        const mode = (req.body && req.body.mode) ? String(req.body.mode).toLowerCase().trim() : 'preview';
+
+        if (mode !== 'preview' && mode !== 'confirm') {
+            return res.status(400).json({ error: "Invalid mode. Must be 'preview' or 'confirm'." });
+        }
+
+        const order = await Order.findById(orderId).populate('user_id');
+        if (!order) {
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        // Guard 1: Order completed and payment verified/completed
+        if (order.status !== 'completed' || !isPaymentVerified(order)) {
+            return res.status(400).json({ 
+                error: "Order must have status 'completed' and verified payment to repair commission." 
+            });
+        }
+
+        // Guard 2: Order has not already been repaired
+        if (order.isRepaired || order.repairedAt || order.repairStatus === 'completed') {
+            return res.status(400).json({ error: "Order has already been repaired." });
+        }
+
+        // Guard 3: CommissionTransaction exists and ALL its amounts are 0
+        const CommissionTransaction = require("../models/CommissionTransaction");
+        const existingCommissions = await CommissionTransaction.find({ orderId: order._id });
+        if (!existingCommissions || existingCommissions.length === 0) {
+            return res.status(400).json({ 
+                error: "No commission record found for this order. Only orders finalized with zero commission are eligible for repair." 
+            });
+        }
+
+        for (const ct of existingCommissions) {
+            if (ct.status === 'superseded') continue;
+            const direct = Number(ct.directCommissionAmount) || 0;
+            const referral = Number(ct.referralCommissionAmount) || 0;
+            const adminShare = Number(ct.adminCommissionAmount) || 0;
+            const treePool = Number(ct.treePoolTotal) || 0;
+            const trust = Number(ct.trustFundAmount) || 0;
+            const devTrust = Number(ct.devTrustFundAmount) || 0;
+            const remainder = Number(ct.remainderToDevFund) || 0;
+            const profit = Number(ct.profitAmount) || 0;
+
+            let treeAmountsTotal = 0;
+            if (Array.isArray(ct.treeCommissions)) {
+                for (const tc of ct.treeCommissions) {
+                    treeAmountsTotal += (Number(tc.amount) || 0);
+                }
+            }
+
+            if (direct > 0 || referral > 0 || adminShare > 0 || treePool > 0 || trust > 0 || devTrust > 0 || remainder > 0 || profit > 0 || treeAmountsTotal > 0) {
+                return res.status(400).json({ 
+                    error: "Order already has non-zero commission amounts recorded. Repair is strictly forbidden for orders that already paid commissions." 
+                });
+            }
+        }
+
+        // Guard 4: No WalletTransaction (or other ledger entry) with amount > 0 is linked to this order
+        const WalletTransaction = require("../models/WalletTransaction");
+        const existingWalletTx = await WalletTransaction.findOne({ orderId: order._id, amount: { $gt: 0 } });
+        if (existingWalletTx) {
+            return res.status(400).json({ 
+                error: `Non-zero wallet transaction (${existingWalletTx.category} ₹${existingWalletTx.amount}) already exists for this order.` 
+            });
+        }
+
+        try {
+            const VirtualReferralTransaction = require("../models/VirtualReferralTransaction");
+            const existingVirtTx = await VirtualReferralTransaction.findOne({ orderId: order._id, amountPaise: { $gt: 0 } });
+            if (existingVirtTx) {
+                return res.status(400).json({ 
+                    error: "Non-zero virtual referral transaction already exists for this order." 
+                });
+            }
+        } catch (e) {}
+
+        // Guard 5: Recompute profit from book/bundle's CURRENT profit settings
+        const freshItems = (order.items || []).map(item => {
+            const copy = typeof item.toObject === 'function' ? item.toObject() : { ...item };
+            if ((Number(copy.unitProfitSnapshot) || 0) === 0) {
+                delete copy.unitProfitSnapshot;
+                delete copy.lineProfitSnapshot;
+                delete copy.profitValueSnapshot;
+            }
+            return copy;
+        });
+
+        const recomputedItems = await buildOrderProfitSnapshot(freshItems);
+        const recomputedProfit = calculateOrderProfitTotal(recomputedItems);
+
+        if (recomputedProfit <= 0) {
+            return res.status(400).json({ 
+                error: `Recomputed order profit is ₹${recomputedProfit}. Please configure book or bundle profit before repairing.` 
+            });
+        }
+
+        // Calculate preview via engine (changes NOTHING)
+        const preview = await previewCommissions(order._id, recomputedProfit);
+        const customerName = (order.user_id && order.user_id.name) ? order.user_id.name : "Customer";
+
+        const buyerAmount = preview.buyer ? Number(preview.buyer.amount.toFixed(2)) : 0;
+        const referrerAmount = preview.referrer ? Number(preview.referrer.amount.toFixed(2)) : 0;
+        const treePoolAmount = Number((preview.treePoolTotal || 0).toFixed(2));
+        const trustFundAmount = preview.trustFund ? Number(preview.trustFund.totalTrustAmount.toFixed(2)) : 0;
+        const adminShareAmount = preview.adminCommission ? Number(preview.adminCommission.amount.toFixed(2)) : 0;
+        const totalCommissionAmount = preview.totalCommissionAmount 
+            ? Number(preview.totalCommissionAmount.toFixed(2)) 
+            : Number((buyerAmount + referrerAmount + treePoolAmount + trustFundAmount + adminShareAmount).toFixed(2));
+
+        if (mode === 'preview') {
+            return res.json({
+                success: true,
+                mode: 'preview',
+                orderId: order._id,
+                customerName, // Customer name ONLY, NO email
+                orderTotal: order.totalAmount,
+                profitBase: recomputedProfit,
+                amounts: {
+                    buyerCashback: buyerAmount,
+                    referrerCommission: referrerAmount,
+                    treePool: treePoolAmount,
+                    trustFund: trustFundAmount,
+                    adminShare: adminShareAmount,
+                    totalCommission: totalCommissionAmount
+                },
+                breakdown: {
+                    buyer: {
+                        name: preview.buyer?.name || customerName,
+                        category: preview.buyer?.category || 'Direct Cashback',
+                        percentage: preview.buyer?.percentage || 0,
+                        amount: buyerAmount
+                    },
+                    referrer: {
+                        name: preview.referrer?.name || 'Referrer',
+                        destination: preview.referrer?.destination || '',
+                        percentage: preview.referrer?.percentage || 0,
+                        amount: referrerAmount,
+                        status: preview.referrer?.status || 'active'
+                    },
+                    treePool: {
+                        percentage: preview.treePoolTotal ? (recomputedProfit > 0 ? (preview.treePoolTotal / recomputedProfit) * 100 : 0) : 0,
+                        amount: treePoolAmount,
+                        recipientCount: (preview.treeCommissions || []).length
+                    },
+                    trustFund: {
+                        percentage: preview.trustFund?.basePercentage || 0,
+                        baseAmount: preview.trustFund?.baseAmount || 0,
+                        remainderAmount: preview.trustFund?.remainderAmount || 0,
+                        totalTrustAmount: trustFundAmount
+                    },
+                    adminShare: {
+                        name: preview.adminCommission?.name || 'Admin',
+                        percentage: preview.adminCommission?.percentage || 0,
+                        amount: adminShareAmount
+                    }
+                }
+            });
+        }
+
+        // 4. Confirm mode: Atomic claim first
+        claim = await Order.findOneAndUpdate(
+            {
+                _id: order._id,
+                isRepaired: { $ne: true },
+                repairedAt: { $exists: false },
+                repairStatus: { $ne: 'completed' },
+                $or: [
+                    { repairClaimedAt: { $exists: false } },
+                    { repairClaimedAt: null },
+                    { repairClaimedAt: { $lt: new Date(Date.now() - 30000) } }
+                ]
+            },
+            {
+                $set: {
+                    repairStatus: 'in_progress',
+                    repairClaimedAt: new Date()
+                }
+            },
+            { new: true }
+        );
+
+        if (!claim) {
+            const checkOrder = await Order.findById(order._id);
+            if (checkOrder && (checkOrder.isRepaired || checkOrder.repairedAt || checkOrder.repairStatus === 'completed')) {
+                return res.status(400).json({ error: "Order has already been repaired." });
+            }
+            return res.status(400).json({ error: "Order repair is currently in progress or has already been repaired." });
+        }
+
+        // Audit Trail: Mark old zero record(s) as superseded (DO NOT DELETE)
+        await CommissionTransaction.updateMany(
+            { orderId: order._id, status: { $ne: 'superseded' } },
+            { $set: { status: 'superseded' } }
+        );
+
+        // Update order items snapshot and profit amount on order so distributeCommissions reads authoritative values
+        claim.items = recomputedItems;
+        claim.orderProfitTotal = recomputedProfit;
+        claim.profitAmount = recomputedProfit;
+        await claim.save();
+
+        // Run commission distribution through normal engine
+        const transaction = await distributeCommissions(
+            claim._id,
+            claim.user_id,
+            claim.totalAmount || 0,
+            recomputedProfit
+        );
+
+        // Store audit details on the order
+        const repairAmounts = {
+            buyerCashback: transaction.directCommissionAmount || 0,
+            referralCommission: transaction.referralCommissionAmount || 0,
+            adminShare: transaction.adminCommissionAmount || 0,
+            treePool: transaction.treePoolTotal || 0,
+            trustFund: transaction.trustFundAmount || 0,
+            devTrustFund: transaction.devTrustFundAmount || 0,
+            totalCommission: (transaction.directCommissionAmount || 0) +
+                             (transaction.referralCommissionAmount || 0) +
+                             (transaction.adminCommissionAmount || 0) +
+                             (transaction.treePoolTotal || 0) +
+                             (transaction.trustFundAmount || 0) +
+                             (transaction.devTrustFundAmount || 0)
+        };
+
+        claim.isRepaired = true;
+        claim.repairedAt = new Date();
+        claim.repairedBy = req.user.id;
+        claim.repairReason = (req.body && req.body.reason) ? String(req.body.reason).trim() : "Manual ₹0 commission repair after book profit updated";
+        claim.repairProfitBase = recomputedProfit;
+        claim.repairAmounts = repairAmounts;
+        claim.repairStatus = 'completed';
+        claim.commissionStatus = 'distributed';
+        claim.rewardApplied = true;
+        await claim.save();
+
+        console.log(`✅ Zero-profit commission repaired for order ${order._id} by admin ${req.user.id}: Base ₹${recomputedProfit}, Total ₹${repairAmounts.totalCommission}`);
+
+        return res.json({
+            success: true,
+            mode: 'confirm',
+            message: "Zero-profit commission successfully repaired and distributed.",
+            customerName,
+            order: {
+                _id: claim._id,
+                totalAmount: claim.totalAmount,
+                orderProfitTotal: claim.orderProfitTotal,
+                isRepaired: claim.isRepaired,
+                repairedAt: claim.repairedAt,
+                repairedBy: claim.repairedBy,
+                repairReason: claim.repairReason,
+                repairProfitBase: claim.repairProfitBase,
+                repairAmounts: claim.repairAmounts,
+                commissionStatus: claim.commissionStatus
+            },
+            transaction
+        });
+
+    } catch (error) {
+        if (claim && claim._id && claim.repairStatus === 'in_progress' && !claim.isRepaired) {
+            try {
+                await Order.findByIdAndUpdate(claim._id, { $set: { repairStatus: 'none', repairClaimedAt: null } });
+            } catch (unlockErr) {}
+        }
+        console.error("Error repairing zero-profit commission:", error);
+        res.status(500).json({ error: error.message || "Failed to repair commission" });
+    }
+});
+
 module.exports = router;

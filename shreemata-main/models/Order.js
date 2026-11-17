@@ -163,7 +163,21 @@ const orderSchema = new mongoose.Schema({
         default: 'pending' 
     },
     finalizationClaimedAt: { type: Date },
-    finalizationError: { type: String, default: "" }
+    finalizationError: { type: String, default: "" },
+
+    // Safe Admin Zero-Profit Commission Repair Audit Trail
+    isRepaired: { type: Boolean, default: false },
+    repairedAt: { type: Date },
+    repairedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    repairReason: { type: String, default: "" },
+    repairProfitBase: { type: Number, default: 0 },
+    repairAmounts: { type: mongoose.Schema.Types.Mixed, default: {} },
+    repairClaimedAt: { type: Date },
+    repairStatus: { 
+        type: String, 
+        enum: ['none', 'in_progress', 'completed'], 
+        default: 'none' 
+    }
 
 }, { timestamps: true });
 

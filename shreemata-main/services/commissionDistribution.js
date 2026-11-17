@@ -339,8 +339,8 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
   }
 
   // Check if commission has already been processed for this order
-  const existingTransaction = await CommissionTransaction.findOne({ orderId });
-  if (existingTransaction && existingTransaction.status === 'completed') {
+  const existingTransaction = await CommissionTransaction.findOne({ orderId, status: 'completed' });
+  if (existingTransaction) {
     console.log(`Commission already processed for order ${orderId}`);
     return existingTransaction;
   }
@@ -809,7 +809,7 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
     console.error('❌ Commission distribution error:', error);
     try {
       await CommissionTransaction.findOneAndUpdate(
-        { orderId },
+        { orderId, status: 'pending' },
         { status: 'failed' }
       );
     } catch (updateError) {
