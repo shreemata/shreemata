@@ -38,6 +38,17 @@ async function addToTrustFund(fundType, amount, orderId, type = 'order_allocatio
   if (!trustFund) {
     trustFund = new TrustFund({ fundType, balance: 0, transactions: [] });
   }
+
+  // Idempotency guard for order allocations: prevent duplicate addition if already recorded
+  if (orderId && Array.isArray(trustFund.transactions)) {
+    const existingTx = trustFund.transactions.find(tx => 
+      tx && tx.orderId && String(tx.orderId) === String(orderId) && tx.type === type && tx.description === description
+    );
+    if (existingTx) {
+      console.log(`ℹ️ addToTrustFund: ${fundType} allocation already recorded for order ${orderId} (${description}). Skipping duplicate allocation.`);
+      return trustFund;
+    }
+  }
   
   await trustFund.addTransaction(amount, type, orderId, description, session);
   return trustFund;
@@ -276,6 +287,21 @@ async function previewCommissions(orderId, profitAmount = 0) {
 async function creditWallet(userId, amount, category, description, orderId, commissionTransactionId = null, extraInc = {}) {
   if (!userId || amount <= 0) return null;
 
+  // Idempotency guard: prevent duplicate wallet credit if this orderId + userId + category was already credited
+  // (e.g. recovering from a process crash midway through a previous distribution attempt)
+  if (orderId && mongoose.isValidObjectId(orderId)) {
+    const existingWalletTx = await WalletTransaction.findOne({
+      userId,
+      orderId,
+      category,
+      type: 'credit'
+    });
+    if (existingWalletTx) {
+      console.log(`ℹ️ creditWallet: Wallet credit already recorded for user ${userId}, order ${orderId}, category ${category}. Skipping duplicate credit.`);
+      return await User.findById(userId);
+    }
+  }
+
   const incFields = { wallet: amount, ...extraInc };
 
   // Atomic $inc — no read-modify-write race condition
@@ -340,7 +366,7 @@ async function waitForCompletedCommission(orderId, maxWaitMs = 8000, pollInterva
  * @param {Number} profitAmount - The profit amount (selling price minus cost price)
  * @returns {Promise<CommissionTransaction>} The created commission transaction
  */
-async function distributeCommissions(orderId, purchaserId, orderAmount, profitAmount = 0) {
+async function distributeCommissions(orderId, purchaserId, orderAmount, profitAmount = 0, options = {}) {
   if (!orderId) {
     throw new Error('Order ID is required');
   }
@@ -356,19 +382,37 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
     return existingTransaction;
   }
 
+  // Stale pending recovery: if a pending record is older than 5 minutes (process crash recovery),
+  // atomically mark it 'failed' so the unique partial index is unblocked and payout retries cleanly.
+  const STALE_PENDING_MS = 5 * 60 * 1000;
+  const staleThreshold = new Date(Date.now() - STALE_PENDING_MS);
+  const stalePending = await CommissionTransaction.findOneAndUpdate(
+    {
+      orderId,
+      status: 'pending',
+      createdAt: { $lt: staleThreshold }
+    },
+    { $set: { status: 'failed' } },
+    { new: true }
+  );
+  if (stalePending) {
+    console.log(`⚠️ Recovered stale pending commission transaction for order ${orderId} (older than 5 minutes, marked failed to unblock retry)`);
+  }
+
   const orderKey = String(orderId);
+  const bypassInFlight = Boolean(options && options._bypassInFlightMap);
   // Fast check: same-process concurrency deduplication
-  if (inFlightDistributions.has(orderKey)) {
+  if (!bypassInFlight && inFlightDistributions.has(orderKey)) {
     console.log(`⏳ Commission distribution already in flight for order ${orderId}, awaiting execution...`);
     return await inFlightDistributions.get(orderKey);
   }
 
   const execPromise = (async () => {
-    // Check if an active pending transaction exists in DB (started within last 60s)
+    // Check if an active (non-stale) pending transaction exists in DB
     const activePending = await CommissionTransaction.findOne({
       orderId,
       status: 'pending',
-      createdAt: { $gte: new Date(Date.now() - 60000) }
+      createdAt: { $gte: staleThreshold }
     });
     if (activePending) {
       console.log(`⏳ Active pending commission transaction exists for order ${orderId}, awaiting completion...`);
@@ -1001,6 +1045,8 @@ async function processAutomaticCommissionForOrder(order) {
     return null;
   }
 }
+
+distributeCommissions._inFlightDistributions = inFlightDistributions;
 
 module.exports = {
   distributeCommissions,

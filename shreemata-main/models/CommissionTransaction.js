@@ -177,4 +177,13 @@ commissionTransactionSchema.index(
   }
 );
 
-module.exports = mongoose.model("CommissionTransaction", commissionTransactionSchema);
+const CommissionTransaction = mongoose.model("CommissionTransaction", commissionTransactionSchema);
+
+// Safe index build handler: if index build encounters conflict on live DB, log warning and do not crash
+CommissionTransaction.on('index', err => {
+  if (err) {
+    console.warn("⚠️ CommissionTransaction index build warning (in-process guard active):", err.message);
+  }
+});
+
+module.exports = CommissionTransaction;

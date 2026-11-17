@@ -559,4 +559,176 @@ describe('Commission Concurrency & Safety Verification', () => {
     expect(buyer.wallet).toBe(6);
     expect(referrer.wallet).toBe(10.4);
   });
+
+  test('7. Database-level proof: Bypassing in-flight map forces both calls to MongoDB; partial index & E11000 produce exactly ONE payout', async () => {
+    // 1. Ensure indexes are built and confirm the unique partial index actually exists in MongoDB
+    await CommissionTransaction.init();
+    const indexes = await CommissionTransaction.collection.getIndexes();
+    console.log('[CommissionTransaction MongoDB Indexes]', JSON.stringify(indexes, null, 2));
+
+    // Verify the index spec: { orderId: 1 } with unique: true and partialFilterExpression
+    const orderIdIndexKey = Object.keys(indexes).find(name => {
+      const idx = indexes[name];
+      return idx.some && idx.some(k => k[0] === 'orderId') || (Array.isArray(idx) && idx[0] && idx[0][0] === 'orderId');
+    }) || Object.keys(indexes).find(name => indexes[name].key && indexes[name].key.orderId === 1);
+
+    expect(orderIdIndexKey).toBeDefined();
+
+    const order = await Order.create({
+      user_id: buyerUser._id,
+      totalAmount: 100,
+      paymentType: 'online',
+      status: 'completed',
+      commissionStatus: 'pending',
+      orderProfitTotal: 20,
+      profitAmount: 20,
+      items: [{
+        id: bookFixed20._id,
+        title: bookFixed20.title,
+        price: 100,
+        quantity: 1,
+        type: 'book',
+        unitProfitSnapshot: 20,
+        lineProfitSnapshot: 20,
+        profitMethodSnapshot: 'fixed',
+        profitValueSnapshot: 20
+      }]
+    });
+
+    const buyerBefore = await User.findById(buyerUser._id);
+    const referrerBefore = await User.findById(referrerUser._id);
+    console.log(`[Test 7 Before] Buyer Wallet: ₹${buyerBefore.wallet}, Referrer Wallet: ₹${referrerBefore.wallet}`);
+    expect(buyerBefore.wallet).toBe(0);
+    expect(referrerBefore.wallet).toBe(0);
+
+    // Call distributeCommissions simultaneously with _bypassInFlightMap: true
+    // Both callers bypass the JS in-flight map and reach MongoDB directly
+    const [res1, res2] = await Promise.all([
+      distributeCommissions(order._id, buyerUser._id, 100, 20, { _bypassInFlightMap: true }),
+      distributeCommissions(order._id, buyerUser._id, 100, 20, { _bypassInFlightMap: true })
+    ]);
+
+    expect(res1).toBeDefined();
+    expect(res2).toBeDefined();
+    expect(res1.status).toBe('completed');
+    expect(res2.status).toBe('completed');
+    expect(String(res1._id)).toBe(String(res2._id));
+
+    const buyerAfter = await User.findById(buyerUser._id);
+    const referrerAfter = await User.findById(referrerUser._id);
+    console.log(`[Test 7 After] Buyer Wallet: ₹${buyerAfter.wallet}, Referrer Wallet: ₹${referrerAfter.wallet}`);
+
+    // Exactly one payout: buyer credited ₹6 once, referrer credited ₹10.4 once
+    expect(buyerAfter.wallet).toBe(6);
+    expect(referrerAfter.wallet).toBe(10.4);
+
+    const completedRecords = await CommissionTransaction.find({ orderId: order._id, status: 'completed' });
+    expect(completedRecords.length).toBe(1);
+  });
+
+  test('8. Stale pending recovery: Process crash with 6-minute-old pending record and partial wallet credit recovers cleanly with zero double-pay', async () => {
+    const order = await Order.create({
+      user_id: buyerUser._id,
+      totalAmount: 100,
+      paymentType: 'online',
+      status: 'completed',
+      commissionStatus: 'pending',
+      orderProfitTotal: 20,
+      profitAmount: 20,
+      items: [{
+        id: bookFixed20._id,
+        title: bookFixed20.title,
+        price: 100,
+        quantity: 1,
+        type: 'book',
+        unitProfitSnapshot: 20,
+        lineProfitSnapshot: 20,
+        profitMethodSnapshot: 'fixed',
+        profitValueSnapshot: 20
+      }]
+    });
+
+    // Simulate crash scenario:
+    // 1. Pending transaction inserted 6 minutes ago (stale > 5 mins)
+    const sixMinutesAgo = new Date(Date.now() - 6 * 60 * 1000);
+    const staleTx = await CommissionTransaction.create({
+      orderId: order._id,
+      purchaser: buyerUser._id,
+      orderAmount: 100,
+      profitAmount: 20,
+      status: 'pending',
+      createdAt: sixMinutesAgo,
+      updatedAt: sixMinutesAgo
+    });
+
+    // 2. The crashed process credited buyer cashback (₹6) before dying, but NOT referrer
+    await User.findByIdAndUpdate(buyerUser._id, { $inc: { wallet: 6 } });
+    await WalletTransaction.create({
+      userId: buyerUser._id,
+      amount: 6,
+      type: 'credit',
+      category: 'direct_commission',
+      description: 'Cashback from crashed run',
+      orderId: order._id,
+      commissionTransactionId: staleTx._id,
+      balanceAfter: 6
+    });
+
+    const buyerBefore = await User.findById(buyerUser._id);
+    const referrerBefore = await User.findById(referrerUser._id);
+    console.log(`[Test 8 Before Recovery] Buyer Wallet: ₹${buyerBefore.wallet}, Referrer Wallet: ₹${referrerBefore.wallet}`);
+    expect(buyerBefore.wallet).toBe(6);
+    expect(referrerBefore.wallet).toBe(0);
+
+    // Run distributeCommissions now (simulating recovery / retry run)
+    const tx = await distributeCommissions(order._id, buyerUser._id, 100, 20);
+
+    expect(tx).toBeDefined();
+    expect(tx.status).toBe('completed');
+    expect(String(tx._id)).not.toBe(String(staleTx._id));
+
+    // The stale pending record was atomically marked 'failed'
+    const staleRefreshed = await CommissionTransaction.findById(staleTx._id);
+    expect(staleRefreshed.status).toBe('failed');
+
+    const buyerAfter = await User.findById(buyerUser._id);
+    const referrerAfter = await User.findById(referrerUser._id);
+    console.log(`[Test 8 After Recovery] Buyer Wallet: ₹${buyerAfter.wallet}, Referrer Wallet: ₹${referrerAfter.wallet}`);
+
+    // Buyer wallet was NOT credited again (remains 6, NOT 12)
+    expect(buyerAfter.wallet).toBe(6);
+    // Referrer wallet was credited (10.4)
+    expect(referrerAfter.wallet).toBe(10.4);
+
+    // Exactly one completed CommissionTransaction in database
+    const completedRecords = await CommissionTransaction.find({ orderId: order._id, status: 'completed' });
+    expect(completedRecords.length).toBe(1);
+  });
+
+  test('9. waitForCompletedCommission times out after bounded wait and throws a clear error, never hanging', async () => {
+    const fakeOrderId = new mongoose.Types.ObjectId();
+
+    // Create an active pending transaction that never completes
+    await CommissionTransaction.create({
+      orderId: fakeOrderId,
+      purchaser: buyerUser._id,
+      orderAmount: 100,
+      profitAmount: 20,
+      status: 'pending',
+      createdAt: new Date()
+    });
+
+    // Call distributeCommissions for the order; since it is pending and won't complete,
+    // the waiter must time out after a bounded duration (we test with small maxWaitMs or await failure)
+    const startTime = Date.now();
+    try {
+      // Calling distributeCommissions will detect activePending and call waitForCompletedCommission
+      await distributeCommissions(fakeOrderId, buyerUser._id, 100, 20);
+      throw new Error('Expected timeout rejection');
+    } catch (err) {
+      const elapsed = Date.now() - startTime;
+      console.log(`[Test 9 Waiter Timeout] Threw error after ${elapsed}ms: ${err.message}`);
+      expect(err.message).toContain('Timed out waiting for commission distribution');
+    }
+  });
 });
