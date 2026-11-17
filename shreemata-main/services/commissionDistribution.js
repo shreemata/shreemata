@@ -290,14 +290,52 @@ async function creditWallet(userId, amount, category, description, orderId, comm
   // Idempotency guard: prevent duplicate wallet credit if this orderId + userId + category was already credited
   // (e.g. recovering from a process crash midway through a previous distribution attempt)
   if (orderId && mongoose.isValidObjectId(orderId)) {
-    const existingWalletTx = await WalletTransaction.findOne({
+    // Exclude any superseded commission records so that repair operations never get suppressed by old records
+    let supersededIds = [];
+    try {
+      const supersededCommissionRecords = await CommissionTransaction.find({
+        orderId,
+        status: 'superseded'
+      });
+      if (Array.isArray(supersededCommissionRecords)) {
+        supersededIds = supersededCommissionRecords.map(r => r && (r._id || r));
+      }
+    } catch (e) {
+      supersededIds = [];
+    }
+
+    const query = {
       userId,
       orderId,
       category,
-      type: 'credit'
-    });
+      type: 'credit',
+      amount: { $gt: 0 }
+    };
+
+    // For tree commissions, allow a user qualifying at multiple distinct tree levels to receive both credits
+    if (category === 'tree_commission') {
+      query.description = description;
+    }
+
+    if (supersededIds.length > 0) {
+      query.commissionTransactionId = { $nin: supersededIds };
+      try {
+        const findOneRes = CommissionTransaction.findOne({
+          orderId,
+          status: 'superseded'
+        });
+        const latestSuperseded = (findOneRes && typeof findOneRes.sort === 'function')
+          ? await findOneRes.sort({ updatedAt: -1 })
+          : await findOneRes;
+        if (latestSuperseded) {
+          query.createdAt = { $gte: latestSuperseded.updatedAt || latestSuperseded.createdAt };
+        }
+      } catch (e) {}
+    }
+
+    const existingWalletTx = await WalletTransaction.findOne(query);
     if (existingWalletTx) {
-      console.log(`ℹ️ creditWallet: Wallet credit already recorded for user ${userId}, order ${orderId}, category ${category}. Skipping duplicate credit.`);
+      console.log(`ℹ️ creditWallet: Wallet credit already recorded for user ${userId}, order ${orderId}, category ${category} (${description}). Skipping duplicate credit.`);
       return await User.findById(userId);
     }
   }
@@ -334,6 +372,12 @@ async function creditWallet(userId, amount, category, description, orderId, comm
 // In-flight distribution lock map for same-tick / same-process concurrency deduplication
 const inFlightDistributions = new Map();
 
+// Test-only hook to bypass inFlightDistributions (e.g. testing database-level index races)
+let _bypassInFlightForTests = false;
+function __setBypassInFlightForTests(value) {
+  _bypassInFlightForTests = Boolean(value);
+}
+
 /**
  * Helper to wait for a concurrent commission distribution to complete.
  * Polls for CommissionTransaction with status 'completed'.
@@ -366,7 +410,7 @@ async function waitForCompletedCommission(orderId, maxWaitMs = 8000, pollInterva
  * @param {Number} profitAmount - The profit amount (selling price minus cost price)
  * @returns {Promise<CommissionTransaction>} The created commission transaction
  */
-async function distributeCommissions(orderId, purchaserId, orderAmount, profitAmount = 0, options = {}) {
+async function distributeCommissions(orderId, purchaserId, orderAmount, profitAmount = 0) {
   if (!orderId) {
     throw new Error('Order ID is required');
   }
@@ -382,9 +426,10 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
     return existingTransaction;
   }
 
-  // Stale pending recovery: if a pending record is older than 5 minutes (process crash recovery),
+  // Stale pending recovery: if a pending record is older than 60 seconds (process crash recovery),
   // atomically mark it 'failed' so the unique partial index is unblocked and payout retries cleanly.
-  const STALE_PENDING_MS = 5 * 60 * 1000;
+  // Aligned with orderFinalizer's LOCK_TIMEOUT_MS (60s) to guarantee zero dead window.
+  const STALE_PENDING_MS = 60 * 1000;
   const staleThreshold = new Date(Date.now() - STALE_PENDING_MS);
   const stalePending = await CommissionTransaction.findOneAndUpdate(
     {
@@ -396,13 +441,12 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
     { new: true }
   );
   if (stalePending) {
-    console.log(`⚠️ Recovered stale pending commission transaction for order ${orderId} (older than 5 minutes, marked failed to unblock retry)`);
+    console.log(`⚠️ Recovered stale pending commission transaction for order ${orderId} (older than 60 seconds, marked failed to unblock retry)`);
   }
 
   const orderKey = String(orderId);
-  const bypassInFlight = Boolean(options && options._bypassInFlightMap);
-  // Fast check: same-process concurrency deduplication
-  if (!bypassInFlight && inFlightDistributions.has(orderKey)) {
+  // Fast check: same-process concurrency deduplication (bypassable only via test hook)
+  if (!_bypassInFlightForTests && inFlightDistributions.has(orderKey)) {
     console.log(`⏳ Commission distribution already in flight for order ${orderId}, awaiting execution...`);
     return await inFlightDistributions.get(orderKey);
   }
@@ -549,7 +593,7 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
         purchaser._id, directCommission,
         'direct_commission',
         `Cashback for Order #${orderId.toString().slice(-6).toUpperCase()}`,
-        orderId, null,
+        orderId, transaction._id,
         { directCommissionEarned: directCommission, 'masterCard.accumulatedCommission': (purchaser.masterCard?.isAssigned && purchaser.masterCard?.status === 'active') ? directCommission : 0 }
       );
     }
@@ -584,7 +628,7 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
             directReferrer._id, referralCommission,
             'referral_commission',
             `Referral Commission for Order #${orderShortId}`,
-            orderId, null,
+            orderId, transaction._id,
             { referralCommissionEarned: referralCommission, 'masterCard.accumulatedCommission': (directReferrer.masterCard?.isAssigned && directReferrer.masterCard?.status === 'active') ? referralCommission : 0 }
           );
         }
@@ -606,7 +650,7 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
               adminUser._id, referralCommission,
               'referral_fallback',
               `Referral Fallback (no referrer) for Order #${orderShortId}`,
-              orderId, null,
+              orderId, transaction._id,
               { referralCommissionEarned: referralCommission }
             );
           }
@@ -640,7 +684,7 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
               adminUser._id, halfReferral,
               'referral_fallback',
               `Referral Fallback Split (50% Admin) for Order #${orderShortId}`,
-              orderId, null,
+              orderId, transaction._id,
               { referralCommissionEarned: halfReferral }
             );
           }
@@ -671,7 +715,7 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
           adminUser2._id, adminCommission,
           'admin_commission',
           `Admin Share for Order #${orderShortId}`,
-          orderId, null,
+          orderId, transaction._id,
           { adminCommissionEarned: adminCommission }
         );
         transaction.adminRecipient = adminUser2._id;
@@ -791,7 +835,7 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
             recipientId, commissionAmount,
             'tree_commission',
             `Tree Commission (Level ${item.level}) for Order #${orderShortId}`,
-            orderId, null,
+            orderId, transaction._id,
             { treeCommissionEarned: commissionAmount }
           );
         }
@@ -1047,9 +1091,11 @@ async function processAutomaticCommissionForOrder(order) {
 }
 
 distributeCommissions._inFlightDistributions = inFlightDistributions;
+distributeCommissions.__setBypassInFlightForTests = __setBypassInFlightForTests;
 
 module.exports = {
   distributeCommissions,
+  __setBypassInFlightForTests,
   previewCommissions,
   addToTrustFund,
   creditWallet,
