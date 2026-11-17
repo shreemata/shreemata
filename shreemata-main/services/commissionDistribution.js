@@ -305,6 +305,31 @@ async function creditWallet(userId, amount, category, description, orderId, comm
   return updatedUser;
 }
 
+// In-flight distribution lock map for same-tick / same-process concurrency deduplication
+const inFlightDistributions = new Map();
+
+/**
+ * Helper to wait for a concurrent commission distribution to complete.
+ * Polls for CommissionTransaction with status 'completed'.
+ */
+async function waitForCompletedCommission(orderId, maxWaitMs = 8000, pollIntervalMs = 100) {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    await new Promise(r => setTimeout(r, pollIntervalMs));
+    const completed = await CommissionTransaction.findOne({ orderId, status: 'completed' });
+    if (completed) {
+      return completed;
+    }
+    const failed = await CommissionTransaction.findOne({ orderId, status: 'failed' });
+    if (failed) {
+      throw new Error(`Concurrent commission distribution failed for order ${orderId}`);
+    }
+  }
+  const finalCheck = await CommissionTransaction.findOne({ orderId, status: 'completed' });
+  if (finalCheck) return finalCheck;
+  throw new Error(`Timed out waiting for commission distribution on order ${orderId}`);
+}
+
 /**
  * Distribute commissions for a completed order using profitAmount as the basis.
  * Uses atomic $inc for all wallet credits and records WalletTransaction ledger entries.
@@ -324,75 +349,106 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
     throw new Error('Purchaser ID is required');
   }
 
-  const validOrderAmount = typeof orderAmount === 'number' && orderAmount >= 0 ? orderAmount : 0;
-  
-  // Look up order document to get authoritative orderProfitTotal
-  const orderDoc = await Order.findById(orderId);
-  let numericProfit = 0;
-
-  if (orderDoc && typeof orderDoc.orderProfitTotal === 'number' && orderDoc.orderProfitTotal >= 0) {
-    numericProfit = orderDoc.orderProfitTotal;
-  } else if (orderDoc && typeof orderDoc.profitAmount === 'number' && orderDoc.profitAmount >= 0) {
-    numericProfit = orderDoc.profitAmount;
-  } else {
-    numericProfit = Math.max(0, Number(profitAmount) || 0);
-  }
-
-  // Check if commission has already been processed for this order
+  // Fast check: is commission already completed?
   const existingTransaction = await CommissionTransaction.findOne({ orderId, status: 'completed' });
   if (existingTransaction) {
     console.log(`Commission already processed for order ${orderId}`);
     return existingTransaction;
   }
 
-  console.log(`💰 Processing commission distribution for order ${orderId}: Order Amount ₹${validOrderAmount}, Authoritative Profit Base ₹${numericProfit}`);
-  
-  try {
-    const settings = await CommissionSettings.getSettings();
-    const purchaser = await User.findById(purchaserId);
-    
-    if (!purchaser) {
-      throw new Error(`Purchaser not found: ${purchaserId}`);
-    }
+  const orderKey = String(orderId);
+  // Fast check: same-process concurrency deduplication
+  if (inFlightDistributions.has(orderKey)) {
+    console.log(`⏳ Commission distribution already in flight for order ${orderId}, awaiting execution...`);
+    return await inFlightDistributions.get(orderKey);
+  }
 
-    // 🎖️ CHECK AND ACTIVATE MEMBERSHIP (Product Subtotal >= ₹100)
-    try {
-      const { checkAndActivateMembership } = require('./membershipService');
-      if (orderDoc) {
-        await checkAndActivateMembership(orderDoc);
-      }
-    } catch (memErr) {
-      console.error(`⚠️ Error checking membership in commission distribution:`, memErr.message);
-    }
-    
-    // 🌳 CREATE TREE PLACEMENT ON FIRST QUALIFYING PURCHASE IF ELIGIBLE
-    const refreshedPurchaser = await User.findById(purchaserId);
-    if (refreshedPurchaser) {
-      Object.assign(purchaser, refreshedPurchaser.toObject());
-    }
-    if (purchaser.isMember && (purchaser.treeLevel === 0 || !purchaser.treeParent)) {
-      console.log(`🌳 Checking tree placement eligibility for ${purchaser.email} on qualifying purchase`);
-      try {
-        await createTreePlacementOnFirstPurchase(purchaser._id, null);
-        const updatedPurchaser = await User.findById(purchaserId);
-        if (updatedPurchaser) {
-          Object.assign(purchaser, updatedPurchaser.toObject());
-        }
-        console.log(`✅ Tree placement created for ${purchaser.email}: Level ${purchaser.treeLevel}, Parent: ${purchaser.treeParent}`);
-      } catch (treePlacementError) {
-        console.error(`❌ Error creating tree placement for ${purchaser.email}:`, treePlacementError);
-      }
-    }
-
-    // Create commission transaction record
-    const transaction = new CommissionTransaction({
+  const execPromise = (async () => {
+    // Check if an active pending transaction exists in DB (started within last 60s)
+    const activePending = await CommissionTransaction.findOne({
       orderId,
-      purchaser: purchaserId,
-      orderAmount: validOrderAmount,
-      profitAmount: numericProfit,
-      status: 'pending'
+      status: 'pending',
+      createdAt: { $gte: new Date(Date.now() - 60000) }
     });
-    transaction.treeCommissions = [];
+    if (activePending) {
+      console.log(`⏳ Active pending commission transaction exists for order ${orderId}, awaiting completion...`);
+      return await waitForCompletedCommission(orderId);
+    }
+
+    const validOrderAmount = typeof orderAmount === 'number' && orderAmount >= 0 ? orderAmount : 0;
+    
+    // Look up order document to get authoritative orderProfitTotal
+    const orderDoc = (orderId && mongoose.isValidObjectId(orderId))
+      ? await Order.findById(orderId).catch(() => null)
+      : null;
+    let numericProfit = 0;
+
+    if (orderDoc && typeof orderDoc.orderProfitTotal === 'number' && orderDoc.orderProfitTotal >= 0) {
+      numericProfit = orderDoc.orderProfitTotal;
+    } else if (orderDoc && typeof orderDoc.profitAmount === 'number' && orderDoc.profitAmount >= 0) {
+      numericProfit = orderDoc.profitAmount;
+    } else {
+      numericProfit = Math.max(0, Number(profitAmount) || 0);
+    }
+
+    // Atomic claim via upfront pending CommissionTransaction insertion
+    let transaction;
+    try {
+      transaction = new CommissionTransaction({
+        orderId,
+        purchaser: purchaserId,
+        orderAmount: validOrderAmount,
+        profitAmount: numericProfit,
+        status: 'pending'
+      });
+      transaction.treeCommissions = [];
+      await transaction.save();
+    } catch (saveErr) {
+      if (saveErr.code === 11000) {
+        console.log(`⏳ Duplicate key on commission transaction insert for order ${orderId}. Awaiting winning process...`);
+        return await waitForCompletedCommission(orderId);
+      }
+      throw saveErr;
+    }
+
+    console.log(`💰 Processing commission distribution for order ${orderId}: Order Amount ₹${validOrderAmount}, Authoritative Profit Base ₹${numericProfit}`);
+    
+    try {
+      const settings = await CommissionSettings.getSettings();
+      const purchaser = await User.findById(purchaserId);
+      
+      if (!purchaser) {
+        throw new Error(`Purchaser not found: ${purchaserId}`);
+      }
+
+      // 🎖️ CHECK AND ACTIVATE MEMBERSHIP (Product Subtotal >= ₹100)
+      try {
+        const { checkAndActivateMembership } = require('./membershipService');
+        if (orderDoc) {
+          await checkAndActivateMembership(orderDoc);
+        }
+      } catch (memErr) {
+        console.error(`⚠️ Error checking membership in commission distribution:`, memErr.message);
+      }
+      
+      // 🌳 CREATE TREE PLACEMENT ON FIRST QUALIFYING PURCHASE IF ELIGIBLE
+      const refreshedPurchaser = await User.findById(purchaserId);
+      if (refreshedPurchaser) {
+        Object.assign(purchaser, typeof refreshedPurchaser.toObject === 'function' ? refreshedPurchaser.toObject() : refreshedPurchaser);
+      }
+      if (purchaser.isMember && (purchaser.treeLevel === 0 || !purchaser.treeParent)) {
+        console.log(`🌳 Checking tree placement eligibility for ${purchaser.email} on qualifying purchase`);
+        try {
+          await createTreePlacementOnFirstPurchase(purchaser._id, null);
+          const updatedPurchaser = await User.findById(purchaserId);
+          if (updatedPurchaser) {
+            Object.assign(purchaser, typeof updatedPurchaser.toObject === 'function' ? updatedPurchaser.toObject() : updatedPurchaser);
+          }
+          console.log(`✅ Tree placement created for ${purchaser.email}: Level ${purchaser.treeLevel}, Parent: ${purchaser.treeParent}`);
+        } catch (treePlacementError) {
+          console.error(`❌ Error creating tree placement for ${purchaser.email}:`, treePlacementError);
+        }
+      }
 
     let totalAllocated = 0;
     
@@ -808,14 +864,27 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
   } catch (error) {
     console.error('❌ Commission distribution error:', error);
     try {
-      await CommissionTransaction.findOneAndUpdate(
-        { orderId, status: 'pending' },
-        { status: 'failed' }
-      );
+      if (transaction && transaction._id) {
+        transaction.status = 'failed';
+        await transaction.save();
+      } else {
+        await CommissionTransaction.findOneAndUpdate(
+          { orderId, status: 'pending' },
+          { status: 'failed' }
+        );
+      }
     } catch (updateError) {
       console.error('Error updating transaction status:', updateError);
     }
     throw error;
+  }
+  })();
+
+  inFlightDistributions.set(orderKey, execPromise);
+  try {
+    return await execPromise;
+  } finally {
+    inFlightDistributions.delete(orderKey);
   }
 }
 
@@ -852,6 +921,12 @@ async function isOrderEligibleForCommission(order) {
   // 2. Commission status must not already be 'distributed'
   if (order.commissionStatus === 'distributed') {
     return { eligible: false, reason: "Commission status is already 'distributed'" };
+  }
+  if (order._id && mongoose.isValidObjectId(order._id)) {
+    const liveOrder = await Order.findById(order._id).select('commissionStatus');
+    if (liveOrder && liveOrder.commissionStatus === 'distributed') {
+      return { eligible: false, reason: "Commission status is already 'distributed'" };
+    }
   }
 
   // 3. No existing completed CommissionTransaction for this order
@@ -898,10 +973,21 @@ async function processAutomaticCommissionForOrder(order) {
     );
 
     if (transaction && transaction.status === 'completed') {
+      if (order._id && mongoose.isValidObjectId(order._id)) {
+        await Order.findByIdAndUpdate(order._id, {
+          $set: {
+            profitAmount: eligibility.profit,
+            commissionStatus: 'distributed',
+            rewardApplied: true
+          }
+        });
+      }
       order.profitAmount = eligibility.profit;
       order.commissionStatus = 'distributed';
       order.rewardApplied = true;
-      await order.save();
+      try {
+        await order.save();
+      } catch (e) {}
       console.log(`✅ Automatic commission distribution SUCCESS for order ${order._id}`);
       return transaction;
     }

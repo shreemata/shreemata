@@ -5,8 +5,7 @@ const commissionTransactionSchema = new mongoose.Schema({
   orderId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Order', 
-    required: true,
-    index: true
+    required: true
   },
   purchaser: { 
     type: mongoose.Schema.Types.ObjectId, 
@@ -164,5 +163,18 @@ const commissionTransactionSchema = new mongoose.Schema({
 
 // Compound index for efficient commission history queries by user and time
 commissionTransactionSchema.index({ purchaser: 1, processedAt: 1 });
+
+// Query index for order lookup across all statuses
+commissionTransactionSchema.index({ orderId: 1, status: 1 });
+
+// Unique partial index: exactly one pending or completed transaction per order.
+// Superseded transactions (from repair) and failed transactions are excluded.
+commissionTransactionSchema.index(
+  { orderId: 1 },
+  { 
+    unique: true, 
+    partialFilterExpression: { status: { $in: ['pending', 'completed'] } } 
+  }
+);
 
 module.exports = mongoose.model("CommissionTransaction", commissionTransactionSchema);
