@@ -814,4 +814,242 @@ describe('End-to-End Bundle Orders, Profit Snapshots & Commission Splits', () =>
     expect(newSnapshot[0].unitProfitSnapshot).toBe(50);
     expect(newSnapshot[0].lineProfitSnapshot).toBe(50);
   });
+
+  describe('Edit Payload Data Integrity & Profit Validation on Edit', () => {
+    let editTestBook;
+    let editTestBundle;
+
+    beforeAll(async () => {
+      editTestBook = await Book.create({
+        title: 'Original Edit Book',
+        author: 'Author Edit',
+        price: 200,
+        physicalPrice: 200,
+        sellingPrice: 200,
+        discountEnabled: false,
+        discountType: 'flat',
+        discountValue: 0,
+        rewardPoints: 10,
+        cashbackAmount: 5,
+        cashbackPercentage: 2,
+        profitType: 'fixed',
+        profitValue: 30,
+        profitConfigured: true
+      });
+
+      const subBook = await Book.create({
+        title: 'Sub Book for Bundle Edit',
+        author: 'Author Sub',
+        price: 150,
+        physicalPrice: 150,
+        sellingPrice: 150,
+        profitType: 'fixed',
+        profitValue: 20,
+        profitConfigured: true
+      });
+
+      editTestBundle = await Bundle.create({
+        name: 'Original Edit Bundle',
+        description: 'Original description',
+        books: [subBook._id],
+        originalPrice: 150,
+        bundlePrice: 120,
+        rewardPoints: 10,
+        cashbackAmount: 5,
+        cashbackPercentage: 2,
+        profitType: 'fixed',
+        profitValue: 25,
+        profitConfigured: true,
+        isActive: true
+      });
+    });
+
+    test('Bundle Edit: saving bundle edit form payload preserves rewardPoints 10, cashbackAmount 5, cashbackPercentage 2', async () => {
+      const payload = {
+        name: 'Updated Edit Bundle',
+        description: 'Updated bundle description',
+        bundlePrice: 120,
+        rewardPoints: 10,
+        cashbackAmount: 5,
+        cashbackPercentage: 2,
+        profitType: 'fixed',
+        profitValue: 35,
+        profitConfigured: true
+      };
+
+      const res = await axios.put(`${baseUrl}/api/bundles/admin/update/${editTestBundle._id}`, payload, {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      expect(res.status).toBe(200);
+
+      const updated = await Bundle.findById(editTestBundle._id);
+      expect(updated.rewardPoints).toBe(10);
+      expect(updated.cashbackAmount).toBe(5);
+      expect(updated.cashbackPercentage).toBe(2);
+      expect(updated.profitValue).toBe(35);
+      expect(typeof updated.profitValue).toBe('number');
+    });
+
+    test('Book Edit: saving book edit form payload preserves rewardPoints, cashback, and discount fields', async () => {
+      const payload = {
+        title: 'Updated Edit Book',
+        author: 'Author Edit',
+        physicalPrice: 200,
+        discountEnabled: true,
+        discountType: 'percentage',
+        discountValue: 15,
+        rewardPoints: 10,
+        cashbackAmount: 5,
+        cashbackPercentage: 0,
+        profitType: 'fixed',
+        profitValue: 40,
+        profitConfigured: true
+      };
+
+      const res = await axios.put(`${baseUrl}/api/books/${editTestBook._id}`, payload, {
+        headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' }
+      });
+      expect(res.status).toBe(200);
+
+      const updated = await Book.findById(editTestBook._id);
+      expect(updated.rewardPoints).toBe(10);
+      expect(updated.cashbackAmount).toBe(5);
+      expect(updated.discountEnabled).toBe(true);
+      expect(updated.discountType).toBe('percentage');
+      expect(updated.discountValue).toBe(15);
+      expect(updated.sellingPrice).toBe(170);
+      expect(updated.profitValue).toBe(40);
+      expect(typeof updated.profitValue).toBe('number');
+    });
+
+    test('Book Edit: saving book with cashbackPercentage preserves rewardPoints and cashbackPercentage', async () => {
+      const payload = {
+        title: 'Updated Edit Book CB Pct',
+        physicalPrice: 200,
+        discountEnabled: false,
+        discountValue: 0,
+        rewardPoints: 15,
+        cashbackAmount: 0,
+        cashbackPercentage: 2,
+        profitType: 'percentage',
+        profitValue: 20,
+        profitConfigured: true
+      };
+
+      const res = await axios.put(`${baseUrl}/api/books/${editTestBook._id}`, payload, {
+        headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' }
+      });
+      expect(res.status).toBe(200);
+
+      const updated = await Book.findById(editTestBook._id);
+      expect(updated.rewardPoints).toBe(15);
+      expect(updated.cashbackAmount).toBe(0);
+      expect(updated.cashbackPercentage).toBe(2);
+      expect(updated.profitType).toBe('percentage');
+      expect(updated.profitValue).toBe(20);
+      expect(typeof updated.profitValue).toBe('number');
+    });
+
+    test('Bundle Edit Validation: rejects invalid profit edit (negative, fixed > price, percentage > 100) with 400 and preserves old value', async () => {
+      const currentBundle = await Bundle.findById(editTestBundle._id);
+      const originalProfitValue = currentBundle.profitValue;
+
+      // 1. Negative profit
+      try {
+        await axios.put(`${baseUrl}/api/bundles/admin/update/${editTestBundle._id}`, {
+          profitType: 'fixed',
+          profitValue: -15
+        }, {
+          headers: { Authorization: `Bearer ${adminToken}` }
+        });
+        throw new Error('Expected negative profit to fail');
+      } catch (err) {
+        expect(err.response.status).toBe(400);
+        expect(err.response.data.error).toContain('non-negative number');
+      }
+
+      // 2. Fixed profit > bundlePrice (bundlePrice is 120)
+      try {
+        await axios.put(`${baseUrl}/api/bundles/admin/update/${editTestBundle._id}`, {
+          profitType: 'fixed',
+          profitValue: 150
+        }, {
+          headers: { Authorization: `Bearer ${adminToken}` }
+        });
+        throw new Error('Expected fixed profit > bundlePrice to fail');
+      } catch (err) {
+        expect(err.response.status).toBe(400);
+        expect(err.response.data.error).toContain('cannot exceed');
+      }
+
+      // 3. Percentage profit > 100
+      try {
+        await axios.put(`${baseUrl}/api/bundles/admin/update/${editTestBundle._id}`, {
+          profitType: 'percentage',
+          profitValue: 125
+        }, {
+          headers: { Authorization: `Bearer ${adminToken}` }
+        });
+        throw new Error('Expected percentage profit > 100 to fail');
+      } catch (err) {
+        expect(err.response.status).toBe(400);
+        expect(err.response.data.error).toContain('between 0 and 100');
+      }
+
+      // Verify DB value was untouched
+      const afterFailedAttempts = await Bundle.findById(editTestBundle._id);
+      expect(afterFailedAttempts.profitValue).toBe(originalProfitValue);
+    });
+
+    test('Book Edit Validation: rejects invalid profit edit (negative, fixed > price, percentage > 100) with 400 and preserves old value', async () => {
+      const currentBook = await Book.findById(editTestBook._id);
+      const originalProfitValue = currentBook.profitValue;
+
+      // 1. Negative profit
+      try {
+        await axios.put(`${baseUrl}/api/books/${editTestBook._id}`, {
+          profitType: 'fixed',
+          profitValue: -25
+        }, {
+          headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' }
+        });
+        throw new Error('Expected negative profit to fail');
+      } catch (err) {
+        expect(err.response.status).toBe(400);
+        expect(err.response.data.error).toContain('non-negative number');
+      }
+
+      // 2. Fixed profit > sellingPrice (sellingPrice is 200)
+      try {
+        await axios.put(`${baseUrl}/api/books/${editTestBook._id}`, {
+          profitType: 'fixed',
+          profitValue: 300
+        }, {
+          headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' }
+        });
+        throw new Error('Expected fixed profit > price to fail');
+      } catch (err) {
+        expect(err.response.status).toBe(400);
+        expect(err.response.data.error).toContain('cannot exceed');
+      }
+
+      // 3. Percentage profit > 100
+      try {
+        await axios.put(`${baseUrl}/api/books/${editTestBook._id}`, {
+          profitType: 'percentage',
+          profitValue: 105
+        }, {
+          headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' }
+        });
+        throw new Error('Expected percentage profit > 100 to fail');
+      } catch (err) {
+        expect(err.response.status).toBe(400);
+        expect(err.response.data.error).toContain('between 0 and 100');
+      }
+
+      // Verify DB value was untouched
+      const afterFailedAttempts = await Book.findById(editTestBook._id);
+      expect(afterFailedAttempts.profitValue).toBe(originalProfitValue);
+    });
+  });
 });

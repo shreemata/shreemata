@@ -415,6 +415,24 @@
                     <input type="date" id="validUntil">
                 </div>
 
+                <div class="form-group">
+                    <label>Reward Points</label>
+                    <input type="number" id="rewardPoints" min="0" value="0" placeholder="0">
+                    <small>Points awarded to buyer on purchase</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Fixed Cashback Amount (₹)</label>
+                    <input type="number" id="cashbackAmount" step="0.01" min="0" value="0" placeholder="0.00">
+                    <small>Fixed cashback amount (takes priority over percentage)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Cashback Percentage (%)</label>
+                    <input type="number" id="cashbackPercentage" step="0.1" min="0" max="100" value="0" placeholder="0.0">
+                    <small>Percentage of bundle price as cashback (used if fixed amount is 0)</small>
+                </div>
+
                 <!-- Internal Profit & Commission Section (Shared with Books) -->
                 <div id="bundleProfitSectionContainer"></div>
 
@@ -673,6 +691,9 @@
             
             // Initialize courier charge field to 0
             document.getElementById("courierCharge").value = "0.00";
+            document.getElementById("rewardPoints").value = "0";
+            document.getElementById("cashbackAmount").value = "0";
+            document.getElementById("cashbackPercentage").value = "0";
 
             if (bundleProfitController) {
                 bundleProfitController.populateData({
@@ -729,6 +750,9 @@
                 document.getElementById("bundleImage").value = bundle.image || '';
                 document.getElementById("bundlePrice").value = bundle.bundlePrice || '';
                 document.getElementById("courierCharge").value = bundle.courierCharge || 0;
+                document.getElementById("rewardPoints").value = bundle.rewardPoints || 0;
+                document.getElementById("cashbackAmount").value = bundle.cashbackAmount || 0;
+                document.getElementById("cashbackPercentage").value = bundle.cashbackPercentage || 0;
 
                 if (bundleProfitController) {
                     bundleProfitController.populateData(bundle);
@@ -958,9 +982,9 @@
                     zeroCommission: document.getElementById("bundleZeroCommission")?.checked || false,
                     profitConfigured: false
                 };
-                const rewardPointsVal = parseInt(document.getElementById("bundleRewardPoints")?.value) || 0;
-                const cashbackAmountVal = parseFloat(document.getElementById("bundleCashbackAmount")?.value) || 0;
-                const cashbackPercentageVal = parseFloat(document.getElementById("bundleCashbackPercentage")?.value) || 0;
+                const rewardPointsVal = parseInt(document.getElementById("rewardPoints")?.value || document.getElementById("bundleRewardPoints")?.value) || 0;
+                const cashbackAmountVal = parseFloat(document.getElementById("cashbackAmount")?.value || document.getElementById("bundleCashbackAmount")?.value) || 0;
+                const cashbackPercentageVal = parseFloat(document.getElementById("cashbackPercentage")?.value || document.getElementById("bundleCashbackPercentage")?.value) || 0;
 
                 const bundleData = {
                     name: document.getElementById("bundleName").value,

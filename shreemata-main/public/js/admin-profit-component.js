@@ -39,8 +39,13 @@
         return cachedCommissionSettings;
     }
 
-    function generateProfitSectionHTML(prefix = 'admin', itemTypeLabel = 'Book') {
+    function generateProfitSectionHTML(prefix = 'admin', itemTypeLabel = 'Book', options = {}) {
         const isAdmin = prefix === 'admin';
+        const isBundle = prefix === 'bundle';
+        const includeCashbackReward = options.includeCashbackReward !== undefined 
+            ? options.includeCashbackReward 
+            : !isBundle; // Bundles keep their original static fields in admin-bundles.html
+
         const profitTypeId = `${prefix}ProfitType`;
         const profitValueId = `${prefix}ProfitValue`;
         const profitValueLabelId = `${prefix}ProfitValueLabel`;
@@ -90,11 +95,12 @@
                     <label id="${profitValueLabelId}" for="${profitValueId}" style="font-weight: 600; font-size: 0.9rem; color: #334155;">${itemTypeLabel} Profit (₹)</label>
                     <input type="number" id="${profitValueId}" name="profitValue" step="0.01" min="0" value="0" placeholder="0.00" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px;">
                 </div>
+                ${includeCashbackReward ? `
                 <div class="form-group" style="flex: 1; min-width: 160px;">
                     <label for="${rewardPointsId}" style="font-weight: 600; font-size: 0.9rem; color: #334155;">Reward Points</label>
                     <input type="number" id="${rewardPointsId}" name="rewardPoints" min="0" value="0" placeholder="0" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px;">
                     <small style="color: #64748b; font-size: 0.78rem;">Points awarded to buyer on purchase</small>
-                </div>
+                </div>` : ''}
             </div>
 
             <!-- Zero commission checkbox & warning badge -->
@@ -111,6 +117,7 @@
                 </div>
             </div>
 
+            ${includeCashbackReward ? `
             <!-- Optional Cashback Section -->
             <div style="margin-top: 12px; margin-bottom: 12px; padding: 12px; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 6px;">
                 <div style="font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 8px;">OPTIONAL CASHBACK</div>
@@ -126,7 +133,7 @@
                         <small style="color: #64748b; display: block; margin-top: 4px; font-size: 0.78rem;">Optional manual buyer cashback percentage. Leave at 0 to use automatic profit-based cashback.</small>
                     </div>
                 </div>
-            </div>
+            </div>` : ''}
 
             <!-- Live Preview Box -->
             <div id="${previewBoxId}" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px; margin-top: 10px;">
@@ -169,9 +176,9 @@
         const zeroBadgeEl = document.getElementById(`${prefix}ProfitZeroBadge`);
         const blockNoticeEl = document.getElementById(`${prefix}SaveBlockNotice`);
         const submitBtn = document.getElementById(submitBtnId);
-        const cashbackAmountEl = document.getElementById(isAdmin ? 'cashbackAmount' : `${prefix}CashbackAmount`);
-        const cashbackPercentageEl = document.getElementById(isAdmin ? 'cashbackPercentage' : `${prefix}CashbackPercentage`);
-        const rewardPointsEl = document.getElementById(isAdmin ? 'rewardPoints' : `${prefix}RewardPoints`);
+        const cashbackAmountEl = document.getElementById(config.cashbackAmountId || 'cashbackAmount') || document.getElementById(`${prefix}CashbackAmount`);
+        const cashbackPercentageEl = document.getElementById(config.cashbackPercentageId || 'cashbackPercentage') || document.getElementById(`${prefix}CashbackPercentage`);
+        const rewardPointsEl = document.getElementById(config.rewardPointsId || 'rewardPoints') || document.getElementById(`${prefix}RewardPoints`);
 
         const headerEl = document.getElementById(isAdmin ? `${prefix}PreviewHeader` : `${prefix}PreviewHeader`);
         const baseEl = document.getElementById(isAdmin ? 'previewProfitBase' : `${prefix}PreviewProfitBase`);
