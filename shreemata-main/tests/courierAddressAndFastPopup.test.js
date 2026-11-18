@@ -38,6 +38,8 @@ let testBuyer;
 let testBook;
 let digitalBook;
 let legacyDigitalBook;
+let outOfStockBook;
+let testNote;
 let buyerToken;
 
 const JWT_SECRET = 'test_jwt_secret_courier_fast_popup_2026';
@@ -122,6 +124,30 @@ beforeAll(async () => {
     pdfUrl: 'https://storage.googleapis.com/shreemata-books/legacy.pdf',
     isDigitalAvailable: true
     // isDigital is NOT set (defaults to false in schema)
+  });
+
+  outOfStockBook = await Book.create({
+    title: 'Out of Stock Physical Book',
+    author: 'Stock Test Author',
+    price: 150,
+    originalPrice: 200,
+    stockQuantity: 0,
+    stockStatus: 'out_of_stock',
+    trackStock: true,
+    weight: 0.5,
+    profitMethod: 'fixed',
+    bookProfit: 30,
+    isDigital: false
+  });
+
+  const Note = mongoose.models.Note || require('../models/Note');
+  testNote = await Note.create({
+    title: 'Class 10 Mathematics Revision Notes',
+    section: 'notes',
+    subject: 'Mathematics',
+    classLevel: '10',
+    pdfUrl: 'private/notes/test-math-note.pdf',
+    price: 49
   });
 
   buyerToken = jwt.sign(
@@ -905,6 +931,225 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
     const untouchedPaidOrder = await Order.findById(paidOrder._id);
     expect(untouchedPaidOrder.status).toBe('completed');
     expect(untouchedPaidOrder.paymentStatus).toBe('completed');
+  });
+
+  test('POST /api/payments/create-order: (a) physical book sent with type: "pdf" or "notes" and courier without address is rejected (400)', async () => {
+    // 1. Sent with type: 'pdf'
+    try {
+      await axios.post(
+        `${baseUrl}/api/payments/create-order`,
+        {
+          amount: 150,
+          items: [{
+            id: String(testBook._id),
+            title: testBook.title,
+            price: testBook.price,
+            quantity: 1,
+            type: 'pdf',
+            isDigital: true
+          }],
+          deliveryMethod: 'courier',
+          deliveryAddress: null
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+      throw new Error('Should have failed');
+    } catch (err) {
+      expect(err.response.status).toBe(400);
+      expect(err.response.data.requiresAddressSetup).toBe(true);
+    }
+
+    // 2. Sent with type: 'notes'
+    try {
+      await axios.post(
+        `${baseUrl}/api/payments/create-order`,
+        {
+          amount: 150,
+          items: [{
+            id: String(testBook._id),
+            title: testBook.title,
+            price: testBook.price,
+            quantity: 1,
+            type: 'notes',
+            isDigital: true
+          }],
+          deliveryMethod: 'courier',
+          deliveryAddress: null
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+      throw new Error('Should have failed');
+    } catch (err) {
+      expect(err.response.status).toBe(400);
+      expect(err.response.data.requiresAddressSetup).toBe(true);
+    }
+  });
+
+  test('POST /api/payments/create-order: (b) out-of-stock physical book sent with type: "pdf" is still rejected for stock (400)', async () => {
+    try {
+      await axios.post(
+        `${baseUrl}/api/payments/create-order`,
+        {
+          amount: 150,
+          items: [{
+            id: String(outOfStockBook._id),
+            title: outOfStockBook.title,
+            price: outOfStockBook.price,
+            quantity: 1,
+            type: 'pdf',
+            isDigital: true
+          }],
+          deliveryMethod: 'pickup',
+          deliveryAddress: null
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+      throw new Error('Should have failed');
+    } catch (err) {
+      expect(err.response.status).toBe(400);
+      expect(err.response.data.error).toMatch(/stock/i);
+    }
+  });
+
+  test('POST /api/payments/create-order: (c) saved order item for physical book has isDigital: false even if request says digital and type pdf', async () => {
+    const res = await axios.post(
+      `${baseUrl}/api/payments/create-order`,
+      {
+        amount: 150,
+        items: [{
+          id: String(testBook._id),
+          title: testBook.title,
+          price: testBook.price,
+          quantity: 1,
+          type: 'pdf',
+          isDigital: true
+        }],
+        deliveryMethod: 'pickup',
+        deliveryAddress: null
+      },
+      { headers: { Authorization: `Bearer ${buyerToken}` } }
+    );
+
+    expect(res.status).toBe(200);
+    const savedOrder = await Order.findOne({ razorpay_order_id: res.data.order.id });
+    expect(savedOrder).toBeDefined();
+    expect(savedOrder.items[0].isDigital).toBe(false);
+    expect(savedOrder.items[0].type).toBe('book');
+  });
+
+  test('POST /api/payments/create-order: (d) inventory is reduced for physical items on payment finalization', async () => {
+    const stockTestBook = await Book.create({
+      title: 'Inventory Reduction Book',
+      author: 'Inventory Author',
+      price: 100,
+      originalPrice: 100,
+      stockQuantity: 20,
+      stockStatus: 'in_stock',
+      trackStock: true,
+      weight: 0.5,
+      profitMethod: 'fixed',
+      bookProfit: 20,
+      isDigital: false
+    });
+
+    const createRes = await axios.post(
+      `${baseUrl}/api/payments/create-order`,
+      {
+        amount: 200,
+        items: [{
+          id: String(stockTestBook._id),
+          title: stockTestBook.title,
+          price: 100,
+          quantity: 2,
+          type: 'book'
+        }],
+        deliveryMethod: 'pickup',
+        deliveryAddress: null
+      },
+      { headers: { Authorization: `Bearer ${buyerToken}` } }
+    );
+    expect(createRes.status).toBe(200);
+
+    const rzpOrderId = createRes.data.order.id;
+    const dbOrder = await Order.findOne({ razorpay_order_id: rzpOrderId });
+
+    // Finalize order
+    const { finalizePaidOrder } = require('../services/orderFinalizer');
+    await finalizePaidOrder(dbOrder, {
+      razorpay_payment_id: 'pay_stock_test_123',
+      razorpay_order_id: rzpOrderId,
+      asyncEmails: true
+    });
+
+    // Check inventory
+    const updatedBook = await Book.findById(stockTestBook._id);
+    expect(updatedBook.stockQuantity).toBe(18); // 20 - 2 = 18
+
+    // Idempotent finalization retry check
+    await finalizePaidOrder(dbOrder, {
+      razorpay_payment_id: 'pay_stock_test_123',
+      razorpay_order_id: rzpOrderId,
+      asyncEmails: true
+    });
+    const bookAfterRetry = await Book.findById(stockTestBook._id);
+    expect(bookAfterRetry.stockQuantity).toBe(18);
+  });
+
+  test('POST /api/payments/create-order: (e) a real Note record (digital) in a cart is accepted without an address', async () => {
+    const res = await axios.post(
+      `${baseUrl}/api/payments/create-order`,
+      {
+        amount: 49,
+        items: [{
+          id: String(testNote._id),
+          title: testNote.title,
+          price: 49,
+          quantity: 1,
+          type: 'notes'
+        }],
+        deliveryMethod: 'courier',
+        deliveryAddress: null
+      },
+      { headers: { Authorization: `Bearer ${buyerToken}` } }
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.data.order).toBeDefined();
+
+    const savedOrder = await Order.findOne({ razorpay_order_id: res.data.order.id });
+    expect(savedOrder.deliveryMethod).toBe('digital');
+    expect(savedOrder.items[0].isDigital).toBe(true);
+    expect(savedOrder.items[0].type).toBe('note');
+  });
+
+  test('POST /api/payments/create-order: (f) an unknown item id is rejected with 400', async () => {
+    try {
+      await axios.post(
+        `${baseUrl}/api/payments/create-order`,
+        {
+          amount: 99,
+          items: [{
+            id: '600000000000000000000777',
+            title: 'Nonexistent Phantom Item',
+            price: 99,
+            quantity: 1,
+            type: 'pdf'
+          }],
+          deliveryMethod: 'pickup',
+          deliveryAddress: null
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+      throw new Error('Should have failed');
+    } catch (err) {
+      expect(err.response.status).toBe(400);
+      expect(err.response.data.error).toMatch(/item not found/i);
+    }
+  });
+
+  test('Variable scope check: no implicit global variables leaked to global object', () => {
+    expect(typeof global.isItemDigital).toBe('undefined');
+    expect(typeof global.isDigitalItem).toBe('undefined');
   });
 });
 

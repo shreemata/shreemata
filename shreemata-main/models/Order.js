@@ -13,6 +13,8 @@ const orderSchema = new mongoose.Schema({
         quantity: { type: Number, default: 1 },
         coverImage: { type: String, default: "" },
         type: { type: String, default: "book" },
+        isDigital: { type: Boolean, default: false },
+        digitalPrice: { type: Number, default: 0 },
         profitTypeSnapshot: { type: String, default: "fixed" },
         profitValueSnapshot: { type: Number, default: 0 },
         unitProfitSnapshot: { type: Number, default: 0 },
@@ -73,6 +75,12 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ["pending", "processing", "shipped", "delivered"],
         default: "pending"
+    },
+
+    // Stock reduction flag
+    stockReduced: {
+        type: Boolean,
+        default: false
     },
     trackingInfo: {
         trackingWebsite: { type: String, default: "" },

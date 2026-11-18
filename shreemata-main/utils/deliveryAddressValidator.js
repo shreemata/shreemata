@@ -118,13 +118,19 @@ function isBundleEntityDigital(bundle) {
 }
 
 /**
- * Authoritatively determines on the server whether an order contains exclusively digital items
- * by looking up the actual Book, Bundle, and Note records from the database.
- * NEVER trusts client-supplied isDigital or isDigitalOnly flags in req.body.
+ * Look up an item in Book, Bundle, or Note collections by ID.
+ * Returns { found: true, entity, kind, isDigital } or { found: false, error }.
+ * Never trusts client item.type or item.isDigital shortcuts.
  */
-async function isServerOrderDigitalOnly(rawItems) {
-  if (!Array.isArray(rawItems) || rawItems.length === 0) {
-    return false;
+async function getAuthoritativeItemDetails(item) {
+  if (!item || typeof item !== 'object') {
+    return { found: false, error: 'Invalid item data' };
+  }
+
+  const rawId = item.id || item._id || item.bookId || item.bundleId || item.noteId;
+  const itemId = String(rawId || '').trim();
+  if (!itemId || !mongoose.Types.ObjectId.isValid(itemId)) {
+    return { found: false, error: `Invalid item ID: ${rawId}` };
   }
 
   const Book = mongoose.models.Book || require('../models/Book');
@@ -136,64 +142,75 @@ async function isServerOrderDigitalOnly(rawItems) {
     Note = null;
   }
 
+  const requestedType = String(item.type || item.itemType || '').toLowerCase();
+
+  // If client explicitly indicated bundle, try Bundle first
+  if (requestedType === 'bundle' || item.isBundle || item.bundleId) {
+    const bundleDoc = await Bundle.findById(itemId).populate('books').lean().catch(() => null);
+    if (bundleDoc) {
+      return {
+        found: true,
+        entity: bundleDoc,
+        kind: 'bundle',
+        isDigital: isBundleEntityDigital(bundleDoc)
+      };
+    }
+  }
+
+  // Look in Book collection
+  const bookDoc = await Book.findById(itemId).lean().catch(() => null);
+  if (bookDoc) {
+    return {
+      found: true,
+      entity: bookDoc,
+      kind: 'book',
+      isDigital: isBookEntityDigital(bookDoc)
+    };
+  }
+
+  // Look in Bundle collection (if not checked first)
+  if (requestedType !== 'bundle' && !item.isBundle && !item.bundleId) {
+    const bundleDoc = await Bundle.findById(itemId).populate('books').lean().catch(() => null);
+    if (bundleDoc) {
+      return {
+        found: true,
+        entity: bundleDoc,
+        kind: 'bundle',
+        isDigital: isBundleEntityDigital(bundleDoc)
+      };
+    }
+  }
+
+  // Look in Note collection (study materials, digital notes, PDFs, videos)
+  if (Note) {
+    const noteDoc = await Note.findById(itemId).lean().catch(() => null);
+    if (noteDoc) {
+      return {
+        found: true,
+        entity: noteDoc,
+        kind: 'note',
+        isDigital: true // All Note documents are digital study materials
+      };
+    }
+  }
+
+  return { found: false, error: `Item not found with ID ${itemId}` };
+}
+
+/**
+ * Authoritatively determines on the server whether an order contains exclusively digital items
+ * by looking up the actual Book, Bundle, and Note records from the database.
+ * NEVER trusts client-supplied isDigital or isDigitalOnly flags in req.body.
+ */
+async function isServerOrderDigitalOnly(rawItems) {
+  if (!Array.isArray(rawItems) || rawItems.length === 0) {
+    return false;
+  }
+
   for (const item of rawItems) {
-    if (!item || typeof item !== 'object') {
-      return false;
-    }
-
-    const rawId = item.id || item._id || item.bookId || item.bundleId || item.noteId;
-    const itemId = String(rawId || '').trim();
-    const itemType = String(item.type || item.itemType || '').toLowerCase();
-
-    // Check Note / digital section items
-    if (itemType === 'note' || itemType === 'notes' || itemType === 'pdf') {
-      if (Note && itemId && mongoose.Types.ObjectId.isValid(itemId)) {
-        const noteDoc = await Note.findById(itemId).lean().catch(() => null);
-        if (noteDoc) continue; // Verified note in DB
-      }
-      // If note or pdf item type specified without Note model, verify it doesn't match a physical book
-      if (itemId && mongoose.Types.ObjectId.isValid(itemId)) {
-        const bookDoc = await Book.findById(itemId).lean().catch(() => null);
-        if (bookDoc && !isBookEntityDigital(bookDoc)) {
-          return false; // Physical book masquerading as note/pdf
-        }
-      }
-      continue;
-    }
-
-    // Check Bundle items
-    if (itemType === 'bundle' || item.isBundle || item.bundleId) {
-      if (!itemId || !mongoose.Types.ObjectId.isValid(itemId)) {
-        return false; // Missing or malformed ID -> safe fallback to physical
-      }
-      const bundleDoc = await Bundle.findById(itemId).populate('books').lean().catch(() => null);
-      if (!bundleDoc) {
-        return false; // Not found -> safe fallback to physical
-      }
-      if (!isBundleEntityDigital(bundleDoc)) {
-        return false; // Physical bundle -> order requires delivery address
-      }
-      continue;
-    }
-
-    // Default: Book item
-    if (!itemId || !mongoose.Types.ObjectId.isValid(itemId)) {
-      return false; // Missing or malformed ID -> safe fallback to physical
-    }
-
-    const bookDoc = await Book.findById(itemId).lean().catch(() => null);
-    if (!bookDoc) {
-      // Check if it exists in Note collection
-      if (Note) {
-        const noteDoc = await Note.findById(itemId).lean().catch(() => null);
-        if (noteDoc) continue; // Verified note
-      }
-      return false; // Not found -> safe fallback to physical
-    }
-
-    // Authoritative check on DB document:
-    if (!isBookEntityDigital(bookDoc)) {
-      return false; // Physical book in database -> order requires delivery address!
+    const details = await getAuthoritativeItemDetails(item);
+    if (!details.found || !details.isDigital) {
+      return false; // Missing, unknown, or physical -> order requires delivery address
     }
   }
 
@@ -205,5 +222,6 @@ module.exports = {
   validateCourierAddress,
   isServerOrderDigitalOnly,
   isBookEntityDigital,
-  isBundleEntityDigital
+  isBundleEntityDigital,
+  getAuthoritativeItemDetails
 };

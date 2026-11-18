@@ -8,7 +8,7 @@ const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { sendDeliveryStatusEmail } = require("../utils/emailService");
 const { autoGenerateInvoiceForOrder } = require("./invoices");
 const { isPaymentVerified } = require("../utils/paymentHelper");
-const { validateCourierAddress, isServerOrderDigitalOnly, isBookEntityDigital, isBundleEntityDigital } = require("../utils/deliveryAddressValidator");
+const { validateCourierAddress, isServerOrderDigitalOnly, isBookEntityDigital, isBundleEntityDigital, getAuthoritativeItemDetails } = require("../utils/deliveryAddressValidator");
 
 const router = express.Router();
 
@@ -124,6 +124,13 @@ router.post("/", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "No items in order" });
         }
 
+        for (const it of items) {
+            const details = await getAuthoritativeItemDetails(it);
+            if (!details.found) {
+                return res.status(400).json({ error: "Item not found", message: `Item not found: ${it.id || it.title}` });
+            }
+        }
+
         const isDigitalOnly = await isServerOrderDigitalOnly(items);
         const isPickupOrder = (deliveryMethod === 'pickup');
 
@@ -202,54 +209,24 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "Missing required fields" });
         }
 
-        let isDigitalItem = false;
-        let itemData;
-        
-        if (itemType === 'bundle') {
-            // Fetch bundle details
-            console.log('Fetching bundle with ID:', bookId);
-            const bundle = await Bundle.findById(bookId);
-            
-            if (!bundle) {
-                console.error('Bundle not found:', bookId);
-                return res.status(404).json({ error: "Bundle not found" });
-            }
-            
-            isDigitalItem = isBundleEntityDigital(bundle);
-            console.log('Bundle found:', bundle.name, 'isDigital:', isDigitalItem);
-            itemData = {
-                id: bookId,
-                title: bundle.name,
-                author: "Bundle",
-                quantity: quantity,
-                price: basePrice / quantity, // Convert total price to per-item price
-                coverImage: bundle.image || "",
-                type: 'bundle',
-                isDigital: isDigitalItem
-            };
-        } else {
-            // Fetch book details
-            console.log('Fetching book with ID:', bookId);
-            const book = await Book.findById(bookId);
-            
-            if (!book) {
-                console.error('Book not found:', bookId);
-                return res.status(404).json({ error: "Book not found" });
-            }
-            
-            isDigitalItem = isBookEntityDigital(book);
-            console.log('Book found:', book.title, 'isDigital:', isDigitalItem);
-            itemData = {
-                id: bookId,
-                title: book.title,
-                author: book.author || "Unknown",
-                quantity: quantity,
-                price: basePrice / quantity, // Convert total price to per-item price
-                coverImage: book.cover_image || "",
-                type: 'book',
-                isDigital: isDigitalItem
-            };
+        const details = await getAuthoritativeItemDetails({ id: bookId, type: itemType });
+        if (!details.found) {
+            console.error('Item not found:', bookId);
+            return res.status(400).json({ error: "Item not found", message: `Item not found with ID ${bookId}` });
         }
+
+        const isDigitalItem = details.isDigital;
+        console.log('Item resolved:', details.entity.title || details.entity.name, 'kind:', details.kind, 'isDigital:', isDigitalItem);
+        const itemData = {
+            id: String(details.entity._id),
+            title: details.entity.title || details.entity.name,
+            author: details.entity.author || (details.kind === 'bundle' ? 'Bundle' : 'Unknown'),
+            quantity: quantity,
+            price: basePrice / quantity, // Convert total price to per-item price
+            coverImage: details.entity.cover_image || details.entity.image || details.entity.coverImage || "",
+            type: details.kind,
+            isDigital: isDigitalItem
+        };
 
         // Authoritative server-side address validation: skip for pickup and verified digital items
         const isPickupOrder = (deliveryMethod === 'pickup');
@@ -467,43 +444,50 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
                 console.error("⚠️ Error in order completion tree placement:", treeErr.message);
             }
             
-            try {
-                for (const item of order.items) {
-                    try {
-                        // Skip stock reduction for digital items
-                        if (item.isDigital) {
-                            console.log(`📱 Skipping stock reduction for digital item: ${item.title}`);
-                            continue;
-                        }
-                        
-                        if (item.type === 'book') {
-                            const book = await Book.findById(item.id);
-                            if (book && book.trackStock) {
-                                book.reduceStock(item.quantity);
-                                await book.save();
-                                console.log(`📦 Reduced stock for book ${book.title}: ${item.quantity} units`);
+            if (!order.stockReduced) {
+                try {
+                    for (const item of order.items) {
+                        try {
+                            // Skip stock reduction for digital items
+                            if (item.isDigital) {
+                                console.log(`📱 Skipping stock reduction for digital item: ${item.title}`);
+                                continue;
                             }
-                        } else if (item.type === 'bundle') {
-                            const bundle = await Bundle.findById(item.id);
-                            if (bundle && bundle.books) {
-                                // Reduce stock for each book in the bundle
-                                for (const bundleBook of bundle.books) {
-                                    const book = await Book.findById(bundleBook._id || bundleBook.id);
-                                    if (book && book.trackStock) {
-                                        book.reduceStock(item.quantity);
-                                        await book.save();
-                                        console.log(`📦 Reduced stock for bundle book ${book.title}: ${item.quantity} units`);
+                            
+                            if (item.type === 'book') {
+                                const book = await Book.findById(item.id);
+                                if (book && book.trackStock) {
+                                    book.reduceStock(item.quantity);
+                                    await book.save();
+                                    console.log(`📦 Reduced stock for book ${book.title}: ${item.quantity} units`);
+                                }
+                            } else if (item.type === 'bundle') {
+                                const bundle = await Bundle.findById(item.id);
+                                if (bundle && bundle.books) {
+                                    // Reduce stock for each book in the bundle
+                                    for (const bundleBook of bundle.books) {
+                                        const book = await Book.findById(bundleBook._id || bundleBook.id);
+                                        if (book && book.trackStock) {
+                                            book.reduceStock(item.quantity);
+                                            await book.save();
+                                            console.log(`📦 Reduced stock for bundle book ${book.title}: ${item.quantity} units`);
+                                        }
                                     }
                                 }
                             }
+                        } catch (stockError) {
+                            console.error(`❌ Error reducing stock for item ${item.id}:`, stockError);
+                            // Continue with other items even if one fails
                         }
-                    } catch (stockError) {
-                        console.error(`❌ Error reducing stock for item ${item.id}:`, stockError);
-                        // Continue with other items even if one fails
                     }
+                    order.stockReduced = true;
+                    console.log("✅ Stock reduction completed for order:", order._id);
+                } catch (stockErr) {
+                    console.error("⚠️ Error in order stock reduction:", stockErr.message);
                 }
-                console.log("✅ Stock reduction completed for order:", order._id);
+            }
                 
+            try {
                 // Mark reward as applied
                 order.rewardApplied = true;
                 await order.save();
@@ -717,50 +701,21 @@ router.post("/create-cart-pending", authenticateToken, async (req, res) => {
 
         // Process cart items and fetch details for each
         const processedItems = [];
-        
         for (const cartItem of cartItems) {
-            let itemData;
-            
-            if (cartItem.isBundle || cartItem.bundleId) {
-                // Handle bundle item
-                const Bundle = require("../models/Bundle");
-                const bundle = await Bundle.findById(cartItem.bundleId);
-                
-                if (!bundle) {
-                    console.warn(`Bundle not found: ${cartItem.bundleId}`);
-                    continue; // Skip this item but continue with others
-                }
-                
-                itemData = {
-                    id: cartItem.bundleId,
-                    title: bundle.name,
-                    author: "Bundle",
-                    quantity: cartItem.quantity,
-                    price: bundle.bundlePrice,
-                    coverImage: bundle.image || "",
-                    type: 'bundle'
-                };
-            } else {
-                // Handle book item
-                const Book = require("../models/Book");
-                const book = await Book.findById(cartItem.id);
-                
-                if (!book) {
-                    console.warn(`Book not found: ${cartItem.id}`);
-                    continue; // Skip this item but continue with others
-                }
-                
-                itemData = {
-                    id: cartItem.id,
-                    title: book.title,
-                    author: book.author || "Unknown",
-                    quantity: cartItem.quantity,
-                    price: book.price,
-                    coverImage: book.cover_image || "",
-                    type: 'book'
-                };
+            const details = await getAuthoritativeItemDetails(cartItem);
+            if (!details.found) {
+                return res.status(400).json({ error: "Item not found", message: `Unknown item: ${cartItem.id || cartItem.bundleId || cartItem.title}` });
             }
-            
+            const itemData = {
+                id: String(details.entity._id),
+                title: details.entity.title || details.entity.name,
+                author: details.entity.author || (details.kind === 'bundle' ? 'Bundle' : 'Unknown'),
+                quantity: cartItem.quantity || 1,
+                price: details.kind === 'bundle' ? details.entity.bundlePrice : details.entity.price,
+                coverImage: details.entity.cover_image || details.entity.image || details.entity.coverImage || "",
+                type: details.kind,
+                isDigital: details.isDigital
+            };
             processedItems.push(itemData);
         }
 

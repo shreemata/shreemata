@@ -14,7 +14,7 @@ const Book = require("../models/Book");
 const Bundle = require("../models/Bundle");
 const { autoGenerateInvoiceForOrder } = require("./invoices");
 const { finalizePaidOrder } = require("../services/orderFinalizer");
-const { validateCourierAddress, isServerOrderDigitalOnly, isBookEntityDigital, isBundleEntityDigital } = require("../utils/deliveryAddressValidator");
+const { validateCourierAddress, isServerOrderDigitalOnly, isBookEntityDigital, isBundleEntityDigital, getAuthoritativeItemDetails } = require("../utils/deliveryAddressValidator");
 
 const router = express.Router();
 
@@ -187,35 +187,25 @@ router.post("/create-order", authenticateToken, async (req, res) => {
     
     for (const item of items) {
       try {
-        let isItemDigital = false;
-        if (item.type === 'notes' || item.type === 'note' || item.type === 'pdf') {
-          isItemDigital = true;
-        } else if (item.type === 'bundle') {
-          const b = await Bundle.findById(item.id).populate('books').lean().catch(() => null);
-          isItemDigital = isBundleEntityDigital(b);
-        } else {
-          const b = await Book.findById(item.id).lean().catch(() => null);
-          isItemDigital = isBookEntityDigital(b);
+        const details = await getAuthoritativeItemDetails(item);
+        if (!details.found) {
+          return res.status(400).json({
+            error: "Item not found",
+            message: `The item "${item.title || item.id}" is no longer available or could not be found`
+          });
         }
 
         // Skip stock validation for digital items
-        if (isItemDigital) {
+        if (details.isDigital) {
           console.log(`📱 Skipping stock validation for digital item: ${item.title}`);
           continue;
         }
-        
-        if (item.type === 'book') {
-          const book = await Book.findById(item.id);
-          if (!book) {
-            return res.status(400).json({ 
-              error: "Book not found",
-              message: `The book "${item.title}" is no longer available`
-            });
-          }
-          
+
+        if (details.kind === 'book') {
+          const book = details.entity;
           // Check stock availability
           if (book.trackStock) {
-            if (book.stockStatus === 'out_of_stock' || book.stockQuantity < item.quantity) {
+            if (book.stockStatus === 'out_of_stock' || (typeof book.stockQuantity === 'number' && book.stockQuantity < item.quantity)) {
               return res.status(400).json({ 
                 error: "Insufficient stock",
                 message: `Sorry, "${book.title}" is ${book.stockStatus === 'out_of_stock' ? 'out of stock' : `only available in quantity of ${book.stockQuantity}`}. Please update your cart.`,
@@ -228,27 +218,20 @@ router.post("/create-order", authenticateToken, async (req, res) => {
               });
             }
           }
-        } else if (item.type === 'bundle') {
-          const bundle = await Bundle.findById(item.id).populate('books');
-          if (!bundle) {
-            return res.status(400).json({ 
-              error: "Bundle not found",
-              message: `The bundle "${item.title}" is no longer available`
-            });
-          }
-          
+        } else if (details.kind === 'bundle') {
+          const bundle = details.entity;
           // Check stock for each book in the bundle
           if (bundle.books) {
             for (const bundleBook of bundle.books) {
               const book = await Book.findById(bundleBook._id || bundleBook.id);
               if (book && book.trackStock) {
-                if (book.stockStatus === 'out_of_stock' || book.stockQuantity < item.quantity) {
+                if (book.stockStatus === 'out_of_stock' || (typeof book.stockQuantity === 'number' && book.stockQuantity < item.quantity)) {
                   return res.status(400).json({ 
                     error: "Insufficient stock in bundle",
-                    message: `Sorry, the book "${book.title}" in bundle "${bundle.title}" is ${book.stockStatus === 'out_of_stock' ? 'out of stock' : `only available in quantity of ${book.stockQuantity}`}. Please update your cart.`,
+                    message: `Sorry, the book "${book.title}" in bundle "${bundle.title || bundle.name}" is ${book.stockStatus === 'out_of_stock' ? 'out of stock' : `only available in quantity of ${book.stockQuantity}`}. Please update your cart.`,
                     outOfStockItem: {
                       bundleId: bundle._id,
-                      bundleTitle: bundle.title,
+                      bundleTitle: bundle.title || bundle.name,
                       bookId: book._id,
                       bookTitle: book.title,
                       availableQuantity: book.stockQuantity,
@@ -296,16 +279,8 @@ router.post("/create-order", authenticateToken, async (req, res) => {
 
       // Prepare items array properly with authoritative profit and digital snapshots
       const rawOrderItems = await Promise.all(items.map(async item => {
-        let isDigitalItem = false;
-        if (item.type === 'notes' || item.type === 'note' || item.type === 'pdf') {
-          isDigitalItem = true;
-        } else if (item.type === 'bundle') {
-          const b = await Bundle.findById(item.id).populate('books').lean().catch(() => null);
-          isDigitalItem = isBundleEntityDigital(b);
-        } else {
-          const b = await Book.findById(item.id).lean().catch(() => null);
-          isDigitalItem = isBookEntityDigital(b);
-        }
+        const details = await getAuthoritativeItemDetails(item);
+        const isDigitalItem = details.found ? details.isDigital : false;
         return {
           id: item.id,
           title: item.title,
@@ -313,7 +288,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
           price: Number(item.price),
           quantity: Number(item.quantity),
           coverImage: item.coverImage,
-          type: item.type || 'book',
+          type: details.found ? details.kind : (item.type || 'book'),
           isDigital: isDigitalItem,
           digitalPrice: isDigitalItem ? Number(item.price) : null
         };
@@ -424,16 +399,8 @@ router.post("/create-order", authenticateToken, async (req, res) => {
 
     // Prepare items array properly with authoritative profit and digital snapshots
     const rawOrderItems = await Promise.all(items.map(async item => {
-      let isDigitalItem = false;
-      if (item.type === 'notes' || item.type === 'note' || item.type === 'pdf') {
-        isDigitalItem = true;
-      } else if (item.type === 'bundle') {
-        const b = await Bundle.findById(item.id).populate('books').lean().catch(() => null);
-        isDigitalItem = isBundleEntityDigital(b);
-      } else {
-        const b = await Book.findById(item.id).lean().catch(() => null);
-        isDigitalItem = isBookEntityDigital(b);
-      }
+      const details = await getAuthoritativeItemDetails(item);
+      const isDigitalItem = details.found ? details.isDigital : false;
       return {
         id: item.id,
         title: item.title,
@@ -441,7 +408,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
         price: Number(item.price),
         quantity: Number(item.quantity),
         coverImage: item.coverImage,
-        type: item.type || 'book',
+        type: details.found ? details.kind : (item.type || 'book'),
         isDigital: isDigitalItem,
         digitalPrice: isDigitalItem ? Number(item.price) : null
       };

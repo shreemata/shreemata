@@ -76,7 +76,7 @@ async function finalizePaidOrder(orderOrId, paymentInfo = {}) {
             confirmationEmailSent: order.confirmationEmailSent ?? true
           }
         }
-      ).catch(() => {});
+      ).catch(() => { });
     }
     const inv = InvoiceModel ? await InvoiceModel.findOne({ orderId: order._id }).lean().catch(() => null) : null;
     return {
@@ -182,7 +182,7 @@ async function finalizePaidOrder(orderOrId, paymentInfo = {}) {
           { _id: claimedOrder._id, finalizationStatus: 'in_progress' },
           { $set: { finalizationClaimedAt: new Date() } }
         );
-      } catch (_) {}
+      } catch (_) { }
     }, 15000);
     if (heartbeat.unref) heartbeat.unref();
 
@@ -320,6 +320,34 @@ async function finalizePaidOrder(orderOrId, paymentInfo = {}) {
       }
     }
 
+    // 8.5. Reduce stock for physical items (Idempotent, skip digital)
+    if (!claimedOrder.stockReduced && claimedOrder.items && Array.isArray(claimedOrder.items)) {
+      const Book = require('../models/Book');
+      const Bundle = require('../models/Bundle');
+      for (const item of claimedOrder.items) {
+        if (item.isDigital) continue;
+        if (item.type === 'book') {
+          const book = await Book.findById(item.id);
+          if (book && book.trackStock && typeof book.reduceStock === 'function') {
+            book.reduceStock(item.quantity || 1);
+            await book.save();
+          }
+        } else if (item.type === 'bundle') {
+          const bundle = await Bundle.findById(item.id);
+          if (bundle && bundle.books) {
+            for (const bundleBook of bundle.books) {
+              const book = await Book.findById(bundleBook._id || bundleBook.id);
+              if (book && book.trackStock && typeof book.reduceStock === 'function') {
+                book.reduceStock(item.quantity || 1);
+                await book.save();
+              }
+            }
+          }
+        }
+      }
+      claimedOrder.stockReduced = true;
+    }
+
     // 9. Send confirmation emails (Idempotent, retryable)
     // If asyncEmails option is true, email delivery is handled asynchronously after HTTP response
     if (!paymentInfo.asyncEmails) {
@@ -360,7 +388,7 @@ async function finalizePaidOrder(orderOrId, paymentInfo = {}) {
           finalizationClaimedAt: null
         }
       }
-    ).catch(() => {});
+    ).catch(() => { });
     throw err;
   } finally {
     if (heartbeat) clearInterval(heartbeat);
