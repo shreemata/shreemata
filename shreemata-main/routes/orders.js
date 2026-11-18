@@ -408,13 +408,35 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
         }
 
         const previousStatus = order.status;
+
+        // When completing an order that has verified payment, route through finalizePaidOrder
+        // so commission/membership/tree/emails are handled idempotently and exactly-once.
+        if (status === "completed" && previousStatus !== "completed") {
+            const paymentIsVerified = isPaymentVerified(order);
+            if (paymentIsVerified) {
+                const { finalizePaidOrder } = require("../services/orderFinalizer");
+                const result = await finalizePaidOrder(order._id, { asyncEmails: true });
+
+                if (!result.alreadyProcessed) {
+                    const { dispatchOrderEmails } = require("../services/orderFinalizer");
+                    dispatchOrderEmails(result.order._id).catch(e =>
+                        console.error("⚠️ Async email dispatch error after update-status complete:", e.message)
+                    );
+                }
+
+                console.log(`✅ update-status to completed via finalizePaidOrder: order=${order._id}, alreadyProcessed=${result.alreadyProcessed}`);
+                return res.json({ message: "Order status updated and finalized", order: result.order, alreadyProcessed: result.alreadyProcessed });
+            }
+        }
+
+        // For non-completed statuses or unverified-payment completion: use existing path
         order.status = status;
         if (status === "completed") {
             order.commissionStatus = order.commissionStatus || 'pending';
         }
         await order.save();
 
-        // If status changed to "completed"
+        // If status changed to "completed" (payment not verified — admin force-complete)
         if (status === "completed" && previousStatus !== "completed") {
             try {
                 const { processAutomaticCommissionForOrder } = require("../services/commissionDistribution");
@@ -443,7 +465,7 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
             } catch (treeErr) {
                 console.error("⚠️ Error in order completion tree placement:", treeErr.message);
             }
-            
+
             try {
                 for (const item of order.items) {
                     try {
@@ -453,7 +475,7 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
                             console.log(`📱 Skipping stock reduction for digital item: ${item.title}`);
                             continue;
                         }
-                        
+
                         const itemKind = details.found ? details.kind : item.type;
                         if (itemKind === 'book') {
                             const book = await Book.findById(item.id);
@@ -482,7 +504,7 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
                     }
                 }
                 console.log("✅ Stock reduction completed for order:", order._id);
-                
+
                 // Mark reward as applied
                 order.rewardApplied = true;
                 await order.save();
@@ -597,6 +619,280 @@ async function handleReconcileRazorpay(req, res) {
 
 router.post("/admin/reconcile-razorpay/:id", authenticateToken, isAdmin, handleReconcileRazorpay);
 router.post("/:id/reconcile-razorpay", authenticateToken, isAdmin, handleReconcileRazorpay);
+
+/**
+ * ADMIN — FINISH ORDER DRY-RUN PREVIEW
+ * Admin-only, purely read-only, changes NOTHING in the database.
+ * Computes customer info, profit base, commission breakdown, invoice status,
+ * emails to send, and runs Razorpay safety check.
+ */
+async function handleFinishOrderPreview(req, res) {
+    try {
+        const orderId = req.params.id;
+        const order = await Order.findById(orderId).populate("user_id", "name email phone referralCode");
+        if (!order) {
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        const customer = {
+            id: order.user_id?._id || order.user_id || null,
+            name: order.user_id?.name || order.deliveryAddress?.name || "Unknown",
+            email: order.user_id?.email || order.deliveryAddress?.email || "",
+            phone: order.user_id?.phone || order.deliveryAddress?.phone || ""
+        };
+
+        const orderAmount = Number(order.totalAmount) || 0;
+
+        // Profit base: orderProfitTotal or profitAmount or calculate from items
+        let profitBase = 0;
+        if (typeof order.orderProfitTotal === 'number' && order.orderProfitTotal >= 0) {
+            profitBase = order.orderProfitTotal;
+        } else if (typeof order.profitAmount === 'number' && order.profitAmount >= 0) {
+            profitBase = order.profitAmount;
+        } else if (Array.isArray(order.items)) {
+            const { calculateOrderProfitTotal } = require("../services/orderProfit");
+            profitBase = calculateOrderProfitTotal(order.items);
+        }
+
+        // Commission breakdown
+        let commissionBreakdown = {
+            direct: 0,
+            referral: 0,
+            tree: 0,
+            trust: 0,
+            total: 0
+        };
+        let commissionPreview = null;
+        if (profitBase > 0) {
+            try {
+                const { previewCommissions } = require("../services/commissionDistribution");
+                commissionPreview = await previewCommissions(order._id, profitBase);
+                commissionBreakdown = {
+                    direct: Number(commissionPreview.buyer?.amount || 0),
+                    referral: Number(commissionPreview.referrer?.amount || 0),
+                    tree: Number(commissionPreview.treePoolTotal || 0),
+                    trust: Number(commissionPreview.trustFund?.amount || 0),
+                    total: Number(commissionPreview.totalCommissionAmount || 0)
+                };
+            } catch (commErr) {
+                console.warn("Could not preview commissions:", commErr.message);
+            }
+        }
+
+        // Invoice status
+        const InvoiceModel = require("mongoose").models.Invoice;
+        let invoiceExists = false;
+        let existingInvoiceNumber = null;
+        if (InvoiceModel) {
+            const inv = await InvoiceModel.findOne({ orderId: order._id }).lean().catch(() => null);
+            if (inv) {
+                invoiceExists = true;
+                existingInvoiceNumber = inv.invoiceNumber || null;
+            }
+        }
+
+        const emailsToSend = ["order_confirmation", "admin_notification"];
+        const alreadyFinalized = Boolean(
+            order.finalizationStatus === 'completed' && order.finalizedAt
+        );
+
+        // Razorpay check & safety warning
+        const razorpayOrderId = order.razorpay_order_id || order.paymentDetails?.razorpay_order_id;
+        const hasOfflineProof = Boolean(
+            order.paymentDetails?.utrNumber ||
+            order.paymentDetails?.checkNumber ||
+            order.paymentDetails?.chequeNumber ||
+            ['check', 'cheque', 'transfer'].includes(String(order.paymentType || '').toLowerCase())
+        );
+
+        let razorpayCheck = {
+            checked: false,
+            captured: false,
+            warning: false,
+            message: ""
+        };
+        let warning = null;
+
+        if (razorpayOrderId) {
+            const Razorpay = require("razorpay");
+            const keyId = process.env.RAZORPAY_KEY_ID;
+            const keySecret = process.env.RAZORPAY_KEY_SECRET;
+            if (keyId && keySecret) {
+                try {
+                    const razorpayInstance = new Razorpay({ key_id: keyId, key_secret: keySecret });
+                    const paymentsData = await razorpayInstance.orders.fetchPayments(razorpayOrderId);
+                    razorpayCheck.checked = true;
+                    const items = paymentsData?.items || [];
+                    const captured = items.find(p => p.status === 'captured');
+                    if (captured) {
+                        razorpayCheck.captured = true;
+                        razorpayCheck.paymentId = captured.id;
+                        razorpayCheck.message = `Captured payment found (${captured.id})`;
+                    } else {
+                        razorpayCheck.captured = false;
+                        razorpayCheck.warning = true;
+                        razorpayCheck.message = items.length === 0
+                            ? "No payments found in Razorpay for this order."
+                            : `No captured payment found in Razorpay (${items.map(p => p.status).join(', ')}).`;
+                        if (!hasOfflineProof) {
+                            warning = razorpayCheck.message;
+                        }
+                    }
+                } catch (rzpErr) {
+                    razorpayCheck.checked = true;
+                    razorpayCheck.warning = true;
+                    razorpayCheck.message = `Razorpay API check failed: ${rzpErr.message}`;
+                    if (!hasOfflineProof) {
+                        warning = `Razorpay payment check failed: ${rzpErr.message}. No captured payment confirmed.`;
+                    }
+                }
+            } else {
+                razorpayCheck.checked = false;
+                razorpayCheck.warning = true;
+                razorpayCheck.message = "Razorpay credentials not configured.";
+                if (!hasOfflineProof && order.paymentStatus !== 'completed') {
+                    warning = "No captured payment verified on Razorpay (credentials not configured).";
+                }
+            }
+        } else if (!hasOfflineProof && order.paymentStatus !== 'completed' && order.paymentDetails?.status !== 'verified') {
+            warning = "Order has no Razorpay Order ID and no offline payment reference. Payment may not have been received.";
+            razorpayCheck.warning = true;
+            razorpayCheck.message = warning;
+        }
+
+        return res.json({
+            success: true,
+            orderId: order._id,
+            customer,
+            orderAmount,
+            profitBase,
+            commissionBreakdown,
+            commissionPreview,
+            invoiceExists,
+            invoiceNumber: existingInvoiceNumber || order.documentNumbers?.tax_invoice || null,
+            emailsToSend,
+            finalizationStatus: order.finalizationStatus || "pending",
+            alreadyFinalized,
+            razorpayCheck,
+            warning
+        });
+    } catch (err) {
+        console.error("Error in finish-order-preview:", err);
+        return res.status(500).json({ error: err.message || "Failed to generate finish order preview" });
+    }
+}
+
+/**
+ * ADMIN — FINISH ORDER (Idempotent execution through finalizePaidOrder)
+ * Server-side safety checks:
+ * 1. 404 if order not found
+ * 2. 409 if already finalized (finalizationStatus === 'completed' and finalizedAt)
+ * 3. Enforces acknowledgedNoCapturedPayment if order looks unpaid/uncaptured on Razorpay
+ * 4. Calls finalizePaidOrder(order._id, { asyncEmails: false })
+ */
+async function handleFinishOrder(req, res) {
+    try {
+        const orderId = req.params.id;
+        const { acknowledgedNoCapturedPayment } = req.body || {};
+
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        // 2. If already finalized, reject with 409 Conflict
+        if (order.finalizationStatus === 'completed' && order.finalizedAt) {
+            return res.status(409).json({
+                error: "Order already finalized",
+                alreadyProcessed: true,
+                order
+            });
+        }
+
+        // 3. Safety check for uncaptured/unpaid orders
+        const razorpayOrderId = order.razorpay_order_id || order.paymentDetails?.razorpay_order_id;
+        const hasOfflineProof = Boolean(
+            order.paymentDetails?.utrNumber ||
+            order.paymentDetails?.checkNumber ||
+            order.paymentDetails?.chequeNumber ||
+            ['check', 'cheque', 'transfer'].includes(String(order.paymentType || '').toLowerCase())
+        );
+
+        let capturedPaymentId = null;
+        let requiresAck = false;
+        let ackReason = "";
+
+        if (razorpayOrderId) {
+            const Razorpay = require("razorpay");
+            const keyId = process.env.RAZORPAY_KEY_ID;
+            const keySecret = process.env.RAZORPAY_KEY_SECRET;
+            if (keyId && keySecret) {
+                try {
+                    const razorpayInstance = new Razorpay({ key_id: keyId, key_secret: keySecret });
+                    const paymentsData = await razorpayInstance.orders.fetchPayments(razorpayOrderId);
+                    const items = paymentsData?.items || [];
+                    const captured = items.find(p => p.status === 'captured');
+                    if (captured) {
+                        capturedPaymentId = captured.id;
+                    } else if (!hasOfflineProof) {
+                        requiresAck = true;
+                        ackReason = items.length === 0
+                            ? "No payments found on Razorpay for this order"
+                            : `No captured payment found on Razorpay (${items.map(p => p.status).join(', ')})`;
+                    }
+                } catch (rzpErr) {
+                    if (!hasOfflineProof) {
+                        requiresAck = true;
+                        ackReason = `Unable to verify with Razorpay: ${rzpErr.message}`;
+                    }
+                }
+            } else if (!hasOfflineProof && order.paymentStatus !== 'completed') {
+                requiresAck = true;
+                ackReason = "Razorpay credentials not configured to verify payment";
+            }
+        } else if (!hasOfflineProof && order.paymentStatus !== 'completed' && order.paymentDetails?.status !== 'verified') {
+            requiresAck = true;
+            ackReason = "No payment transaction or offline payment reference found for order";
+        }
+
+        if (requiresAck && acknowledgedNoCapturedPayment !== true) {
+            return res.status(400).json({
+                error: `Acknowledgement required: ${ackReason}`,
+                requiresAcknowledgement: true,
+                reason: ackReason
+            });
+        }
+
+        // 4. Execute finalization via finalizePaidOrder
+        const { finalizePaidOrder } = require("../services/orderFinalizer");
+        const paymentInfo = {
+            asyncEmails: false,
+            verifiedBy: req.user.id
+        };
+        if (capturedPaymentId) {
+            paymentInfo.razorpay_payment_id = capturedPaymentId;
+            paymentInfo.razorpay_order_id = razorpayOrderId;
+        }
+
+        const result = await finalizePaidOrder(order._id, paymentInfo);
+
+        return res.json({
+            success: true,
+            alreadyProcessed: result.alreadyProcessed,
+            message: result.alreadyProcessed ? "Order was already finalized" : "Order finalized successfully",
+            orderId: result.order._id,
+            order: result.order,
+            invoice: result.invoice
+        });
+
+    } catch (err) {
+        console.error("Error in finish-order:", err);
+        return res.status(500).json({ error: err.message || "Failed to finish order" });
+    }
+}
+
+router.post(["/admin/:id/finish-order-preview", "/:id/finish-order-preview"], authenticateToken, isAdmin, handleFinishOrderPreview);
+router.post(["/admin/:id/finish-order", "/:id/finish-order"], authenticateToken, isAdmin, handleFinishOrder);
 
 /**
  * UPDATE UTR NUMBER (User can add UTR after check clears)
@@ -941,68 +1237,32 @@ router.post("/admin/verify-payment/:id", authenticateToken, isAdmin, async (req,
             return res.status(404).json({ error: "Order not found" });
         }
 
-        // Update payment-specific fields ONLY
-        order.paymentStatus = 'completed';
-        order.paymentDetails = order.paymentDetails || {};
-        order.paymentDetails.status = 'verified';
-        if (utrNumber && utrNumber.trim()) {
-            order.paymentDetails.utrNumber = utrNumber.trim();
-        }
-        order.paymentDetails.verifiedAt = new Date();
-        order.paymentDetails.verifiedBy = req.user.id;
-        if (paymentMethod && paymentMethod.trim()) {
-            order.paymentType = paymentMethod.trim().toLowerCase();
-        }
-        if (adminNotes && adminNotes.trim()) {
-            order.paymentDetails.adminNotes = adminNotes.trim();
-        }
-        order.rewardApplied = true;
+        // Route through finalizePaidOrder for idempotent, exactly-once finalization.
+        // Pass UTR / method / notes via paymentInfo so the finalizer persists them atomically.
+        const { finalizePaidOrder } = require("../services/orderFinalizer");
+        const result = await finalizePaidOrder(order._id, {
+            utrNumber: utrNumber ? String(utrNumber).trim() : undefined,
+            paymentMethod: paymentMethod ? String(paymentMethod).trim() : undefined,
+            adminNotes: adminNotes ? String(adminNotes).trim() : undefined,
+            verifiedBy: req.user.id,
+            asyncEmails: true  // send emails asynchronously so HTTP responds quickly
+        });
 
-        await order.save();
-        console.log(`✅ Admin verified payment for order ${orderId}: UTR ${order.paymentDetails.utrNumber || 'N/A'}, Method: ${order.paymentType}`);
-
-        // Post-verification actions
-        try {
-            await autoGenerateInvoiceForOrder(order);
-        } catch (invErr) {
-            console.error("⚠️ Invoice auto-generation error in verify-payment:", invErr.message);
+        // Fire-and-forget async emails (the finalizer skipped them above)
+        if (!result.alreadyProcessed) {
+            const { dispatchOrderEmails } = require("../services/orderFinalizer");
+            dispatchOrderEmails(result.order._id).catch(e =>
+                console.error("⚠️ Async email dispatch error after verify-payment:", e.message)
+            );
         }
 
-        try {
-            const { processAutomaticCommissionForOrder } = require("../services/commissionDistribution");
-            await processAutomaticCommissionForOrder(order);
-        } catch (commErr) {
-            console.error("⚠️ Automatic commission distribution error in verify-payment:", commErr.message);
-        }
-
-        try {
-            const { checkAndActivateMembership } = require("../services/membershipService");
-            await checkAndActivateMembership(order);
-        } catch (memErr) {
-            console.error("⚠️ Error checking/activating membership in verify-payment:", memErr.message);
-        }
-
-        try {
-            const user = await User.findById(order.user_id);
-            if (user) {
-                if (!user.firstPurchaseDone) {
-                    user.firstPurchaseDone = true;
-                    user.firstPurchaseDate = new Date();
-                    await user.save();
-                }
-                if (user.treeLevel === 0 || !user.treeParent) {
-                    const { createTreePlacementOnFirstPurchase } = require("../services/treePlacement");
-                    await createTreePlacementOnFirstPurchase(user._id);
-                }
-            }
-        } catch (treeErr) {
-            console.error("⚠️ Tree placement error in verify-payment:", treeErr.message);
-        }
+        console.log(`✅ Admin verify-payment for order ${orderId}: alreadyProcessed=${result.alreadyProcessed}`);
 
         res.json({
             success: true,
-            message: "Payment verified successfully",
-            order
+            message: result.alreadyProcessed ? "Payment already finalized" : "Payment verified and order finalized",
+            alreadyProcessed: result.alreadyProcessed,
+            order: result.order
         });
     } catch (error) {
         console.error("Error verifying payment:", error);

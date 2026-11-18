@@ -763,6 +763,59 @@ async function bootstrap() {
   });
   console.log(`[Seed] Seeded 3 sample orders (Completed: ${completedOrder._id}, Pending unverified: ${pendingOrder._id}, Cancelled: ${cancelledOrder._id}).`);
 
+  // Seed paid-but-pending orders for Finish Order review
+  const finishOrderDemo = await Order.create({
+    user_id: guestStudent._id,
+    items: [{
+      id: seededBook._id.toString(),
+      title: seededBook.title,
+      author: seededBook.author,
+      price: seededBook.price,
+      quantity: 1,
+      unitProfitSnapshot: 50,
+      lineProfitSnapshot: 50,
+      profit: 50
+    }],
+    totalAmount: seededBook.price,
+    orderProfitTotal: 50,
+    profitAmount: 50,
+    status: 'pending',
+    paymentStatus: 'completed',
+    paymentType: 'transfer',
+    paymentDetails: {
+      status: 'verified',
+      utrNumber: 'DEMO-UTR-789'
+    },
+    deliveryAddress: { address: 'Plot 42, Vidyanagar', city: 'Hubballi', pincode: '580021', phone: guestStudent.phone }
+  });
+
+  const unconfirmedOrderDemo = await Order.create({
+    user_id: guestStudent._id,
+    items: [{
+      id: seededBook._id.toString(),
+      title: seededBook.title,
+      author: seededBook.author,
+      price: seededBook.price,
+      quantity: 1,
+      unitProfitSnapshot: 50,
+      lineProfitSnapshot: 50,
+      profit: 50
+    }],
+    totalAmount: seededBook.price,
+    orderProfitTotal: 50,
+    profitAmount: 50,
+    status: 'pending',
+    paymentStatus: 'completed',
+    paymentType: 'online',
+    razorpay_order_id: 'order_unconfirmed_safety_001',
+    paymentDetails: {
+      status: 'verified',
+      razorpay_order_id: 'order_unconfirmed_safety_001'
+    },
+    deliveryAddress: { address: 'Plot 42, Vidyanagar', city: 'Hubballi', pincode: '580021', phone: guestStudent.phone }
+  });
+  console.log(`[Seed] Seeded 2 demo finish-order review orders: Verified (${finishOrderDemo._id}), Unconfirmed warning (${unconfirmedOrderDemo._id})`);
+
   // Seed CommissionSettings if not present
   const CommissionSettings = require('../models/CommissionSettings');
   const CommissionTransaction = require('../models/CommissionTransaction');

@@ -239,6 +239,22 @@ async function finalizePaidOrder(orderOrId, paymentInfo = {}) {
     if (paymentInfo.deliveryAddress && typeof paymentInfo.deliveryAddress === 'object' && Object.keys(paymentInfo.deliveryAddress).length > 0) {
       claimedOrder.deliveryAddress = paymentInfo.deliveryAddress;
     }
+    // Admin-supplied UTR / payment method / notes (from manual verify-payment or cheque approval)
+    if (paymentInfo.utrNumber && typeof paymentInfo.utrNumber === 'string' && paymentInfo.utrNumber.trim()) {
+      claimedOrder.paymentDetails = claimedOrder.paymentDetails || {};
+      claimedOrder.paymentDetails.utrNumber = paymentInfo.utrNumber.trim();
+    }
+    if (paymentInfo.paymentMethod && typeof paymentInfo.paymentMethod === 'string' && paymentInfo.paymentMethod.trim()) {
+      claimedOrder.paymentType = paymentInfo.paymentMethod.trim().toLowerCase();
+    }
+    if (paymentInfo.adminNotes && typeof paymentInfo.adminNotes === 'string' && paymentInfo.adminNotes.trim()) {
+      claimedOrder.paymentDetails = claimedOrder.paymentDetails || {};
+      claimedOrder.paymentDetails.adminNotes = paymentInfo.adminNotes.trim();
+    }
+    if (paymentInfo.verifiedBy) {
+      claimedOrder.paymentDetails = claimedOrder.paymentDetails || {};
+      claimedOrder.paymentDetails.verifiedBy = paymentInfo.verifiedBy;
+    }
 
     // Ensure authoritative profit snapshot and orderProfitTotal exist on claimedOrder
     const { buildOrderProfitSnapshot, calculateOrderProfitTotal } = require('./orderProfit');
