@@ -2,6 +2,8 @@ const API = window.API_URL;
 
 let isEditMode = false;
 let editingBookId = null;
+let bookProfitController = null;
+let allAdminBooks = [];
 
 // Book Image Upload State
 let selectedCoverFile = null;
@@ -302,6 +304,19 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('🔍 Admin.js loaded - API URL:', API);
     console.log('🔍 window.API_URL:', window.API_URL);
     console.log('🔍 window.location.origin:', window.location.origin);
+
+    // Initialize Shared Profit Component for Books
+    const bookProfitContainer = document.getElementById("bookProfitSectionContainer");
+    if (bookProfitContainer && window.AdminProfitComponent) {
+        bookProfitContainer.innerHTML = window.AdminProfitComponent.generateProfitSectionHTML('admin', 'Book');
+        bookProfitController = window.AdminProfitComponent.initProfitSection({
+            prefix: 'admin',
+            itemTypeLabel: 'Book',
+            priceInputId: 'price',
+            submitBtnId: 'submitBtn',
+            isNewItem: () => editingBookId === null
+        });
+    }
     
     checkAdminAuth();
     fetchActiveCommissionSettings();
@@ -643,9 +658,21 @@ function setupEventListeners() {
     document.getElementById('booksTableBody').addEventListener('click', (e) => {
         const edit = e.target.closest('.edit-btn');
         const del = e.target.closest('.delete-btn');
+        const setProfit = e.target.closest('.set-profit-btn');
 
         if (edit) editBook(edit.dataset.id);
         if (del) deleteBook(del.dataset.id);
+        if (setProfit) {
+            const bookId = setProfit.dataset.id;
+            const book = (allAdminBooks || []).find(b => b._id === bookId);
+            if (book && window.AdminProfitComponent) {
+                window.AdminProfitComponent.openSetProfitModal({
+                    itemType: 'book',
+                    item: book,
+                    onSaveSuccess: () => loadBooks()
+                });
+            }
+        }
     });
 }
 
@@ -726,6 +753,7 @@ async function loadBooks(filters = {}) {
 
 /* DISPLAY BOOKS */
 function displayBooks(books) {
+    allAdminBooks = books || [];
     const tbody = document.getElementById('booksTableBody');
     const mobileContainer = document.getElementById('mobileBooksContainer');
     tbody.innerHTML = '';
@@ -781,11 +809,17 @@ function displayBooks(books) {
             return `<span style="font-weight: 600;">₹${pPrice.toFixed(2)}</span>`;
         };
 
+        const bookProfitVal = (book.profitValue !== undefined && book.profitValue !== null) ? Number(book.profitValue) : 0;
+        const hasNoProfit = bookProfitVal === 0;
+        const profitDisplay = hasNoProfit
+            ? `<div style="margin-top: 4px;"><span class="badge" style="background: #fee2e2; color: #b91c1c; border: 1px solid #f87171; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-block;">⚠️ Profit not set: no commission will be paid</span></div>`
+            : `<div style="margin-top: 4px; font-size: 0.8rem; color: #16a34a; font-weight: 600;">💰 Profit: ${book.profitType === 'percentage' ? `${book.profitValue}%` : `₹${bookProfitVal.toFixed(2)}`}</div>`;
+
         // Desktop table row
         const row = document.createElement('tr');
         row.innerHTML = `
             <td><img src="${book.cover_image}" width="50"/></td>
-            <td>${book.title}</td>
+            <td>${book.title}${profitDisplay}</td>
             <td>${book.author}</td>
             <td>${book.class ? `Class ${book.class}` : 'N/A'}</td>
             <td>${book.subject || 'N/A'}</td>
@@ -793,6 +827,7 @@ function displayBooks(books) {
             <td>${getStockStatusDisplay(book)}</td>
             <td>
                 <button class="btn-secondary edit-btn" data-id="${book._id}">Edit</button>
+                <button class="btn-info set-profit-btn" data-id="${book._id}" style="background: #10b981; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; margin-left: 4px; margin-right: 4px;">💰 Set profit</button>
                 <button class="btn-danger delete-btn" data-id="${book._id}">Delete</button>
             </td>
         `;
@@ -806,6 +841,7 @@ function displayBooks(books) {
                 <img src="${book.cover_image}" class="mobile-book-cover" alt="${book.title}">
                 <div class="mobile-book-info">
                     <h3>${book.title}</h3>
+                    ${profitDisplay}
                     <p><strong>Author:</strong> ${book.author}</p>
                     <p><strong>Class:</strong> ${book.class ? `Class ${book.class}` : 'N/A'}</p>
                     <p><strong>Subject:</strong> ${book.subject || 'N/A'}</p>
@@ -815,6 +851,7 @@ function displayBooks(books) {
             </div>
             <div class="mobile-book-actions">
                 <button class="btn btn-secondary edit-btn" data-id="${book._id}">✏️ Edit</button>
+                <button class="btn btn-info set-profit-btn" data-id="${book._id}" style="background: #10b981; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">💰 Set profit</button>
                 <button class="btn btn-danger delete-btn" data-id="${book._id}">🗑️ Delete</button>
             </div>
         `;
@@ -825,6 +862,7 @@ function displayBooks(books) {
     mobileContainer.addEventListener('click', (e) => {
         const editBtn = e.target.closest('.edit-btn');
         const deleteBtn = e.target.closest('.delete-btn');
+        const setProfitBtn = e.target.closest('.set-profit-btn');
         
         if (editBtn) {
             e.preventDefault();
@@ -835,6 +873,19 @@ function displayBooks(books) {
             e.preventDefault();
             e.stopPropagation();
             deleteBook(deleteBtn.dataset.id);
+        }
+        if (setProfitBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const bookId = setProfitBtn.dataset.id;
+            const book = (allAdminBooks || []).find(b => b._id === bookId);
+            if (book && window.AdminProfitComponent) {
+                window.AdminProfitComponent.openSetProfitModal({
+                    itemType: 'book',
+                    item: book,
+                    onSaveSuccess: () => loadBooks()
+                });
+            }
         }
     });
 }
@@ -903,11 +954,16 @@ async function editBook(bookId) {
         if (rewardPointsEl) rewardPointsEl.value = book.rewardPoints !== undefined ? book.rewardPoints : 0;
         if (cashbackAmountEl) cashbackAmountEl.value = book.cashbackAmount !== undefined ? book.cashbackAmount : 0;
         if (cashbackPercentageEl) cashbackPercentageEl.value = book.cashbackPercentage !== undefined ? book.cashbackPercentage : 0;
-        const profitTypeEl = document.getElementById('adminProfitType');
-        const profitValueEl = document.getElementById('adminProfitValue');
-        if (profitTypeEl) profitTypeEl.value = book.profitType || 'fixed';
-        if (profitValueEl) profitValueEl.value = book.profitValue !== undefined ? book.profitValue : 0;
-        if (typeof updateProfitPreview === 'function') updateProfitPreview();
+        if (bookProfitController) {
+            bookProfitController.populateData(book);
+            bookProfitController.updateUI();
+        } else {
+            const profitTypeEl = document.getElementById('adminProfitType');
+            const profitValueEl = document.getElementById('adminProfitValue');
+            if (profitTypeEl) profitTypeEl.value = book.profitType || 'fixed';
+            if (profitValueEl) profitValueEl.value = book.profitValue !== undefined ? book.profitValue : 0;
+            if (typeof updateProfitPreview === 'function') updateProfitPreview();
+        }
         if (descriptionEl) descriptionEl.value = book.description || '';
         if (bookClassEl) bookClassEl.value = book.class || '';
         if (subjectEl) subjectEl.value = book.subject || '';
@@ -1088,9 +1144,17 @@ async function handleFormSubmit(e) {
         const rewardPoints = rewardPointsEl ? (parseInt(rewardPointsEl.value) || 0) : 0;
         const cashbackAmount = cashbackAmountEl ? (parseFloat(cashbackAmountEl.value) || 0) : 0;
         const cashbackPercentage = cashbackPercentageEl ? (parseFloat(cashbackPercentageEl.value) || 0) : 0;
-        const profitType = profitTypeEl ? profitTypeEl.value : 'fixed';
-        const profitValue = profitValueEl ? (parseFloat(profitValueEl.value) || 0) : 0;
-        const profitConfigured = true;
+
+        const profitData = bookProfitController ? bookProfitController.getProfitData() : {
+            profitType: profitTypeEl ? profitTypeEl.value : 'fixed',
+            profitValue: profitValueEl ? (parseFloat(profitValueEl.value) || 0) : 0,
+            zeroCommission: document.getElementById('adminZeroCommission')?.checked === true,
+            profitConfigured: false
+        };
+        const profitType = profitData.profitType;
+        const profitValue = profitData.profitValue;
+        const zeroCommission = profitData.zeroCommission;
+        const profitConfigured = profitData.profitConfigured;
 
         const coverImageEl = document.getElementById('coverImage');
         const previewImagesEl = document.getElementById('previewImages');
@@ -1169,6 +1233,7 @@ async function handleFormSubmit(e) {
                 cashbackPercentage,
                 profitType,
                 profitValue,
+                zeroCommission,
                 profitConfigured,
                 cover_image: coverImageUrl,
                 preview_images: previewImageUrls,
@@ -1256,7 +1321,8 @@ async function handleFormSubmit(e) {
             formData.append('cashbackPercentage', String(cashbackPercentage));
             formData.append('profitType', profitType);
             formData.append('profitValue', String(profitValue));
-            formData.append('profitConfigured', 'true');
+            formData.append('zeroCommission', String(zeroCommission));
+            formData.append('profitConfigured', String(profitConfigured));
 
             // Add stock management fields
             const trackStockEl = document.getElementById('trackStock');
@@ -1366,6 +1432,7 @@ async function handleFormSubmit(e) {
                 cashbackPercentage,
                 profitType,
                 profitValue,
+                zeroCommission,
                 profitConfigured,
                 existingCoverRemoved,
                 retainedPreviewImages,
@@ -1495,18 +1562,30 @@ function resetForm() {
     if (stockFieldsEl) stockFieldsEl.style.display = 'flex';
 
     // Reset profit & cashback fields
-    const profitTypeEl = document.getElementById('adminProfitType');
-    const profitValueEl = document.getElementById('adminProfitValue');
-    const rewardPointsEl = document.getElementById('rewardPoints');
-    const cashbackAmountEl = document.getElementById('cashbackAmount');
-    const cashbackPercentageEl = document.getElementById('cashbackPercentage');
+    if (bookProfitController) {
+        bookProfitController.populateData({
+            profitType: 'fixed',
+            profitValue: 0,
+            rewardPoints: 0,
+            cashbackAmount: 0,
+            cashbackPercentage: 0,
+            profitConfigured: false
+        });
+        bookProfitController.updateUI();
+    } else {
+        const profitTypeEl = document.getElementById('adminProfitType');
+        const profitValueEl = document.getElementById('adminProfitValue');
+        const rewardPointsEl = document.getElementById('rewardPoints');
+        const cashbackAmountEl = document.getElementById('cashbackAmount');
+        const cashbackPercentageEl = document.getElementById('cashbackPercentage');
 
-    if (profitTypeEl) profitTypeEl.value = 'fixed';
-    if (profitValueEl) profitValueEl.value = 0;
-    if (rewardPointsEl) rewardPointsEl.value = 0;
-    if (cashbackAmountEl) cashbackAmountEl.value = 0;
-    if (cashbackPercentageEl) cashbackPercentageEl.value = 0;
-    if (typeof updateProfitPreview === 'function') updateProfitPreview();
+        if (profitTypeEl) profitTypeEl.value = 'fixed';
+        if (profitValueEl) profitValueEl.value = 0;
+        if (rewardPointsEl) rewardPointsEl.value = 0;
+        if (cashbackAmountEl) cashbackAmountEl.value = 0;
+        if (cashbackPercentageEl) cashbackPercentageEl.value = 0;
+        if (typeof updateProfitPreview === 'function') updateProfitPreview();
+    }
 
     // Reset offer & discount fields
     const discountEnabledEl = document.getElementById('discountEnabled');

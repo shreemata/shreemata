@@ -423,20 +423,27 @@ router.post("/", authenticateToken, isAdmin, (req, res, next) => {
     }
 
     let parsedProfitType = profitType === 'percentage' ? 'percentage' : 'fixed';
-    let parsedProfitValue = profitValue !== undefined ? Number(profitValue) : 0;
-    let isProfitConfigured = profitConfigured === true || profitConfigured === 'true' || profitValue !== undefined;
+    let parsedProfitValue = (profitValue !== undefined && profitValue !== null && String(profitValue).trim() !== '') ? Number(profitValue) : 0;
+    const isZeroCommission = req.body.zeroCommission === true || req.body.zeroCommission === 'true' || req.body.sellWithoutCommission === true || req.body.sellWithoutCommission === 'true';
 
-    if (isProfitConfigured) {
-      if (isNaN(parsedProfitValue) || parsedProfitValue < 0) {
-        return res.status(400).json({ error: "Profit value must be a non-negative number" });
-      }
-      if (parsedProfitType === 'fixed' && parsedProfitValue > offerResult.sellingPrice) {
-        return res.status(400).json({ error: "Book profit cannot exceed the eligible selling price." });
-      }
-      if (parsedProfitType === 'percentage' && parsedProfitValue > 100) {
-        return res.status(400).json({ error: "Profit percentage must be between 0 and 100." });
-      }
+    if (isNaN(parsedProfitValue) || parsedProfitValue < 0) {
+      return res.status(400).json({ error: "Profit value must be a non-negative number" });
     }
+
+    if (parsedProfitValue === 0 && !isZeroCommission) {
+      return res.status(400).json({ 
+        error: "Profit is required for new books. To sell with no commission, check 'Sell without commission (profit ₹0)'." 
+      });
+    }
+
+    if (parsedProfitType === 'fixed' && parsedProfitValue > offerResult.sellingPrice) {
+      return res.status(400).json({ error: "Book profit cannot exceed the eligible selling price." });
+    }
+    if (parsedProfitType === 'percentage' && parsedProfitValue > 100) {
+      return res.status(400).json({ error: "Profit percentage must be between 0 and 100." });
+    }
+
+    let isProfitConfigured = parsedProfitValue > 0 || isZeroCommission;
 
     let numCashbackAmount = cashbackAmount !== undefined ? Number(cashbackAmount) : 0;
     let numCashbackPercentage = cashbackPercentage !== undefined ? Number(cashbackPercentage) : 0;
@@ -844,6 +851,91 @@ router.post("/:id/purchase", authenticateToken, async (req, res) => {
   } catch (err) {
     console.error("Error processing purchase:", err);
     res.status(500).json({ error: "Error processing purchase" });
+  }
+});
+
+/* -------------------------------------------
+   QUICK SET PROFIT (ADMIN ONLY)
+------------------------------------------- */
+async function handleSetBookProfit(req, res) {
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) {
+      return res.status(404).json({ error: "Book not found" });
+    }
+
+    const { profitType, profitValue, changeReason } = req.body;
+    const numProfitValue = Number(profitValue);
+    const parsedProfitType = profitType === 'percentage' ? 'percentage' : 'fixed';
+
+    if (isNaN(numProfitValue) || numProfitValue < 0) {
+      return res.status(400).json({ error: "Profit value must be a non-negative number" });
+    }
+
+    const effectiveSellingPrice = (typeof book.getSellingPrice === 'function')
+      ? book.getSellingPrice()
+      : (typeof book.sellingPrice === 'number' ? book.sellingPrice : Number(book.price || 0));
+
+    if (parsedProfitType === 'fixed' && numProfitValue > effectiveSellingPrice) {
+      return res.status(400).json({ error: `Book profit cannot exceed the eligible selling price (₹${effectiveSellingPrice.toFixed(2)}).` });
+    }
+    if (parsedProfitType === 'percentage' && numProfitValue > 100) {
+      return res.status(400).json({ error: "Profit percentage must be between 0 and 100." });
+    }
+
+    const oldProfitType = book.profitType || 'fixed';
+    const oldProfitValue = Number(book.profitValue || 0);
+
+    const ProfitAuditLog = require('../models/ProfitAuditLog');
+    const logEntry = await ProfitAuditLog.create({
+      itemType: 'book',
+      itemId: book._id,
+      itemTitle: book.title,
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+      adminName: req.user.name || req.user.email,
+      oldProfitType,
+      oldProfitValue,
+      newProfitType: parsedProfitType,
+      newProfitValue: numProfitValue,
+      changeReason: changeReason || 'Admin quick profit update',
+      timestamp: new Date()
+    });
+
+    book.profitType = parsedProfitType;
+    book.profitValue = numProfitValue;
+    book.profitConfigured = true;
+    await book.save();
+
+    res.json({
+      message: "Profit updated successfully",
+      book,
+      auditLog: logEntry
+    });
+  } catch (err) {
+    console.error("Error setting book profit:", err);
+    res.status(500).json({ error: "Error updating book profit" });
+  }
+}
+
+router.patch("/admin/:id/profit", authenticateToken, isAdmin, handleSetBookProfit);
+router.put("/admin/:id/profit", authenticateToken, isAdmin, handleSetBookProfit);
+
+/* -------------------------------------------
+   GET BOOK PROFIT AUDIT HISTORY (ADMIN ONLY)
+------------------------------------------- */
+router.get("/admin/:id/profit-history", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const ProfitAuditLog = require('../models/ProfitAuditLog');
+    const history = await ProfitAuditLog.find({
+      itemType: 'book',
+      itemId: req.params.id
+    }).sort({ timestamp: -1 });
+
+    res.json({ history });
+  } catch (err) {
+    console.error("Error fetching book profit history:", err);
+    res.status(500).json({ error: "Error fetching profit history" });
   }
 });
 

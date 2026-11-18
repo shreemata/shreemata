@@ -211,20 +211,27 @@ router.post("/admin/create", authenticateToken, isAdmin, async (req, res) => {
 
         const numBundlePrice = Number(bundlePrice);
         let parsedProfitType = profitType === 'percentage' ? 'percentage' : 'fixed';
-        let parsedProfitValue = profitValue !== undefined ? Number(profitValue) : 0;
-        let isProfitConfigured = profitConfigured === true || profitConfigured === 'true' || profitValue !== undefined;
+        let parsedProfitValue = (profitValue !== undefined && profitValue !== null && String(profitValue).trim() !== '') ? Number(profitValue) : 0;
+        const isZeroCommission = req.body.zeroCommission === true || req.body.zeroCommission === 'true' || req.body.sellWithoutCommission === true || req.body.sellWithoutCommission === 'true';
 
-        if (isProfitConfigured) {
-          if (isNaN(parsedProfitValue) || parsedProfitValue < 0) {
-            return res.status(400).json({ error: "Profit value must be a non-negative number" });
-          }
-          if (parsedProfitType === 'fixed' && parsedProfitValue > numBundlePrice) {
-            return res.status(400).json({ error: "Bundle profit cannot exceed the eligible selling price." });
-          }
-          if (parsedProfitType === 'percentage' && parsedProfitValue > 100) {
-            return res.status(400).json({ error: "Profit percentage must be between 0 and 100." });
-          }
+        if (isNaN(parsedProfitValue) || parsedProfitValue < 0) {
+          return res.status(400).json({ error: "Profit value must be a non-negative number" });
         }
+
+        if (parsedProfitValue === 0 && !isZeroCommission) {
+          return res.status(400).json({ 
+            error: "Profit is required for new sets. To sell with no commission, check 'Sell without commission (profit ₹0)'." 
+          });
+        }
+
+        if (parsedProfitType === 'fixed' && parsedProfitValue > numBundlePrice) {
+          return res.status(400).json({ error: "Bundle profit cannot exceed the eligible selling price." });
+        }
+        if (parsedProfitType === 'percentage' && parsedProfitValue > 100) {
+          return res.status(400).json({ error: "Profit percentage must be between 0 and 100." });
+        }
+
+        let isProfitConfigured = parsedProfitValue > 0 || isZeroCommission;
 
         // Fetch books to calculate original price and weight
         const books = await Book.find({ _id: { $in: bookIds } });
@@ -422,6 +429,90 @@ router.patch("/admin/toggle/:id", authenticateToken, isAdmin, async (req, res) =
         console.error("Toggle bundle error:", err);
         res.status(500).json({ error: "Error toggling bundle status" });
     }
+});
+
+/**
+ * QUICK UPDATE BUNDLE PROFIT (Admin only)
+ * PATCH /api/bundles/admin/:id/profit
+ */
+async function handleSetBundleProfit(req, res) {
+  try {
+    const bundle = await Bundle.findById(req.params.id);
+    if (!bundle) {
+      return res.status(404).json({ error: "Bundle not found" });
+    }
+
+    const { profitType, profitValue, changeReason } = req.body;
+    const numProfitValue = Number(profitValue);
+    const parsedProfitType = profitType === 'percentage' ? 'percentage' : 'fixed';
+
+    if (isNaN(numProfitValue) || numProfitValue < 0) {
+      return res.status(400).json({ error: "Profit value must be a non-negative number" });
+    }
+
+    const bundlePrice = Number(bundle.bundlePrice || 0);
+    if (parsedProfitType === 'fixed' && numProfitValue > bundlePrice) {
+      return res.status(400).json({ error: `Bundle profit cannot exceed the eligible selling price (₹${bundlePrice.toFixed(2)}).` });
+    }
+    if (parsedProfitType === 'percentage' && numProfitValue > 100) {
+      return res.status(400).json({ error: "Profit percentage must be between 0 and 100." });
+    }
+
+    const oldProfitType = bundle.profitType || 'fixed';
+    const oldProfitValue = Number(bundle.profitValue || 0);
+
+    const ProfitAuditLog = require('../models/ProfitAuditLog');
+    const logEntry = await ProfitAuditLog.create({
+      itemType: 'bundle',
+      itemId: bundle._id,
+      itemTitle: bundle.name,
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+      adminName: req.user.name || req.user.email,
+      oldProfitType,
+      oldProfitValue,
+      newProfitType: parsedProfitType,
+      newProfitValue: numProfitValue,
+      changeReason: changeReason || 'Admin quick profit update',
+      timestamp: new Date()
+    });
+
+    bundle.profitType = parsedProfitType;
+    bundle.profitValue = numProfitValue;
+    bundle.profitConfigured = true;
+    await bundle.save();
+
+    res.json({
+      message: "Profit updated successfully",
+      bundle,
+      auditLog: logEntry
+    });
+  } catch (err) {
+    console.error("Error setting bundle profit:", err);
+    res.status(500).json({ error: "Error updating bundle profit" });
+  }
+}
+
+router.patch("/admin/:id/profit", authenticateToken, isAdmin, handleSetBundleProfit);
+router.put("/admin/:id/profit", authenticateToken, isAdmin, handleSetBundleProfit);
+
+/**
+ * GET BUNDLE PROFIT AUDIT HISTORY (Admin only)
+ * GET /api/bundles/admin/:id/profit-history
+ */
+router.get("/admin/:id/profit-history", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const ProfitAuditLog = require('../models/ProfitAuditLog');
+    const history = await ProfitAuditLog.find({
+      itemType: 'bundle',
+      itemId: req.params.id
+    }).sort({ timestamp: -1 });
+
+    res.json({ history });
+  } catch (err) {
+    console.error("Error fetching bundle profit history:", err);
+    res.status(500).json({ error: "Error fetching profit history" });
+  }
 });
 
 module.exports = router;
