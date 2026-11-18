@@ -41,6 +41,8 @@ let legacyDigitalBook;
 let outOfStockBook;
 let testNote;
 let buyerToken;
+let adminUser;
+let adminToken;
 
 const JWT_SECRET = 'test_jwt_secret_courier_fast_popup_2026';
 
@@ -152,6 +154,19 @@ beforeAll(async () => {
 
   buyerToken = jwt.sign(
     { id: testBuyer._id, userId: testBuyer._id, email: testBuyer.email, role: testBuyer.role },
+    JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+
+  adminUser = await User.create({
+    name: 'Admin Test User',
+    email: 'admin.courier.stock@example.com',
+    phone: '9998887776',
+    role: 'admin'
+  });
+
+  adminToken = jwt.sign(
+    { id: adminUser._id, userId: adminUser._id, email: adminUser.email, role: 'admin' },
     JWT_SECRET,
     { expiresIn: '1h' }
   );
@@ -1037,10 +1052,10 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
     expect(savedOrder.items[0].type).toBe('book');
   });
 
-  test('POST /api/payments/create-order: (d) inventory is reduced for physical items on payment finalization', async () => {
-    const stockTestBook = await Book.create({
-      title: 'Inventory Reduction Book',
-      author: 'Inventory Author',
+  test('Stock sequence (a-1): online payment verified does NOT reduce stock (stays 20), and admin status update leaves it at 20 (proving live 89c3624 never reduced stock for online payments)', async () => {
+    const stockTestBookA1 = await Book.create({
+      title: 'Stock Sequence A1 Online Book',
+      author: 'Stock Author A1',
       price: 100,
       originalPrice: 100,
       stockQuantity: 20,
@@ -1057,8 +1072,8 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
       {
         amount: 200,
         items: [{
-          id: String(stockTestBook._id),
-          title: stockTestBook.title,
+          id: String(stockTestBookA1._id),
+          title: stockTestBookA1.title,
           price: 100,
           quantity: 2,
           type: 'book'
@@ -1073,26 +1088,281 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
     const rzpOrderId = createRes.data.order.id;
     const dbOrder = await Order.findOne({ razorpay_order_id: rzpOrderId });
 
-    // Finalize order
+    // Step 1: Finalize online payment -> in live 89c3624, finalizer sets status='completed' but does NOT reduce stock
     const { finalizePaidOrder } = require('../services/orderFinalizer');
     await finalizePaidOrder(dbOrder, {
-      razorpay_payment_id: 'pay_stock_test_123',
+      razorpay_payment_id: 'pay_seq_a1_123',
       razorpay_order_id: rzpOrderId,
       asyncEmails: true
     });
 
-    // Check inventory
-    const updatedBook = await Book.findById(stockTestBook._id);
-    expect(updatedBook.stockQuantity).toBe(18); // 20 - 2 = 18
+    let book = await Book.findById(stockTestBookA1._id);
+    expect(book.stockQuantity).toBe(20); // Live behavior: stock untouched by payment finalization
 
-    // Idempotent finalization retry check
-    await finalizePaidOrder(dbOrder, {
-      razorpay_payment_id: 'pay_stock_test_123',
-      razorpay_order_id: rzpOrderId,
-      asyncEmails: true
+    // Step 2: Admin sets status to 'completed' -> since finalizer already set status to 'completed', previousStatus is 'completed'
+    // Condition `status === 'completed' && previousStatus !== 'completed'` is false -> stock remains 20!
+    await axios.put(
+      `${baseUrl}/api/orders/admin/update-status/${dbOrder._id}`,
+      { status: 'completed' },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    );
+    book = await Book.findById(stockTestBookA1._id);
+    expect(book.stockQuantity).toBe(20); // Live behavior: online orders never had stock reduced
+
+    // Step 3: Admin sets status to 'shipped' -> stock remains 20
+    await axios.put(
+      `${baseUrl}/api/orders/admin/update-status/${dbOrder._id}`,
+      { status: 'shipped' },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    ).catch(() => {});
+    book = await Book.findById(stockTestBookA1._id);
+    expect(book.stockQuantity).toBe(20);
+  });
+
+  test('Stock sequence (a-2): pending order (cheque/pickup) drops stock exactly once when admin sets status to completed, untouched when shipped', async () => {
+    const stockTestBookA2 = await Book.create({
+      title: 'Stock Sequence A2 Pending Book',
+      author: 'Stock Author A2',
+      price: 100,
+      originalPrice: 100,
+      stockQuantity: 20,
+      stockStatus: 'in_stock',
+      trackStock: true,
+      weight: 0.5,
+      profitMethod: 'fixed',
+      bookProfit: 20,
+      isDigital: false
     });
-    const bookAfterRetry = await Book.findById(stockTestBook._id);
-    expect(bookAfterRetry.stockQuantity).toBe(18);
+
+    const pendingOrder = await Order.create({
+      user_id: testBuyer._id,
+      items: [{
+        id: String(stockTestBookA2._id),
+        title: stockTestBookA2.title,
+        price: 100,
+        quantity: 2,
+        type: 'book',
+        isDigital: false
+      }],
+      totalAmount: 200,
+      deliveryMethod: 'pickup',
+      status: 'pending'
+    });
+
+    // Step 1: Initial stock is 20
+    let book = await Book.findById(stockTestBookA2._id);
+    expect(book.stockQuantity).toBe(20);
+
+    // Step 2: Admin sets status from 'pending' to 'completed' -> stock drops by 2 to 18
+    const updateRes = await axios.put(
+      `${baseUrl}/api/orders/admin/update-status/${pendingOrder._id}`,
+      { status: 'completed' },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    );
+    expect(updateRes.status).toBe(200);
+
+    book = await Book.findById(stockTestBookA2._id);
+    expect(book.stockQuantity).toBe(18); // 20 - 2 = 18
+
+    // Step 3: Admin sets status to 'shipped' -> stock does NOT reduce again
+    await axios.put(
+      `${baseUrl}/api/orders/admin/update-status/${pendingOrder._id}`,
+      { status: 'shipped' },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    ).catch(() => {});
+
+    book = await Book.findById(stockTestBookA2._id);
+    expect(book.stockQuantity).toBe(18); // Exactly once
+
+    // Step 4: Admin sets status to 'completed' again -> previousStatus was 'shipped' or 'completed', but if completed again, no second reduction
+    await axios.put(
+      `${baseUrl}/api/orders/admin/update-status/${pendingOrder._id}`,
+      { status: 'completed' },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    );
+    book = await Book.findById(stockTestBookA2._id);
+    expect(book.stockQuantity).toBe(18);
+  });
+
+  test('Stock sequence (b): same order finalized twice (verify then webhook then reconcile) -> stock stays at 20 across all finalizations', async () => {
+    const stockTestBookB = await Book.create({
+      title: 'Stock Sequence B Book',
+      author: 'Stock Author B',
+      price: 100,
+      originalPrice: 100,
+      stockQuantity: 20,
+      stockStatus: 'in_stock',
+      trackStock: true,
+      weight: 0.5,
+      profitMethod: 'fixed',
+      bookProfit: 20,
+      isDigital: false
+    });
+
+    const createRes = await axios.post(
+      `${baseUrl}/api/payments/create-order`,
+      {
+        amount: 200,
+        items: [{
+          id: String(stockTestBookB._id),
+          title: stockTestBookB.title,
+          price: 100,
+          quantity: 2,
+          type: 'book'
+        }],
+        deliveryMethod: 'pickup',
+        deliveryAddress: null
+      },
+      { headers: { Authorization: `Bearer ${buyerToken}` } }
+    );
+
+    const rzpOrderId = createRes.data.order.id;
+    const dbOrder = await Order.findOne({ razorpay_order_id: rzpOrderId });
+    const { finalizePaidOrder } = require('../services/orderFinalizer');
+
+    // Run 1: Verify finalizer
+    await finalizePaidOrder(dbOrder, { razorpay_payment_id: 'pay_b_1', razorpay_order_id: rzpOrderId, asyncEmails: true });
+    let book = await Book.findById(stockTestBookB._id);
+    expect(book.stockQuantity).toBe(20);
+
+    // Run 2: Webhook duplicate finalizer
+    await finalizePaidOrder(dbOrder, { razorpay_payment_id: 'pay_b_1', razorpay_order_id: rzpOrderId, asyncEmails: true });
+    book = await Book.findById(stockTestBookB._id);
+    expect(book.stockQuantity).toBe(20);
+
+    // Run 3: Admin reconcile finalizer
+    await finalizePaidOrder(dbOrder, { razorpay_payment_id: 'pay_b_1', razorpay_order_id: rzpOrderId, asyncEmails: true });
+    book = await Book.findById(stockTestBookB._id);
+    expect(book.stockQuantity).toBe(20);
+  });
+
+  test('Stock sequence (c): old order with no stockReduced flag already reduced, finalized again -> no double reduction', async () => {
+    const stockTestBookC = await Book.create({
+      title: 'Stock Sequence C Book',
+      author: 'Stock Author C',
+      price: 100,
+      originalPrice: 100,
+      stockQuantity: 20,
+      stockStatus: 'in_stock',
+      trackStock: true,
+      weight: 0.5,
+      profitMethod: 'fixed',
+      bookProfit: 20,
+      isDigital: false
+    });
+
+    // Create order directly simulating an old pending order
+    const oldOrder = await Order.create({
+      user_id: testBuyer._id,
+      items: [{
+        id: String(stockTestBookC._id),
+        title: stockTestBookC.title,
+        price: 100,
+        quantity: 2,
+        type: 'book',
+        isDigital: false
+      }],
+      totalAmount: 200,
+      deliveryMethod: 'pickup',
+      status: 'pending',
+      razorpay_order_id: 'rzp_old_order_123'
+    });
+
+    // Admin updates to completed -> stock drops to 18
+    await axios.put(
+      `${baseUrl}/api/orders/admin/update-status/${oldOrder._id}`,
+      { status: 'completed' },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    );
+
+    let book = await Book.findById(stockTestBookC._id);
+    expect(book.stockQuantity).toBe(18); // Dropped once: 20 - 2 = 18
+
+    // Old order has no stockReduced flag
+    const freshOrder = await Order.findById(oldOrder._id);
+    expect(freshOrder.toObject().stockReduced).toBeUndefined();
+
+    // Now finalizePaidOrder is called again on this order (e.g. late webhook or reconcile)
+    const { finalizePaidOrder } = require('../services/orderFinalizer');
+    await finalizePaidOrder(freshOrder, { razorpay_payment_id: 'pay_c_old', razorpay_order_id: 'rzp_old_order_123', asyncEmails: true });
+
+    book = await Book.findById(stockTestBookC._id);
+    expect(book.stockQuantity).toBe(18); // Stock remains 18, NO double reduction!
+  });
+
+  test('Stock sequence (d): a bundle order reduces stock of each book in the bundle exactly once', async () => {
+    const bundleBook1 = await Book.create({
+      title: 'Bundle Book 1',
+      author: 'Author 1',
+      price: 60,
+      originalPrice: 70,
+      stockQuantity: 15,
+      trackStock: true,
+      isDigital: false
+    });
+
+    const bundleBook2 = await Book.create({
+      title: 'Bundle Book 2',
+      author: 'Author 2',
+      price: 80,
+      originalPrice: 90,
+      stockQuantity: 10,
+      trackStock: true,
+      isDigital: false
+    });
+
+    const Bundle = mongoose.models.Bundle || require('../models/Bundle');
+    const testBundle = await Bundle.create({
+      name: 'Combined 2-Book Bundle',
+      bundlePrice: 120,
+      originalPrice: 160,
+      books: [bundleBook1._id, bundleBook2._id],
+      isDigital: false
+    });
+
+    // Create a pending bundle order
+    const bundleOrder = await Order.create({
+      user_id: testBuyer._id,
+      items: [{
+        id: String(testBundle._id),
+        title: testBundle.name,
+        price: 120,
+        quantity: 2,
+        type: 'bundle',
+        isDigital: false
+      }],
+      totalAmount: 240,
+      deliveryMethod: 'pickup',
+      status: 'pending'
+    });
+
+    let b1 = await Book.findById(bundleBook1._id);
+    let b2 = await Book.findById(bundleBook2._id);
+    expect(b1.stockQuantity).toBe(15);
+    expect(b2.stockQuantity).toBe(10);
+
+    // Admin sets status to completed -> each book in bundle drops by quantity (2 units)
+    await axios.put(
+      `${baseUrl}/api/orders/admin/update-status/${bundleOrder._id}`,
+      { status: 'completed' },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    );
+
+    b1 = await Book.findById(bundleBook1._id);
+    b2 = await Book.findById(bundleBook2._id);
+    expect(b1.stockQuantity).toBe(13); // 15 - 2 = 13
+    expect(b2.stockQuantity).toBe(8);  // 10 - 2 = 8
+
+    // Admin sets status again -> no double reduction
+    await axios.put(
+      `${baseUrl}/api/orders/admin/update-status/${bundleOrder._id}`,
+      { status: 'completed' },
+      { headers: { Authorization: `Bearer ${adminToken}` } }
+    );
+    b1 = await Book.findById(bundleBook1._id);
+    b2 = await Book.findById(bundleBook2._id);
+    expect(b1.stockQuantity).toBe(13);
+    expect(b2.stockQuantity).toBe(8);
   });
 
   test('POST /api/payments/create-order: (e) a real Note record (digital) in a cart is accepted without an address', async () => {

@@ -444,50 +444,45 @@ router.put("/admin/update-status/:id", authenticateToken, isAdmin, async (req, r
                 console.error("⚠️ Error in order completion tree placement:", treeErr.message);
             }
             
-            if (!order.stockReduced) {
-                try {
-                    for (const item of order.items) {
-                        try {
-                            // Skip stock reduction for digital items
-                            if (item.isDigital) {
-                                console.log(`📱 Skipping stock reduction for digital item: ${item.title}`);
-                                continue;
+            try {
+                for (const item of order.items) {
+                    try {
+                        const details = await getAuthoritativeItemDetails(item);
+                        // Skip stock reduction for digital items (authoritatively identified from DB)
+                        if (details.found ? details.isDigital : item.isDigital) {
+                            console.log(`📱 Skipping stock reduction for digital item: ${item.title}`);
+                            continue;
+                        }
+                        
+                        const itemKind = details.found ? details.kind : item.type;
+                        if (itemKind === 'book') {
+                            const book = await Book.findById(item.id);
+                            if (book && book.trackStock) {
+                                book.reduceStock(item.quantity);
+                                await book.save();
+                                console.log(`📦 Reduced stock for book ${book.title}: ${item.quantity} units`);
                             }
-                            
-                            if (item.type === 'book') {
-                                const book = await Book.findById(item.id);
-                                if (book && book.trackStock) {
-                                    book.reduceStock(item.quantity);
-                                    await book.save();
-                                    console.log(`📦 Reduced stock for book ${book.title}: ${item.quantity} units`);
-                                }
-                            } else if (item.type === 'bundle') {
-                                const bundle = await Bundle.findById(item.id);
-                                if (bundle && bundle.books) {
-                                    // Reduce stock for each book in the bundle
-                                    for (const bundleBook of bundle.books) {
-                                        const book = await Book.findById(bundleBook._id || bundleBook.id);
-                                        if (book && book.trackStock) {
-                                            book.reduceStock(item.quantity);
-                                            await book.save();
-                                            console.log(`📦 Reduced stock for bundle book ${book.title}: ${item.quantity} units`);
-                                        }
+                        } else if (itemKind === 'bundle') {
+                            const bundle = await Bundle.findById(item.id);
+                            if (bundle && bundle.books) {
+                                // Reduce stock for each book in the bundle
+                                for (const bundleBook of bundle.books) {
+                                    const book = await Book.findById(bundleBook._id || bundleBook.id);
+                                    if (book && book.trackStock) {
+                                        book.reduceStock(item.quantity);
+                                        await book.save();
+                                        console.log(`📦 Reduced stock for bundle book ${book.title}: ${item.quantity} units`);
                                     }
                                 }
                             }
-                        } catch (stockError) {
-                            console.error(`❌ Error reducing stock for item ${item.id}:`, stockError);
-                            // Continue with other items even if one fails
                         }
+                    } catch (stockError) {
+                        console.error(`❌ Error reducing stock for item ${item.id}:`, stockError);
+                        // Continue with other items even if one fails
                     }
-                    order.stockReduced = true;
-                    console.log("✅ Stock reduction completed for order:", order._id);
-                } catch (stockErr) {
-                    console.error("⚠️ Error in order stock reduction:", stockErr.message);
                 }
-            }
+                console.log("✅ Stock reduction completed for order:", order._id);
                 
-            try {
                 // Mark reward as applied
                 order.rewardApplied = true;
                 await order.save();

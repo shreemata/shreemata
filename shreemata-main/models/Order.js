@@ -76,12 +76,6 @@ const orderSchema = new mongoose.Schema({
         enum: ["pending", "processing", "shipped", "delivered"],
         default: "pending"
     },
-
-    // Stock reduction flag
-    stockReduced: {
-        type: Boolean,
-        default: false
-    },
     trackingInfo: {
         trackingWebsite: { type: String, default: "" },
         trackingId: { type: String, default: "" },
