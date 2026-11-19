@@ -2635,17 +2635,6 @@
 
                 // Payment verification and action buttons
                 const isVerified = isPaymentVerified(order);
-                const isUnfinalized = order.finalizationStatus !== 'completed' || !order.finalizedAt || order.status === 'pending';
-                const isPaidOrVerified = isVerified || order.paymentStatus === 'completed' || order.paymentStatus === 'verified' || (order.paymentDetails?.status === 'verified') || Boolean(linkedInvoice);
-
-                let finishOrderBtn = '';
-                if (isPaidOrVerified && isUnfinalized) {
-                    finishOrderBtn = `
-                        <button class="btn btn-success btn-finish-order" style="background: #10b981; color: white; border: none; font-weight: 700;" onclick="openFinishOrderModal('${order._id}')" title="Finish Order (Safely finalize paid-but-pending order)">
-                            ⚡ Finish Order
-                        </button>
-                    `;
-                }
 
                 let verifyPaymentBtn = '';
                 if (!isVerified) {
@@ -2782,7 +2771,6 @@
                             <button class="btn btn-primary" onclick="openOrderDetailsModal('${order._id}')" title="View Full Order Details">
                                 👁️ Details
                             </button>
-                            ${finishOrderBtn}
                             ${verifyPaymentBtn}
                             ${rzpReconcileBtn}
                             <button class="btn btn-secondary" onclick="updateDelivery('${order._id}')" title="Update Delivery Status">
@@ -2866,17 +2854,6 @@
 
             // Action buttons for mobile card
             const isVerified = isPaymentVerified(order);
-            const isUnfinalized = order.finalizationStatus !== 'completed' || !order.finalizedAt || order.status === 'pending';
-            const isPaidOrVerified = isVerified || order.paymentStatus === 'completed' || order.paymentStatus === 'verified' || (order.paymentDetails?.status === 'verified') || Boolean(linkedInvoice);
-
-            let finishOrderMobileBtn = '';
-            if (isPaidOrVerified && isUnfinalized) {
-                finishOrderMobileBtn = `
-                    <button class="btn btn-success btn-finish-order" style="width: 100%; background: #10b981; color: white; border: none; font-weight: 700;" onclick="openFinishOrderModal('${order._id}')">
-                        ⚡ Finish Order
-                    </button>
-                `;
-            }
 
             let verifyMobileBtn = '';
             if (!isVerified) {
@@ -3009,7 +2986,6 @@
                     <button class="btn btn-primary" style="width: 100%;" onclick="openOrderDetailsModal('${order._id}')">
                         👁️ View Order Details
                     </button>
-                    ${finishOrderMobileBtn}
                     ${verifyMobileBtn}
                     ${rzpMobileReconcileBtn}
                     <button class="btn btn-secondary" style="width: 100%;" onclick="updateDelivery('${order._id}')">
@@ -3458,183 +3434,6 @@
                 if (btn) {
                     btn.disabled = false;
                     btn.textContent = originalText || '⚡ Check with Razorpay & finish';
-                }
-            }
-        }
-
-        async function openFinishOrderModal(orderId) {
-            const token = localStorage.getItem('token');
-            const existingModal = document.getElementById('finishOrderModalContainer');
-            if (existingModal) existingModal.remove();
-
-            const modal = document.createElement('div');
-            modal.id = 'finishOrderModalContainer';
-            modal.style.cssText = `
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(15,23,42,0.65); z-index: 1060; display: flex;
-                align-items: center; justify-content: center; padding: 20px;
-                backdrop-filter: blur(4px); box-sizing: border-box;
-            `;
-            modal.innerHTML = `
-                <div style="background: white; border-radius: 14px; width: 100%; max-width: 540px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
-                    <div style="padding: 18px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
-                        <div>
-                            <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: #0f172a;">⚡ Finish Order (Confirmation & Preview)</h3>
-                            <div style="font-size: 12px; color: #64748b; margin-top: 3px;">Order ID: <span style="font-family: monospace; font-weight: 600;">${orderId}</span></div>
-                        </div>
-                        <button onclick="closeFinishOrderModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; padding: 0 4px;">✕</button>
-                    </div>
-                    <div id="finishOrderModalBody" style="padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
-                        <div style="text-align: center; color: #64748b; padding: 20px 0;">
-                            ⏳ Loading order preview and safety check...
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-
-            try {
-                const res = await fetch(`${API}/orders/admin/${orderId}/finish-order-preview`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                const data = await res.json();
-                if (!res.ok) {
-                    document.getElementById('finishOrderModalBody').innerHTML = `
-                        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; color: #991b1b;">
-                            <strong>Error loading preview:</strong> ${data.error || 'Failed to fetch preview'}
-                        </div>
-                        <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
-                            <button class="btn btn-secondary" onclick="closeFinishOrderModal()">Close</button>
-                        </div>
-                    `;
-                    return;
-                }
-
-                const comm = data.commissionBreakdown || {};
-                const hasWarning = Boolean(data.warning);
-
-                let warningHtml = '';
-                if (hasWarning) {
-                    warningHtml = `
-                        <div style="background: #fef2f2; border: 1.5px solid #ef4444; border-radius: 8px; padding: 14px; color: #991b1b;">
-                            <div style="font-weight: 800; font-size: 13.5px; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-                                ⚠️ Razorpay Payment Safety Warning
-                            </div>
-                            <div style="font-size: 13px; line-height: 1.4; margin-bottom: 10px;">
-                                ${data.warning}
-                            </div>
-                            <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 12px; font-weight: 600; cursor: pointer; color: #7f1d1d;">
-                                <input type="checkbox" id="ackWarningCheckbox" style="margin-top: 2px;" onchange="document.getElementById('confirmFinishBtn').disabled = !this.checked;">
-                                <span>I understand this order has no confirmed captured payment. I confirm finishing it will pay real commission and send customer emails.</span>
-                            </label>
-                        </div>
-                    `;
-                }
-
-                document.getElementById('finishOrderModalBody').innerHTML = `
-                    ${warningHtml}
-
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; font-size: 13px;">
-                        <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px; font-size: 13.5px;">👤 Customer & Order</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; color: #334155;">
-                            <div>Name: <strong>${data.customer?.name || 'Unknown'}</strong></div>
-                            <div>Phone: <strong>${data.customer?.phone || 'N/A'}</strong></div>
-                            <div style="grid-column: span 2;">Email: <strong>${data.customer?.email || 'N/A'}</strong></div>
-                            <div>Order Amount: <strong style="color: #0f172a;">₹${Number(data.orderAmount || 0).toLocaleString('en-IN')}</strong></div>
-                            <div>Profit Base: <strong style="color: #10b981;">₹${Number(data.profitBase || 0).toLocaleString('en-IN')}</strong></div>
-                        </div>
-                    </div>
-
-                    <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 14px; font-size: 13px;">
-                        <div style="font-weight: 700; color: #312e81; margin-bottom: 6px; font-size: 13.5px;">💰 Commission Breakdown Preview</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; color: #3730a3;">
-                            <div>Direct (Cashback): <strong>₹${Number(comm.direct || 0).toFixed(2)}</strong></div>
-                            <div>Referral: <strong>₹${Number(comm.referral || 0).toFixed(2)}</strong></div>
-                            <div>Tree Pool: <strong>₹${Number(comm.tree || 0).toFixed(2)}</strong></div>
-                            <div>Trust / Admin: <strong>₹${Number(comm.trust || 0).toFixed(2)}</strong></div>
-                            <div style="grid-column: span 2; border-top: 1px solid #c7d2fe; padding-top: 6px; font-weight: 700; color: #1e1b4b;">
-                                Total Commissions to Distribute: ₹${Number(comm.total || 0).toFixed(2)}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; font-size: 13px;">
-                        <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px; font-size: 13.5px;">📄 Side Effects (Idempotent)</div>
-                        <ul style="margin: 0; padding-left: 18px; color: #475569; font-size: 12.5px; line-height: 1.5;">
-                            <li>Tax Invoice: <strong>${data.invoiceExists ? 'Already exists (' + data.invoiceNumber + ')' : 'Will be automatically generated'}</strong></li>
-                            <li>Order & Payment Status: <strong>Set to completed / verified</strong></li>
-                            <li>Membership & Tree Placement: <strong>Activated if qualified</strong></li>
-                            <li>Customer & Admin Emails: <strong>Dispatched (${data.emailsToSend?.join(', ') || 'confirmation'})</strong></li>
-                        </ul>
-                    </div>
-
-                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
-                        <button class="btn btn-secondary" onclick="closeFinishOrderModal()">Cancel</button>
-                        <button id="confirmFinishBtn" class="btn btn-success" style="background: #10b981; font-weight: 700;" ${hasWarning ? 'disabled' : ''} onclick="executeFinishOrder('${orderId}')">
-                            ⚡ Confirm & Finish Order
-                        </button>
-                    </div>
-                `;
-            } catch (err) {
-                document.getElementById('finishOrderModalBody').innerHTML = `
-                    <div style="color: #ef4444;">Network error: ${err.message}</div>
-                    <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
-                        <button class="btn btn-secondary" onclick="closeFinishOrderModal()">Close</button>
-                    </div>
-                `;
-            }
-        }
-
-        function closeFinishOrderModal() {
-            const m = document.getElementById('finishOrderModalContainer');
-            if (m) m.remove();
-        }
-
-        async function executeFinishOrder(orderId) {
-            const token = localStorage.getItem('token');
-            const btn = document.getElementById('confirmFinishBtn');
-            const ackBox = document.getElementById('ackWarningCheckbox');
-            const acknowledged = ackBox ? ackBox.checked : false;
-
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = '⏳ Finishing Order...';
-            }
-
-            try {
-                const res = await fetch(`${API}/orders/admin/${orderId}/finish-order`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ acknowledgedNoCapturedPayment: acknowledged })
-                });
-                const data = await res.json();
-                if (!res.ok) {
-                    alert(`❌ Error finishing order: ${data.error || 'Server error'}`);
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.textContent = '⚡ Confirm & Finish Order';
-                    }
-                    return;
-                }
-
-                alert(`✅ Success: ${data.message}\nInvoice: ${data.invoice?.invoiceNumber || 'Created/Verified'}`);
-                closeFinishOrderModal();
-                if (typeof closeOrderDetailsModal === 'function') {
-                    closeOrderDetailsModal();
-                }
-                loadOrders();
-            } catch (err) {
-                alert(`Network error: ${err.message}`);
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = '⚡ Confirm & Finish Order';
                 }
             }
         }
@@ -5364,17 +5163,6 @@
             const isZeroProfitEligibleModal = order.status === 'completed' && isVerified && !isRepairedModal && 
                 (Number(order.profitAmount || 0) === 0 || Number(order.orderProfitTotal || 0) === 0) &&
                 order.commissionStatus === 'distributed';
-
-            const isUnfinalizedModal = order.finalizationStatus !== 'completed' || !order.finalizedAt || order.status === 'pending';
-            const isPaidOrVerifiedModal = isVerified || order.paymentStatus === 'completed' || order.paymentStatus === 'verified' || (order.paymentDetails?.status === 'verified') || Boolean(linkedInvoice);
-
-            if (isPaidOrVerifiedModal && isUnfinalizedModal) {
-                footerActionsHtml += `
-                    <button class="btn btn-success" style="background: #10b981; color: white; border: none; font-weight: 700;" onclick="closeOrderDetailsModal(); openFinishOrderModal('${order._id}');">
-                        ⚡ Finish Order
-                    </button>
-                `;
-            }
 
             if (isRepairedModal) {
                 footerActionsHtml += `

@@ -1197,15 +1197,26 @@ router.post("/admin/approve-cheque-payment/:orderId", authenticateToken, async (
 
     console.log(`🔍 Admin ${adminUser.email} approving cheque payment for order: ${orderId}`);
 
-    // Find the order (support both check/cheque and transfer payments)
-    const order = await Order.findOne({ 
-      _id: orderId,
-      $or: [
-        { paymentType: 'check' },
-        { paymentType: 'cheque' },
-        { paymentType: 'transfer' }
-      ]
-    });
+    // Find and update the order (support both check/cheque and transfer payments)
+    const order = await Order.findOneAndUpdate(
+      { 
+        _id: orderId,
+        $or: [
+          { paymentType: 'check' },
+          { paymentType: 'cheque' },
+          { paymentType: 'transfer' }
+        ],
+        'paymentDetails.status': 'pending_verification'
+      },
+      {
+        status: 'completed',
+        'paymentDetails.status': 'verified',
+        'paymentDetails.adminNotes': approvalNotes || '',
+        'paymentDetails.updatedAt': new Date(),
+        rewardApplied: true // Mark to trigger automated processes
+      },
+      { new: true }
+    );
 
     if (!order) {
       return res.status(404).json({ 
@@ -1213,28 +1224,16 @@ router.post("/admin/approve-cheque-payment/:orderId", authenticateToken, async (
       });
     }
 
-    console.log(`✅ ${order.paymentType === 'transfer' ? 'Bank transfer' : 'Cheque payment'} being finalized for order: ${orderId}`);
+    console.log(`✅ ${order.paymentType === 'transfer' ? 'Bank transfer' : 'Cheque payment'} approved for order: ${orderId}`);
 
-    // Route through finalizePaidOrder for idempotent, exactly-once finalization
-    const { finalizePaidOrder, dispatchOrderEmails } = require("../services/orderFinalizer");
-    const result = await finalizePaidOrder(order._id, {
-      adminNotes: approvalNotes || '',
-      verifiedBy: adminUser._id || adminUser.id,
-      asyncEmails: true
-    });
-
-    if (!result.alreadyProcessed) {
-      dispatchOrderEmails(result.order._id).catch(e =>
-        console.error("⚠️ Async email dispatch error after cheque approval:", e.message)
-      );
-    }
+    // Trigger all automated processes (same as online payment)
+    await processApprovedChequeOrder(order, adminUser);
 
     res.json({ 
       success: true, 
-      message: `${result.order.paymentType === 'transfer' ? 'Bank transfer' : 'Cheque payment'} approved successfully`,
+      message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Cheque payment'} approved successfully`,
       orderId: orderId,
-      order: result.order,
-      alreadyProcessed: result.alreadyProcessed
+      order: order
     });
 
   } catch (error) {
@@ -1327,39 +1326,38 @@ router.post("/admin/approve-check-payment/:orderId", authenticateToken, async (r
       return res.status(403).json({ error: "Admin access required" });
     }
 
-    // Find the order (support both check/cheque and transfer payments)
-    const order = await Order.findOne({ 
-      _id: orderId,
-      $or: [
-        { paymentType: 'check' },
-        { paymentType: 'cheque' },
-        { paymentType: 'transfer' }
-      ]
-    });
+    // Find and update the order (support both check/cheque and transfer payments)
+    const order = await Order.findOneAndUpdate(
+      { 
+        _id: orderId,
+        $or: [
+          { paymentType: 'check' },
+          { paymentType: 'cheque' },
+          { paymentType: 'transfer' }
+        ],
+        'paymentDetails.status': 'pending_verification'
+      },
+      {
+        status: 'completed',
+        'paymentDetails.status': 'verified',
+        'paymentDetails.updatedAt': new Date(),
+        rewardApplied: true
+      },
+      { new: true }
+    );
 
     if (!order) {
-      return res.status(404).json({ error: "Order not found or not eligible for approval" });
+      return res.status(404).json({ error: "Order not found or already processed" });
     }
 
-    // Route through finalizePaidOrder for idempotent, exactly-once finalization
-    const { finalizePaidOrder, dispatchOrderEmails } = require("../services/orderFinalizer");
-    const result = await finalizePaidOrder(order._id, {
-      verifiedBy: adminUser._id || adminUser.id,
-      asyncEmails: true
-    });
-
-    if (!result.alreadyProcessed) {
-      dispatchOrderEmails(result.order._id).catch(e =>
-        console.error("⚠️ Async email dispatch error after legacy check approval:", e.message)
-      );
-    }
+    // Trigger all automated processes
+    await processApprovedChequeOrder(order, adminUser);
 
     res.json({ 
       success: true, 
-      message: `${result.order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} approved successfully (legacy endpoint)`,
+      message: `${order.paymentType === 'transfer' ? 'Bank transfer' : 'Check payment'} approved successfully (legacy endpoint)`,
       orderId: orderId,
-      order: result.order,
-      alreadyProcessed: result.alreadyProcessed
+      order: order
     });
 
   } catch (error) {
