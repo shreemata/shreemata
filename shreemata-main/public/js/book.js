@@ -1181,13 +1181,7 @@ async function proceedToPayment() {
                         });
                     }
                 }
-            }
-
-        // OPTIONAL: Do not keep half-created pending orders visible
-        // Just stay on the same page without redirecting.
-    }
-},
-
+            },
 
             prefill: {
                 name: (JSON.parse(localStorage.getItem("user") || "{}")).name || "",
@@ -2213,6 +2207,8 @@ function setupBillingAddressForm() {
         setTimeout(setupBillingAddressForm, 200);
         return;
     }
+
+    billingForm.noValidate = true;
 
     if (billingForm.dataset.listenerAttached) return;
     billingForm.dataset.listenerAttached = "true";
