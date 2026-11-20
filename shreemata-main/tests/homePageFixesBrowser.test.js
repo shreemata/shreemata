@@ -561,4 +561,136 @@ describe('Home Page Fixes Comprehensive Browser Verification', () => {
     expect(pageErrors).toEqual([]);
     await context.close();
   });
+
+  test('(j) Legacy loader hidden in Grid and List view after initial load and scroll', async () => {
+    const { context, page, pageErrors } = await createCleanPage();
+    await page.goto('http://127.0.0.1:3100/', { waitUntil: 'networkidle' });
+    await page.evaluate(() => {
+      const intro = document.getElementById('cinematicIntro');
+      if (intro) intro.remove();
+    });
+
+    await page.waitForSelector('#booksGrid .book-card', { state: 'visible', timeout: 8000 });
+
+    // Assert legacy loadingSpinner is not visible
+    const spinnerVisible = await page.evaluate(() => {
+      const el = document.getElementById('loadingSpinner');
+      if (!el) return false;
+      const style = window.getComputedStyle(el);
+      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+    });
+    expect(spinnerVisible).toBe(false);
+
+    // Scroll to bottom
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(1000);
+
+    const spinnerVisibleAfterScroll = await page.evaluate(() => {
+      const el = document.getElementById('loadingSpinner');
+      if (!el) return false;
+      const style = window.getComputedStyle(el);
+      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+    });
+    expect(spinnerVisibleAfterScroll).toBe(false);
+
+    expect(pageErrors).toEqual([]);
+    await context.close();
+  });
+
+  test('(k) Responsive List view card layout and button bounds across viewports (1920, 1366, 390)', async () => {
+    const viewports = [
+      { width: 1920, height: 1080 },
+      { width: 1366, height: 768 },
+      { width: 390, height: 844, isMobile: true }
+    ];
+
+    for (const vp of viewports) {
+      const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
+      const page = await context.newPage();
+      const pageErrors = [];
+      page.on('pageerror', (err) => pageErrors.push(err.message));
+
+      await page.goto('http://127.0.0.1:3100/', { waitUntil: 'networkidle' });
+      await page.evaluate(() => {
+        const intro = document.getElementById('cinematicIntro');
+        if (intro) intro.remove();
+      });
+
+      await page.waitForSelector('#booksGrid .book-card', { state: 'visible', timeout: 8000 });
+
+      // Switch to List view
+      const listBtn = await page.$('#listView');
+      if (listBtn) {
+        await listBtn.click();
+        await page.waitForTimeout(500);
+      }
+
+      // Evaluate card metrics
+      const cardMetrics = await page.evaluate(() => {
+        const cards = Array.from(document.querySelectorAll('#booksGrid .book-card')).slice(0, 4);
+        const docScrollWidth = document.documentElement.scrollWidth;
+        const docClientWidth = document.documentElement.clientWidth;
+
+        const results = cards.map((card) => {
+          const cardRect = card.getBoundingClientRect();
+          const h3 = card.querySelector('h3');
+          const author = card.querySelector('.book-author');
+          const h3Rect = h3 ? h3.getBoundingClientRect() : null;
+          const authorRect = author ? author.getBoundingClientRect() : null;
+
+          const buttons = Array.from(card.querySelectorAll('.book-actions button')).map((b) => {
+            const r = b.getBoundingClientRect();
+            return {
+              text: b.innerText.trim(),
+              left: r.left,
+              right: r.right,
+              width: r.width,
+              height: r.height,
+              overflowsRight: r.right > cardRect.right + 2
+            };
+          });
+
+          return {
+            cardWidth: cardRect.width,
+            cardRight: cardRect.right,
+            h3: h3Rect ? { width: h3Rect.width, height: h3Rect.height, text: h3.innerText.trim() } : null,
+            author: authorRect ? { width: authorRect.width, height: authorRect.height, text: author.innerText.trim() } : null,
+            buttons
+          };
+        });
+
+        return { docScrollWidth, docClientWidth, results };
+      });
+
+      // No horizontal scroll overflow on the page
+      expect(cardMetrics.docScrollWidth).toBeLessThanOrEqual(cardMetrics.docClientWidth + 1);
+
+      // Verify each card
+      expect(cardMetrics.results.length).toBeGreaterThan(0);
+      for (const card of cardMetrics.results) {
+        // Title has positive dimensions and text
+        expect(card.h3).not.toBeNull();
+        expect(card.h3.width).toBeGreaterThan(50);
+        expect(card.h3.height).toBeGreaterThan(10);
+        expect(card.h3.text.length).toBeGreaterThan(0);
+
+        // Author has positive dimensions and text
+        expect(card.author).not.toBeNull();
+        expect(card.author.width).toBeGreaterThan(50);
+        expect(card.author.height).toBeGreaterThan(10);
+        expect(card.author.text.length).toBeGreaterThan(0);
+
+        // Buttons do not overflow card
+        expect(card.buttons.length).toBe(3);
+        for (const btn of card.buttons) {
+          expect(btn.overflowsRight).toBe(false);
+          expect(btn.width).toBeGreaterThan(30);
+          expect(btn.height).toBeGreaterThan(20);
+        }
+      }
+
+      expect(pageErrors).toEqual([]);
+      await context.close();
+    }
+  });
 });

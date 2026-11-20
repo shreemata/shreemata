@@ -600,10 +600,12 @@ function createBookCard(book) {
             ${stockOverlay}
             ${cashbackSticker}
         </div>
-        <h3>${book.title}</h3>
-        <p class="book-author">by ${book.author}</p>
-        ${priceDisplayHtml}
-        ${pointsBadge}
+        <div class="book-info">
+            <h3>${book.title}</h3>
+            <p class="book-author">by ${book.author}</p>
+            ${priceDisplayHtml}
+            ${pointsBadge}
+        </div>
         <div class="book-actions">
             <button class="btn-secondary" onclick="previewBook('${book._id}')">Preview</button>
             ${isOutOfStock 
@@ -646,6 +648,7 @@ function displaySearchResults(data, searchTerm = "") {
     const endEl = document.getElementById("infiniteScrollEnd");
     if (loadingEl) loadingEl.style.display = "none";
     if (errorEl) errorEl.style.display = "none";
+    hideLegacyLoadingSpinner();
 
     if (books.length === 0) {
         if (emptyState) emptyState.style.display = "block";
@@ -1105,6 +1108,14 @@ document.addEventListener("click", (e) => {
    INFINITE SCROLL UI & CONTROLS
 --------------------------------*/
 
+function hideLegacyLoadingSpinner() {
+    const spinner = document.getElementById('loadingSpinner') || document.querySelector('.books-section .loading');
+    if (spinner) {
+        spinner.style.display = 'none';
+        spinner.setAttribute('aria-hidden', 'true');
+    }
+}
+
 function getOrCreateInfiniteScrollUI() {
     let container = document.getElementById('infiniteScrollContainer');
     if (!container) {
@@ -1169,6 +1180,9 @@ async function resetAndLoadBooks(filters = {}) {
     const emptyState = document.getElementById('emptyState');
     if (emptyState) emptyState.style.display = 'none';
 
+    // Hide legacy loading spinner
+    hideLegacyLoadingSpinner();
+
     // Hide legacy pagination container
     const pagContainer = document.getElementById('paginationContainer');
     if (pagContainer) pagContainer.style.display = 'none';
@@ -1229,6 +1243,7 @@ async function fetchNextBookBatch(expectedToken) {
         if (thisToken !== bookFetchToken) return;
 
         if (loadingEl) loadingEl.style.display = 'none';
+        hideLegacyLoadingSpinner();
 
         const books = Array.isArray(data.books) ? data.books : [];
         infiniteScrollTotalPages = data.totalPages || 1;
@@ -1284,6 +1299,7 @@ async function fetchNextBookBatch(expectedToken) {
         }
         console.error("Error fetching book batch:", err);
         if (loadingEl) loadingEl.style.display = 'none';
+        hideLegacyLoadingSpinner();
         if (errorEl) errorEl.style.display = 'flex';
     } finally {
         if (thisToken === bookFetchToken) {
