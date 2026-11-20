@@ -2014,6 +2014,145 @@ body.hero-stage-dragging * {
     gap: 28px;
 }
 
+/* List View Variant */
+.books-grid.list-view {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    grid-template-columns: none !important;
+}
+
+.books-grid.list-view .book-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 24px !important;
+    padding: 16px 24px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    text-align: left !important;
+}
+
+.books-grid.list-view .book-image-container {
+    width: 110px !important;
+    height: 140px !important;
+    min-width: 110px !important;
+    margin-bottom: 0 !important;
+    flex-shrink: 0 !important;
+}
+
+.books-grid.list-view .book-image-container img,
+.books-grid.list-view .book-image-container .book-cover {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+.books-grid.list-view .book-card h3 {
+    min-height: auto !important;
+    font-size: 17px !important;
+    margin: 0 0 6px 0 !important;
+    text-align: left !important;
+}
+
+.books-grid.list-view .book-author {
+    margin: 0 0 6px 0 !important;
+    text-align: left !important;
+}
+
+.books-grid.list-view .book-price,
+.books-grid.list-view .book-price-offer {
+    margin: 0 0 8px 0 !important;
+    text-align: left !important;
+}
+
+.books-grid.list-view .book-actions {
+    margin-left: auto !important;
+    margin-top: 0 !important;
+    min-width: 220px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+}
+
+/* Infinite Scroll UI */
+.infinite-scroll-container {
+    width: 100%;
+    text-align: center;
+    margin: 28px 0 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.infinite-scroll-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--text-secondary, #4b5563);
+    font-size: 14.5px;
+    font-weight: 600;
+    padding: 18px;
+}
+
+.spinner-small {
+    width: 22px;
+    height: 22px;
+    border: 3px solid rgba(0, 0, 0, 0.12);
+    border-top-color: var(--text-ink, #101820);
+    border-radius: 50%;
+    animation: spinSmall 0.8s linear infinite;
+}
+
+@keyframes spinSmall {
+    to { transform: rotate(360deg); }
+}
+
+.infinite-scroll-end {
+    color: var(--text-muted, #64748b);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 22px 16px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    border-top: 1px dashed var(--border-editorial, #e2e8f0);
+    width: 100%;
+    max-width: 400px;
+    margin: 12px auto 0;
+}
+
+.infinite-scroll-error {
+    background: #fff5f5;
+    border: 1px solid #feb2b2;
+    border-radius: 10px;
+    padding: 14px 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: #c53030;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.btn-retry-scroll {
+    background: #e53e3e;
+    color: #ffffff;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+
+.btn-retry-scroll:hover {
+    background: #c53030;
+}
+
 .book-card {
     background: var(--bg-white-pure);
     border: 1px solid var(--border-editorial);

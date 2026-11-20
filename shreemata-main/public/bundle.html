@@ -1039,8 +1039,19 @@ ${stockBadge}
                 cart[existingItemIndex].courierCharge = courierCharge;
                 cart[existingItemIndex].weight = weight;
                 saveCart(cart);
+                if (typeof updateAllCartBadges === 'function') updateAllCartBadges();
+                const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
                 const methodText = deliveryMethod === 'pickup' ? 'Book-stall Pickup' : 'Courier Delivery';
-                alert(`✅ ${quantity}x Bundle quantity updated in cart (${methodText})!`);
+                if (typeof showCartNotification === "function") {
+                    showCartNotification({
+                        title: "Cart Updated",
+                        message: `${quantity}x Bundle quantity updated in cart (${methodText})!`,
+                        count: cartCount,
+                        type: "success"
+                    });
+                } else {
+                    alert(`✅ ${quantity}x Bundle quantity updated in cart (${methodText})!`);
+                }
                 return;
             }
 
@@ -1071,8 +1082,19 @@ ${stockBadge}
                 coverImage: currentBundle.image || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="250" height="300"%3E%3Crect fill="%23ddd" width="250" height="300"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="20" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EBundle%3C/text%3E%3C/svg%3E'
             });
             saveCart(cart);
+            if (typeof updateAllCartBadges === 'function') updateAllCartBadges();
+            const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
             const methodText = deliveryMethod === 'pickup' ? 'Book-stall Pickup' : 'Courier Delivery';
-            alert(`✅ ${quantity}x Bundle "${currentBundle.name}" added to cart for ${methodText}!`);
+            if (typeof showCartNotification === "function") {
+                showCartNotification({
+                    title: "Added to Cart!",
+                    message: `${quantity}x Bundle "${currentBundle.name}" added to cart for ${methodText}!`,
+                    count: cartCount,
+                    type: "success"
+                });
+            } else {
+                alert(`✅ ${quantity}x Bundle "${currentBundle.name}" added to cart for ${methodText}!`);
+            }
         }
 
         function buyNow(deliveryMethod = "courier") {
@@ -1810,7 +1832,18 @@ ${stockBadge}
                 cart[existingItemIndex].courierCharge = courierCharge;
                 cart[existingItemIndex].weight = weight;
                 saveCart(cart);
-                alert(`✅ ${quantity}x Bundle quantity updated in cart!`);
+                if (typeof updateAllCartBadges === 'function') updateAllCartBadges();
+                const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+                if (typeof showCartNotification === "function") {
+                    showCartNotification({
+                        title: "Cart Updated",
+                        message: `${quantity}x Bundle quantity updated in cart!`,
+                        count: cartCount,
+                        type: "success"
+                    });
+                } else {
+                    alert(`✅ ${quantity}x Bundle quantity updated in cart!`);
+                }
                 return;
             }
 
@@ -1834,7 +1867,18 @@ ${stockBadge}
                 coverImage: currentBundle.image || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="250" height="300"%3E%3Crect fill="%23ddd" width="250" height="300"/%3E%3Ctext fill="%23999" font-family="Arial" font-size="20" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EBundle%3C/text%3E%3C/svg%3E'
             });
             saveCart(cart);
-            alert(`✅ ${quantity}x Bundle "${currentBundle.name}" added to cart!`);
+            if (typeof updateAllCartBadges === 'function') updateAllCartBadges();
+            const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+            if (typeof showCartNotification === "function") {
+                showCartNotification({
+                    title: "Added to Cart!",
+                    message: `${quantity}x Bundle "${currentBundle.name}" added to cart!`,
+                    count: cartCount,
+                    type: "success"
+                });
+            } else {
+                alert(`✅ ${quantity}x Bundle "${currentBundle.name}" added to cart!`);
+            }
         }
 
         function showError() {

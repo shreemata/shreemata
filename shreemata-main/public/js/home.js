@@ -15,8 +15,25 @@ let booksPerPage = 12;
 let totalBooks = 0;
 let allBooks = [];
 let filteredBooks = [];
-let currentView = 'grid';
+let currentView = (function() {
+    try {
+        return localStorage.getItem('booksViewMode') || 'grid';
+    } catch (e) {
+        return 'grid';
+    }
+})();
 let homeSettings = { showBundles: true, showFeaturedBooks: true }; // Store home settings
+
+// Infinite scroll state for single books
+let infiniteScrollObserver = null;
+let infiniteScrollPage = 1;
+const infiniteScrollLimit = 4; // Batch size: loads 4 books per page so scrolling continuously appends batches
+let infiniteScrollTotalPages = 1;
+let infiniteScrollTotalBooks = 0;
+let isInfiniteScrollLoading = false;
+let hasMoreBooks = true;
+const loadedBookIds = new Set();
+let infiniteScrollLastQuery = {};
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("HOME USING API:", API_URL);
@@ -352,70 +369,21 @@ function updateOfferDots() {
 }
 
 /* ------------------------------
-   LOAD BOOKS WITH FILTERS
+   LOAD BOOKS WITH FILTERS (INFINITE SCROLL)
 --------------------------------*/
-async function loadBooksWithFilters({ page = 1, limit = 1000, category, minPrice, maxPrice, search } = {}) {
-    const loadingSpinner = document.getElementById("loadingSpinner");
-    const booksGrid = document.getElementById("booksGrid");
+async function loadBooksWithFilters({ page = 1, limit = 4, category, minPrice, maxPrice, search } = {}) {
+    const filters = {};
+    if (category) filters.category = category;
+    if (minPrice) filters.minPrice = minPrice;
+    if (maxPrice) filters.maxPrice = maxPrice;
+    if (search) filters.search = search;
 
-    if (booksGrid && (!allBooks || allBooks.length === 0)) {
-        booksGrid.style.display = "grid";
-        booksGrid.innerHTML = `
-            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
-            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
-            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
-            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
-        `;
-    }
+    const selectedClass = document.getElementById('classFilter') ? document.getElementById('classFilter').value : '';
+    const selectedSubject = document.getElementById('subjectFilter') ? document.getElementById('subjectFilter').value : '';
+    if (selectedClass) filters.class = selectedClass;
+    if (selectedSubject) filters.subject = selectedSubject;
 
-    const qs = new URLSearchParams();
-    qs.set("page", page);
-    qs.set("limit", limit);
-    if (category) qs.set("category", category);
-    if (minPrice) qs.set("minPrice", minPrice);
-    if (maxPrice) qs.set("maxPrice", maxPrice);
-    if (search) qs.set("search", search);
-
-    try {
-        const res = await fetch(`${API_URL}/books?${qs.toString()}`);
-        const data = await res.json();
-
-        if (loadingSpinner) loadingSpinner.style.display = "none";
-
-        if (data.books && Array.isArray(data.books)) {
-            allBooks = data.books;
-
-            // Check if there is an active search query from input or URL
-            const searchInput = document.getElementById("searchInput");
-            const currentSearch = search !== undefined ? search : (searchInput ? searchInput.value.trim() : '');
-            const selectedClass = document.getElementById('classFilter') ? document.getElementById('classFilter').value : '';
-            const selectedSubject = document.getElementById('subjectFilter') ? document.getElementById('subjectFilter').value : '';
-
-            if (currentSearch || selectedClass || selectedSubject) {
-                filterAndDisplayBooks(selectedClass, selectedSubject, currentSearch);
-            } else {
-                filteredBooks = [...allBooks];
-                totalBooks = allBooks.length;
-                currentPage = 1;
-                displayPaginatedBooks();
-                updatePaginationUI();
-                updateBooksStats();
-            }
-        } else {
-            filteredBooks = [];
-            totalBooks = 0;
-            if (booksGrid) booksGrid.style.display = 'none';
-            const emptyState = document.getElementById('emptyState');
-            if (emptyState) emptyState.style.display = 'block';
-        }
-
-    } catch (err) {
-        console.error("Error loading books:", err);
-        if (loadingSpinner) loadingSpinner.style.display = "none";
-        if (booksGrid) booksGrid.style.display = 'none';
-        const emptyState = document.getElementById('emptyState');
-        if (emptyState) emptyState.style.display = 'block';
-    }
+    await resetAndLoadBooks(filters);
 }
 
 /* ------------------------------
@@ -656,13 +624,53 @@ function displaySearchResults(data, searchTerm = "") {
     const books = Array.isArray(data) ? data : (data.books || []);
     console.log("Rendering search results count:", books.length);
 
-    filteredBooks = [...books];
-    totalBooks = filteredBooks.length;
-    currentPage = 1;
+    if (infiniteScrollObserver) infiniteScrollObserver.disconnect();
+    hasMoreBooks = false;
+    isInfiniteScrollLoading = false;
+    loadedBookIds.clear();
 
-    displayPaginatedBooks();
-    updatePaginationUI();
-    updateBooksStats(searchTerm);
+    const booksGrid = document.getElementById("booksGrid");
+    const emptyState = document.getElementById("emptyState");
+    const pagContainer = document.getElementById("paginationContainer");
+    if (pagContainer) pagContainer.style.display = "none";
+
+    getOrCreateInfiniteScrollUI();
+    const loadingEl = document.getElementById("infiniteScrollLoading");
+    const errorEl = document.getElementById("infiniteScrollError");
+    const endEl = document.getElementById("infiniteScrollEnd");
+    if (loadingEl) loadingEl.style.display = "none";
+    if (errorEl) errorEl.style.display = "none";
+
+    if (books.length === 0) {
+        if (emptyState) emptyState.style.display = "block";
+        if (booksGrid) {
+            booksGrid.innerHTML = "";
+            booksGrid.style.display = "none";
+        }
+        if (endEl) endEl.style.display = "none";
+        updateBooksStatsText(0, searchTerm);
+        return;
+    }
+
+    if (emptyState) emptyState.style.display = "none";
+    if (booksGrid) {
+        booksGrid.innerHTML = "";
+        booksGrid.style.display = currentView === 'list' ? 'flex' : 'grid';
+        booksGrid.className = `books-grid ${currentView === 'list' ? 'list-view' : ''}`;
+        books.forEach(b => {
+            const id = b._id || b.id;
+            if (id && !loadedBookIds.has(id)) {
+                loadedBookIds.add(id);
+                booksGrid.appendChild(createBookCard(b));
+            }
+            const idx = allBooks.findIndex(existing => (existing._id || existing.id) === id);
+            if (idx === -1) allBooks.push(b);
+            else allBooks[idx] = b;
+        });
+    }
+
+    if (endEl) endEl.style.display = "block";
+    updateBooksStatsText(books.length, searchTerm);
 }
 
 async function performSearch(shouldScroll = false) {
@@ -935,12 +943,24 @@ async function addBundleToCart(bundleId) {
         const res = await fetch(`${API_URL}/bundles/${bundleId}`);
         const data = await res.json();
         const bundle = data.bundle;
+        if (!bundle) throw new Error("Bundle not found");
 
         let cart = getCart();
 
         // Check if bundle already in cart
         if (cart.find(item => item.bundleId === bundleId)) {
-            return alert("This bundle is already in your cart!");
+            const count = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+            if (typeof showCartNotification === "function") {
+                showCartNotification({
+                    title: "Already in Cart",
+                    message: `Bundle "${bundle.name}" is already in your cart!`,
+                    count: count,
+                    type: "warning"
+                });
+            } else {
+                alert("This bundle is already in your cart!");
+            }
+            return;
         }
 
         // Add bundle as a special cart item
@@ -956,100 +976,354 @@ async function addBundleToCart(bundleId) {
         });
 
         saveCart(cart);
-        alert(`Bundle "${bundle.name}" added to cart!`);
-        
-        // Update cart count if exists
         updateCartCount();
+
+        const count = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        if (typeof showCartNotification === "function") {
+            showCartNotification({
+                title: "Added to Cart!",
+                message: `Bundle "${bundle.name}" added to cart.`,
+                count: count,
+                type: "success"
+            });
+        } else {
+            alert(`Bundle "${bundle.name}" added to cart!`);
+        }
     } catch (err) {
         console.error("Error adding bundle to cart:", err);
-        alert("Error adding bundle to cart");
+        if (typeof showCartNotification === "function") {
+            showCartNotification({
+                title: "Error",
+                message: "Error adding bundle to cart",
+                type: "error"
+            });
+        } else {
+            alert("Error adding bundle to cart");
+        }
     }
 }
 
 function updateCartCount() {
+    if (typeof updateAllCartBadges === "function") {
+        updateAllCartBadges();
+        return;
+    }
     const cart = getCart();
     const cartCount = document.getElementById("cartCount");
     if (cartCount) {
-        cartCount.textContent = cart.length;
+        cartCount.textContent = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
     }
 }
 
 /* ------------------------------
-   ADD TO CART
+   ADD TO CART (HOME PAGE)
 --------------------------------*/
 document.addEventListener("click", (e) => {
-    if (e.target.classList.contains("cart-btn")) {
-        // Check if button is disabled (out of stock)
-        if (e.target.disabled) {
+    const btn = e.target.closest(".cart-btn");
+    if (!btn) return;
+
+    // Check if button is disabled (out of stock)
+    if (btn.disabled) {
+        if (typeof showCartNotification === "function") {
+            showCartNotification({
+                title: "Out of Stock",
+                message: "This book is currently out of stock!",
+                type: "error"
+            });
+        } else {
             alert("This book is currently out of stock!");
-            return;
         }
+        return;
+    }
 
-        const bookId = e.target.dataset.id;
-        const card = e.target.closest(".book-card");
+    const bookId = btn.dataset.id;
+    const card = btn.closest(".book-card");
+    const book = allBooks.find((b) => (b._id || b.id) === bookId) || {};
 
-        const title = card.querySelector("h3").textContent;
-        const author = card.querySelector(".book-author").textContent.replace("by ", "");
-        const price = parseFloat(card.querySelector(".book-price").textContent.replace("₹", "").split("🎁")[0].trim());
-        const coverImage = card.querySelector("img").src;
+    const title = book.title || (card && card.querySelector("h3") ? card.querySelector("h3").textContent.trim() : "Book");
+    const author = book.author || (card && card.querySelector(".book-author") ? card.querySelector(".book-author").textContent.replace("by ", "").trim() : "");
+    const pricing = window.getBookDisplayPricing ? window.getBookDisplayPricing(book) : { sellingPrice: parseFloat(book.price) || 0 };
+    const price = (pricing && pricing.sellingPrice > 0) ? pricing.sellingPrice : (parseFloat(book.price) || 0);
+    const coverImage = book.cover_image || (card && card.querySelector("img") ? card.querySelector("img").src : "");
 
-        let cart = getCart();
+    let cart = getCart();
 
-        if (cart.find((item) => item.id === bookId)) {
-            return alert("Already in cart!");
-        }
-
-        // Additional stock validation by checking the book data
-        const book = allBooks.find(b => b._id === bookId);
-        if (book && book.trackStock && book.stockStatus === 'out_of_stock') {
-            alert("This book is currently out of stock!");
-            return;
-        }
-
-        cart.push({ id: bookId, title, author, price, coverImage, quantity: 1 });
-        saveCart(cart);
-        updateCartCount();
-        
-        // Show success message with cart count
+    if (cart.find((item) => item.id === bookId)) {
         const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        if (typeof showCartNotification === "function") {
+            showCartNotification({
+                title: "Already in Cart",
+                message: `"${title}" is already in your cart.`,
+                count: cartCount,
+                type: "warning"
+            });
+        } else {
+            alert("Already in cart!");
+        }
+        return;
+    }
+
+    // Additional stock validation by checking the book data
+    if (book && book.trackStock && book.stockStatus === 'out_of_stock') {
+        if (typeof showCartNotification === "function") {
+            showCartNotification({
+                title: "Out of Stock",
+                message: "This book is currently out of stock!",
+                type: "error"
+            });
+        } else {
+            alert("This book is currently out of stock!");
+        }
+        return;
+    }
+
+    cart.push({ id: bookId, title, author, price, coverImage, quantity: 1 });
+    saveCart(cart);
+    updateCartCount();
+
+    // Show popup notification with cart count
+    const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    if (typeof showCartNotification === "function") {
+        showCartNotification({
+            title: "Added to Cart!",
+            message: `"${title}" added to cart.`,
+            count: cartCount,
+            type: "success"
+        });
+    } else {
         alert(`✅ "${title}" added to cart!\n\nCart now has ${cartCount} item${cartCount > 1 ? 's' : ''}.`);
     }
 });
 
 /* ------------------------------
-   ENHANCED PAGINATION & FILTERING
+   INFINITE SCROLL UI & CONTROLS
 --------------------------------*/
 
+function getOrCreateInfiniteScrollUI() {
+    let container = document.getElementById('infiniteScrollContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'infiniteScrollContainer';
+        container.className = 'infinite-scroll-container';
+        container.innerHTML = `
+            <div id="infiniteScrollLoading" class="infinite-scroll-loading" style="display: none;">
+                <div class="spinner-small"></div>
+                <span>Loading more books...</span>
+            </div>
+            <div id="infiniteScrollEnd" class="infinite-scroll-end" style="display: none;">
+                No more books
+            </div>
+            <div id="infiniteScrollError" class="infinite-scroll-error" style="display: none;">
+                <span>Failed to load more books.</span>
+                <button type="button" id="retryInfiniteScrollBtn" class="btn-retry-scroll">Retry</button>
+            </div>
+            <div id="infiniteScrollSentinel" style="height: 20px; width: 100%; margin: 10px 0;"></div>
+        `;
+
+        const booksGrid = document.getElementById('booksGrid');
+        if (booksGrid && booksGrid.parentNode) {
+            booksGrid.parentNode.insertBefore(container, booksGrid.nextSibling);
+        }
+
+        const retryBtn = container.querySelector('#retryInfiniteScrollBtn');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', () => {
+                fetchNextBookBatch();
+            });
+        }
+    }
+    return container;
+}
+
+async function resetAndLoadBooks(filters = {}) {
+    // Disconnect any active observer
+    if (infiniteScrollObserver) {
+        infiniteScrollObserver.disconnect();
+    }
+
+    infiniteScrollPage = 1;
+    hasMoreBooks = true;
+    isInfiniteScrollLoading = false;
+    loadedBookIds.clear();
+
+    const booksGrid = document.getElementById('booksGrid');
+    if (booksGrid) {
+        booksGrid.innerHTML = '';
+        booksGrid.style.display = currentView === 'list' ? 'flex' : 'grid';
+        booksGrid.className = `books-grid ${currentView === 'list' ? 'list-view' : ''}`;
+    }
+
+    const emptyState = document.getElementById('emptyState');
+    if (emptyState) emptyState.style.display = 'none';
+
+    // Hide legacy pagination container
+    const pagContainer = document.getElementById('paginationContainer');
+    if (pagContainer) pagContainer.style.display = 'none';
+
+    getOrCreateInfiniteScrollUI();
+    const endEl = document.getElementById('infiniteScrollEnd');
+    const errorEl = document.getElementById('infiniteScrollError');
+    if (endEl) endEl.style.display = 'none';
+    if (errorEl) errorEl.style.display = 'none';
+
+    infiniteScrollLastQuery = { ...filters };
+
+    // Fetch the first batch
+    await fetchNextBookBatch();
+
+    // Attach IntersectionObserver to sentinel
+    setupInfiniteScrollObserver();
+}
+
+async function fetchNextBookBatch() {
+    if (isInfiniteScrollLoading || !hasMoreBooks) return;
+    isInfiniteScrollLoading = true;
+
+    const loadingEl = document.getElementById('infiniteScrollLoading');
+    const errorEl = document.getElementById('infiniteScrollError');
+    const endEl = document.getElementById('infiniteScrollEnd');
+    const emptyState = document.getElementById('emptyState');
+    const booksGrid = document.getElementById('booksGrid');
+
+    if (loadingEl) loadingEl.style.display = 'flex';
+    if (errorEl) errorEl.style.display = 'none';
+
+    const qs = new URLSearchParams();
+    qs.set('page', infiniteScrollPage);
+    qs.set('limit', infiniteScrollLimit);
+
+    if (infiniteScrollLastQuery.class) qs.set('class', infiniteScrollLastQuery.class);
+    if (infiniteScrollLastQuery.subject) qs.set('subject', infiniteScrollLastQuery.subject);
+    if (infiniteScrollLastQuery.search) qs.set('search', infiniteScrollLastQuery.search);
+    if (infiniteScrollLastQuery.category) qs.set('category', infiniteScrollLastQuery.category);
+    if (infiniteScrollLastQuery.minPrice) qs.set('minPrice', infiniteScrollLastQuery.minPrice);
+    if (infiniteScrollLastQuery.maxPrice) qs.set('maxPrice', infiniteScrollLastQuery.maxPrice);
+
+    try {
+        const res = await fetch(`${API_URL}/books?${qs.toString()}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (loadingEl) loadingEl.style.display = 'none';
+
+        const books = Array.isArray(data.books) ? data.books : [];
+        infiniteScrollTotalPages = data.totalPages || 1;
+        infiniteScrollTotalBooks = data.totalCount !== undefined ? data.totalCount : books.length;
+
+        // Dedup new books
+        const newBooks = books.filter(b => {
+            const id = b._id || b.id;
+            if (!id || loadedBookIds.has(id)) return false;
+            loadedBookIds.add(id);
+            return true;
+        });
+
+        // Add to allBooks cache for stock checks and cart addition
+        newBooks.forEach(b => {
+            const idx = allBooks.findIndex(existing => (existing._id || existing.id) === (b._id || b.id));
+            if (idx === -1) allBooks.push(b);
+            else allBooks[idx] = b;
+        });
+
+        if (loadedBookIds.size === 0) {
+            if (emptyState) emptyState.style.display = 'block';
+            if (booksGrid) booksGrid.style.display = 'none';
+            hasMoreBooks = false;
+            updateBooksStatsText(0, infiniteScrollLastQuery.search);
+            return;
+        }
+
+        if (emptyState) emptyState.style.display = 'none';
+        if (booksGrid) {
+            booksGrid.style.display = currentView === 'list' ? 'flex' : 'grid';
+            newBooks.forEach(book => {
+                booksGrid.appendChild(createBookCard(book));
+            });
+        }
+
+        updateBooksStatsText(infiniteScrollTotalBooks, infiniteScrollLastQuery.search);
+
+        // Check if more books remain
+        if (infiniteScrollPage >= infiniteScrollTotalPages || books.length < infiniteScrollLimit || books.length === 0) {
+            hasMoreBooks = false;
+            if (endEl) endEl.style.display = 'block';
+            if (infiniteScrollObserver) infiniteScrollObserver.disconnect();
+        } else {
+            infiniteScrollPage++;
+        }
+    } catch (err) {
+        console.error("Error fetching book batch:", err);
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (errorEl) errorEl.style.display = 'flex';
+    } finally {
+        isInfiniteScrollLoading = false;
+    }
+}
+
+function setupInfiniteScrollObserver() {
+    if (infiniteScrollObserver) infiniteScrollObserver.disconnect();
+
+    const sentinel = document.getElementById('infiniteScrollSentinel');
+    if (!sentinel) return;
+
+    if (!('IntersectionObserver' in window)) {
+        console.warn('IntersectionObserver not supported, fallback scroll listener');
+        window.addEventListener('scroll', debounce(() => {
+            if (hasMoreBooks && !isInfiniteScrollLoading) {
+                const rect = sentinel.getBoundingClientRect();
+                if (rect.top <= window.innerHeight + 300) {
+                    fetchNextBookBatch();
+                }
+            }
+        }, 150));
+        return;
+    }
+
+    infiniteScrollObserver = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        if (entry && entry.isIntersecting && hasMoreBooks && !isInfiniteScrollLoading) {
+            fetchNextBookBatch();
+        }
+    }, {
+        root: null,
+        rootMargin: '250px',
+        threshold: 0.05
+    });
+
+    infiniteScrollObserver.observe(sentinel);
+}
+
 function setupPaginationControls() {
+    // Hide legacy pagination container permanently
+    const pagContainer = document.getElementById('paginationContainer');
+    if (pagContainer) {
+        pagContainer.style.display = 'none';
+        const controls = pagContainer.querySelector('.pagination-controls');
+        if (controls) controls.style.display = 'none';
+    }
+
     // Class filter
     const classFilter = document.getElementById('classFilter');
     if (classFilter) {
         classFilter.addEventListener('change', handleFilters);
     }
-    
+
     // Subject filter
     const subjectFilter = document.getElementById('subjectFilter');
     if (subjectFilter) {
         subjectFilter.addEventListener('change', handleFilters);
     }
-    
+
     // View controls
     const gridViewBtn = document.getElementById('gridView');
     const listViewBtn = document.getElementById('listView');
-    
+
     if (gridViewBtn && listViewBtn) {
+        gridViewBtn.classList.toggle('active', currentView === 'grid');
+        listViewBtn.classList.toggle('active', currentView === 'list');
         gridViewBtn.addEventListener('click', () => switchView('grid'));
         listViewBtn.addEventListener('click', () => switchView('list'));
     }
-    
-    // Pagination controls
-    const prevBtn = document.getElementById('prevPage');
-    const nextBtn = document.getElementById('nextPage');
-    const loadMoreBtn = document.getElementById('loadMoreBtn');
-    
-    if (prevBtn) prevBtn.addEventListener('click', () => changePage(currentPage - 1));
-    if (nextBtn) nextBtn.addEventListener('click', () => changePage(currentPage + 1));
-    if (loadMoreBtn) loadMoreBtn.addEventListener('click', loadMoreBooks);
 }
 
 function handleFilters() {
@@ -1057,10 +1331,21 @@ function handleFilters() {
     const selectedSubject = document.getElementById('subjectFilter') ? document.getElementById('subjectFilter').value : '';
     const searchInput = document.getElementById("searchInput");
     const searchTerm = searchInput ? searchInput.value.trim() : '';
-    filterAndDisplayBooks(selectedClass, selectedSubject, searchTerm);
+
+    resetAndLoadBooks({
+        class: selectedClass,
+        subject: selectedSubject,
+        search: searchTerm
+    });
 }
 
-window.filterAndDisplayBooks = filterAndDisplayBooks;
+window.filterAndDisplayBooks = function(selectedClass = '', selectedSubject = '', searchTerm = '') {
+    resetAndLoadBooks({
+        class: selectedClass,
+        subject: selectedSubject,
+        search: searchTerm
+    });
+};
 
 window.filterByClass = function (classValue, el) {
     document.querySelectorAll('.discovery-class-btn, .class-chip-pill').forEach(c => c.classList.remove('active'));
@@ -1087,7 +1372,12 @@ window.filterByClass = function (classValue, el) {
     const selectedSubject = subjectFilter ? subjectFilter.value : '';
     const searchInput = document.getElementById("searchInput");
     const searchTerm = searchInput ? searchInput.value.trim() : '';
-    filterAndDisplayBooks(String(classValue), selectedSubject, searchTerm);
+
+    resetAndLoadBooks({
+        class: String(classValue),
+        subject: selectedSubject,
+        search: searchTerm
+    });
 
     const booksSection = document.getElementById('booksSection');
     if (booksSection) {
@@ -1095,215 +1385,61 @@ window.filterByClass = function (classValue, el) {
     }
 };
 
-function filterAndDisplayBooks(selectedClass = '', selectedSubject = '', searchTerm = '') {
-    if (!searchTerm) {
-        const searchInput = document.getElementById("searchInput");
-        if (searchInput) searchTerm = searchInput.value.trim();
-    }
-    
-    const lowerTerm = searchTerm ? searchTerm.toLowerCase() : '';
-    
-    filteredBooks = allBooks.filter(book => {
-        const matchesClass = !selectedClass || 
-            (book.class && book.class.toString() === selectedClass);
-            
-        const matchesSubject = !selectedSubject || 
-            (book.subject && book.subject.toLowerCase() === selectedSubject.toLowerCase());
-            
-        let matchesSearch = true;
-        if (lowerTerm) {
-            const title = (book.title || '').toLowerCase();
-            const author = (book.author || '').toLowerCase();
-            const subject = (book.subject || '').toLowerCase();
-            const bookClass = (book.class || '').toString().toLowerCase();
-            const desc = (book.description || '').toLowerCase();
-            const cat = (book.category || '').toLowerCase();
-            matchesSearch = title.includes(lowerTerm) || 
-                            author.includes(lowerTerm) || 
-                            subject.includes(lowerTerm) || 
-                            bookClass.includes(lowerTerm) || 
-                            desc.includes(lowerTerm) || 
-                            cat.includes(lowerTerm);
-        }
-        
-        return matchesClass && matchesSubject && matchesSearch;
-    });
-    
-    totalBooks = filteredBooks.length;
-    currentPage = 1;
-    displayPaginatedBooks();
-    updatePaginationUI();
-    updateBooksStats(searchTerm);
-}
-
 function displayPaginatedBooks() {
-    const startIndex = (currentPage - 1) * booksPerPage;
-    const endIndex = startIndex + booksPerPage;
-    const booksToShow = filteredBooks.slice(startIndex, endIndex);
-    
-    const grid = document.getElementById("booksGrid");
-    grid.className = `books-grid ${currentView === 'list' ? 'list-view' : ''}`;
-    
-    if (booksToShow.length === 0) {
-        document.getElementById('emptyState').style.display = 'block';
-        grid.style.display = 'none';
-        document.getElementById('paginationContainer').style.display = 'none';
-    } else {
-        document.getElementById('emptyState').style.display = 'none';
-        grid.style.display = 'grid';
-        document.getElementById('paginationContainer').style.display = 'block';
-        
-        grid.innerHTML = "";
-        booksToShow.forEach((book) => {
-            grid.appendChild(createBookCard(book));
-        });
-    }
-}
-
-function changePage(newPage) {
-    const totalPages = Math.ceil(totalBooks / booksPerPage);
-    if (newPage >= 1 && newPage <= totalPages) {
-        currentPage = newPage;
-        displayPaginatedBooks();
-        updatePaginationUI();
-        
-        // Smooth scroll to top of books section
-        document.querySelector('.books-section').scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
-        });
-    }
+    // Kept for backward compatibility: hide legacy container and use infinite scroll
+    const pagContainer = document.getElementById('paginationContainer');
+    if (pagContainer) pagContainer.style.display = 'none';
 }
 
 function updatePaginationUI() {
-    const totalPages = Math.ceil(totalBooks / booksPerPage);
-    
-    // Update pagination info
-    const paginationInfo = document.getElementById('paginationInfo');
-    if (paginationInfo) {
-        const startItem = (currentPage - 1) * booksPerPage + 1;
-        const endItem = Math.min(currentPage * booksPerPage, totalBooks);
-        paginationInfo.textContent = `Showing ${startItem}-${endItem} of ${totalBooks} books`;
-    }
-    
-    // Update current page indicator
-    const currentPageSpan = document.getElementById('currentPage');
-    if (currentPageSpan) {
-        currentPageSpan.textContent = totalPages > 1 ? `Page ${currentPage} of ${totalPages}` : '';
-    }
-    
-    // Update prev/next buttons
-    const prevBtn = document.getElementById('prevPage');
-    const nextBtn = document.getElementById('nextPage');
-    
-    if (prevBtn) prevBtn.disabled = currentPage <= 1;
-    if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
-    
-    // Update page numbers
-    updatePageNumbers(totalPages);
-    
-    // Show/hide load more button
-    const loadMoreBtn = document.getElementById('loadMoreBtn');
-    if (loadMoreBtn) {
-        loadMoreBtn.style.display = currentPage < totalPages ? 'block' : 'none';
-    }
-}
-
-function updatePageNumbers(totalPages) {
-    const pageNumbersContainer = document.getElementById('pageNumbers');
-    if (!pageNumbersContainer) return;
-    
-    pageNumbersContainer.innerHTML = '';
-    
-    if (totalPages <= 1) return;
-    
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-    
-    // Adjust start page if we're near the end
-    if (endPage - startPage < maxVisiblePages - 1) {
-        startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-    
-    // Add first page and ellipsis if needed
-    if (startPage > 1) {
-        addPageNumber(1);
-        if (startPage > 2) {
-            const ellipsis = document.createElement('span');
-            ellipsis.textContent = '...';
-            ellipsis.className = 'page-ellipsis';
-            pageNumbersContainer.appendChild(ellipsis);
-        }
-    }
-    
-    // Add visible page numbers
-    for (let i = startPage; i <= endPage; i++) {
-        addPageNumber(i);
-    }
-    
-    // Add last page and ellipsis if needed
-    if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-            const ellipsis = document.createElement('span');
-            ellipsis.textContent = '...';
-            ellipsis.className = 'page-ellipsis';
-            pageNumbersContainer.appendChild(ellipsis);
-        }
-        addPageNumber(totalPages);
-    }
-}
-
-function addPageNumber(pageNum) {
-    const pageNumbersContainer = document.getElementById('pageNumbers');
-    const pageBtn = document.createElement('button');
-    pageBtn.textContent = pageNum;
-    pageBtn.className = `page-number ${pageNum === currentPage ? 'active' : ''}`;
-    pageBtn.addEventListener('click', () => changePage(pageNum));
-    pageNumbersContainer.appendChild(pageBtn);
-}
-
-function loadMoreBooks() {
-    const totalPages = Math.ceil(totalBooks / booksPerPage);
-    if (currentPage < totalPages) {
-        changePage(currentPage + 1);
-    }
+    // Hide legacy pagination container permanently
+    const pagContainer = document.getElementById('paginationContainer');
+    if (pagContainer) pagContainer.style.display = 'none';
 }
 
 function switchView(view) {
     currentView = view;
-    
+    try {
+        localStorage.setItem('booksViewMode', view);
+    } catch (e) {}
+
     // Update button states
-    document.getElementById('gridView').classList.toggle('active', view === 'grid');
-    document.getElementById('listView').classList.toggle('active', view === 'list');
-    
-    // Update grid class
+    const gridViewBtn = document.getElementById('gridView');
+    const listViewBtn = document.getElementById('listView');
+    if (gridViewBtn) gridViewBtn.classList.toggle('active', view === 'grid');
+    if (listViewBtn) listViewBtn.classList.toggle('active', view === 'list');
+
+    // Update grid class and display
     const grid = document.getElementById("booksGrid");
-    grid.className = `books-grid ${view === 'list' ? 'list-view' : ''}`;
+    if (grid) {
+        grid.className = `books-grid ${view === 'list' ? 'list-view' : ''}`;
+        grid.style.display = view === 'list' ? 'flex' : 'grid';
+    }
+}
+
+function updateBooksStatsText(total, searchTerm = '') {
+    const booksCount = document.getElementById('booksCount');
+    if (!booksCount) return;
+
+    const selectedClass = document.getElementById('classFilter') ? document.getElementById('classFilter').value : '';
+    const selectedSubject = document.getElementById('subjectFilter') ? document.getElementById('subjectFilter').value : '';
+
+    let statusText = `${total} books`;
+    if (searchTerm) {
+        statusText = `${total} book${total === 1 ? '' : 's'} found for "${searchTerm}"`;
+    } else if (selectedClass || selectedSubject) {
+        statusText += ' found';
+        if (selectedClass) statusText += ` for Class ${selectedClass}`;
+        if (selectedSubject) statusText += ` in ${selectedSubject}`;
+    }
+    booksCount.textContent = statusText;
+
+    const currentPageSpan = document.getElementById('currentPage');
+    if (currentPageSpan) currentPageSpan.textContent = '';
 }
 
 function updateBooksStats(searchTerm = '') {
-    const booksCount = document.getElementById('booksCount');
-    if (booksCount) {
-        const selectedClass = document.getElementById('classFilter') ? document.getElementById('classFilter').value : '';
-        const selectedSubject = document.getElementById('subjectFilter') ? document.getElementById('subjectFilter').value : '';
-        if (!searchTerm) {
-            const searchInput = document.getElementById("searchInput");
-            if (searchInput) searchTerm = searchInput.value.trim();
-        }
-        
-        let statusText = `${totalBooks} books`;
-        
-        if (searchTerm) {
-            statusText = `${totalBooks} book${totalBooks === 1 ? '' : 's'} found for "${searchTerm}"`;
-        } else if (selectedClass || selectedSubject) {
-            statusText += ' found';
-            if (selectedClass) statusText += ` for Class ${selectedClass}`;
-            if (selectedSubject) statusText += ` in ${selectedSubject}`;
-        }
-        
-        booksCount.textContent = statusText;
-    }
+    updateBooksStatsText(infiniteScrollTotalBooks || totalBooks, searchTerm);
 }
 
 // Utility function for debouncing search

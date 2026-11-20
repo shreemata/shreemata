@@ -1154,8 +1154,19 @@ document.querySelectorAll('.btn-primary, .btn-secondary, .back-btn').forEach(but
             });
 
             saveCart(cart);
-            showToast(`Bundle "${bundle.name}" added to cart!`, "success");
+            if (typeof updateAllCartBadges === 'function') updateAllCartBadges();
             updateCartCount();
+            const count = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+            if (typeof showCartNotification === "function") {
+                showCartNotification({
+                    title: "Added to Cart!",
+                    message: `Bundle "${bundle.name}" added to cart!`,
+                    count: count,
+                    type: "success"
+                });
+            } else {
+                showToast(`Bundle "${bundle.name}" added to cart!`, "success");
+            }
         } catch (err) {
             console.error("Error adding bundle to cart:", err);
             showToast("Error adding bundle to cart", "error");

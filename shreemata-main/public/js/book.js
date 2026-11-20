@@ -1260,7 +1260,15 @@ async function addToCart(deliveryMethod = "courier") {
     // Check stock status before adding to cart
     const book = window.currentBook;
     if (book && book.trackStock && book.stockStatus === 'out_of_stock') {
-        alert("❌ This book is currently out of stock and cannot be added to cart.");
+        if (typeof showCartNotification === "function") {
+            showCartNotification({
+                title: "Out of Stock",
+                message: "This book is currently out of stock and cannot be added to cart.",
+                type: "error"
+            });
+        } else {
+            alert("❌ This book is currently out of stock and cannot be added to cart.");
+        }
         return;
     }
     
@@ -1269,7 +1277,15 @@ async function addToCart(deliveryMethod = "courier") {
     if (book && book.trackStock && book.stockStatus === 'limited_stock') {
         const availableStock = book.stockQuantity || 0;
         if (quantity > availableStock) {
-            alert(`❌ Only ${availableStock} copies are available. Please reduce the quantity.`);
+            if (typeof showCartNotification === "function") {
+                showCartNotification({
+                    title: "Stock Limit",
+                    message: `Only ${availableStock} copies are available. Please reduce the quantity.`,
+                    type: "warning"
+                });
+            } else {
+                alert(`❌ Only ${availableStock} copies are available. Please reduce the quantity.`);
+            }
             return;
         }
     }
@@ -1287,7 +1303,15 @@ async function addToCart(deliveryMethod = "courier") {
         if (book && book.trackStock && book.stockStatus === 'limited_stock') {
             const availableStock = book.stockQuantity || 0;
             if (newQuantity > availableStock) {
-                alert(`❌ Cannot add more. Only ${availableStock} copies are available and you already have ${cart[existingItemIndex].quantity} in cart.`);
+                if (typeof showCartNotification === "function") {
+                    showCartNotification({
+                        title: "Stock Limit",
+                        message: `Cannot add more. Only ${availableStock} copies are available and you already have ${cart[existingItemIndex].quantity} in cart.`,
+                        type: "warning"
+                    });
+                } else {
+                    alert(`❌ Cannot add more. Only ${availableStock} copies are available and you already have ${cart[existingItemIndex].quantity} in cart.`);
+                }
                 return;
             }
         }
@@ -1297,14 +1321,33 @@ async function addToCart(deliveryMethod = "courier") {
         saveCart(cart);
         updateCartCount(); // Update cart count
         
-        // Show success message with cart count
+        // Show success notification with cart count
         const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
-        return alert(`✅ Book quantity updated in cart!\n\nCart now has ${cartCount} item${cartCount > 1 ? 's' : ''} (${deliveryMethod === 'pickup' ? 'Pickup' : 'Courier'}).`);
+        if (typeof showCartNotification === "function") {
+            showCartNotification({
+                title: "Cart Updated",
+                message: `Quantity for "${book ? book.title : 'book'}" updated in cart (${deliveryMethod === 'pickup' ? 'Pickup' : 'Courier'}).`,
+                count: cartCount,
+                type: "success"
+            });
+        } else {
+            alert(`✅ Book quantity updated in cart!\n\nCart now has ${cartCount} item${cartCount > 1 ? 's' : ''} (${deliveryMethod === 'pickup' ? 'Pickup' : 'Courier'}).`);
+        }
+        return;
     }
 
     // Use stored book data
     if (!book) {
-        return alert("Book data not loaded. Please refresh the page.");
+        if (typeof showCartNotification === "function") {
+            showCartNotification({
+                title: "Error",
+                message: "Book data not loaded. Please refresh the page.",
+                type: "error"
+            });
+        } else {
+            alert("Book data not loaded. Please refresh the page.");
+        }
+        return;
     }
 
     // Calculate price based on delivery method
@@ -1330,10 +1373,19 @@ async function addToCart(deliveryMethod = "courier") {
     saveCart(cart);
     updateCartCount(); // Update cart count
     
-    // Show success message with cart count
+    // Show success notification with cart count
     const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
     const methodText = deliveryMethod === 'pickup' ? 'Book-stall Pickup' : 'Courier Delivery';
-    alert(`✅ "${book.title}" added to cart!\n\nCart now has ${cartCount} item${cartCount > 1 ? 's' : ''} for ${methodText}.`);
+    if (typeof showCartNotification === "function") {
+        showCartNotification({
+            title: "Added to Cart!",
+            message: `"${book.title}" added to cart for ${methodText}.`,
+            count: cartCount,
+            type: "success"
+        });
+    } else {
+        alert(`✅ "${book.title}" added to cart!\n\nCart now has ${cartCount} item${cartCount > 1 ? 's' : ''} for ${methodText}.`);
+    }
 }
 
 /* -----------------------------------
