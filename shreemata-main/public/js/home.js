@@ -27,13 +27,15 @@ let homeSettings = { showBundles: true, showFeaturedBooks: true }; // Store home
 // Infinite scroll state for single books
 let infiniteScrollObserver = null;
 let infiniteScrollPage = 1;
-const infiniteScrollLimit = 4; // Batch size: loads 4 books per page so scrolling continuously appends batches
+const BOOKS_BATCH_SIZE = 12; // Batch size: loads 12 books per batch
 let infiniteScrollTotalPages = 1;
 let infiniteScrollTotalBooks = 0;
 let isInfiniteScrollLoading = false;
 let hasMoreBooks = true;
 const loadedBookIds = new Set();
 let infiniteScrollLastQuery = {};
+let bookFetchToken = 0;
+let bookAbortController = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("HOME USING API:", API_URL);
@@ -625,6 +627,10 @@ function displaySearchResults(data, searchTerm = "") {
     console.log("Rendering search results count:", books.length);
 
     if (infiniteScrollObserver) infiniteScrollObserver.disconnect();
+    if (bookAbortController) {
+        try { bookAbortController.abort(); } catch (_) {}
+    }
+    bookFetchToken++;
     hasMoreBooks = false;
     isInfiniteScrollLoading = false;
     loadedBookIds.clear();
@@ -1136,6 +1142,13 @@ function getOrCreateInfiniteScrollUI() {
 }
 
 async function resetAndLoadBooks(filters = {}) {
+    // Cancel any in-flight request for previous filter session
+    if (bookAbortController) {
+        try { bookAbortController.abort(); } catch (_) {}
+    }
+    bookAbortController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const currentToken = ++bookFetchToken;
+
     // Disconnect any active observer
     if (infiniteScrollObserver) {
         infiniteScrollObserver.disconnect();
@@ -1168,15 +1181,22 @@ async function resetAndLoadBooks(filters = {}) {
 
     infiniteScrollLastQuery = { ...filters };
 
-    // Fetch the first batch
-    await fetchNextBookBatch();
+    // Fetch the first batch with current session token
+    await fetchNextBookBatch(currentToken);
 
-    // Attach IntersectionObserver to sentinel
-    setupInfiniteScrollObserver();
+    // Attach IntersectionObserver to sentinel only if still matching current token and has more books
+    if (currentToken === bookFetchToken && hasMoreBooks) {
+        setupInfiniteScrollObserver();
+    }
 }
 
-async function fetchNextBookBatch() {
+async function fetchNextBookBatch(expectedToken) {
     if (isInfiniteScrollLoading || !hasMoreBooks) return;
+
+    // If an expectedToken was passed, ensure it matches current bookFetchToken
+    const thisToken = expectedToken !== undefined ? expectedToken : bookFetchToken;
+    if (thisToken !== bookFetchToken) return;
+
     isInfiniteScrollLoading = true;
 
     const loadingEl = document.getElementById('infiniteScrollLoading');
@@ -1190,7 +1210,7 @@ async function fetchNextBookBatch() {
 
     const qs = new URLSearchParams();
     qs.set('page', infiniteScrollPage);
-    qs.set('limit', infiniteScrollLimit);
+    qs.set('limit', BOOKS_BATCH_SIZE);
 
     if (infiniteScrollLastQuery.class) qs.set('class', infiniteScrollLastQuery.class);
     if (infiniteScrollLastQuery.subject) qs.set('subject', infiniteScrollLastQuery.subject);
@@ -1199,10 +1219,14 @@ async function fetchNextBookBatch() {
     if (infiniteScrollLastQuery.minPrice) qs.set('minPrice', infiniteScrollLastQuery.minPrice);
     if (infiniteScrollLastQuery.maxPrice) qs.set('maxPrice', infiniteScrollLastQuery.maxPrice);
 
+    const signal = bookAbortController ? bookAbortController.signal : undefined;
+
     try {
-        const res = await fetch(`${API_URL}/books?${qs.toString()}`);
+        const res = await fetch(`${API_URL}/books?${qs.toString()}`, { signal });
+        if (thisToken !== bookFetchToken) return;
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
+        if (thisToken !== bookFetchToken) return;
 
         if (loadingEl) loadingEl.style.display = 'none';
 
@@ -1244,7 +1268,7 @@ async function fetchNextBookBatch() {
         updateBooksStatsText(infiniteScrollTotalBooks, infiniteScrollLastQuery.search);
 
         // Check if more books remain
-        if (infiniteScrollPage >= infiniteScrollTotalPages || books.length < infiniteScrollLimit || books.length === 0) {
+        if (infiniteScrollPage >= infiniteScrollTotalPages || books.length < BOOKS_BATCH_SIZE || books.length === 0) {
             hasMoreBooks = false;
             if (endEl) endEl.style.display = 'block';
             if (infiniteScrollObserver) infiniteScrollObserver.disconnect();
@@ -1252,11 +1276,19 @@ async function fetchNextBookBatch() {
             infiniteScrollPage++;
         }
     } catch (err) {
+        if (err && err.name === 'AbortError') {
+            return;
+        }
+        if (thisToken !== bookFetchToken) {
+            return;
+        }
         console.error("Error fetching book batch:", err);
         if (loadingEl) loadingEl.style.display = 'none';
         if (errorEl) errorEl.style.display = 'flex';
     } finally {
-        isInfiniteScrollLoading = false;
+        if (thisToken === bookFetchToken) {
+            isInfiniteScrollLoading = false;
+        }
     }
 }
 

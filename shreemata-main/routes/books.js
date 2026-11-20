@@ -305,7 +305,7 @@ router.get("/", async (req, res) => {
     const [totalCount, books] = await Promise.all([
       Book.countDocuments(query),
       Book.find(query)
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: -1, _id: -1 })
         .skip(skip)
         .limit(limit)
     ]);
