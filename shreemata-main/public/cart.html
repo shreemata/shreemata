@@ -1729,39 +1729,93 @@
 <div id="cartBillingAddressModal" class="modal" style="display: none;">
     <div class="modal-content" style="max-width: 700px; width: 95%; max-height: 90vh; overflow-y: auto; margin: 2% auto;">
         <div class="modal-header" style="position: sticky; top: 0; z-index: 10; background: white; border-radius: 16px 16px 0 0;">
-            <h3 id="cartBillingModalTitle">📋 Billing & Delivery Details</h3>
+            <h3 id="cartBillingModalTitle">📋 Delivery Details</h3>
             <span class="close" onclick="closeCartBillingAddressModal()">&times;</span>
         </div>
         <div class="modal-body" style="padding: 25px; padding-top: 10px;">
             <form id="cartBillingAddressForm">
-                <!-- Permanent Address (Billing) Section -->
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 12px; margin-bottom: 25px;">
-                    <h4 style="margin: 0 0 10px 0; font-size: 18px;">🏠 Permanent Address (For Billing)</h4>
-                    <p style="margin: 0; font-size: 14px; opacity: 0.9;">This address will be used for billing and invoice generation</p>
+                <div id="cartBillingModalBanner" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 12px; margin-bottom: 25px;">
+                    <h4 id="cartBillingModalBannerTitle" style="margin: 0 0 10px 0; font-size: 18px;">🚚 Delivery Details</h4>
+                    <p id="cartBillingModalBannerSubtitle" style="margin: 0; font-size: 14px; opacity: 0.9;">Where should we deliver your order?</p>
+                </div>
+
+                <!-- Use Old Address Button -->
+                <div id="cartPreviousAddressesWrapper" style="margin-bottom: 20px;">
+                    <button id="cartUseOldAddressBtn" type="button" onclick="loadCartPreviousAddresses()" style="
+                        width: 100%; 
+                        padding: 15px; 
+                        background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+                        color: white; 
+                        border: none; 
+                        border-radius: 12px; 
+                        font-size: 16px; 
+                        font-weight: 600; 
+                        cursor: pointer; 
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.25);
+                    ">
+                        📋 Use My Previous Address
+                    </button>
+                </div>
+
+                <!-- Previous Addresses Dropdown (Initially Hidden) -->
+                <div id="cartPreviousAddressesSection" style="display: none; margin-bottom: 20px;">
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; border: 2px solid #e9ecef;">
+                        <h5 style="margin: 0 0 15px 0; color: #495057; font-size: 16px;">📍 Select from Previous Addresses:</h5>
+                        <select id="cartPreviousAddressSelect" onchange="fillCartAddressFromPrevious()" style="
+                            width: 100%; 
+                            padding: 12px; 
+                            border: 2px solid #ced4da; 
+                            border-radius: 8px; 
+                            font-size: 14px; 
+                            background: white; 
+                            cursor: pointer;
+                        ">
+                            <option value="">-- Select a previous address --</option>
+                        </select>
+                        <div style="margin-top: 10px; text-align: center;">
+                            <button type="button" onclick="hideCartPreviousAddresses()" style="
+                                padding: 8px 16px; 
+                                background: #6c757d; 
+                                color: white; 
+                                border: none; 
+                                border-radius: 6px; 
+                                font-size: 12px; 
+                                cursor: pointer;
+                            ">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                     <div>
                         <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Full Name *</label>
-                        <input type="text" id="cartBillingName" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Full name for billing">
+                        <input type="text" id="cartBillingName" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Full recipient name">
                     </div>
                     <div>
                         <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Phone Number *</label>
                         <input type="tel" id="cartBillingPhone" required pattern="[0-9]{10}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="10-digit phone number">
                     </div>
                 </div>
+
+                <div id="cartBillingEmailGroup" style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Email *</label>
+                    <input type="email" id="cartBillingEmail" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Email for order updates & invoice">
+                </div>
                 
-                <div style="margin-bottom: 20px;">
+                <div id="cartBillingAddress1Group" style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">House/Building Address *</label>
                     <input type="text" id="cartBillingAddress1" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="House number, building name, street">
                 </div>
                 
-                <div style="margin-bottom: 20px;">
+                <div id="cartBillingAddress2Group" style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Area/Locality (Optional)</label>
                     <input type="text" id="cartBillingAddress2" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Area, locality, landmark">
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div id="cartBillingTalukDistrictStateRow" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                     <div>
                         <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Taluk *</label>
                         <input type="text" id="cartBillingTaluk" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Taluk">
@@ -1776,125 +1830,14 @@
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
-                    <div>
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Pincode *</label>
-                        <input type="text" id="cartBillingPincode" required pattern="[0-9]{6}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="6-digit pincode">
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Email *</label>
-                        <input type="email" id="cartBillingEmail" required style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Email for invoice">
-                    </div>
+                <div id="cartBillingPincodeRow" style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Pincode *</label>
+                    <input type="text" id="cartBillingPincode" required pattern="[0-9]{6}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="6-digit pincode">
                 </div>
-                
-                <!-- Delivery Address Section (Only for Courier Items) -->
-                <div id="cartDeliveryAddressSection" style="display: none;">
-                    <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                        <h4 style="margin: 0 0 10px 0; font-size: 18px;">🚚 Delivery Address</h4>
-                        <p style="margin: 0; font-size: 14px; opacity: 0.9;">Where should we deliver your courier items?</p>
-                    </div>
-                    
-                    <!-- Use Old Address Button -->
-                    <div style="margin-bottom: 20px;">
-                        <button id="cartUseOldAddressBtn" onclick="loadCartPreviousAddresses()" style="
-                            width: 100%; 
-                            padding: 15px; 
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                            color: white; 
-                            border: none; 
-                            border-radius: 12px; 
-                            font-size: 16px; 
-                            font-weight: 600; 
-                            cursor: pointer; 
-                            transition: all 0.3s ease;
-                            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-                        ">
-                            📋 Use My Previous Address
-                        </button>
-                    </div>
-                    
-                    <!-- Previous Addresses Dropdown (Initially Hidden) -->
-                    <div id="cartPreviousAddressesSection" style="display: none; margin-bottom: 20px;">
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; border: 2px solid #e9ecef;">
-                            <h5 style="margin: 0 0 15px 0; color: #495057; font-size: 16px;">📍 Select from Previous Addresses:</h5>
-                            <select id="cartPreviousAddressSelect" onchange="fillCartAddressFromPrevious()" style="
-                                width: 100%; 
-                                padding: 12px; 
-                                border: 2px solid #ced4da; 
-                                border-radius: 8px; 
-                                font-size: 14px; 
-                                background: white;
-                                cursor: pointer;
-                            ">
-                                <option value="">-- Select a previous address --</option>
-                            </select>
-                            <div style="margin-top: 10px; text-align: center;">
-                                <button onclick="hideCartPreviousAddresses()" style="
-                                    padding: 8px 16px; 
-                                    background: #6c757d; 
-                                    color: white; 
-                                    border: none; 
-                                    border-radius: 6px; 
-                                    font-size: 12px; 
-                                    cursor: pointer;
-                                ">
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 2px solid #e0e0e0;">
-                            <input type="checkbox" id="cartUsePermanentAddress" onchange="toggleCartDeliveryAddress()" style="transform: scale(1.2);">
-                            <span style="font-weight: 600; color: #333;">📍 Use permanent address for delivery</span>
-                        </label>
-                    </div>
-                    
-                    <div id="cartDeliveryAddressFields">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery Name *</label>
-                                <input type="text" id="cartDeliveryName" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Name for delivery">
-                            </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery Phone *</label>
-                                <input type="tel" id="cartDeliveryPhone" pattern="[0-9]{10}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="10-digit phone number">
-                            </div>
-                        </div>
-                        
-                        <div style="margin-bottom: 20px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery Address *</label>
-                            <input type="text" id="cartDeliveryAddress1" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="House number, building name, street">
-                        </div>
-                        
-                        <div style="margin-bottom: 20px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Area/Locality (Optional)</label>
-                            <input type="text" id="cartDeliveryAddress2" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Area, locality, landmark">
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Taluk *</label>
-                                <input type="text" id="cartDeliveryTaluk" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="Taluk">
-                            </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">District *</label>
-                                <input type="text" id="cartDeliveryDistrict" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="District">
-                            </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">State *</label>
-                                <input type="text" id="cartDeliveryState" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="State">
-                            </div>
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px;">
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Pincode *</label>
-                                <input type="text" id="cartDeliveryPincode" pattern="[0-9]{6}" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;" placeholder="6-digit pincode">
-                            </div>
-                        </div>
-                    </div>
+
+                <div id="cartBillingSameAsDeliveryNote" style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 14px; background: #e8f4fd; border: 1px solid #b6d4fe; border-radius: 8px; color: #084298; font-size: 13px; font-weight: 500;">
+                    <span>ℹ️</span>
+                    <span>Billing address is the same as the delivery address</span>
                 </div>
                 
                 <!-- Sticky Submit Button -->

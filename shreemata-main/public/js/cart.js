@@ -1222,7 +1222,7 @@ async function createCartOrderWithChequePayment() {
     const totalAmount = itemsTotal + courierCharge;
     
     // Get delivery address
-    const deliveryAddress = JSON.parse(localStorage.getItem("deliveryAddress") || "{}");
+    const deliveryAddress = window.cartDeliveryAddress || window.cartBillingAddress || JSON.parse(localStorage.getItem("deliveryAddress") || "{}");
     
     // Prepare cart items for the new payment system
     const orderItems = cart.map(item => ({
@@ -1255,6 +1255,7 @@ async function createCartOrderWithChequePayment() {
                 amount: totalAmount,
                 items: orderItems,
                 deliveryAddress: deliveryAddress,
+                billingAddress: window.cartBillingAddress || deliveryAddress,
                 appliedOffer: currentOffer, // Include any applied offer
                 courierCharge: courierCharge,
                 totalWeight: totalWeight,
@@ -1437,7 +1438,9 @@ async function createCartPendingOrder(paymentType) {
                 itemsTotal: itemsTotal,
                 courierCharge: courierCharge,
                 totalAmount: totalAmount,
-                totalWeight: totalWeight
+                totalWeight: totalWeight,
+                deliveryAddress: window.cartDeliveryAddress || window.cartBillingAddress,
+                billingAddress: window.cartBillingAddress
             })
         });
 
@@ -1957,6 +1960,7 @@ async function proceedToPayment() {
             amount: finalAmount, 
             items: orderItems,
             deliveryAddress: resolvedAddress,
+            billingAddress: window.cartBillingAddress || (resolvedAddress ? { ...resolvedAddress } : null),
             appliedOffer: appliedOffer,
             courierCharge: courierCharge,
             totalWeight: totalWeight,
@@ -2504,23 +2508,60 @@ async function showCartBillingAddressModal() {
     const selectedDeliveryMethod = getSelectedDeliveryMethod();
     const needsCourierDelivery = selectedDeliveryMethod === 'home';
     
-    // Show/hide delivery address section based on delivery method
-    const deliverySection = document.getElementById("cartDeliveryAddressSection");
     const modalTitle = document.getElementById("cartBillingModalTitle");
-    
-    console.log("Selected delivery method:", selectedDeliveryMethod);
-    console.log("Cart needs courier delivery:", needsCourierDelivery);
-    console.log("Delivery section element:", deliverySection);
+    const bannerTitle = document.getElementById("cartBillingModalBannerTitle");
+    const bannerSubtitle = document.getElementById("cartBillingModalBannerSubtitle");
+    const previousBtnWrapper = document.getElementById("cartPreviousAddressesWrapper");
+
+    const address1Group = document.getElementById("cartBillingAddress1Group");
+    const address1Input = document.getElementById("cartBillingAddress1");
+    const address2Group = document.getElementById("cartBillingAddress2Group");
+    const talukDistrictStateRow = document.getElementById("cartBillingTalukDistrictStateRow");
+    const talukInput = document.getElementById("cartBillingTaluk");
+    const districtInput = document.getElementById("cartBillingDistrict");
+    const stateInput = document.getElementById("cartBillingState");
+    const pincodeRow = document.getElementById("cartBillingPincodeRow");
+    const pincodeInput = document.getElementById("cartBillingPincode");
+    const noteEl = document.getElementById("cartBillingSameAsDeliveryNote");
     
     if (needsCourierDelivery) {
-        console.log("Showing delivery address section for courier items");
-        if (deliverySection) deliverySection.style.display = "block";
-        if (modalTitle) modalTitle.textContent = "📋 Billing & Delivery Details";
+        if (modalTitle) modalTitle.textContent = "📋 Delivery Details";
+        if (bannerTitle) bannerTitle.textContent = "🚚 Delivery Details";
+        if (bannerSubtitle) bannerSubtitle.textContent = "Where should we deliver your order?";
+
+        if (previousBtnWrapper) previousBtnWrapper.style.display = "block";
+        if (address1Group) address1Group.style.display = "block";
+        if (address1Input) address1Input.required = true;
+        if (address2Group) address2Group.style.display = "block";
+        if (talukDistrictStateRow) talukDistrictStateRow.style.display = "grid";
+        if (talukInput) talukInput.required = true;
+        if (districtInput) districtInput.required = true;
+        if (stateInput) stateInput.required = true;
+        if (pincodeRow) pincodeRow.style.display = "block";
+        if (pincodeInput) pincodeInput.required = true;
+        if (noteEl) noteEl.style.display = "flex";
     } else {
-        console.log("Hiding delivery address section for pickup only");
-        if (deliverySection) deliverySection.style.display = "none";
-        if (modalTitle) modalTitle.textContent = "📋 Billing Details (Store Pickup)";
+        if (modalTitle) modalTitle.textContent = "📋 Store Pickup Details";
+        if (bannerTitle) bannerTitle.textContent = "🏠 Store Pickup Details";
+        if (bannerSubtitle) bannerSubtitle.textContent = "Please provide your contact details for pickup";
+
+        if (previousBtnWrapper) previousBtnWrapper.style.display = "none";
+        if (address1Group) address1Group.style.display = "none";
+        if (address1Input) address1Input.required = false;
+        if (address2Group) address2Group.style.display = "none";
+        if (talukDistrictStateRow) talukDistrictStateRow.style.display = "none";
+        if (talukInput) talukInput.required = false;
+        if (districtInput) districtInput.required = false;
+        if (stateInput) stateInput.required = false;
+        if (pincodeRow) pincodeRow.style.display = "none";
+        if (pincodeInput) pincodeInput.required = false;
+        if (noteEl) noteEl.style.display = "none";
     }
+
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || "";
+    };
 
     try {
         // Fetch user data from server
@@ -2533,49 +2574,29 @@ async function showCartBillingAddressModal() {
         if (data.user) {
             const userData = data.user;
             
-            // Pre-fill billing address with user data
-            document.getElementById("cartBillingName").value = userData.name || "";
-            document.getElementById("cartBillingPhone").value = userData.phone || "";
-            document.getElementById("cartBillingEmail").value = userData.email || "";
+            // Pre-fill delivery details with user data
+            setVal("cartBillingName", userData.name);
+            setVal("cartBillingPhone", userData.phone);
+            setVal("cartBillingEmail", userData.email);
             
             // Pre-fill address fields
             if (userData.address) {
-                document.getElementById("cartBillingAddress1").value = userData.address.homeAddress1 || userData.address.street || "";
-                document.getElementById("cartBillingAddress2").value = userData.address.homeAddress2 || "";
-                document.getElementById("cartBillingTaluk").value = userData.address.taluk || "";
-                document.getElementById("cartBillingDistrict").value = userData.address.district || "";
-                document.getElementById("cartBillingState").value = userData.address.state || "";
-                document.getElementById("cartBillingPincode").value = userData.address.pincode || "";
-                
-                // Pre-fill delivery address with same data initially
-                document.getElementById("cartDeliveryName").value = userData.name || "";
-                document.getElementById("cartDeliveryPhone").value = userData.address.phone || userData.phone || "";
-                document.getElementById("cartDeliveryAddress1").value = userData.address.homeAddress1 || userData.address.street || "";
-                document.getElementById("cartDeliveryAddress2").value = userData.address.homeAddress2 || "";
-                document.getElementById("cartDeliveryTaluk").value = userData.address.taluk || "";
-                document.getElementById("cartDeliveryDistrict").value = userData.address.district || "";
-                document.getElementById("cartDeliveryState").value = userData.address.state || "";
-                document.getElementById("cartDeliveryPincode").value = userData.address.pincode || "";
+                setVal("cartBillingAddress1", userData.address.homeAddress1 || userData.address.street);
+                setVal("cartBillingAddress2", userData.address.homeAddress2);
+                setVal("cartBillingTaluk", userData.address.taluk);
+                setVal("cartBillingDistrict", userData.address.district);
+                setVal("cartBillingState", userData.address.state);
+                setVal("cartBillingPincode", userData.address.pincode);
             }
         }
 
         // Show modal
         document.getElementById("cartBillingAddressModal").style.display = "block";
-        
-        // Load previous addresses after modal is shown
-        setTimeout(() => {
-            createPreviousAddressesUI('cartBillingAddressModal', 'fillBillingAddress');
-        }, 100);
 
     } catch (err) {
         console.error("Error loading user data:", err);
         // Show modal anyway with empty fields
         document.getElementById("cartBillingAddressModal").style.display = "block";
-        
-        // Still try to load previous addresses
-        setTimeout(() => {
-            createPreviousAddressesUI('cartBillingAddressModal', 'fillBillingAddress');
-        }, 100);
     }
 }
 
@@ -2584,26 +2605,7 @@ function closeCartBillingAddressModal() {
 }
 
 function toggleCartDeliveryAddress() {
-    const checkbox = document.getElementById("cartUsePermanentAddress");
-    const deliveryFields = document.getElementById("cartDeliveryAddressFields");
-    
-    if (checkbox.checked) {
-        // Copy billing address to delivery address
-        document.getElementById("cartDeliveryName").value = document.getElementById("cartBillingName").value;
-        document.getElementById("cartDeliveryPhone").value = document.getElementById("cartBillingPhone").value;
-        document.getElementById("cartDeliveryAddress1").value = document.getElementById("cartBillingAddress1").value;
-        document.getElementById("cartDeliveryAddress2").value = document.getElementById("cartBillingAddress2").value;
-        document.getElementById("cartDeliveryTaluk").value = document.getElementById("cartBillingTaluk").value;
-        document.getElementById("cartDeliveryDistrict").value = document.getElementById("cartBillingDistrict").value;
-        document.getElementById("cartDeliveryState").value = document.getElementById("cartBillingState").value;
-        document.getElementById("cartDeliveryPincode").value = document.getElementById("cartBillingPincode").value;
-        
-        // Hide delivery fields
-        deliveryFields.style.display = "none";
-    } else {
-        // Show delivery fields
-        deliveryFields.style.display = "block";
-    }
+    // Legacy stub for safety
 }
 
 // Inline error handling helpers for cart checkout
@@ -2674,68 +2676,36 @@ function setupCartBillingAddressForm() {
                     pincode: getVal("cartBillingPincode")
                 };
 
-                const selectedDeliveryMethod = getSelectedDeliveryMethod();
-                const needsCourierDelivery = selectedDeliveryMethod === 'home';
-                const usePermanent = getEl("cartUsePermanentAddress") ? getEl("cartUsePermanentAddress").checked : true;
-
                 const validationErrors = [];
 
-                if (needsCourierDelivery) {
-                    if (usePermanent) {
-                        // Billing fields are used as delivery address
-                        if (!billingData.name) {
-                            validationErrors.push({ el: getEl("cartBillingName"), msg: "Full recipient name is required" });
-                        }
-                        if (!billingData.phone) {
-                            validationErrors.push({ el: getEl("cartBillingPhone"), msg: "10-digit phone number is required" });
-                        } else if (!/^\d{10}$/.test(billingData.phone)) {
-                            validationErrors.push({ el: getEl("cartBillingPhone"), msg: "Please enter a valid 10-digit mobile number" });
-                        }
-                        if (!billingData.address1) {
-                            validationErrors.push({ el: getEl("cartBillingAddress1"), msg: "Street/House delivery address is required" });
-                        }
-                        if (!billingData.taluk) {
-                            validationErrors.push({ el: getEl("cartBillingTaluk"), msg: "City or Taluk is required" });
-                        }
-                        if (!billingData.state) {
-                            validationErrors.push({ el: getEl("cartBillingState"), msg: "State is required" });
-                        }
-                        if (!billingData.pincode) {
-                            validationErrors.push({ el: getEl("cartBillingPincode"), msg: "6-digit delivery pincode is required" });
-                        } else if (!/^\d{6}$/.test(billingData.pincode)) {
-                            validationErrors.push({ el: getEl("cartBillingPincode"), msg: "Please enter a valid 6-digit pincode" });
-                        }
-                    } else {
-                        // Separate delivery address fields
-                        const delName = getVal("cartDeliveryName");
-                        const delPhone = getVal("cartDeliveryPhone");
-                        const delAddr1 = getVal("cartDeliveryAddress1");
-                        const delTaluk = getVal("cartDeliveryTaluk");
-                        const delState = getVal("cartDeliveryState");
-                        const delPincode = getVal("cartDeliveryPincode");
+                if (!billingData.name) {
+                    validationErrors.push({ el: getEl("cartBillingName"), msg: "Full recipient name is required" });
+                }
+                if (!billingData.phone) {
+                    validationErrors.push({ el: getEl("cartBillingPhone"), msg: "10-digit phone number is required" });
+                } else if (!/^\d{10}$/.test(billingData.phone)) {
+                    validationErrors.push({ el: getEl("cartBillingPhone"), msg: "Please enter a valid 10-digit mobile number" });
+                }
+                if (!billingData.email) {
+                    validationErrors.push({ el: getEl("cartBillingEmail"), msg: "Email address is required" });
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billingData.email)) {
+                    validationErrors.push({ el: getEl("cartBillingEmail"), msg: "Please enter a valid email address" });
+                }
 
-                        if (!delName) {
-                            validationErrors.push({ el: getEl("cartDeliveryName"), msg: "Delivery recipient name is required" });
-                        }
-                        if (!delPhone) {
-                            validationErrors.push({ el: getEl("cartDeliveryPhone"), msg: "10-digit phone number is required" });
-                        } else if (!/^\d{10}$/.test(delPhone)) {
-                            validationErrors.push({ el: getEl("cartDeliveryPhone"), msg: "Please enter a valid 10-digit mobile number" });
-                        }
-                        if (!delAddr1) {
-                            validationErrors.push({ el: getEl("cartDeliveryAddress1"), msg: "Delivery street/house address is required" });
-                        }
-                        if (!delTaluk) {
-                            validationErrors.push({ el: getEl("cartDeliveryTaluk"), msg: "City or Taluk is required" });
-                        }
-                        if (!delState) {
-                            validationErrors.push({ el: getEl("cartDeliveryState"), msg: "State is required" });
-                        }
-                        if (!delPincode) {
-                            validationErrors.push({ el: getEl("cartDeliveryPincode"), msg: "6-digit delivery pincode is required" });
-                        } else if (!/^\d{6}$/.test(delPincode)) {
-                            validationErrors.push({ el: getEl("cartDeliveryPincode"), msg: "Please enter a valid 6-digit pincode" });
-                        }
+                if (needsCourierDelivery) {
+                    if (!billingData.address1) {
+                        validationErrors.push({ el: getEl("cartBillingAddress1"), msg: "Street/House delivery address is required" });
+                    }
+                    if (!billingData.taluk) {
+                        validationErrors.push({ el: getEl("cartBillingTaluk"), msg: "City or Taluk is required" });
+                    }
+                    if (!billingData.state) {
+                        validationErrors.push({ el: getEl("cartBillingState"), msg: "State is required" });
+                    }
+                    if (!billingData.pincode) {
+                        validationErrors.push({ el: getEl("cartBillingPincode"), msg: "6-digit delivery pincode is required" });
+                    } else if (!/^\d{6}$/.test(billingData.pincode)) {
+                        validationErrors.push({ el: getEl("cartBillingPincode"), msg: "Please enter a valid 6-digit pincode" });
                     }
                 }
 
@@ -2751,29 +2721,17 @@ function setupCartBillingAddressForm() {
                 // Prepare delivery data
                 let deliveryData = null;
                 if (needsCourierDelivery) {
-                    if (usePermanent) {
-                        deliveryData = {
-                            name: billingData.name,
-                            phone: billingData.phone,
-                            address1: billingData.address1,
-                            address2: billingData.address2,
-                            taluk: billingData.taluk,
-                            district: billingData.district || billingData.taluk,
-                            state: billingData.state,
-                            pincode: billingData.pincode
-                        };
-                    } else {
-                        deliveryData = {
-                            name: getVal("cartDeliveryName"),
-                            phone: getVal("cartDeliveryPhone"),
-                            address1: getVal("cartDeliveryAddress1"),
-                            address2: getVal("cartDeliveryAddress2"),
-                            taluk: getVal("cartDeliveryTaluk"),
-                            district: getVal("cartDeliveryDistrict") || getVal("cartDeliveryTaluk"),
-                            state: getVal("cartDeliveryState"),
-                            pincode: getVal("cartDeliveryPincode")
-                        };
-                    }
+                    deliveryData = {
+                        name: billingData.name,
+                        phone: billingData.phone,
+                        email: billingData.email,
+                        address1: billingData.address1,
+                        address2: billingData.address2,
+                        taluk: billingData.taluk,
+                        district: billingData.district || billingData.taluk,
+                        state: billingData.state,
+                        pincode: billingData.pincode
+                    };
                 }
 
                 // Store addresses globally for later use
@@ -2966,15 +2924,20 @@ function fillCartAddressFromPrevious() {
 
     const address = window.cartPreviousAddresses[selectedIndex];
 
-    // Fill the delivery address fields (cart uses different field IDs)
-    document.getElementById("cartDeliveryName").value = address.name || '';
-    document.getElementById("cartDeliveryPhone").value = address.phone || '';
-    document.getElementById("cartDeliveryAddress1").value = address.homeAddress1 || '';
-    document.getElementById("cartDeliveryAddress2").value = address.homeAddress2 || '';
-    document.getElementById("cartDeliveryTaluk").value = address.taluk || '';
-    document.getElementById("cartDeliveryDistrict").value = address.district || '';
-    document.getElementById("cartDeliveryState").value = address.state || '';
-    document.getElementById("cartDeliveryPincode").value = address.pincode || '';
+    // Fill the delivery details fields
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+    };
+
+    setVal("cartBillingName", address.name);
+    setVal("cartBillingPhone", address.phone);
+    setVal("cartBillingAddress1", address.homeAddress1 || address.street);
+    setVal("cartBillingAddress2", address.homeAddress2);
+    setVal("cartBillingTaluk", address.taluk);
+    setVal("cartBillingDistrict", address.district);
+    setVal("cartBillingState", address.state);
+    setVal("cartBillingPincode", address.pincode);
 
     // Hide the dropdown section
     hideCartPreviousAddresses();
@@ -2992,10 +2955,9 @@ function fillCartAddressFromPrevious() {
     `;
     successMsg.innerHTML = "✅ Address filled successfully! You can modify any field if needed.";
 
-    // Insert the message at the top of delivery address fields
-    const deliveryFields = document.getElementById("cartDeliveryAddressFields");
-    if (deliveryFields) {
-        deliveryFields.insertBefore(successMsg, deliveryFields.firstChild);
+    const container = document.getElementById("cartPreviousAddressesSection");
+    if (container && container.parentNode) {
+        container.parentNode.insertBefore(successMsg, container.nextSibling);
 
         // Remove the message after 3 seconds
         setTimeout(() => {
@@ -3320,39 +3282,24 @@ setupCartBillingAddressForm = function() {
             billingForm.addEventListener("submit", function(e) {
                 // Let the original handler run first
                 setTimeout(() => {
+                    const getEl = id => document.getElementById(id);
                     // Save the address after successful form submission
                     const billingData = {
-                        name: document.getElementById("cartBillingName").value.trim(),
-                        phone: document.getElementById("cartBillingPhone").value.trim(),
-                        address1: document.getElementById("cartBillingAddress1").value.trim(),
-                        address2: document.getElementById("cartBillingAddress2").value.trim(),
-                        taluk: document.getElementById("cartBillingTaluk").value.trim(),
-                        district: document.getElementById("cartBillingDistrict").value.trim(),
-                        state: document.getElementById("cartBillingState").value.trim(),
-                        pincode: document.getElementById("cartBillingPincode").value.trim()
+                        name: getEl("cartBillingName")?.value.trim() || "",
+                        phone: getEl("cartBillingPhone")?.value.trim() || "",
+                        email: getEl("cartBillingEmail")?.value.trim() || "",
+                        address1: getEl("cartBillingAddress1")?.value.trim() || "",
+                        address2: getEl("cartBillingAddress2")?.value.trim() || "",
+                        taluk: getEl("cartBillingTaluk")?.value.trim() || "",
+                        district: getEl("cartBillingDistrict")?.value.trim() || "",
+                        state: getEl("cartBillingState")?.value.trim() || "",
+                        pincode: getEl("cartBillingPincode")?.value.trim() || ""
                     };
                     
                     // Save billing address
                     if (billingData.name && billingData.phone && billingData.address1 && billingData.pincode) {
-                        savePreviousAddress(billingData, 'billing');
-                    }
-                    
-                    // Save delivery address if different
-                    const usePermanent = document.getElementById("cartUsePermanentAddress").checked;
-                    if (!usePermanent) {
-                        const deliveryData = {
-                            name: document.getElementById("cartDeliveryName").value.trim(),
-                            phone: document.getElementById("cartDeliveryPhone").value.trim(),
-                            address1: document.getElementById("cartDeliveryAddress1").value.trim(),
-                            address2: document.getElementById("cartDeliveryAddress2").value.trim(),
-                            taluk: document.getElementById("cartDeliveryTaluk").value.trim(),
-                            district: document.getElementById("cartDeliveryDistrict").value.trim(),
-                            state: document.getElementById("cartDeliveryState").value.trim(),
-                            pincode: document.getElementById("cartDeliveryPincode").value.trim()
-                        };
-                        
-                        if (deliveryData.name && deliveryData.phone && deliveryData.address1 && deliveryData.pincode) {
-                            savePreviousAddress(deliveryData, 'delivery');
+                        if (typeof savePreviousAddress === 'function') {
+                            savePreviousAddress(billingData, 'billing');
                         }
                     }
                 }, 100);

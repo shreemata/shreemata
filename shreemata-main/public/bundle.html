@@ -1129,77 +1129,51 @@ ${stockBadge}
                 return window.location.href = "/login.html";
             }
 
-            const deliverySection = document.getElementById("deliveryAddressSection");
             const modalTitle = document.getElementById("billingModalTitle");
             const bannerTitle = document.getElementById("billingModalBannerTitle");
             const bannerSubtitle = document.getElementById("billingModalBannerSubtitle");
+            const previousBtnWrapper = document.getElementById("previousBillingAddressesWrapper");
 
             const address1Group = document.getElementById("billingAddress1Group");
             const address1Input = document.getElementById("billingAddress1");
-            const districtContainer = document.getElementById("billingDistrictContainer");
+            const address2Group = document.getElementById("billingAddress2Group");
             const districtInput = document.getElementById("billingDistrict");
-            const stateContainer = document.getElementById("billingStateContainer");
             const stateInput = document.getElementById("billingState");
-            const emailContainer = document.getElementById("billingEmailContainer");
-            const emailInput = document.getElementById("billingEmail");
             const talukDistrictStateRow = document.getElementById("billingTalukDistrictStateRow");
-            const pincodeEmailRow = document.getElementById("billingPincodeEmailRow");
-            const pincodeContainer = document.getElementById("billingPincodeContainer");
+            const pincodeRow = document.getElementById("billingPincodeRow");
+            const pincodeInput = document.getElementById("billingPincode");
+            const noteEl = document.getElementById("billingSameAsDeliveryNote");
 
             if (window.selectedDeliveryMethod === "courier") {
-                if (deliverySection) deliverySection.style.display = "block";
-                if (modalTitle) modalTitle.textContent = "📋 Billing & Delivery Details";
-                if (bannerTitle) bannerTitle.textContent = "🏠 Permanent Address (For Billing)";
-                if (bannerSubtitle) bannerSubtitle.textContent = "This address will be used for billing and invoice generation";
+                if (modalTitle) modalTitle.textContent = "📋 Delivery Details";
+                if (bannerTitle) bannerTitle.textContent = "🚚 Delivery Details";
+                if (bannerSubtitle) bannerSubtitle.textContent = "Where should we deliver your order?";
 
+                if (previousBtnWrapper) previousBtnWrapper.style.display = "block";
                 if (address1Group) address1Group.style.display = "block";
                 if (address1Input) address1Input.required = true;
-
-                if (districtContainer) districtContainer.style.display = "block";
+                if (address2Group) address2Group.style.display = "block";
+                if (talukDistrictStateRow) talukDistrictStateRow.style.display = "grid";
                 if (districtInput) districtInput.required = true;
-
-                if (stateContainer) stateContainer.style.display = "block";
                 if (stateInput) stateInput.required = true;
-
-                if (emailContainer) emailContainer.style.display = "block";
-                if (emailInput) emailInput.required = true;
-
-                if (pincodeEmailRow && pincodeContainer && emailContainer) {
-                    pincodeEmailRow.insertBefore(pincodeContainer, emailContainer);
-                    pincodeEmailRow.style.display = "grid";
-                    pincodeEmailRow.style.gridTemplateColumns = "1fr 1fr";
-                    pincodeEmailRow.style.marginBottom = "25px";
-                }
-                if (talukDistrictStateRow) {
-                    talukDistrictStateRow.style.gridTemplateColumns = "1fr 1fr 1fr";
-                    talukDistrictStateRow.style.marginBottom = "20px";
-                }
+                if (pincodeRow) pincodeRow.style.display = "block";
+                if (pincodeInput) pincodeInput.required = true;
+                if (noteEl) noteEl.style.display = "flex";
             } else {
-                if (deliverySection) deliverySection.style.display = "none";
-                if (modalTitle) modalTitle.textContent = "📋 Billing Details (Store Pickup)";
+                if (modalTitle) modalTitle.textContent = "📋 Store Pickup Details";
                 if (bannerTitle) bannerTitle.textContent = "🏠 Store Pickup Details";
-                if (bannerSubtitle) bannerSubtitle.textContent = "Please provide your contact and location details for pickup";
+                if (bannerSubtitle) bannerSubtitle.textContent = "Please provide your contact details for pickup";
 
+                if (previousBtnWrapper) previousBtnWrapper.style.display = "none";
                 if (address1Group) address1Group.style.display = "none";
                 if (address1Input) address1Input.required = false;
-
-                if (districtContainer) districtContainer.style.display = "none";
+                if (address2Group) address2Group.style.display = "none";
+                if (talukDistrictStateRow) talukDistrictStateRow.style.display = "none";
                 if (districtInput) districtInput.required = false;
-
-                if (stateContainer) stateContainer.style.display = "none";
                 if (stateInput) stateInput.required = false;
-
-                if (emailContainer) emailContainer.style.display = "none";
-                if (emailInput) emailInput.required = false;
-
-                if (talukDistrictStateRow && pincodeContainer) {
-                    talukDistrictStateRow.appendChild(pincodeContainer);
-                    talukDistrictStateRow.style.gridTemplateColumns = "1fr 1fr";
-                    talukDistrictStateRow.style.marginBottom = "25px";
-                }
-                if (pincodeEmailRow) {
-                    pincodeEmailRow.style.display = "none";
-                }
+                if (pincodeRow) pincodeRow.style.display = "none";
+                if (pincodeInput) pincodeInput.required = false;
+                if (noteEl) noteEl.style.display = "none";
             }
 
             const setVal = (id, val) => {
@@ -1222,15 +1196,6 @@ ${stockBadge}
                         setVal("billingDistrict", userData.address.district);
                         setVal("billingState", userData.address.state);
                         setVal("billingPincode", userData.address.pincode);
-
-                        setVal("deliveryName", userData.name);
-                        setVal("deliveryPhone", userData.address.phone || userData.phone);
-                        setVal("deliveryAddress1", userData.address.homeAddress1 || userData.address.street);
-                        setVal("deliveryAddress2", userData.address.homeAddress2);
-                        setVal("deliveryTaluk", userData.address.taluk);
-                        setVal("deliveryDistrict", userData.address.district);
-                        setVal("deliveryState", userData.address.state);
-                        setVal("deliveryPincode", userData.address.pincode);
                     }
                 }
                 document.getElementById("billingAddressModal").style.display = "block";
@@ -1245,25 +1210,7 @@ ${stockBadge}
         }
 
         function toggleDeliveryAddress() {
-            const checkbox = document.getElementById("usePermanentAddress");
-            const deliveryFields = document.getElementById("deliveryAddressFields");
-            const getVal = (id) => {
-                const el = document.getElementById(id);
-                return el ? el.value : "";
-            };
-            if (checkbox && checkbox.checked) {
-                document.getElementById("deliveryName").value = getVal("billingName");
-                document.getElementById("deliveryPhone").value = getVal("billingPhone");
-                document.getElementById("deliveryAddress1").value = getVal("billingAddress1");
-                document.getElementById("deliveryAddress2").value = getVal("billingAddress2");
-                document.getElementById("deliveryTaluk").value = getVal("billingTaluk");
-                document.getElementById("deliveryDistrict").value = getVal("billingDistrict");
-                document.getElementById("deliveryState").value = getVal("billingState");
-                document.getElementById("deliveryPincode").value = getVal("billingPincode");
-                if (deliveryFields) deliveryFields.style.display = "none";
-            } else if (deliveryFields) {
-                deliveryFields.style.display = "block";
-            }
+            // Legacy stub for safety
         }
 
         function clearBundleInlineFieldErrors(container) {
@@ -1328,63 +1275,34 @@ ${stockBadge}
 
                     const validationErrors = [];
 
+                    if (!billingData.name) {
+                        validationErrors.push({ el: getEl("billingName"), msg: "Full recipient name is required" });
+                    }
+                    if (!billingData.phone) {
+                        validationErrors.push({ el: getEl("billingPhone"), msg: "10-digit phone number is required" });
+                    } else if (!/^\d{10}$/.test(billingData.phone)) {
+                        validationErrors.push({ el: getEl("billingPhone"), msg: "Please enter a valid 10-digit mobile number" });
+                    }
+                    if (!billingData.email) {
+                        validationErrors.push({ el: getEl("billingEmail"), msg: "Email address is required" });
+                    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billingData.email)) {
+                        validationErrors.push({ el: getEl("billingEmail"), msg: "Please enter a valid email address" });
+                    }
+
                     if (!isPickup) {
-                        const usePermanentCheckbox = getEl("usePermanentAddress");
-                        const usePermanent = usePermanentCheckbox ? usePermanentCheckbox.checked : false;
-
-                        if (usePermanent) {
-                            if (!billingData.name) {
-                                validationErrors.push({ el: getEl("billingName"), msg: "Full recipient name is required" });
-                            }
-                            if (!billingData.phone) {
-                                validationErrors.push({ el: getEl("billingPhone"), msg: "10-digit phone number is required" });
-                            } else if (!/^\d{10}$/.test(billingData.phone)) {
-                                validationErrors.push({ el: getEl("billingPhone"), msg: "Please enter a valid 10-digit mobile number" });
-                            }
-                            if (!billingData.address1) {
-                                validationErrors.push({ el: getEl("billingAddress1"), msg: "Delivery street/house address is required" });
-                            }
-                            if (!billingData.taluk) {
-                                validationErrors.push({ el: getEl("billingTaluk"), msg: "City or Taluk is required" });
-                            }
-                            if (!billingData.state) {
-                                validationErrors.push({ el: getEl("billingState"), msg: "State is required" });
-                            }
-                            if (!billingData.pincode) {
-                                validationErrors.push({ el: getEl("billingPincode"), msg: "6-digit delivery pincode is required" });
-                            } else if (!/^\d{6}$/.test(billingData.pincode)) {
-                                validationErrors.push({ el: getEl("billingPincode"), msg: "Please enter a valid 6-digit pincode" });
-                            }
-                        } else {
-                            const delName = getVal("deliveryName");
-                            const delPhone = getVal("deliveryPhone");
-                            const delAddr1 = getVal("deliveryAddress1");
-                            const delTaluk = getVal("deliveryTaluk");
-                            const delState = getVal("deliveryState");
-                            const delPincode = getVal("deliveryPincode");
-
-                            if (!delName) {
-                                validationErrors.push({ el: getEl("deliveryName"), msg: "Delivery recipient name is required" });
-                            }
-                            if (!delPhone) {
-                                validationErrors.push({ el: getEl("deliveryPhone"), msg: "10-digit phone number is required" });
-                            } else if (!/^\d{10}$/.test(delPhone)) {
-                                validationErrors.push({ el: getEl("deliveryPhone"), msg: "Please enter a valid 10-digit mobile number" });
-                            }
-                            if (!delAddr1) {
-                                validationErrors.push({ el: getEl("deliveryAddress1"), msg: "Delivery street/house address is required" });
-                            }
-                            if (!delTaluk) {
-                                validationErrors.push({ el: getEl("deliveryTaluk"), msg: "City or Taluk is required" });
-                            }
-                            if (!delState) {
-                                validationErrors.push({ el: getEl("deliveryState"), msg: "State is required" });
-                            }
-                            if (!delPincode) {
-                                validationErrors.push({ el: getEl("deliveryPincode"), msg: "6-digit delivery pincode is required" });
-                            } else if (!/^\d{6}$/.test(delPincode)) {
-                                validationErrors.push({ el: getEl("deliveryPincode"), msg: "Please enter a valid 6-digit pincode" });
-                            }
+                        if (!billingData.address1) {
+                            validationErrors.push({ el: getEl("billingAddress1"), msg: "Street/House delivery address is required" });
+                        }
+                        if (!billingData.taluk) {
+                            validationErrors.push({ el: getEl("billingTaluk"), msg: "City or Taluk is required" });
+                        }
+                        if (!billingData.state) {
+                            validationErrors.push({ el: getEl("billingState"), msg: "State is required" });
+                        }
+                        if (!billingData.pincode) {
+                            validationErrors.push({ el: getEl("billingPincode"), msg: "6-digit delivery pincode is required" });
+                        } else if (!/^\d{6}$/.test(billingData.pincode)) {
+                            validationErrors.push({ el: getEl("billingPincode"), msg: "Please enter a valid 6-digit pincode" });
                         }
                     }
 
@@ -1398,23 +1316,18 @@ ${stockBadge}
                     }
 
                     let deliveryData = null;
-                    if (window.selectedDeliveryMethod === "courier") {
-                        const usePermanentCheckbox = document.getElementById("usePermanentAddress");
-                        const usePermanent = usePermanentCheckbox ? usePermanentCheckbox.checked : false;
-                        if (usePermanent) {
-                            deliveryData = { name: billingData.name, phone: billingData.phone, address1: billingData.address1, address2: billingData.address2, taluk: billingData.taluk, district: billingData.district, state: billingData.state, pincode: billingData.pincode };
-                        } else {
-                            deliveryData = {
-                                name: getVal("deliveryName"),
-                                phone: getVal("deliveryPhone"),
-                                address1: getVal("deliveryAddress1"),
-                                address2: getVal("deliveryAddress2"),
-                                taluk: getVal("deliveryTaluk"),
-                                district: getVal("deliveryDistrict") || getVal("deliveryTaluk"),
-                                state: getVal("deliveryState"),
-                                pincode: getVal("deliveryPincode")
-                            };
-                        }
+                    if (!isPickup) {
+                        deliveryData = {
+                            name: billingData.name,
+                            phone: billingData.phone,
+                            email: billingData.email,
+                            address1: billingData.address1,
+                            address2: billingData.address2,
+                            taluk: billingData.taluk,
+                            district: billingData.district || billingData.taluk,
+                            state: billingData.state,
+                            pincode: billingData.pincode
+                        };
                     }
 
                     window.billingAddress = billingData;
@@ -2444,8 +2357,7 @@ ${stockBadge}
             style="max-width: 700px; width: 95%; max-height: 90vh; overflow-y: auto; margin: 2% auto;">
             <div class="modal-header"
                 style="position: sticky; top: 0; z-index: 10; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px 20px 0 0;">
-                <h3 id="billingModalTitle" style="margin: 0; font-size: 22px; font-weight: 700;">📋 Billing & Delivery
-                    Details</h3>
+                <h3 id="billingModalTitle" style="margin: 0; font-size: 22px; font-weight: 700;">📋 Delivery Details</h3>
                 <span class="close" onclick="closeBillingAddressModal()"
                     style="color: white; font-size: 32px; font-weight: bold; cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.3s;">&times;</span>
             </div>
@@ -2453,13 +2365,11 @@ ${stockBadge}
                 <form id="billingAddressForm">
                     <div id="billingModalBanner"
                         style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 18px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
-                        <h4 id="billingModalBannerTitle" style="margin: 0 0 8px 0; font-size: 18px;">🏠 Permanent
-                            Address (For Billing)</h4>
-                        <p id="billingModalBannerSubtitle" style="margin: 0; font-size: 14px; opacity: 0.9;">This
-                            address will be used for billing and invoice generation</p>
+                        <h4 id="billingModalBannerTitle" style="margin: 0 0 8px 0; font-size: 18px;">🚚 Delivery Details</h4>
+                        <p id="billingModalBannerSubtitle" style="margin: 0; font-size: 14px; opacity: 0.9;">Where should we deliver your order?</p>
                     </div>
 
-                    <div style="margin-bottom: 20px;">
+                    <div id="previousBillingAddressesWrapper" style="margin-bottom: 20px;">
                         <button id="usePreviousBillingAddressBtn" type="button" onclick="loadPreviousBillingAddresses()"
                             style="width: 100%; padding: 15px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">
                             📋 Use My Previous Address
@@ -2488,7 +2398,7 @@ ${stockBadge}
                                 *</label>
                             <input type="text" id="billingName" required
                                 style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
-                                placeholder="Full name for billing">
+                                placeholder="Full recipient name">
                         </div>
                         <div>
                             <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Phone
@@ -2497,6 +2407,13 @@ ${stockBadge}
                                 style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
                                 placeholder="10-digit phone number">
                         </div>
+                    </div>
+                    <div id="billingEmailGroup" style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Email
+                            *</label>
+                        <input type="email" id="billingEmail" required
+                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
+                            placeholder="Email for order updates & invoice">
                     </div>
                     <div id="billingAddress1Group" style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">House/Building
@@ -2536,8 +2453,7 @@ ${stockBadge}
                                 placeholder="State">
                         </div>
                     </div>
-                    <div id="billingPincodeEmailRow"
-                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                    <div id="billingPincodeRow" style="margin-bottom: 20px;">
                         <div id="billingPincodeContainer">
                             <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Pincode
                                 *</label>
@@ -2545,131 +2461,11 @@ ${stockBadge}
                                 style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
                                 placeholder="6-digit pincode">
                         </div>
-                        <div id="billingEmailContainer">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Email
-                                *</label>
-                            <input type="email" id="billingEmail" required
-                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
-                                placeholder="Email for invoice">
-                        </div>
                     </div>
 
-                    <!-- Delivery Address Section (Only for Courier) -->
-                    <div id="deliveryAddressSection" style="display: none;">
-                        <div
-                            style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 18px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">
-                            <h4 style="margin: 0 0 8px 0; font-size: 18px;">🚚 Delivery Address</h4>
-                            <p style="margin: 0; font-size: 14px; opacity: 0.9;">Where should we deliver your order?</p>
-                        </div>
-
-                        <div style="margin-bottom: 20px;">
-                            <button id="useOldAddressBtn" type="button" onclick="loadPreviousAddresses()"
-                                style="width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
-                                📋 Use My Previous Address
-                            </button>
-                        </div>
-
-                        <div id="previousAddressesSection" style="display: none; margin-bottom: 20px;">
-                            <div
-                                style="background: rgba(248, 249, 250, 0.9); padding: 20px; border-radius: 12px; border: 2px solid #e9ecef;">
-                                <h5 style="margin: 0 0 15px 0; color: #495057; font-size: 16px;">📍 Select from Previous
-                                    Addresses:</h5>
-                                <select id="previousAddressSelect" onchange="fillAddressFromPrevious()"
-                                    style="width: 100%; padding: 12px; border: 2px solid #ced4da; border-radius: 8px; font-size: 14px; background: white; cursor: pointer; margin-bottom: 15px;">
-                                    <option value="">-- Select a previous address --</option>
-                                </select>
-                                <div style="text-align: center;">
-                                    <button type="button" onclick="hidePreviousAddresses()"
-                                        style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.3s;">Cancel</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style="margin-bottom: 20px;">
-                            <label
-                                style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(248, 249, 250, 0.9); padding: 15px; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s;"
-                                onmouseover="this.style.borderColor='#667eea'"
-                                onmouseout="this.style.borderColor='#e0e0e0'">
-                                <input type="checkbox" id="usePermanentAddress" onchange="toggleDeliveryAddress()"
-                                    style="transform: scale(1.2); cursor: pointer;">
-                                <span style="font-weight: 600; color: #333;">📍 Use permanent address for
-                                    delivery</span>
-                            </label>
-                        </div>
-
-                        <div id="deliveryAddressFields">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                                <div>
-                                    <label
-                                        style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery
-                                        Name *</label>
-                                    <input type="text" id="deliveryName"
-                                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
-                                        placeholder="Name for delivery">
-                                </div>
-                                <div>
-                                    <label
-                                        style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery
-                                        Phone *</label>
-                                    <input type="tel" id="deliveryPhone" pattern="[0-9]{10}"
-                                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
-                                        placeholder="10-digit phone number">
-                                </div>
-                            </div>
-                            <div style="margin-bottom: 20px;">
-                                <label
-                                    style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Delivery
-                                    Address *</label>
-                                <input type="text" id="deliveryAddress1"
-                                    style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
-                                    placeholder="House number, building name, street">
-                            </div>
-                            <div style="margin-bottom: 20px;">
-                                <label
-                                    style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Area/Locality
-                                    (Optional)</label>
-                                <input type="text" id="deliveryAddress2"
-                                    style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
-                                    placeholder="Area, locality, landmark">
-                            </div>
-                            <div
-                                style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                                <div>
-                                    <label
-                                        style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Taluk
-                                        *</label>
-                                    <input type="text" id="deliveryTaluk"
-                                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
-                                        placeholder="Taluk">
-                                </div>
-                                <div>
-                                    <label
-                                        style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">District
-                                        *</label>
-                                    <input type="text" id="deliveryDistrict"
-                                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
-                                        placeholder="District">
-                                </div>
-                                <div>
-                                    <label
-                                        style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">State
-                                        *</label>
-                                    <input type="text" id="deliveryState"
-                                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
-                                        placeholder="State">
-                                </div>
-                            </div>
-                            <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px;">
-                                <div>
-                                    <label
-                                        style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Pincode
-                                        *</label>
-                                    <input type="text" id="deliveryPincode" pattern="[0-9]{6}"
-                                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
-                                        placeholder="6-digit pincode">
-                                </div>
-                            </div>
-                        </div>
+                    <div id="billingSameAsDeliveryNote" style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 14px; background: #e8f4fd; border: 1px solid #b6d4fe; border-radius: 8px; color: #084298; font-size: 13px; font-weight: 500;">
+                        <span>ℹ️</span>
+                        <span>Billing address is the same as the delivery address</span>
                     </div>
 
                     <!-- Sticky Submit Button -->

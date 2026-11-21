@@ -258,13 +258,23 @@ describe('Single Book Page (book.html) Browser Verification', () => {
       }
     }
 
-    // Clear delivery fields to ensure they are empty
-    await page.fill('#deliveryName', '');
-    await page.fill('#deliveryPhone', '');
-    await page.fill('#deliveryAddress1', '');
-    await page.fill('#deliveryTaluk', '');
-    await page.fill('#deliveryState', '');
-    await page.fill('#deliveryPincode', '');
+    // Clear address fields to ensure they are empty
+    if (await page.$('#deliveryName')) {
+      await page.fill('#deliveryName', '');
+      await page.fill('#deliveryPhone', '');
+      await page.fill('#deliveryAddress1', '');
+      await page.fill('#deliveryTaluk', '');
+      await page.fill('#deliveryState', '');
+      await page.fill('#deliveryPincode', '');
+    } else {
+      await page.fill('#billingName', '');
+      await page.fill('#billingPhone', '');
+      await page.fill('#billingAddress1', '');
+      await page.fill('#billingTaluk', '');
+      await page.fill('#billingDistrict', '');
+      await page.fill('#billingState', '');
+      await page.fill('#billingPincode', '');
+    }
 
     // Submit the address form
     await page.click('#billingAddressForm button[type="submit"]');
@@ -301,12 +311,12 @@ describe('Single Book Page (book.html) Browser Verification', () => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       // Mock Razorpay constructor to prevent live script popup during test
-      window.Razorpay = function(options) {
+      window.Razorpay = function (options) {
         window.__lastRazorpayOptions = options;
-        this.open = function() {
+        this.open = function () {
           window.__razorpayOpened = true;
         };
-        this.on = function() {};
+        this.on = function () { };
       };
     }, { token: studentToken, user: studentUser });
 

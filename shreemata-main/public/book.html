@@ -1465,18 +1465,18 @@
     <div id="billingAddressModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="billingModalTitle">📋 Billing & Delivery Details</h3>
+                <h3 id="billingModalTitle">📋 Delivery Details</h3>
                 <span class="close" onclick="closeBillingAddressModal()">&times;</span>
             </div>
             <div class="modal-body">
                 <form id="billingAddressForm">
                     <div id="billingModalBanner"
                         style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
-                        <h4 id="billingModalBannerTitle" style="margin: 0 0 6px 0; font-size: 16px; color: white;">🏠 Permanent Address (For Billing)</h4>
-                        <p id="billingModalBannerSubtitle" style="margin: 0; font-size: 13px; opacity: 0.95; color: white;">This address will be used for billing and invoice generation</p>
+                        <h4 id="billingModalBannerTitle" style="margin: 0 0 6px 0; font-size: 16px; color: white;">🚚 Delivery Details</h4>
+                        <p id="billingModalBannerSubtitle" style="margin: 0; font-size: 13px; opacity: 0.95; color: white;">Where should we deliver your order?</p>
                     </div>
 
-                    <div style="margin-bottom: 16px;">
+                    <div id="previousBillingAddressesWrapper" style="margin-bottom: 16px;">
                         <button id="usePreviousBillingAddressBtn" type="button" onclick="loadPreviousBillingAddresses()"
                             style="width: 100%; min-height: 44px; padding: 12px 15px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.25);">
                             📋 Use My Previous Address
@@ -1500,12 +1500,17 @@
                     <div class="modal-form-row">
                         <div>
                             <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Full Name *</label>
-                            <input type="text" id="billingName" required placeholder="Full name for billing">
+                            <input type="text" id="billingName" required placeholder="Full recipient name">
                         </div>
                         <div>
                             <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Phone Number *</label>
                             <input type="tel" id="billingPhone" required pattern="[0-9]{10}" placeholder="10-digit phone number">
                         </div>
+                    </div>
+
+                    <div id="billingEmailGroup" style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Email *</label>
+                        <input type="email" id="billingEmail" required placeholder="Email for order updates & invoice">
                     </div>
 
                     <div id="billingAddress1Group" style="margin-bottom: 16px;">
@@ -1533,91 +1538,17 @@
                         </div>
                     </div>
 
-                    <div id="billingPincodeEmailRow" class="modal-form-row">
+                    <div id="billingPincodeRow" style="margin-bottom: 16px;">
                         <div id="billingPincodeContainer">
                             <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Pincode *</label>
                             <input type="text" id="billingPincode" required pattern="[0-9]{6}" placeholder="6-digit pincode">
                         </div>
-                        <div id="billingEmailContainer">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Email *</label>
-                            <input type="email" id="billingEmail" required placeholder="Email for invoice">
-                        </div>
                     </div>
 
-                    <!-- Delivery Address Section (Only for Courier) -->
-                    <div id="deliveryAddressSection" style="display: none;">
-                        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 16px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.25);">
-                            <h4 style="margin: 0 0 6px 0; font-size: 16px; color: white;">🚚 Delivery Address</h4>
-                            <p style="margin: 0; font-size: 13px; opacity: 0.95; color: white;">Where should we deliver your order?</p>
-                        </div>
-
-                        <div style="margin-bottom: 16px;">
-                            <button id="useOldAddressBtn" type="button" onclick="loadPreviousAddresses()"
-                                style="width: 100%; min-height: 44px; padding: 12px 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);">
-                                📋 Use My Previous Address
-                            </button>
-                        </div>
-
-                        <div id="previousAddressesSection" style="display: none; margin-bottom: 16px;">
-                            <div style="background: rgba(248, 249, 250, 0.95); padding: 16px; border-radius: 10px; border: 2px solid #e9ecef;">
-                                <h5 style="margin: 0 0 10px 0; color: #495057; font-size: 14px;">📍 Select from Previous Addresses:</h5>
-                                <select id="previousAddressSelect" onchange="fillAddressFromPrevious()"
-                                    style="width: 100%; min-height: 44px; padding: 10px; border: 2px solid #ced4da; border-radius: 8px; font-size: 14px; background: white; cursor: pointer; margin-bottom: 12px;">
-                                    <option value="">-- Select a previous address --</option>
-                                </select>
-                                <div style="text-align: center;">
-                                    <button type="button" onclick="hidePreviousAddresses()"
-                                        style="padding: 8px 18px; min-height: 36px; background: #6c757d; color: white; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.2s;">Cancel</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style="margin-bottom: 16px;">
-                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(248, 249, 250, 0.95); padding: 12px 15px; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s;">
-                                <input type="checkbox" id="usePermanentAddress" onchange="toggleDeliveryAddress()"
-                                    style="transform: scale(1.2); cursor: pointer; width: auto; min-height: auto;">
-                                <span style="font-weight: 600; color: #333; font-size: 13px;">📍 Use permanent address for delivery</span>
-                            </label>
-                        </div>
-
-                        <div id="deliveryAddressFields">
-                            <div class="modal-form-row">
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Delivery Name *</label>
-                                    <input type="text" id="deliveryName" placeholder="Name for delivery">
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Delivery Phone *</label>
-                                    <input type="tel" id="deliveryPhone" pattern="[0-9]{10}" placeholder="10-digit phone number">
-                                </div>
-                            </div>
-                            <div id="deliveryAddress1Group" style="margin-bottom: 16px;">
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Delivery Address *</label>
-                                <input type="text" id="deliveryAddress1" placeholder="House number, building name, street">
-                            </div>
-                            <div id="deliveryAddress2Group" style="margin-bottom: 16px;">
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Area/Locality (Optional)</label>
-                                <input type="text" id="deliveryAddress2" placeholder="Area, locality, landmark">
-                            </div>
-                            <div class="modal-form-row-3">
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Taluk *</label>
-                                    <input type="text" id="deliveryTaluk" placeholder="Taluk">
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">District *</label>
-                                    <input type="text" id="deliveryDistrict" placeholder="District">
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">State *</label>
-                                    <input type="text" id="deliveryState" placeholder="State">
-                                </div>
-                            </div>
-                            <div style="margin-bottom: 16px;">
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 13px;">Pincode *</label>
-                                <input type="text" id="deliveryPincode" pattern="[0-9]{6}" placeholder="6-digit pincode">
-                            </div>
-                        </div>
+                    <!-- Read-only Note: Billing address is same as delivery address -->
+                    <div id="billingSameAsDeliveryNote" style="font-size: 13px; color: #495057; background: #eef2f7; padding: 10px 14px; border-radius: 8px; margin: 12px 0 16px 0; display: flex; align-items: center; gap: 8px; border: 1px solid #d0d7de;">
+                        <span>ℹ️</span>
+                        <span>Billing address is the same as the delivery address</span>
                     </div>
 
                     <!-- Action Buttons -->
