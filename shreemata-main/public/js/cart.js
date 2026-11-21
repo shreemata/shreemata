@@ -2670,11 +2670,18 @@ function setupCartBillingAddressForm() {
                     email: getVal("cartBillingEmail"),
                     address1: getVal("cartBillingAddress1"),
                     address2: getVal("cartBillingAddress2"),
+                    street: getVal("cartBillingAddress1"),
+                    addressLine: getVal("cartBillingAddress1"),
+                    homeAddress1: getVal("cartBillingAddress1"),
+                    homeAddress2: getVal("cartBillingAddress2"),
                     taluk: getVal("cartBillingTaluk"),
                     district: getVal("cartBillingDistrict"),
                     state: getVal("cartBillingState"),
                     pincode: getVal("cartBillingPincode")
                 };
+
+                const selectedDeliveryMethod = typeof getSelectedDeliveryMethod === 'function' ? getSelectedDeliveryMethod() : (localStorage.getItem('deliveryMethod') || 'home');
+                const needsCourierDelivery = selectedDeliveryMethod === 'home' || selectedDeliveryMethod === 'courier';
 
                 const validationErrors = [];
 
@@ -2727,6 +2734,10 @@ function setupCartBillingAddressForm() {
                         email: billingData.email,
                         address1: billingData.address1,
                         address2: billingData.address2,
+                        street: billingData.address1,
+                        addressLine: billingData.address1,
+                        homeAddress1: billingData.address1,
+                        homeAddress2: billingData.address2,
                         taluk: billingData.taluk,
                         district: billingData.district || billingData.taluk,
                         state: billingData.state,
