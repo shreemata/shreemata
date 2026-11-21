@@ -672,6 +672,28 @@ describe('Batch 1 UI Unification Browser Tests', () => {
       expect(sectionExists).not.toBeNull();
     }
 
+    // Verify Privacy Policy and Terms & Conditions links exist in footer across all three pages
+    const pagesToCheck = [
+      `http://127.0.0.1:3100/book.html?id=${seededBookId}`,
+      `http://127.0.0.1:3100/bundle.html?id=${seededBundleId}`,
+      'http://127.0.0.1:3100/bundles.html'
+    ];
+
+    for (const pageUrl of pagesToCheck) {
+      await page.goto(pageUrl, { waitUntil: 'load' });
+      await page.waitForTimeout(500);
+
+      const privacyLink = await page.$('footer a[href="/privacy-policy.html"]');
+      expect(privacyLink).not.toBeNull();
+      const privacyText = await page.$eval('footer a[href="/privacy-policy.html"]', el => el.textContent.trim());
+      expect(privacyText).toBe('Privacy Policy');
+
+      const termsLink = await page.$('footer a[href="/terms-and-conditions.html"]');
+      expect(termsLink).not.toBeNull();
+      const termsText = await page.$eval('footer a[href="/terms-and-conditions.html"]', el => el.textContent.trim());
+      expect(termsText).toBe('Terms & Conditions');
+    }
+
     await context.close();
   });
 });
