@@ -16,6 +16,7 @@ function checkAuth() {
     }
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
+    window.currentUser = user;
 
     if (token && user) {
         const authLinks = document.getElementById("authLinks");
@@ -566,6 +567,7 @@ let currentBook = null;
 async function handlePurchase(deliveryMethod = "courier") {
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
+    window.currentUser = user;
 
     if (!token || !user) {
         const id = new URLSearchParams(window.location.search).get("id");
@@ -663,6 +665,7 @@ function redirectToChequePaymentForm() {
     // Check authentication first
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
+    window.currentUser = user;
     
     if (!token || !user) {
         alert("Please log in to place an order.");
@@ -693,6 +696,7 @@ function redirectToAccountTransferForm() {
     // Check authentication first
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
+    window.currentUser = user;
     
     if (!token || !user) {
         alert("Please log in to place an order.");
@@ -722,6 +726,7 @@ function redirectToAccountTransferForm() {
 async function createPendingOrder(paymentType, deliveryMethod, basePrice, weight, bookId, quantity) {
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
+    window.currentUser = user;
     
     // Double-check authentication
     if (!token || !user) {
@@ -1412,6 +1417,7 @@ async function showBillingAddressModal(deliveryMethod) {
     }
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
+    window.currentUser = user;
 
     if (!token || !user) {
         const id = new URLSearchParams(window.location.search).get("id");
