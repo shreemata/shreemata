@@ -126,23 +126,23 @@ function setupEventListeners() {
 function updateQuantity(change) {
     const quantityInput = document.getElementById("bookQuantity");
     let currentQty = parseInt(quantityInput.value) || 1;
-
+    
     currentQty += change;
-
+    
     // Ensure quantity is within bounds
     if (currentQty < 1) currentQty = 1;
     if (currentQty > 10) currentQty = 10;
-
+    
     // Check stock limits if book has limited stock
     const book = window.currentBook;
     if (book && book.trackStock && book.stockStatus === 'limited_stock') {
         const availableStock = book.stockQuantity || 0;
         if (currentQty > availableStock) {
             currentQty = availableStock;
-            alert(`‚ö†Ô∏è Only ${availableStock} copies are available.`);
+            alert(`† Only ${availableStock} copies are available.`);
         }
     }
-
+    
     quantityInput.value = currentQty;
     updatePricing();
 }
@@ -150,37 +150,37 @@ function updateQuantity(change) {
 function updateQuantityFromInput() {
     const quantityInput = document.getElementById("bookQuantity");
     let qty = parseInt(quantityInput.value) || 1;
-
+    
     // Ensure quantity is within bounds
     if (qty < 1) qty = 1;
     if (qty > 10) qty = 10;
-
+    
     // Check stock limits if book has limited stock
     const book = window.currentBook;
     if (book && book.trackStock && book.stockStatus === 'limited_stock') {
         const availableStock = book.stockQuantity || 0;
         if (qty > availableStock) {
             qty = availableStock;
-            alert(`‚ö†Ô∏è Only ${availableStock} copies are available.`);
+            alert(`† Only ${availableStock} copies are available.`);
         }
     }
-
+    
     quantityInput.value = qty;
     updatePricing();
 }
 
 async function updatePricing() {
     if (!window.currentBook) return;
-
+    
     const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
     const pricing = window.getBookDisplayPricing ? window.getBookDisplayPricing(window.currentBook) : { sellingPrice: parseFloat(window.currentBook.price) || 0 };
     const basePrice = pricing.sellingPrice;
     const weight = window.currentBook.weight || 0.5;
-
+    
     // Calculate total weight and courier charge
     const totalWeight = weight * quantity;
     let courierCharge = 0;
-
+    
     try {
         courierCharge = await calculateCourierCharge(totalWeight);
         courierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
@@ -188,24 +188,24 @@ async function updatePricing() {
         console.error('Error calculating courier charge:', error);
         courierCharge = 0;
     }
-
+    
     // Update pricing displays
     const pickupTotal = basePrice * quantity;
     const courierTotal = pickupTotal + courierCharge;
-
-    document.getElementById("pickupPrice").textContent = `‚Çπ${pickupTotal.toFixed(2)}`;
-    document.getElementById("courierPrice").textContent = `‚Çπ${courierTotal.toFixed(2)}`;
-
+    
+    document.getElementById("pickupPrice").textContent = `π${pickupTotal.toFixed(2)}`;
+    document.getElementById("courierPrice").textContent = `π${courierTotal.toFixed(2)}`;
+    
     // Update weight and courier charge displays
     document.getElementById("totalWeight").textContent = `${totalWeight.toFixed(2)} kg`;
-    document.getElementById("totalCourierCharge").textContent = `‚Çπ${courierCharge.toFixed(2)}`;
-
+    document.getElementById("totalCourierCharge").textContent = `π${courierCharge.toFixed(2)}`;
+    
     // Update the weight info in the right side as well
     if (document.getElementById("bookWeight")) {
         document.getElementById("bookWeight").textContent = `${totalWeight.toFixed(2)} kg`;
     }
     if (document.getElementById("bookCourierCharge")) {
-        document.getElementById("bookCourierCharge").textContent = `‚Çπ${courierCharge.toFixed(2)}`;
+        document.getElementById("bookCourierCharge").textContent = `π${courierCharge.toFixed(2)}`;
     }
 }
 
@@ -243,7 +243,7 @@ async function loadBookDetails() {
         const deliveryMethod = urlParams.get("delivery");
         const paymentMethod = urlParams.get("payment");
         if (shouldBuy === "true" && deliveryMethod && paymentMethod) {
-            console.log("üõí Direct purchase flow detected:", { deliveryMethod, paymentMethod });
+            console.log("=“ Direct purchase flow detected:", { deliveryMethod, paymentMethod });
             window.selectedDeliveryMethod = deliveryMethod;
             setTimeout(() => {
                 if (paymentMethod === 'online' || paymentMethod === 'cheque' || paymentMethod === 'transfer') {
@@ -264,14 +264,14 @@ async function loadBookDetails() {
 async function displayBookDetails(book, hidePrice = false) {
     // Store book globally for addToCart
     window.currentBook = book;
-
+    
     document.getElementById("bookTitle").textContent = book.title;
     document.getElementById("bookAuthor").textContent = book.author;
-
+    
     // Display description
     document.getElementById("bookDescription").textContent =
         book.description || "No description available.";
-
+    
     // Display cover image - ALWAYS show this
     const cover = document.getElementById("bookCover");
     cover.src = book.cover_image || "https://via.placeholder.com/400x600?text=No+Cover";
@@ -283,105 +283,105 @@ async function displayBookDetails(book, hidePrice = false) {
 
     if (book.preview_images?.length) {
         previewGrid.innerHTML = "";
-
+        
         // Store preview images globally for lightbox
         window.previewImages = book.preview_images;
-
+        
         book.preview_images.forEach((imgURL, index) => {
             const img = document.createElement("img");
             img.src = imgURL;
             img.alt = `Preview ${index + 1}`;
             img.classList.add("preview-image");
             img.onerror = () => (img.src = "https://via.placeholder.com/400x600?text=Unavailable");
-
+            
             // Add click event to open lightbox
             img.addEventListener("click", () => openLightbox(index));
-
+            
             previewGrid.appendChild(img);
         });
     } else {
         noPreview.style.display = "block";
     }
-
+    
     // Hide pricing section if coming from bundle
     if (hidePrice) {
         const pricingSection = document.querySelector(".pricing-section");
         if (pricingSection) {
             pricingSection.style.display = "none";
         }
-
+        
         // Hide all purchase buttons
         const buyPickupBtn = document.getElementById("buyPickupBtn");
         const buyCourierBtn = document.getElementById("buyCourierBtn");
         const addToCartBtn = document.getElementById("addToCartBtn");
-
+        
         if (buyPickupBtn) buyPickupBtn.style.display = "none";
         if (buyCourierBtn) buyCourierBtn.style.display = "none";
         if (addToCartBtn) addToCartBtn.style.display = "none";
-
+        
         // Add a notice that this book is part of a bundle
         const bookInfo = document.querySelector(".book-info");
         if (bookInfo) {
             const bundleNotice = document.createElement("div");
             bundleNotice.style.cssText = "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;";
             bundleNotice.innerHTML = `
-                <p style="margin: 0; font-weight: 600;">üì¶ This book is part of a bundle</p>
+                <p style="margin: 0; font-weight: 600;">=Ê This book is part of a bundle</p>
                 <p style="margin: 5px 0 0 0; font-size: 14px;">Individual purchase is not available. Please purchase the complete bundle.</p>
             `;
             bookInfo.insertBefore(bundleNotice, bookInfo.firstChild);
         }
-
+        
         return; // Skip the rest of the function (pricing logic)
     }
-
+    
     // Check stock status and disable buttons if out of stock
     const isOutOfStock = book.trackStock && book.stockStatus === 'out_of_stock';
     const isLimitedStock = book.trackStock && book.stockStatus === 'limited_stock';
-
+    
     // Get all purchase buttons
     const buyPickupBtn = document.getElementById("buyPickupBtn");
     const buyCourierBtn = document.getElementById("buyCourierBtn");
     const addToCartBtn = document.getElementById("addToCartBtn");
-
+    
     if (isOutOfStock) {
         // Disable all purchase buttons and update their text
         if (buyPickupBtn) {
             buyPickupBtn.disabled = true;
-            buyPickupBtn.textContent = "‚ùå Out of Stock";
+            buyPickupBtn.textContent = "L Out of Stock";
             buyPickupBtn.style.background = "linear-gradient(135deg, #dc3545 0%, #c82333 100%)";
             buyPickupBtn.style.cursor = "not-allowed";
         }
-
+        
         if (buyCourierBtn) {
             buyCourierBtn.disabled = true;
-            buyCourierBtn.textContent = "‚ùå Out of Stock";
+            buyCourierBtn.textContent = "L Out of Stock";
             buyCourierBtn.style.background = "linear-gradient(135deg, #dc3545 0%, #c82333 100%)";
             buyCourierBtn.style.cursor = "not-allowed";
         }
-
+        
         if (addToCartBtn) {
             addToCartBtn.disabled = true;
-            addToCartBtn.textContent = "‚ùå Out of Stock";
+            addToCartBtn.textContent = "L Out of Stock";
             addToCartBtn.style.background = "linear-gradient(135deg, #dc3545 0%, #c82333 100%)";
             addToCartBtn.style.cursor = "not-allowed";
         }
-
+        
         // Add out of stock notice
         const pricingSection = document.querySelector(".pricing-section");
         const stockNotice = document.createElement("div");
         stockNotice.style.cssText = "background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 18px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;";
-        stockNotice.innerHTML = `<span style="font-size: 28px;">‚ùå</span><span>This book is currently out of stock</span>`;
+        stockNotice.innerHTML = `<span style="font-size: 28px;">L</span><span>This book is currently out of stock</span>`;
         pricingSection.parentNode.insertBefore(stockNotice, pricingSection.nextSibling);
-
+        
     } else if (isLimitedStock) {
         // Show limited stock warning
         const pricingSection = document.querySelector(".pricing-section");
         const stockNotice = document.createElement("div");
         stockNotice.style.cssText = "background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 18px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;";
         const remainingStock = book.stockQuantity || 0;
-        stockNotice.innerHTML = `<span style="font-size: 28px;">‚ö†Ô∏è</span><span>Limited Stock - Only ${remainingStock} left!</span>`;
+        stockNotice.innerHTML = `<span style="font-size: 28px;">†</span><span>Limited Stock - Only ${remainingStock} left!</span>`;
         pricingSection.parentNode.insertBefore(stockNotice, pricingSection.nextSibling);
-
+        
         // Update quantity selector max value to available stock
         const quantityInput = document.getElementById("bookQuantity");
         if (quantityInput && remainingStock > 0) {
@@ -391,7 +391,7 @@ async function displayBookDetails(book, hidePrice = false) {
             }
         }
     }
-
+    
     // Calculate pricing
     const pricing = window.getBookDisplayPricing ? window.getBookDisplayPricing(book) : { hasOffer: false, sellingPrice: parseFloat(book.price) || 0, mrp: parseFloat(book.price) || 0, discountAmount: 0, discountPercentage: 0 };
     const basePrice = pricing.sellingPrice;
@@ -408,50 +408,50 @@ async function displayBookDetails(book, hidePrice = false) {
         offerBanner.className = "details-offer-container";
         offerBanner.innerHTML = `
             <div class="details-offer-row">
-                <span class="details-selling-price">‚Çπ${pricing.sellingPrice.toFixed(2)}</span>
-                <span class="details-mrp">MRP ‚Çπ${pricing.mrp.toFixed(2)}</span>
+                <span class="details-selling-price">π${pricing.sellingPrice.toFixed(2)}</span>
+                <span class="details-mrp">MRP π${pricing.mrp.toFixed(2)}</span>
                 <span class="details-badge">${pricing.discountPercentage}% OFF</span>
             </div>
-            <div class="details-savings">You Save ‚Çπ${pricing.discountAmount.toFixed(2)}</div>
+            <div class="details-savings">You Save π${pricing.discountAmount.toFixed(2)}</div>
         `;
         const pricingSection = document.querySelector(".pricing-section");
         if (pricingSection && pricingSection.parentNode) {
             pricingSection.parentNode.insertBefore(offerBanner, pricingSection);
         }
     }
-
+    
     try {
         courierCharge = await calculateCourierCharge(weight);
-
+        
         // Ensure courierCharge is a valid number
         const validCourierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
         courierCharge = validCourierCharge; // Update the outer variable
-
+        
         // Display pickup price (same as base price)
-        document.getElementById("pickupPrice").textContent = `‚Çπ${basePrice.toFixed(2)}`;
-
+        document.getElementById("pickupPrice").textContent = `π${basePrice.toFixed(2)}`;
+        
         // Display courier price (base price + courier charge)
         const courierTotalPrice = basePrice + validCourierCharge;
-        document.getElementById("courierPrice").textContent = `‚Çπ${courierTotalPrice.toFixed(2)}`;
-
+        document.getElementById("courierPrice").textContent = `π${courierTotalPrice.toFixed(2)}`;
+        
     } catch (error) {
         console.error('Error calculating courier charge:', error);
         courierCharge = 0; // Set fallback value
-
+        
         // Fallback to showing base price for both options
-        document.getElementById("pickupPrice").textContent = `‚Çπ${basePrice.toFixed(2)}`;
-        document.getElementById("courierPrice").textContent = `‚Çπ${basePrice.toFixed(2)}`;
+        document.getElementById("pickupPrice").textContent = `π${basePrice.toFixed(2)}`;
+        document.getElementById("courierPrice").textContent = `π${basePrice.toFixed(2)}`;
     }
-
+    
     document.getElementById("bookDescription").textContent =
         book.description || "No description available.";
-
+    
     // Display reward points if available - BIG and PROMINENT
     if (book.rewardPoints && book.rewardPoints > 0) {
         const pricingSection = document.querySelector(".pricing-section");
         const pointsBadge = document.createElement("div");
         pointsBadge.style.cssText = "background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 18px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;";
-        pointsBadge.innerHTML = `<span style="font-size: 28px;">üéÅ</span><span>Earn ${book.rewardPoints} Points with this purchase!</span>`;
+        pointsBadge.innerHTML = `<span style="font-size: 28px;"><Å</span><span>Earn ${book.rewardPoints} Points with this purchase!</span>`;
         pricingSection.parentNode.insertBefore(pointsBadge, pricingSection.nextSibling);
     }
 
@@ -462,12 +462,12 @@ async function displayBookDetails(book, hidePrice = false) {
     } else if (book.cashbackPercentage > 0) {
         cashbackAmount = (basePrice * book.cashbackPercentage) / 100;
     }
-
+    
     if (cashbackAmount > 0) {
         const pricingSection = document.querySelector(".pricing-section");
         const cashbackBadge = document.createElement("div");
         cashbackBadge.style.cssText = "background: linear-gradient(135deg, #ff6f61 0%, #ff9800 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 18px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(255, 111, 97, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;";
-        cashbackBadge.innerHTML = `<span style="font-size: 28px;">üí∞</span><span>Get ‚Çπ${cashbackAmount.toFixed(0)} Cashback instantly!</span>`;
+        cashbackBadge.innerHTML = `<span style="font-size: 28px;">=∞</span><span>Get π${cashbackAmount.toFixed(0)} Cashback instantly!</span>`;
         pricingSection.parentNode.insertBefore(cashbackBadge, pricingSection.nextSibling);
     }
 
@@ -476,7 +476,7 @@ async function displayBookDetails(book, hidePrice = false) {
         document.getElementById("bookWeight").textContent = `${weight.toFixed(2)} kg`;
     }
     if (document.getElementById("bookCourierCharge")) {
-        document.getElementById("bookCourierCharge").textContent = `‚Çπ${courierCharge.toFixed(2)}`;
+        document.getElementById("bookCourierCharge").textContent = `π${courierCharge.toFixed(2)}`;
     }
 }
 
@@ -490,12 +490,12 @@ function openLightbox(index) {
     const lightbox = document.getElementById("imageLightbox");
     const lightboxImage = document.getElementById("lightboxImage");
     const lightboxCaption = document.getElementById("lightboxCaption");
-
+    
     if (window.previewImages && window.previewImages.length > 0) {
         lightboxImage.src = window.previewImages[currentImageIndex];
         lightboxCaption.textContent = `Page ${currentImageIndex + 1} of ${window.previewImages.length}`;
         lightbox.style.display = "flex";
-
+        
         // Prevent body scroll when lightbox is open
         document.body.style.overflow = "hidden";
     }
@@ -504,7 +504,7 @@ function openLightbox(index) {
 function closeLightbox() {
     const lightbox = document.getElementById("imageLightbox");
     lightbox.style.display = "none";
-
+    
     // Restore body scroll
     document.body.style.overflow = "auto";
 }
@@ -514,7 +514,7 @@ function nextImage() {
         currentImageIndex = (currentImageIndex + 1) % window.previewImages.length;
         const lightboxImage = document.getElementById("lightboxImage");
         const lightboxCaption = document.getElementById("lightboxCaption");
-
+        
         lightboxImage.src = window.previewImages[currentImageIndex];
         lightboxCaption.textContent = `Page ${currentImageIndex + 1} of ${window.previewImages.length}`;
     }
@@ -525,7 +525,7 @@ function previousImage() {
         currentImageIndex = (currentImageIndex - 1 + window.previewImages.length) % window.previewImages.length;
         const lightboxImage = document.getElementById("lightboxImage");
         const lightboxCaption = document.getElementById("lightboxCaption");
-
+        
         lightboxImage.src = window.previewImages[currentImageIndex];
         lightboxCaption.textContent = `Page ${currentImageIndex + 1} of ${window.previewImages.length}`;
     }
@@ -546,11 +546,11 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* -----------------------------------
-   BUY NOW ‚Üí Show Address Modal
+   BUY NOW í Show Address Modal
 ----------------------------------- */
 
 /* -----------------------------------
-   BUY NOW ‚Üí Show Address Modal
+   BUY NOW í Show Address Modal
 ----------------------------------- */
 let userAddress = null;
 let currentBook = null;
@@ -568,23 +568,23 @@ async function handlePurchase(deliveryMethod = "courier") {
     // Check stock status before proceeding
     const book = window.currentBook;
     if (book && book.trackStock && book.stockStatus === 'out_of_stock') {
-        alert("‚ùå This book is currently out of stock and cannot be purchased.");
+        alert("L This book is currently out of stock and cannot be purchased.");
         return;
     }
-
+    
     // Check if requested quantity is available for limited stock
     const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
     if (book && book.trackStock && book.stockStatus === 'limited_stock') {
         const availableStock = book.stockQuantity || 0;
         if (quantity > availableStock) {
-            alert(`‚ùå Only ${availableStock} copies are available. Please reduce the quantity.`);
+            alert(`L Only ${availableStock} copies are available. Please reduce the quantity.`);
             return;
         }
     }
 
     // Store delivery method globally for later use
     window.selectedDeliveryMethod = deliveryMethod;
-
+    
     // Show billing address collection modal first (for all payment methods)
     showBillingAddressModal();
 }
@@ -655,28 +655,28 @@ function redirectToChequePaymentForm() {
     // Check authentication first
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
-
+    
     if (!token || !user) {
         alert("Please log in to place an order.");
         window.location.href = "/login.html";
         return;
     }
-
+    
     const bookId = new URLSearchParams(window.location.search).get("id");
     const deliveryMethod = window.selectedDeliveryMethod || "courier";
     const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
-
+    
     // Get book details from the page (should be loaded already)
     const book = window.currentBook;
     if (!book) {
         alert("Book data not loaded. Please refresh the page and try again.");
         return;
     }
-
+    
     // Calculate total amount
     const basePrice = parseFloat(book.price) * quantity;
     const weight = (book.weight || 0.5) * quantity;
-
+    
     // Create order in pending state first
     createPendingOrder('cheque', deliveryMethod, basePrice, weight, bookId, quantity);
 }
@@ -685,28 +685,28 @@ function redirectToAccountTransferForm() {
     // Check authentication first
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
-
+    
     if (!token || !user) {
         alert("Please log in to place an order.");
         window.location.href = "/login.html";
         return;
     }
-
+    
     const bookId = new URLSearchParams(window.location.search).get("id");
     const deliveryMethod = window.selectedDeliveryMethod || "courier";
     const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
-
+    
     // Get book details from the page (should be loaded already)
     const book = window.currentBook;
     if (!book) {
         alert("Book data not loaded. Please refresh the page and try again.");
         return;
     }
-
+    
     // Calculate total amount
     const basePrice = parseFloat(book.price) * quantity;
     const weight = (book.weight || 0.5) * quantity;
-
+    
     // Create order in pending state first
     createPendingOrder('transfer', deliveryMethod, basePrice, weight, bookId, quantity);
 }
@@ -714,23 +714,23 @@ function redirectToAccountTransferForm() {
 async function createPendingOrder(paymentType, deliveryMethod, basePrice, weight, bookId, quantity) {
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
-
+    
     // Double-check authentication
     if (!token || !user) {
         alert("Authentication required. Please log in to place an order.");
         window.location.href = "/login.html";
         return;
     }
-
+    
     try {
         // Calculate courier charge if needed
         let courierCharge = 0;
         if (deliveryMethod === "courier") {
             courierCharge = await calculateCourierCharge(weight);
         }
-
+        
         const totalAmount = basePrice + courierCharge;
-
+        
         console.log("Creating pending order with:", {
             paymentType,
             deliveryMethod,
@@ -740,7 +740,7 @@ async function createPendingOrder(paymentType, deliveryMethod, basePrice, weight
             bookId,
             quantity
         });
-
+        
         // Create pending order
         const orderRes = await fetch(`${API}/orders/create-pending`, {
             method: "POST",
@@ -764,7 +764,7 @@ async function createPendingOrder(paymentType, deliveryMethod, basePrice, weight
 
         if (!orderRes.ok) {
             console.error("Order creation failed:", orderRes.status, orderData);
-
+            
             if (orderRes.status === 401) {
                 alert("Your session has expired. Please log in again.");
                 localStorage.removeItem("token");
@@ -772,7 +772,7 @@ async function createPendingOrder(paymentType, deliveryMethod, basePrice, weight
                 window.location.href = "/login.html";
                 return;
             }
-
+            
             throw new Error(orderData.error || `Failed to create order (${orderRes.status})`);
         }
 
@@ -780,13 +780,13 @@ async function createPendingOrder(paymentType, deliveryMethod, basePrice, weight
 
         // Show confirmation and redirect to upload page
         alert(`Order created! Order ID: ${orderData.orderId}\n\nYou will now be redirected to upload payment details.`);
-
+        
         // Redirect to payment upload page with order details
         window.location.href = `/payment-upload.html?orderId=${orderData.orderId}&amount=${totalAmount}&type=${paymentType}`;
 
     } catch (err) {
         console.error("Error creating pending order:", err);
-
+        
         if (err.message.includes("Unauthorized")) {
             alert("Authentication failed. Please log in again.");
             localStorage.removeItem("token");
@@ -808,10 +808,10 @@ async function showAddressModal() {
         });
 
         const data = await res.json();
-
+        
         if (data.user && data.user.address) {
             userAddress = data.user.address;
-
+            
             // Display detailed address fields
             document.getElementById("modalHomeAddress1").textContent = userAddress.homeAddress1 || userAddress.street || "Not set";
             document.getElementById("modalHomeAddress2").textContent = userAddress.homeAddress2 || "-";
@@ -855,7 +855,7 @@ function closeAddressModal() {
 function toggleAddressForm() {
     const form = document.getElementById("addressEditForm");
     const display = document.getElementById("addressDisplay");
-
+    
     if (form.style.display === "none") {
         form.style.display = "block";
         display.style.display = "none";
@@ -912,7 +912,7 @@ async function saveAddressFromModal() {
         }
 
         userAddress = address;
-
+        
         // Update display
         document.getElementById("modalHomeAddress1").textContent = address.homeAddress1;
         document.getElementById("modalHomeAddress2").textContent = address.homeAddress2 || "-";
@@ -939,7 +939,7 @@ async function saveAddressFromModal() {
 ----------------------------------- */
 async function calculateCourierCharge(totalWeight) {
     if (totalWeight <= 0) return 0;
-
+    
     // Use dynamic shipping calculator
     if (window.dynamicShipping) {
         try {
@@ -949,7 +949,7 @@ async function calculateCourierCharge(totalWeight) {
             console.error('Error calculating dynamic shipping:', error);
         }
     }
-
+    
     // Fallback to hardcoded calculation
     const charge = Math.ceil(totalWeight / 100);
     const finalCharge = Math.max(charge, 50);
@@ -963,9 +963,9 @@ async function proceedToPayment() {
     const token = localStorage.getItem("token");
     const deliveryMethod = currentBook?.selectedDeliveryMethod || "courier";
     const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
-
+    
     // Get the appropriate button based on delivery method
-    const buyBtn = deliveryMethod === "pickup"
+    const buyBtn = deliveryMethod === "pickup" 
         ? document.getElementById("buyPickupBtn")
         : document.getElementById("buyCourierBtn");
 
@@ -1001,13 +1001,13 @@ async function proceedToPayment() {
     let confirmMsg = "";
 
     if (deliveryMethod === "pickup") {
-        confirmMsg = `Order Summary (Book-stall Pickup):\n\nBook: ${currentBook.title}\nQuantity: ${quantity}\nPrice: ‚Çπ${itemsTotal.toFixed(2)}\nDelivery: Pickup at store (FREE)\n\nTotal Amount: ‚Çπ${totalAmount.toFixed(2)}\n\nProceed to payment?`;
+        confirmMsg = `Order Summary (Book-stall Pickup):\n\nBook: ${currentBook.title}\nQuantity: ${quantity}\nPrice: π${itemsTotal.toFixed(2)}\nDelivery: Pickup at store (FREE)\n\nTotal Amount: π${totalAmount.toFixed(2)}\n\nProceed to payment?`;
     } else {
         courierCharge = await calculateCourierCharge(bookWeight);
         totalAmount = itemsTotal + courierCharge;
-        confirmMsg = `Order Summary (Courier Delivery):\n\nBook: ${currentBook.title}\nQuantity: ${quantity}\nPrice: ‚Çπ${itemsTotal.toFixed(2)}\nWeight: ${bookWeight.toFixed(2)} kg\nCourier Charge: ‚Çπ${courierCharge.toFixed(2)}\n\nTotal Amount: ‚Çπ${totalAmount.toFixed(2)}\n\nProceed to payment?`;
+        confirmMsg = `Order Summary (Courier Delivery):\n\nBook: ${currentBook.title}\nQuantity: ${quantity}\nPrice: π${itemsTotal.toFixed(2)}\nWeight: ${bookWeight.toFixed(2)} kg\nCourier Charge: π${courierCharge.toFixed(2)}\n\nTotal Amount: π${totalAmount.toFixed(2)}\n\nProceed to payment?`;
     }
-
+    
     if (!confirm(confirmMsg)) {
         return;
     }
@@ -1029,7 +1029,7 @@ async function proceedToPayment() {
             buyBtn.textContent = "Processing...";
         }
 
-        // 1Ô∏è‚É£ Create backend Razorpay order with delivery method and address
+        // 1„ Create backend Razorpay order with delivery method and address
         const orderRes = await fetch(`${API}/payments/create-order`, {
             method: "POST",
             headers: {
@@ -1052,7 +1052,7 @@ async function proceedToPayment() {
             throw new Error(orderData.error || "Failed to create order");
         }
 
-        // 2Ô∏è‚É£ Razorpay Checkout
+        // 2„ Razorpay Checkout
         const RZP_KEY = orderData.key || window.RAZORPAY_KEY || "rzp_live_TYHRMUCCtwZWzQ";
 
         const options = {
@@ -1065,7 +1065,7 @@ async function proceedToPayment() {
 
             handler: async function (response) {
                 try {
-                    // 3Ô∏è‚É£ Verify payment on backend
+                    // 3„ Verify payment on backend
                     const verifyRes = await fetch(`${API}/payments/verify`, {
                         method: "POST",
                         headers: {
@@ -1105,13 +1105,13 @@ async function proceedToPayment() {
                         return;
                     }
 
-                    // ‚úÖ Payment verification successful!
-                    console.log("‚úÖ Payment verified successfully!");
+                    //  Payment verification successful!
+                    console.log(" Payment verified successfully!");
                     if (buyBtn) {
                         buyBtn.disabled = false;
                         buyBtn.textContent = "Buy Now";
                     }
-
+                    
                     const mongoOrderId = (verifyData.order && (verifyData.order._id || verifyData.order.id)) || '';
                     const orderData = {
                         orderId: response.razorpay_payment_id,
@@ -1122,9 +1122,9 @@ async function proceedToPayment() {
                         paymentMethod: 'Online Payment',
                         processing: Boolean(verifyData.processing)
                     };
-
-                    console.log("üìã Order data for popup:", orderData);
-
+                    
+                    console.log("=À Order data for popup:", orderData);
+                    
                     if (typeof showSuccessPopup === 'function') {
                         showSuccessPopup(orderData);
                     } else {
@@ -1232,21 +1232,21 @@ async function handleAddToCart() {
 function updateCartCount() {
     const cartIcon = document.getElementById("cartIcon");
     const cartCount = document.getElementById("cartCount");
-
+    
     if (!cartIcon) return;
 
     const cart = getCart();
     const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
-
+    
     if (cartCount) {
         // If there's a cartCount span, update it
         cartCount.textContent = totalItems;
     } else {
         // Otherwise update the cart icon text
         if (totalItems > 0) {
-            cartIcon.innerHTML = `üõí Cart (${totalItems})`;
+            cartIcon.innerHTML = `=“ Cart (${totalItems})`;
         } else {
-            cartIcon.innerHTML = `üõí Cart`;
+            cartIcon.innerHTML = `=“ Cart`;
         }
     }
 }
@@ -1267,11 +1267,11 @@ async function addToCart(deliveryMethod = "courier") {
                 type: "error"
             });
         } else {
-            alert("‚ùå This book is currently out of stock and cannot be added to cart.");
+            alert("L This book is currently out of stock and cannot be added to cart.");
         }
         return;
     }
-
+    
     // Check if requested quantity is available for limited stock
     const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
     if (book && book.trackStock && book.stockStatus === 'limited_stock') {
@@ -1284,7 +1284,7 @@ async function addToCart(deliveryMethod = "courier") {
                     type: "warning"
                 });
             } else {
-                alert(`‚ùå Only ${availableStock} copies are available. Please reduce the quantity.`);
+                alert(`L Only ${availableStock} copies are available. Please reduce the quantity.`);
             }
             return;
         }
@@ -1293,7 +1293,7 @@ async function addToCart(deliveryMethod = "courier") {
     const cart = getCart();
 
     // Check if book with same delivery method already exists
-    const existingItemIndex = cart.findIndex(item =>
+    const existingItemIndex = cart.findIndex(item => 
         item.id === bookId && item.deliveryMethod === deliveryMethod
     );
 
@@ -1310,17 +1310,17 @@ async function addToCart(deliveryMethod = "courier") {
                         type: "warning"
                     });
                 } else {
-                    alert(`‚ùå Cannot add more. Only ${availableStock} copies are available and you already have ${cart[existingItemIndex].quantity} in cart.`);
+                    alert(`L Cannot add more. Only ${availableStock} copies are available and you already have ${cart[existingItemIndex].quantity} in cart.`);
                 }
                 return;
             }
         }
-
+        
         // If stock check passes, increase quantity
         cart[existingItemIndex].quantity = newQuantity;
         saveCart(cart);
         updateCartCount(); // Update cart count
-
+        
         // Show success notification with cart count
         const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
         if (typeof showCartNotification === "function") {
@@ -1331,7 +1331,7 @@ async function addToCart(deliveryMethod = "courier") {
                 type: "success"
             });
         } else {
-            alert(`‚úÖ Book quantity updated in cart!\n\nCart now has ${cartCount} item${cartCount > 1 ? 's' : ''} (${deliveryMethod === 'pickup' ? 'Pickup' : 'Courier'}).`);
+            alert(` Book quantity updated in cart!\n\nCart now has ${cartCount} item${cartCount > 1 ? 's' : ''} (${deliveryMethod === 'pickup' ? 'Pickup' : 'Courier'}).`);
         }
         return;
     }
@@ -1372,7 +1372,7 @@ async function addToCart(deliveryMethod = "courier") {
 
     saveCart(cart);
     updateCartCount(); // Update cart count
-
+    
     // Show success notification with cart count
     const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
     const methodText = deliveryMethod === 'pickup' ? 'Book-stall Pickup' : 'Courier Delivery';
@@ -1384,7 +1384,7 @@ async function addToCart(deliveryMethod = "courier") {
             type: "success"
         });
     } else {
-        alert(`‚úÖ "${book.title}" added to cart!\n\nCart now has ${cartCount} item${cartCount > 1 ? 's' : ''} for ${methodText}.`);
+        alert(` "${book.title}" added to cart!\n\nCart now has ${cartCount} item${cartCount > 1 ? 's' : ''} for ${methodText}.`);
     }
 }
 
@@ -1434,8 +1434,8 @@ async function showBillingAddressModal(deliveryMethod) {
     console.log("Selected delivery method:", window.selectedDeliveryMethod);
 
     if (window.selectedDeliveryMethod === "courier") {
-        if (modalTitle) modalTitle.textContent = "üìã Delivery Details";
-        if (bannerTitle) bannerTitle.textContent = "üöö Delivery Details";
+        if (modalTitle) modalTitle.textContent = "=À Delivery Details";
+        if (bannerTitle) bannerTitle.textContent = "=ö Delivery Details";
         if (bannerSubtitle) bannerSubtitle.textContent = "Where should we deliver your order?";
 
         if (previousBtnWrapper) previousBtnWrapper.style.display = "block";
@@ -1450,8 +1450,8 @@ async function showBillingAddressModal(deliveryMethod) {
         if (pincodeInput) pincodeInput.required = true;
         if (noteEl) noteEl.style.display = "flex";
     } else {
-        if (modalTitle) modalTitle.textContent = "üìã Store Pickup Details";
-        if (bannerTitle) bannerTitle.textContent = "üè† Store Pickup Details";
+        if (modalTitle) modalTitle.textContent = "=À Store Pickup Details";
+        if (bannerTitle) bannerTitle.textContent = "<‡ Store Pickup Details";
         if (bannerSubtitle) bannerSubtitle.textContent = "Please provide your contact details for pickup";
 
         if (previousBtnWrapper) previousBtnWrapper.style.display = "none";
@@ -1614,10 +1614,10 @@ async function loadPreviousAddresses() {
                 const addr = order.deliveryAddress;
                 // Handle both new format (homeAddress1) and legacy format (street)
                 const primaryAddress = addr.homeAddress1 || addr.street || '';
-
+                
                 // Create a unique key for the address
                 const key = `${primaryAddress}-${addr.taluk}-${addr.district}-${addr.pincode}`;
-
+                
                 if (!addressMap.has(key) && primaryAddress) {
                     addressMap.set(key, {
                         homeAddress1: primaryAddress,
@@ -1670,10 +1670,10 @@ async function loadPreviousAddresses() {
     } catch (error) {
         console.error("Error loading previous addresses:", error);
         alert("Failed to load previous addresses. Please try again.");
-
+        
         // Reset button
         const btn = document.getElementById("useOldAddressBtn");
-        btn.textContent = "üìã Use My Previous Address";
+        btn.textContent = "=À Use My Previous Address";
         btn.disabled = false;
     }
 }
@@ -1712,7 +1712,7 @@ function fillAddressFromPrevious() {
         border: 1px solid #c3e6cb;
         font-size: 14px;
     `;
-    successMsg.innerHTML = "‚úÖ Address filled successfully! You can modify any field if needed.";
+    successMsg.innerHTML = " Address filled successfully! You can modify any field if needed.";
 
     // Insert the message at the top of delivery address fields
     const deliveryFields = document.getElementById("deliveryAddressFields");
@@ -1771,10 +1771,10 @@ async function loadPreviousBillingAddresses() {
                 const addr = order.deliveryAddress;
                 // Handle both new format (homeAddress1) and legacy format (street)
                 const primaryAddress = addr.homeAddress1 || addr.street || '';
-
+                
                 // Create a unique key for the address
                 const key = `${primaryAddress}-${addr.taluk}-${addr.district}-${addr.pincode}`;
-
+                
                 if (!addressMap.has(key) && primaryAddress) {
                     addressMap.set(key, {
                         homeAddress1: primaryAddress,
@@ -1827,10 +1827,10 @@ async function loadPreviousBillingAddresses() {
     } catch (error) {
         console.error("Error loading previous addresses:", error);
         alert("Failed to load previous addresses. Please try again.");
-
+        
         // Reset button
         const btn = document.getElementById("usePreviousBillingAddressBtn");
-        btn.textContent = "üìã Use My Previous Address";
+        btn.textContent = "=À Use My Previous Address";
         btn.disabled = false;
     }
 }
@@ -1869,7 +1869,7 @@ function fillBillingAddressFromPrevious() {
         border: 1px solid #c3e6cb;
         font-size: 14px;
     `;
-    successMsg.innerHTML = "‚úÖ Address filled successfully! You can modify any field if needed.";
+    successMsg.innerHTML = " Address filled successfully! You can modify any field if needed.";
 
     // Insert the message after the dropdown section
     const billingSection = document.getElementById("previousBillingAddressesSection");
@@ -1973,7 +1973,7 @@ async function proceedWithRazorpayPaymentWithAddresses() {
 
         // Razorpay Checkout
         const RZP_KEY = orderData.key || window.RAZORPAY_KEY || "rzp_live_TYHRMUCCtwZWzQ";
-
+        
         const options = {
             key: RZP_KEY,
             amount: orderData.order.amount,
@@ -1981,7 +1981,7 @@ async function proceedWithRazorpayPaymentWithAddresses() {
             name: "Shree Mata",
             description: `Book: ${book.title}`,
             order_id: orderData.order.id,
-            handler: async function (response) {
+            handler: async function(response) {
                 try {
                     // Verify payment on backend
                     const verifyRes = await fetch(`${API}/payments/verify`, {
@@ -2016,7 +2016,7 @@ async function proceedWithRazorpayPaymentWithAddresses() {
                             deliveryMethod: deliveryMethod === 'pickup' ? 'Store Pickup' : 'Courier Delivery',
                             paymentMethod: 'Online Payment'
                         };
-
+                        
                         showSuccessPopup(orderData);
                     } else {
                         throw new Error(verifyData.error || "Payment verification failed");
@@ -2063,16 +2063,16 @@ function redirectToChequePaymentFormWithAddresses() {
     const bookId = new URLSearchParams(window.location.search).get("id");
     const deliveryMethod = window.selectedDeliveryMethod || "courier";
     const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
-
+    
     if (!window.currentBook || !window.billingAddress) {
         alert("Book data or billing address not loaded. Please try again.");
         return;
     }
-
+    
     // Calculate total amount
     const basePrice = parseFloat(window.currentBook.price) * quantity;
     const weight = (window.currentBook.weight || 0.5) * quantity;
-
+    
     // Create order with addresses
     createBookPendingOrderWithAddresses('cheque', deliveryMethod, basePrice, weight, bookId, quantity);
 }
@@ -2081,28 +2081,28 @@ function redirectToAccountTransferFormWithAddresses() {
     const bookId = new URLSearchParams(window.location.search).get("id");
     const deliveryMethod = window.selectedDeliveryMethod || "courier";
     const quantity = parseInt(document.getElementById("bookQuantity").value) || 1;
-
+    
     if (!window.currentBook || !window.billingAddress) {
         alert("Book data or billing address not loaded. Please try again.");
         return;
     }
-
+    
     // Calculate total amount
     const basePrice = parseFloat(window.currentBook.price) * quantity;
     const weight = (window.currentBook.weight || 0.5) * quantity;
-
+    
     // Create order with addresses
     createBookPendingOrderWithAddresses('transfer', deliveryMethod, basePrice, weight, bookId, quantity);
 }
 
 async function createBookPendingOrderWithAddresses(paymentType, deliveryMethod, basePrice, weight, bookId, quantity) {
     const token = localStorage.getItem("token");
-
+    
     if (!window.billingAddress) {
         alert("Billing address not collected. Please try again.");
         return;
     }
-
+    
     try {
         // Calculate courier charge if needed
         let courierCharge = 0;
@@ -2110,9 +2110,9 @@ async function createBookPendingOrderWithAddresses(paymentType, deliveryMethod, 
             courierCharge = await calculateCourierCharge(weight);
             courierCharge = isNaN(courierCharge) ? 0 : parseFloat(courierCharge);
         }
-
+        
         const totalAmount = basePrice + courierCharge;
-
+        
         // Prepare delivery address
         let deliveryAddress = null;
         if (deliveryMethod === "courier") {
@@ -2128,7 +2128,7 @@ async function createBookPendingOrderWithAddresses(paymentType, deliveryMethod, 
                 street: addressToUse.address1
             };
         }
-
+        
         const requestData = {
             bookId: bookId,
             quantity: quantity,
@@ -2141,7 +2141,7 @@ async function createBookPendingOrderWithAddresses(paymentType, deliveryMethod, 
             billingAddress: window.billingAddress,
             deliveryAddress: deliveryAddress
         };
-
+        
         // Create pending order for book
         const orderRes = await fetch(`${API}/orders/create-pending`, {
             method: "POST",
@@ -2160,7 +2160,7 @@ async function createBookPendingOrderWithAddresses(paymentType, deliveryMethod, 
 
         // Show confirmation and redirect to upload page
         alert(`Book order created! Order ID: ${orderData.orderId}\n\nYou will now be redirected to upload payment details.`);
-
+        
         // Redirect to payment upload page with order details
         window.location.href = `/payment-upload.html?orderId=${orderData.orderId}&amount=${totalAmount}&type=${paymentType}`;
 
@@ -2178,7 +2178,7 @@ async function calculateCourierCharge(weight) {
             const shippingResult = window.shippingCalculator.calculateShipping(weight, 0);
             return shippingResult.cost || 0;
         }
-
+        
         // Fallback calculation if shipping calculator not available
         const baseCharge = 50;
         const ratePerKg = 25;
@@ -2220,7 +2220,7 @@ function setBookInlineFieldError(inputEl, message) {
     }
     if (msgEl) msgEl.textContent = message;
 
-    const onInput = function () {
+    const onInput = function() {
         inputEl.classList.remove('field-has-error');
         inputEl.style.borderColor = '#e0e0e0';
         if (msgEl && msgEl.parentNode) msgEl.remove();
@@ -2353,4 +2353,4 @@ window.showBillingAddressModal = showBillingAddressModal;
 window.closeBillingAddressModal = closeBillingAddressModal;
 window.showPaymentMethodModal = showPaymentMethodModal;
 window.closePaymentMethodModal = closePaymentMethodModal;
-window.handlePurchase = handlePurchase;
+window.handlePurchase = handlePurchase;
