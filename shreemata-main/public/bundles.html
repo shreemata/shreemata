@@ -3,13 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0f0e2a">
+    <meta name="theme-color" content="#F7F3EA">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>All Combo Offers - Shree Mata</title>
     <link rel="icon" href="images/press.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <!-- Google Fonts: Inter + Playfair Display -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
+    <link rel="icon" href="/images/press.png" type="image/png">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/site-shell.css">
     
     <style>
         /* ── TOKENS ── */
@@ -770,34 +776,170 @@
 <!-- Particle canvas -->
 <canvas id="bgCanvas"></canvas>
 
-<header>
-    <div class="navbar">
-        <div class="navbar-content">
-            <div class="logo">
-                <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
-                    <img src="/images/press.png" alt="Shree Mata Logo">
-                    <span>Shree Mata</span>
-                </a>
+    <!-- TOP ANNOUNCEMENT BAR -->
+    <div class="top-bar" role="region" aria-label="Announcement">
+        <div class="top-bar-inner">
+            <div class="top-bar-left">
+                <span class="badge-gold-pill">Store Notice</span>
+                <span>Store pickup &amp; doorstep courier delivery available across Karnataka</span>
             </div>
-            <div class="nav-links">
-                <a href="/">🏠 Home</a>
-                <span id="authLinks">
-                    <a href="/login.html">🔐 Login</a>
-                    <a href="signup.html">📝 Sign Up</a>
-                </span>
-                <span id="userLinks" style="display: none;">
-                    <span id="userName"></span>
-                    <a href="#" id="logoutBtn">🚪 Logout</a>
-                </span>
-                <a href="account.html" id="accountLink">👤 Account</a>
-                <a href="orders.html" id="ordersLink">📦 Orders</a>
-                <a href="referral.html" id="referralLink" style="display: none;">💰 Referral</a>
-                <a href="cart.html" class="cart-icon" id="cartLink">🛒 Cart (<span id="cartCount">0</span>)</a>
-                <a href="admin.html" id="adminLink" style="display: none;">⚙️ Admin</a>
+            <div class="top-bar-right">
+                <a href="/track-order.html" class="top-bar-link">?? Track Your Order</a>
+                <a href="/#trustSection" class="top-bar-link">??? Genuine Curriculum Books</a>
             </div>
         </div>
     </div>
-</header>
+
+    <!-- MAIN HEADER -->
+    <header class="main-header" role="banner">
+        <div class="container">
+            <div class="header-inner">
+                <!-- Mobile Menu Hamburger Button -->
+                <button type="button" id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="Open Navigation Menu">?</button>
+
+                <!-- Brand Logo & Identity -->
+                <a href="/" class="brand-logo logo" aria-label="Shree Mata Home">
+                    <img src="/images/press.png" alt="Shree Mata Logo" width="44" height="44">
+                    <div class="brand-text">
+                        <span class="brand-title">Shree Mata</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Primary Navigation Links -->
+                <nav class="header-nav-links" aria-label="Primary Navigation">
+                    <a href="/#booksSection" class="nav-item-link">Books</a>
+                    <a href="/#booksSection" class="nav-item-link">Categories</a>
+                    <a href="/#notificationsSection" class="nav-item-link">Offers</a>
+                </nav>
+
+                <!-- Wide Search Field -->
+                <div class="header-search">
+                    <div class="search-box" role="search">
+                        <span class="search-icon" aria-hidden="true">??</span>
+                        <input 
+                            type="search" 
+                            id="searchInput" 
+                            class="search-input" 
+                            placeholder="Search books, subjects, class..." 
+                            aria-label="Search catalog"
+                            autocomplete="off"
+                        >
+                        <button type="button" id="searchBtn" class="search-btn" aria-label="Search">Search</button>
+                    </div>
+                </div>
+
+                <!-- User & Cart Actions -->
+                <div class="header-actions">
+                    <!-- Guest Auth Links -->
+                    <div id="authLinks" class="auth-group">
+                        <a href="/login.html" class="btn-login" aria-label="Account Login">
+                            <span class="btn-login-icon" aria-hidden="true">??</span>
+                            <span class="btn-login-text">Log In</span>
+                        </a>
+                        <a href="/signup.html" class="btn-signup">Sign Up</a>
+                    </div>
+
+                    <!-- Logged-in User Navigation Dropdown -->
+                    <div id="userLinks" class="user-nav-wrap" style="display: none;">
+                        <button type="button" class="user-name-badge" id="userMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-label="User Account Menu">
+                            <span class="user-avatar-icon" aria-hidden="true">??</span>
+                            <span id="userName" class="user-name-text">Account</span>
+                            <span class="dropdown-chevron" aria-hidden="true">?</span>
+                        </button>
+                        <div class="user-dropdown-menu" id="userDropdownMenu" role="menu" aria-labelledby="userMenuBtn">
+                            <div class="dropdown-header">
+                                <div class="dropdown-user-profile">
+                                    <div class="dropdown-user-avatar">??</div>
+                                    <div class="dropdown-user-info">
+                                        <span class="dropdown-user-name" id="dropdownUserName">User</span>
+                                        <span class="dropdown-user-email" id="dropdownUserEmail"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="/account.html" class="dropdown-item-link" id="accountLink" role="menuitem">
+                                <span class="dropdown-item-icon">??</span> <span>My Account</span>
+                            </a>
+                            <a href="/orders.html" class="dropdown-item-link" id="ordersLink" role="menuitem">
+                                <span class="dropdown-item-icon">??</span> <span>My Orders</span>
+                            </a>
+                            <a href="/account.html?section=wallet" class="dropdown-item-link" id="dropdownWalletLink" role="menuitem">
+                                <span class="dropdown-item-icon">??</span> <span>Wallet &amp; Cashback</span>
+                            </a>
+                            <a href="/referral.html" class="dropdown-item-link" id="referralLink" role="menuitem">
+                                <span class="dropdown-item-icon">??</span> <span>Referral Network</span>
+                            </a>
+                            <a href="/account.html?section=vip" class="dropdown-item-link" id="dropdownVipLink" role="menuitem">
+                                <span class="dropdown-item-icon">??</span> <span>VIP Master Card</span>
+                            </a>
+                            <a href="/admin.html" class="dropdown-item-link" id="adminLink" role="menuitem" style="display: none;">
+                                <span class="dropdown-item-icon">??</span> <span>Admin Dashboard</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button type="button" id="logoutBtn" class="btn-logout-item" role="menuitem">
+                                <span class="dropdown-item-icon">??</span> <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Orders Link (Quick Access) -->
+                    <a href="/orders.html" class="nav-item-link header-orders-link" style="display: inline-flex; align-items: center; gap: 4px;">Orders</a>
+
+                    <!-- Shopping Cart Button with Dynamic Badge -->
+                    <a href="/cart.html" id="cartLink" class="btn-cart-header" title="Shopping Cart">
+                        <span aria-hidden="true">??</span>
+                        <span class="cart-text">Cart</span>
+                        <span id="cartCount" class="cart-count-badge">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MOBILE NAVIGATION DRAWER -->
+    <div id="mobileNavDrawer" class="mobile-nav-drawer" aria-hidden="true">
+        <div id="drawerBackdrop" class="drawer-backdrop"></div>
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <a href="/" class="brand-logo logo" aria-label="Shree Mata">
+                    <img src="/images/press.png" alt="Shree Mata" width="36" height="36">
+                    <span class="brand-title" style="font-size: 18px;">Shree Mata</span>
+                </a>
+                <button type="button" id="drawerCloseBtn" class="drawer-close-btn" aria-label="Close menu">&times;</button>
+            </div>
+            <nav class="drawer-nav">
+                <a href="/#booksSection" class="drawer-link">?? All Books</a>
+                <a href="/#booksSection" class="drawer-link">??? Categories &amp; Subjects</a>
+                <a href="/#notificationsSection" class="drawer-link">?? Offers &amp; Deals</a>
+                <a href="/track-order.html" class="drawer-link">?? Track Your Order</a>
+                <a href="/cart.html" class="drawer-link">?? Shopping Cart</a>
+            </nav>
+            <div id="drawerAuthSection" class="drawer-auth">
+                <!-- Guest View -->
+                <div id="drawerGuestAuth" class="drawer-auth-buttons">
+                    <a href="/login.html" class="btn-secondary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">Log In</a>
+                    <a href="/signup.html" class="btn-primary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center;">Sign Up</a>
+                </div>
+                <!-- Logged In View -->
+                <div id="drawerUserAuth" class="drawer-user-menu" style="display: none;">
+                    <div class="drawer-user-info" style="display: flex; align-items: center; gap: 10px; padding: 8px 0 14px; border-bottom: 1px solid var(--border-editorial); margin-bottom: 10px;">
+                        <span class="user-avatar-icon" style="font-size: 20px;">??</span>
+                        <div>
+                            <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; display: block;">Signed in as</span>
+                            <span id="drawerUserName" style="font-size: 14.5px; font-weight: 700; color: var(--text-ink);">User</span>
+                        </div>
+                    </div>
+                    <div class="drawer-user-links" style="display: flex; flex-direction: column; gap: 4px;">
+                        <a href="/account.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">?? My Account</a>
+                        <a href="/orders.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">?? My Orders</a>
+                        <a href="/referral.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">?? Referral &amp; Rewards</a>
+                        <a href="/admin.html" id="drawerAdminLink" class="drawer-link" style="min-height: 44px; padding: 10px 12px; display: none;">?? Admin Dashboard</a>
+                        <button type="button" id="drawerLogoutBtn" class="btn-logout-item" style="min-height: 44px; padding: 10px 12px; margin-top: 4px;">?? Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <main>
     <!-- HERO SECTION -->
@@ -841,15 +983,78 @@
     </div>
 </main>
 
-<footer>
-    <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-        <p>&copy; 2026 Shree Mata. All rights reserved. | Disseminating Knowledge | <span style="font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 700; line-height: 1.4; letter-spacing: 0.03em; color: #e2b842;">Empower Us. <span style="color: #D4A72C;">We Empower You.</span></span></p>
-        <p style="margin: 0;">
-            <span>Contact Us: </span>
-            <a href="tel:+919845163604" style="color: #D4A72C; text-decoration: none; font-weight: 600;">📞 +91 98451 63604</a>
-        </p>
-    </div>
-</footer>
+    <!-- 4-COLUMN LUXURY FOOTER -->
+    <footer class="site-footer" role="contentinfo">
+        <div class="container">
+            <div class="footer-grid">
+                <!-- Brand Info -->
+                <div class="footer-brand-col">
+                    <a href="/" class="footer-brand-logo">
+                        <img src="/images/press.png" alt="Shree Mata Logo" width="42" height="42">
+                        <span class="footer-brand-title">Shree Mata</span>
+                    </a>
+                    <div style="margin-top: 4px; margin-bottom: 8px;">
+                        <div style="font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #D4A72C; letter-spacing: 0.04em;">Disseminating Knowledge</div>
+                        <div class="footer-brand-slogan-line">Empower Us. <span style="color: #D4A72C;">We Empower You.</span></div>
+                    </div>
+                    <p class="footer-desc">
+                        Your trusted destination for school textbooks, study guides, and complete grade packages with authenticity and care.
+                    </p>
+                    <div class="footer-contact-info">
+                        <a href="tel:+919845163604" class="footer-phone-link" title="Call Shree Mata">
+                            <span class="phone-icon" aria-hidden="true">??</span>
+                            <span>+91 98451 63604</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- SHOP Column -->
+                <div>
+                    <h4 class="footer-col-title">SHOP</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="/#booksSection">Books</a></li>
+                        <li><a href="/#bundlesSection">Book Sets</a></li>
+                        <li><a href="/#booksSection">Categories</a></li>
+                        <li><a href="/#notificationsSection">Offers</a></li>
+                    </ul>
+                </div>
+
+                <!-- CUSTOMER CARE Column -->
+                <div>
+                    <h4 class="footer-col-title">CUSTOMER CARE</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="tel:+919845163604" class="footer-care-phone"><span aria-hidden="true">??</span> +91 98451 63604</a></li>
+                        <li><a href="/track-order.html">Track Your Order</a></li>
+                        <li><a href="/account.html">Contact Us</a></li>
+                        <li><a href="/#trustSection">Shipping</a></li>
+                        <li><a href="/#trustSection">Returns</a></li>
+                    </ul>
+                </div>
+
+                <!-- ACCOUNT Column -->
+                <div>
+                    <h4 class="footer-col-title">ACCOUNT</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="/account.html">My Account</a></li>
+                        <li><a href="/orders.html">Orders</a></li>
+                        <li><a href="/referral.html">Referral &amp; Rewards</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer Bottom Bar -->
+            <div class="footer-bottom">
+                <span>&copy; 2026 Shree Mata. All rights reserved.</span>
+                <div class="footer-bottom-badges">
+                    <span>Curriculum Books</span>
+                    <span>�</span>
+                    <span>Secure Checkout</span>
+                    <span>�</span>
+                    <span>Store Pickup &amp; Delivery</span>
+                </div>
+            </div>
+        </div>
+    </footer>
 
 <script>
 /* ─── PARTICLE / CONSTELLATION CANVAS ─── */
@@ -969,7 +1174,7 @@
 
 /* ─── NAVBAR SCROLL EFFECT ─── */
 window.addEventListener('scroll',()=>{
-    const navbar = document.querySelector('.navbar');
+    const navbar = document.querySelector('.main-header, .navbar');
     if(navbar) navbar.classList.toggle('scrolled', window.scrollY > 50);
 });
 
@@ -1001,6 +1206,7 @@ document.querySelectorAll('.btn-primary, .btn-secondary, .back-btn').forEach(but
 
 <script src="js/config.js"></script>
 <script src="js/cartUtils.js"></script>
+<script src="js/global-nav.js"></script>
 <script>
     // API_URL is already defined in config.js
     

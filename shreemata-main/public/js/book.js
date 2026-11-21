@@ -11,29 +11,37 @@ document.addEventListener("DOMContentLoaded", () => {
    AUTH CHECK
 ----------------------------------- */
 function checkAuth() {
+    if (typeof window.updateGlobalNavbarAuth === "function") {
+        window.updateGlobalNavbarAuth();
+    }
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "null");
 
     if (token && user) {
-        document.getElementById("authLinks").style.display = "none";
-        document.getElementById("userLinks").style.display = "flex";
-        document.getElementById("userName").textContent = user.name || 'Account';
+        const authLinks = document.getElementById("authLinks");
+        if (authLinks) authLinks.style.display = "none";
+        const userLinks = document.getElementById("userLinks");
+        if (userLinks) userLinks.style.display = "flex";
+        const userName = document.getElementById("userName");
+        if (userName) userName.textContent = user.name || 'Account';
 
-        // Show cart icon for logged in users
-        const cartIcon = document.getElementById("cartIcon");
-        if (cartIcon) {
-            cartIcon.style.display = "block";
+        // Show cart link for logged in users
+        const cartLink = document.getElementById("cartLink") || document.getElementById("cartIcon");
+        if (cartLink) {
+            cartLink.style.display = "inline-flex";
             updateCartCount();
         }
 
         if (user.role === "admin") {
-            document.getElementById("adminLink").style.display = "block";
+            const adminLink = document.getElementById("adminLink");
+            if (adminLink) adminLink.style.display = "block";
         }
     } else {
-        // Hide cart icon for non-logged in users
-        const cartIcon = document.getElementById("cartIcon");
-        if (cartIcon) {
-            cartIcon.style.display = "none";
+        // Guest mode
+        const cartLink = document.getElementById("cartLink") || document.getElementById("cartIcon");
+        if (cartLink) {
+            cartLink.style.display = "inline-flex";
+            updateCartCount();
         }
     }
 }
@@ -139,7 +147,7 @@ function updateQuantity(change) {
         const availableStock = book.stockQuantity || 0;
         if (currentQty > availableStock) {
             currentQty = availableStock;
-            alert(`  Only ${availableStock} copies are available.`);
+            alert(`ï¿½ Only ${availableStock} copies are available.`);
         }
     }
     
@@ -161,7 +169,7 @@ function updateQuantityFromInput() {
         const availableStock = book.stockQuantity || 0;
         if (qty > availableStock) {
             qty = availableStock;
-            alert(`  Only ${availableStock} copies are available.`);
+            alert(`ï¿½ Only ${availableStock} copies are available.`);
         }
     }
     
@@ -193,19 +201,19 @@ async function updatePricing() {
     const pickupTotal = basePrice * quantity;
     const courierTotal = pickupTotal + courierCharge;
     
-    document.getElementById("pickupPrice").textContent = `¹${pickupTotal.toFixed(2)}`;
-    document.getElementById("courierPrice").textContent = `¹${courierTotal.toFixed(2)}`;
+    document.getElementById("pickupPrice").textContent = `ï¿½${pickupTotal.toFixed(2)}`;
+    document.getElementById("courierPrice").textContent = `ï¿½${courierTotal.toFixed(2)}`;
     
     // Update weight and courier charge displays
     document.getElementById("totalWeight").textContent = `${totalWeight.toFixed(2)} kg`;
-    document.getElementById("totalCourierCharge").textContent = `¹${courierCharge.toFixed(2)}`;
+    document.getElementById("totalCourierCharge").textContent = `ï¿½${courierCharge.toFixed(2)}`;
     
     // Update the weight info in the right side as well
     if (document.getElementById("bookWeight")) {
         document.getElementById("bookWeight").textContent = `${totalWeight.toFixed(2)} kg`;
     }
     if (document.getElementById("bookCourierCharge")) {
-        document.getElementById("bookCourierCharge").textContent = `¹${courierCharge.toFixed(2)}`;
+        document.getElementById("bookCourierCharge").textContent = `ï¿½${courierCharge.toFixed(2)}`;
     }
 }
 
@@ -243,7 +251,7 @@ async function loadBookDetails() {
         const deliveryMethod = urlParams.get("delivery");
         const paymentMethod = urlParams.get("payment");
         if (shouldBuy === "true" && deliveryMethod && paymentMethod) {
-            console.log("=Ò Direct purchase flow detected:", { deliveryMethod, paymentMethod });
+            console.log("=ï¿½ Direct purchase flow detected:", { deliveryMethod, paymentMethod });
             window.selectedDeliveryMethod = deliveryMethod;
             setTimeout(() => {
                 if (paymentMethod === 'online' || paymentMethod === 'cheque' || paymentMethod === 'transfer') {
@@ -325,7 +333,7 @@ async function displayBookDetails(book, hidePrice = false) {
             const bundleNotice = document.createElement("div");
             bundleNotice.style.cssText = "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;";
             bundleNotice.innerHTML = `
-                <p style="margin: 0; font-weight: 600;">=æ This book is part of a bundle</p>
+                <p style="margin: 0; font-weight: 600;">=ï¿½ This book is part of a bundle</p>
                 <p style="margin: 5px 0 0 0; font-size: 14px;">Individual purchase is not available. Please purchase the complete bundle.</p>
             `;
             bookInfo.insertBefore(bundleNotice, bookInfo.firstChild);
@@ -379,7 +387,7 @@ async function displayBookDetails(book, hidePrice = false) {
         const stockNotice = document.createElement("div");
         stockNotice.style.cssText = "background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 18px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;";
         const remainingStock = book.stockQuantity || 0;
-        stockNotice.innerHTML = `<span style="font-size: 28px;"> </span><span>Limited Stock - Only ${remainingStock} left!</span>`;
+        stockNotice.innerHTML = `<span style="font-size: 28px;">ï¿½</span><span>Limited Stock - Only ${remainingStock} left!</span>`;
         pricingSection.parentNode.insertBefore(stockNotice, pricingSection.nextSibling);
         
         // Update quantity selector max value to available stock
@@ -408,11 +416,11 @@ async function displayBookDetails(book, hidePrice = false) {
         offerBanner.className = "details-offer-container";
         offerBanner.innerHTML = `
             <div class="details-offer-row">
-                <span class="details-selling-price">¹${pricing.sellingPrice.toFixed(2)}</span>
-                <span class="details-mrp">MRP ¹${pricing.mrp.toFixed(2)}</span>
+                <span class="details-selling-price">ï¿½${pricing.sellingPrice.toFixed(2)}</span>
+                <span class="details-mrp">MRP ï¿½${pricing.mrp.toFixed(2)}</span>
                 <span class="details-badge">${pricing.discountPercentage}% OFF</span>
             </div>
-            <div class="details-savings">You Save ¹${pricing.discountAmount.toFixed(2)}</div>
+            <div class="details-savings">You Save ï¿½${pricing.discountAmount.toFixed(2)}</div>
         `;
         const pricingSection = document.querySelector(".pricing-section");
         if (pricingSection && pricingSection.parentNode) {
@@ -428,19 +436,19 @@ async function displayBookDetails(book, hidePrice = false) {
         courierCharge = validCourierCharge; // Update the outer variable
         
         // Display pickup price (same as base price)
-        document.getElementById("pickupPrice").textContent = `¹${basePrice.toFixed(2)}`;
+        document.getElementById("pickupPrice").textContent = `ï¿½${basePrice.toFixed(2)}`;
         
         // Display courier price (base price + courier charge)
         const courierTotalPrice = basePrice + validCourierCharge;
-        document.getElementById("courierPrice").textContent = `¹${courierTotalPrice.toFixed(2)}`;
+        document.getElementById("courierPrice").textContent = `ï¿½${courierTotalPrice.toFixed(2)}`;
         
     } catch (error) {
         console.error('Error calculating courier charge:', error);
         courierCharge = 0; // Set fallback value
         
         // Fallback to showing base price for both options
-        document.getElementById("pickupPrice").textContent = `¹${basePrice.toFixed(2)}`;
-        document.getElementById("courierPrice").textContent = `¹${basePrice.toFixed(2)}`;
+        document.getElementById("pickupPrice").textContent = `ï¿½${basePrice.toFixed(2)}`;
+        document.getElementById("courierPrice").textContent = `ï¿½${basePrice.toFixed(2)}`;
     }
     
     document.getElementById("bookDescription").textContent =
@@ -451,7 +459,7 @@ async function displayBookDetails(book, hidePrice = false) {
         const pricingSection = document.querySelector(".pricing-section");
         const pointsBadge = document.createElement("div");
         pointsBadge.style.cssText = "background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 18px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;";
-        pointsBadge.innerHTML = `<span style="font-size: 28px;"><</span><span>Earn ${book.rewardPoints} Points with this purchase!</span>`;
+        pointsBadge.innerHTML = `<span style="font-size: 28px;"><ï¿½</span><span>Earn ${book.rewardPoints} Points with this purchase!</span>`;
         pricingSection.parentNode.insertBefore(pointsBadge, pricingSection.nextSibling);
     }
 
@@ -467,7 +475,7 @@ async function displayBookDetails(book, hidePrice = false) {
         const pricingSection = document.querySelector(".pricing-section");
         const cashbackBadge = document.createElement("div");
         cashbackBadge.style.cssText = "background: linear-gradient(135deg, #ff6f61 0%, #ff9800 100%); color: white; padding: 15px 20px; border-radius: 12px; font-size: 18px; margin: 15px 0; font-weight: 700; text-align: center; box-shadow: 0 4px 12px rgba(255, 111, 97, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px;";
-        cashbackBadge.innerHTML = `<span style="font-size: 28px;">=°</span><span>Get ¹${cashbackAmount.toFixed(0)} Cashback instantly!</span>`;
+        cashbackBadge.innerHTML = `<span style="font-size: 28px;">=ï¿½</span><span>Get ï¿½${cashbackAmount.toFixed(0)} Cashback instantly!</span>`;
         pricingSection.parentNode.insertBefore(cashbackBadge, pricingSection.nextSibling);
     }
 
@@ -476,7 +484,7 @@ async function displayBookDetails(book, hidePrice = false) {
         document.getElementById("bookWeight").textContent = `${weight.toFixed(2)} kg`;
     }
     if (document.getElementById("bookCourierCharge")) {
-        document.getElementById("bookCourierCharge").textContent = `¹${courierCharge.toFixed(2)}`;
+        document.getElementById("bookCourierCharge").textContent = `ï¿½${courierCharge.toFixed(2)}`;
     }
 }
 
@@ -546,11 +554,11 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* -----------------------------------
-   BUY NOW ’ Show Address Modal
+   BUY NOW ï¿½ Show Address Modal
 ----------------------------------- */
 
 /* -----------------------------------
-   BUY NOW ’ Show Address Modal
+   BUY NOW ï¿½ Show Address Modal
 ----------------------------------- */
 let userAddress = null;
 let currentBook = null;
@@ -1001,11 +1009,11 @@ async function proceedToPayment() {
     let confirmMsg = "";
 
     if (deliveryMethod === "pickup") {
-        confirmMsg = `Order Summary (Book-stall Pickup):\n\nBook: ${currentBook.title}\nQuantity: ${quantity}\nPrice: ¹${itemsTotal.toFixed(2)}\nDelivery: Pickup at store (FREE)\n\nTotal Amount: ¹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
+        confirmMsg = `Order Summary (Book-stall Pickup):\n\nBook: ${currentBook.title}\nQuantity: ${quantity}\nPrice: ï¿½${itemsTotal.toFixed(2)}\nDelivery: Pickup at store (FREE)\n\nTotal Amount: ï¿½${totalAmount.toFixed(2)}\n\nProceed to payment?`;
     } else {
         courierCharge = await calculateCourierCharge(bookWeight);
         totalAmount = itemsTotal + courierCharge;
-        confirmMsg = `Order Summary (Courier Delivery):\n\nBook: ${currentBook.title}\nQuantity: ${quantity}\nPrice: ¹${itemsTotal.toFixed(2)}\nWeight: ${bookWeight.toFixed(2)} kg\nCourier Charge: ¹${courierCharge.toFixed(2)}\n\nTotal Amount: ¹${totalAmount.toFixed(2)}\n\nProceed to payment?`;
+        confirmMsg = `Order Summary (Courier Delivery):\n\nBook: ${currentBook.title}\nQuantity: ${quantity}\nPrice: ï¿½${itemsTotal.toFixed(2)}\nWeight: ${bookWeight.toFixed(2)} kg\nCourier Charge: ï¿½${courierCharge.toFixed(2)}\n\nTotal Amount: ï¿½${totalAmount.toFixed(2)}\n\nProceed to payment?`;
     }
     
     if (!confirm(confirmMsg)) {
@@ -1029,7 +1037,7 @@ async function proceedToPayment() {
             buyBtn.textContent = "Processing...";
         }
 
-        // 1ã Create backend Razorpay order with delivery method and address
+        // 1ï¿½ Create backend Razorpay order with delivery method and address
         const orderRes = await fetch(`${API}/payments/create-order`, {
             method: "POST",
             headers: {
@@ -1052,7 +1060,7 @@ async function proceedToPayment() {
             throw new Error(orderData.error || "Failed to create order");
         }
 
-        // 2ã Razorpay Checkout
+        // 2ï¿½ Razorpay Checkout
         const RZP_KEY = orderData.key || window.RAZORPAY_KEY || "rzp_live_TYHRMUCCtwZWzQ";
 
         const options = {
@@ -1065,7 +1073,7 @@ async function proceedToPayment() {
 
             handler: async function (response) {
                 try {
-                    // 3ã Verify payment on backend
+                    // 3ï¿½ Verify payment on backend
                     const verifyRes = await fetch(`${API}/payments/verify`, {
                         method: "POST",
                         headers: {
@@ -1123,7 +1131,7 @@ async function proceedToPayment() {
                         processing: Boolean(verifyData.processing)
                     };
                     
-                    console.log("=Ë Order data for popup:", orderData);
+                    console.log("=ï¿½ Order data for popup:", orderData);
                     
                     if (typeof showSuccessPopup === 'function') {
                         showSuccessPopup(orderData);
@@ -1230,24 +1238,20 @@ async function handleAddToCart() {
    UPDATE CART COUNT
 ----------------------------------- */
 function updateCartCount() {
-    const cartIcon = document.getElementById("cartIcon");
+    if (typeof window.updateGlobalCartCount === "function") {
+        window.updateGlobalCartCount();
+        return;
+    }
+    const cartIcon = document.getElementById("cartLink") || document.getElementById("cartIcon");
     const cartCount = document.getElementById("cartCount");
     
-    if (!cartIcon) return;
+    if (!cartIcon && !cartCount) return;
 
-    const cart = getCart();
+    const cart = typeof getCart === 'function' ? getCart() : JSON.parse(localStorage.getItem("cart") || "[]");
     const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
-    
+
     if (cartCount) {
-        // If there's a cartCount span, update it
         cartCount.textContent = totalItems;
-    } else {
-        // Otherwise update the cart icon text
-        if (totalItems > 0) {
-            cartIcon.innerHTML = `=Ò Cart (${totalItems})`;
-        } else {
-            cartIcon.innerHTML = `=Ò Cart`;
-        }
     }
 }
 
@@ -1434,8 +1438,8 @@ async function showBillingAddressModal(deliveryMethod) {
     console.log("Selected delivery method:", window.selectedDeliveryMethod);
 
     if (window.selectedDeliveryMethod === "courier") {
-        if (modalTitle) modalTitle.textContent = "=Ë Delivery Details";
-        if (bannerTitle) bannerTitle.textContent = "=š Delivery Details";
+        if (modalTitle) modalTitle.textContent = "=ï¿½ Delivery Details";
+        if (bannerTitle) bannerTitle.textContent = "=ï¿½ Delivery Details";
         if (bannerSubtitle) bannerSubtitle.textContent = "Where should we deliver your order?";
 
         if (previousBtnWrapper) previousBtnWrapper.style.display = "block";
@@ -1450,8 +1454,8 @@ async function showBillingAddressModal(deliveryMethod) {
         if (pincodeInput) pincodeInput.required = true;
         if (noteEl) noteEl.style.display = "flex";
     } else {
-        if (modalTitle) modalTitle.textContent = "=Ë Store Pickup Details";
-        if (bannerTitle) bannerTitle.textContent = "<à Store Pickup Details";
+        if (modalTitle) modalTitle.textContent = "=ï¿½ Store Pickup Details";
+        if (bannerTitle) bannerTitle.textContent = "<ï¿½ Store Pickup Details";
         if (bannerSubtitle) bannerSubtitle.textContent = "Please provide your contact details for pickup";
 
         if (previousBtnWrapper) previousBtnWrapper.style.display = "none";
@@ -1673,7 +1677,7 @@ async function loadPreviousAddresses() {
         
         // Reset button
         const btn = document.getElementById("useOldAddressBtn");
-        btn.textContent = "=Ë Use My Previous Address";
+        btn.textContent = "=ï¿½ Use My Previous Address";
         btn.disabled = false;
     }
 }
@@ -1830,7 +1834,7 @@ async function loadPreviousBillingAddresses() {
         
         // Reset button
         const btn = document.getElementById("usePreviousBillingAddressBtn");
-        btn.textContent = "=Ë Use My Previous Address";
+        btn.textContent = "=ï¿½ Use My Previous Address";
         btn.disabled = false;
     }
 }

@@ -233,7 +233,7 @@ describe('Header Brand Tagline Removal Browser Tests', () => {
       const headerText = await page.$eval('header', el => el.innerText);
       expect(headerText.toLowerCase()).not.toContain('disseminating knowledge');
 
-      const brandEl = await page.$('header .logo');
+      const brandEl = await page.$('header .brand-logo, header .logo');
       expect(await brandEl.isVisible()).toBe(true);
       expect((await brandEl.textContent())).toContain('Shree Mata');
 
@@ -259,7 +259,7 @@ describe('Header Brand Tagline Removal Browser Tests', () => {
       const headerText = await page.$eval('header', el => el.innerText);
       expect(headerText.toLowerCase()).not.toContain('disseminating knowledge');
 
-      const brandEl = await page.$('header .logo');
+      const brandEl = await page.$('header .brand-logo, header .logo');
       expect(await brandEl.isVisible()).toBe(true);
       expect((await brandEl.textContent())).toContain('Shree Mata');
 
@@ -377,7 +377,7 @@ describe('Header Brand Tagline Removal Browser Tests', () => {
       const headerText = await page.$eval('header', el => el.innerText);
       expect(headerText.toLowerCase()).not.toContain('disseminating knowledge');
 
-      const brandEl = await page.$('header .logo');
+      const brandEl = await page.$('header .brand-logo, header .logo');
       expect(await brandEl.isVisible()).toBe(true);
       expect((await brandEl.textContent())).toContain('Shree Mata');
 
