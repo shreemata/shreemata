@@ -173,6 +173,35 @@ describe('Single Delivery & Billing Address Checkout Browser Verification', () =
     const bundles = Array.isArray(bundlesRes) ? bundlesRes : bundlesRes.bundles || [];
     if (bundles && bundles.length > 0) {
       seededBundleId = bundles[0]._id || bundles[0].id;
+    } else {
+      // Seed bundle via admin API so bundle checkout tests always run
+      const adminLoginRes = await apiPost('/api/login', {
+        email: 'admin@shreemata.com',
+        password: 'DemoPass123!'
+      });
+      if (adminLoginRes.token) {
+        const createBundleRes = await apiPost('/api/bundles/admin/create', {
+          name: 'Class 10 All-in-One Comprehensive Bundle',
+          description: 'Complete book set with study guide',
+          bookIds: [seededBookId],
+          originalPrice: 100,
+          bundlePrice: 80,
+          isActive: true,
+          weight: 0.5,
+          courierCharge: 50,
+          rewardPoints: 0,
+          cashbackAmount: 0,
+          cashbackPercentage: 0,
+          isDigital: false,
+          profitType: 'fixed',
+          profitValue: 20
+        }, adminLoginRes.token);
+        const created = createBundleRes.bundle || createBundleRes;
+        seededBundleId = created._id || created.id;
+      }
+    }
+    if (!seededBundleId) {
+      throw new Error('Failed to acquire or seed bundle for testing; bundle test requires seededBundleId');
     }
 
     // Login as student
@@ -552,10 +581,7 @@ describe('Single Delivery & Billing Address Checkout Browser Verification', () =
   });
 
   test('g. bundle.html checkout flow: unified single form with Delivery Details and Note', async () => {
-    if (!seededBundleId) {
-      console.log('Skipping bundle test: no seeded bundles available');
-      return;
-    }
+    expect(seededBundleId).toBeTruthy();
 
     const context = await browser.newContext({ viewport: { width: 1400, height: 950 } });
     await context.addInitScript(({ token, user }) => {
@@ -566,20 +592,20 @@ describe('Single Delivery & Billing Address Checkout Browser Verification', () =
     const page = await context.newPage();
     await page.goto(`http://127.0.0.1:3100/bundle.html?id=${seededBundleId}`, { waitUntil: 'networkidle' });
 
-    const courierBtn = await page.$('#buyCourierBtn');
-    if (courierBtn && await courierBtn.isVisible()) {
-      await courierBtn.click();
-      await page.waitForSelector('#billingAddressModal', { state: 'visible', timeout: 5000 });
+    await page.waitForSelector('#bundleName', { state: 'visible', timeout: 15000 });
+    const courierBtn = await page.$('button[onclick="buyNow(\'courier\')"], #buyCourierBtn');
+    expect(courierBtn).not.toBeNull();
+    await courierBtn.click();
+    await page.waitForSelector('#billingAddressModal', { state: 'visible', timeout: 5000 });
 
-      const title = await page.textContent('#billingModalTitle');
-      expect(title).toContain('Delivery Details');
+    const title = await page.textContent('#billingModalTitle');
+    expect(title).toContain('Delivery Details');
 
-      const note = await page.isVisible('#billingSameAsDeliveryNote');
-      expect(note).toBe(true);
+    const note = await page.isVisible('#billingSameAsDeliveryNote');
+    expect(note).toBe(true);
 
-      expect(await page.$('#deliveryAddressSection')).toBeNull();
-      expect(await page.$('#usePermanentAddress')).toBeNull();
-    }
+    expect(await page.$('#deliveryAddressSection')).toBeNull();
+    expect(await page.$('#usePermanentAddress')).toBeNull();
 
     await context.close();
   });
@@ -618,5 +644,144 @@ describe('Single Delivery & Billing Address Checkout Browser Verification', () =
     expect(invoice.shippingAddress).toContain('Plot 42, Vidyanagar');
     expect(invoice.billingAddress).not.toBe('undefined');
     expect(invoice.shippingAddress).not.toBe('undefined');
+  });
+
+  test('i. Real server cart-courier flow through actual UI verifies stored order and invoice address', async () => {
+    const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+    await context.addInitScript(({ token, user, bookId }) => {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      const cartItem = {
+        id: bookId,
+        type: 'book',
+        title: 'Real UI Test Book',
+        price: 150,
+        quantity: 1,
+        weight: 0.5,
+        image: ''
+      };
+      localStorage.setItem('cart', JSON.stringify([cartItem]));
+      const uId = user._id || user.id;
+      if (uId) {
+        localStorage.setItem(`cart_${uId}`, JSON.stringify([cartItem]));
+      }
+      localStorage.setItem('deliveryMethod', 'home');
+    }, { token: studentToken, user: studentUser, bookId: seededBookId });
+
+    const page = await context.newPage();
+    page.on('dialog', async dialog => {
+      await dialog.accept();
+    });
+
+    await page.goto('http://127.0.0.1:3100/cart.html', { waitUntil: 'networkidle' });
+
+    const homeRadio = await page.$('input[value="home"]');
+    if (homeRadio) await homeRadio.check();
+
+    await page.waitForSelector('#checkoutBtn', { state: 'visible', timeout: 10000 });
+    await page.click('#checkoutBtn');
+
+    await page.waitForTimeout(500);
+    const offerModal = await page.$('#offerModal');
+    if (offerModal && await offerModal.isVisible()) {
+      await page.click('button[onclick="declineOfferAndContinue()"]');
+    }
+
+    await page.waitForSelector('#cartBillingAddressModal', { state: 'visible', timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    await page.fill('#cartBillingName', 'Anil Cart Customer');
+    await page.fill('#cartBillingPhone', '9886000010');
+    await page.fill('#cartBillingEmail', 'anil.cart@example.com');
+    await page.fill('#cartBillingAddress1', 'House 55, Gokul Road');
+    await page.fill('#cartBillingAddress2', 'Near Airport');
+    await page.fill('#cartBillingTaluk', 'Hubballi');
+    await page.fill('#cartBillingDistrict', 'Dharwad');
+    await page.fill('#cartBillingState', 'Karnataka');
+    await page.fill('#cartBillingPincode', '580030');
+
+    await page.click('#cartBillingAddressForm button[type="submit"]');
+    await page.waitForSelector('#cartPaymentMethodModal', { state: 'visible', timeout: 10000 });
+
+    const [pendingResponse] = await Promise.all([
+      page.waitForResponse(r => (r.url().includes('create-cart-pending') || r.url().includes('create-pending')) && r.request().method() === 'POST'),
+      page.click('button[onclick="proceedWithCartAccountTransfer()"]')
+    ]);
+
+    expect(pendingResponse.status()).toBe(200);
+    const orderJson = await pendingResponse.json();
+    const orderId = orderJson.orderId || (orderJson.order && (orderJson.order._id || orderJson.order.id));
+    expect(orderId).toBeDefined();
+
+    // Verify stored order via API
+    const ordersRes = await apiGet('/api/orders', studentToken);
+    const ordersList = Array.isArray(ordersRes) ? ordersRes : ordersRes.orders || [];
+    const storedOrder = ordersList.find(o => String(o._id || o.id) === String(orderId));
+    expect(storedOrder).toBeDefined();
+    expect(storedOrder.deliveryAddress).toBeDefined();
+    const storedAddr = storedOrder.deliveryAddress;
+    expect(storedAddr.homeAddress1 || storedAddr.street).toBe('House 55, Gokul Road');
+    expect(storedAddr.pincode).toBe('580030');
+    expect(storedAddr.district).toBe('Dharwad');
+
+    // Verify invoice via API
+    const invRes = await apiGet(`/api/invoices/by-order/${orderId}`, studentToken);
+    const invoice = invRes.invoice || invRes;
+    expect(invoice.billingAddress).toContain('House 55, Gokul Road');
+    expect(invoice.shippingAddress).toContain('House 55, Gokul Road');
+    expect(invoice.billingAddress).toContain('580030');
+
+    await context.close();
+  });
+
+  test('j. Real server book pickup flow through actual UI verifies null delivery address and invoice fallback', async () => {
+    const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+    await context.addInitScript(({ token, user }) => {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+    }, { token: studentToken, user: studentUser });
+
+    const page = await context.newPage();
+    page.on('dialog', async dialog => {
+      await dialog.accept();
+    });
+
+    await page.goto(`http://127.0.0.1:3100/book.html?id=${seededBookId}`, { waitUntil: 'networkidle' });
+    await page.waitForFunction(() => Boolean(window.currentBook && window.currentBook._id));
+    await page.click('#buyPickupBtn');
+    await page.waitForSelector('#billingAddressModal', { state: 'visible', timeout: 10000 });
+
+    await page.fill('#billingName', 'Suresh Store Pickup');
+    await page.fill('#billingPhone', '9886000020');
+    await page.fill('#billingEmail', 'suresh.pickup@example.com');
+
+    await page.click('#billingAddressForm button[type="submit"]');
+    await page.waitForSelector('#paymentMethodModal', { state: 'visible', timeout: 10000 });
+
+    const [pendingResponse] = await Promise.all([
+      page.waitForResponse(r => r.url().includes('/api/orders/create-pending') && r.request().method() === 'POST'),
+      page.click('button[onclick="proceedWithAccountTransfer()"]')
+    ]);
+
+    expect(pendingResponse.status()).toBe(200);
+    const orderJson = await pendingResponse.json();
+    const orderId = orderJson.orderId || (orderJson.order && (orderJson.order._id || orderJson.order.id));
+    expect(orderId).toBeDefined();
+
+    // Verify stored order via API: deliveryAddress is null, deliveryMethod is pickup
+    const ordersRes = await apiGet('/api/orders', studentToken);
+    const ordersList = Array.isArray(ordersRes) ? ordersRes : ordersRes.orders || [];
+    const storedOrder = ordersList.find(o => String(o._id || o.id) === String(orderId));
+    expect(storedOrder).toBeDefined();
+    expect(storedOrder.deliveryAddress).toBeNull();
+    expect(storedOrder.deliveryMethod).toBe('pickup');
+
+    // Verify invoice via API: fallback to 'Address on file'
+    const invRes = await apiGet(`/api/invoices/by-order/${orderId}`, studentToken);
+    const invoice = invRes.invoice || invRes;
+    expect(invoice.billingAddress).toBe('Address on file');
+    expect(invoice.shippingAddress).toBe('Address on file');
+
+    await context.close();
   });
 });
