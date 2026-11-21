@@ -227,6 +227,8 @@ describe('Batch 1 UI Unification Browser Tests', () => {
       }, { token: studentToken, user: studentUser });
 
       const page = await context.newPage();
+    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+    page.on('pageerror', err => console.error('PAGE ERROR:', err));
       await page.goto(`http://127.0.0.1:3100/book.html?id=${seededBookId}`, { waitUntil: 'load' });
       await page.waitForTimeout(1000);
 
@@ -297,6 +299,12 @@ describe('Batch 1 UI Unification Browser Tests', () => {
             fullPage: true
           });
         }
+        if (vp.final2Screenshot) {
+          await page.screenshot({
+            path: path.join(SCREENSHOT_DIR, vp.final2Screenshot),
+            fullPage: true
+          });
+        }
       }
 
       await context.close();
@@ -349,6 +357,10 @@ describe('Batch 1 UI Unification Browser Tests', () => {
     await context.addInitScript(({ token, user }) => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
+      window.Razorpay = function(options) {
+        this.open = () => {};
+        this.on = () => {};
+      };
     }, { token: studentToken, user: studentUser });
 
     const page = await context.newPage();
@@ -388,6 +400,10 @@ describe('Batch 1 UI Unification Browser Tests', () => {
     await context.addInitScript(({ token, user }) => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
+      window.Razorpay = function(options) {
+        this.open = () => {};
+        this.on = () => {};
+      };
     }, { token: studentToken, user: studentUser });
 
     const page = await context.newPage();
@@ -474,9 +490,9 @@ describe('Batch 1 UI Unification Browser Tests', () => {
   test('(e) bundle.html UI shell, single logo, footer, overflow & fullPage screenshots', async () => {
     const viewports = [
       { w: 1920, h: 1080 },
-      { w: 1440, h: 900, screenshot: 'bundle-final-1440.png', legacyScreenshot: 'bundle-after-1440.png' },
-      { w: 1366, h: 768, screenshot: 'bundle-final-1366.png', legacyScreenshot: 'bundle-after-1366.png' },
-      { w: 390, h: 844, screenshot: 'bundle-final-390.png', legacyScreenshot: 'bundle-after-390.png' }
+      { w: 1440, h: 900, screenshot: 'bundle-final-1440.png', legacyScreenshot: 'bundle-after-1440.png', final2Screenshot: 'bundle-final2-1440.png' },
+      { w: 1366, h: 768, screenshot: 'bundle-final-1366.png', legacyScreenshot: 'bundle-after-1366.png', final2Screenshot: 'bundle-final2-1366.png' },
+      { w: 390, h: 844, screenshot: 'bundle-final-390.png', legacyScreenshot: 'bundle-after-390.png', final2Screenshot: 'bundle-final2-390.png' }
     ];
 
     for (const vp of viewports) {
@@ -532,6 +548,12 @@ describe('Batch 1 UI Unification Browser Tests', () => {
             fullPage: true
           });
         }
+        if (vp.final2Screenshot) {
+          await page.screenshot({
+            path: path.join(SCREENSHOT_DIR, vp.final2Screenshot),
+            fullPage: true
+          });
+        }
       }
 
       await context.close();
@@ -541,9 +563,9 @@ describe('Batch 1 UI Unification Browser Tests', () => {
   test('(f) bundles.html UI shell, single logo, catalog cards, footer, overflow & fullPage screenshots', async () => {
     const viewports = [
       { w: 1920, h: 1080 },
-      { w: 1440, h: 900, screenshot: 'bundles-final-1440.png', legacyScreenshot: 'bundles-after-1440.png' },
-      { w: 1366, h: 768, screenshot: 'bundles-final-1366.png', legacyScreenshot: 'bundles-after-1366.png' },
-      { w: 390, h: 844, screenshot: 'bundles-final-390.png', legacyScreenshot: 'bundles-after-390.png' }
+      { w: 1440, h: 900, screenshot: 'bundles-final-1440.png', legacyScreenshot: 'bundles-after-1440.png', final2Screenshot: 'bundles-final2-1440.png' },
+      { w: 1366, h: 768, screenshot: 'bundles-final-1366.png', legacyScreenshot: 'bundles-after-1366.png', final2Screenshot: 'bundles-final2-1366.png' },
+      { w: 390, h: 844, screenshot: 'bundles-final-390.png', legacyScreenshot: 'bundles-after-390.png', final2Screenshot: 'bundles-final2-390.png' }
     ];
 
     for (const vp of viewports) {
@@ -594,6 +616,12 @@ describe('Batch 1 UI Unification Browser Tests', () => {
         if (vp.legacyScreenshot) {
           await page.screenshot({
             path: path.join(SCREENSHOT_DIR, vp.legacyScreenshot),
+            fullPage: true
+          });
+        }
+        if (vp.final2Screenshot) {
+          await page.screenshot({
+            path: path.join(SCREENSHOT_DIR, vp.final2Screenshot),
             fullPage: true
           });
         }
@@ -693,6 +721,82 @@ describe('Batch 1 UI Unification Browser Tests', () => {
       const termsText = await page.$eval('footer a[href="/terms-and-conditions.html"]', el => el.textContent.trim());
       expect(termsText).toBe('Terms & Conditions');
     }
+
+    await context.close();
+  });
+  test('(i) bundle.html direct purchase URL flow (?id=...&buy=true&delivery=pickup&payment=online)', async () => {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    await context.addInitScript(({ token, user }) => {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      window.Razorpay = function(options) {
+        this.open = () => {};
+        this.on = () => {};
+      };
+    }, { token: studentToken, user: studentUser });
+
+    const page = await context.newPage();
+
+    let interceptedOrderPayload = null;
+    await page.route('https://checkout.razorpay.com/**', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: 'window.Razorpay = function() { this.open = function() {}; this.on = function() {}; };'
+      });
+    });
+    await page.route('**/*payments/create-order*', async route => {
+      interceptedOrderPayload = route.request().postDataJSON();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          order: { id: 'order_mock_bundle_direct_123', amount: 50000, currency: 'INR' },
+          orderId: 'order_mock_bundle_direct_123',
+          key: 'rzp_test_mock_bundle'
+        })
+      });
+    });
+
+    let dialogError = null;
+    page.on('dialog', async dialog => {
+      const text = dialog.message();
+      if (/error|failed|unavailable/i.test(text)) {
+        dialogError = text;
+      }
+      await dialog.accept();
+    });
+
+    await page.goto(`http://127.0.0.1:3100/bundle.html?id=${seededBundleId}&buy=true&delivery=pickup&payment=online`, { waitUntil: 'load' });
+    await page.waitForTimeout(1500);
+
+    // The direct purchase flow auto-detects parameters and opens the billing address modal
+    await page.waitForSelector('#billingAddressModal', { state: 'visible', timeout: 5000 });
+    const isModalVisible = await page.$eval('#billingAddressModal', el => el.style.display !== 'none');
+    expect(isModalVisible).toBe(true);
+
+    // Ensure contact details are populated
+    await page.$eval('#billingName', (el, val) => { if (!el.value) el.value = val; }, studentUser.name || 'Student Tester');
+    await page.$eval('#billingPhone', (el, val) => { if (!el.value) el.value = val; }, studentUser.phone || '9876543210');
+    await page.$eval('#billingEmail', (el, val) => { if (!el.value) el.value = val; }, studentUser.email || 'student@shreemata.com');
+
+    // For pickup, delivery address fields are not required, submit the billing form
+    await page.evaluate(() => {
+      const form = document.querySelector('#billingAddressForm');
+      if (form) {
+        form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      }
+    });
+    await page.waitForTimeout(2000);
+
+    expect(dialogError).toBeNull();
+    expect(interceptedOrderPayload).not.toBeNull();
+    expect(interceptedOrderPayload.deliveryMethod).toBe('pickup');
+    expect(interceptedOrderPayload.items).toBeDefined();
+    expect(interceptedOrderPayload.items.length).toBeGreaterThan(0);
+    const bundleItem = interceptedOrderPayload.items[0];
+    expect(bundleItem.type).toBe('bundle');
+    expect(bundleItem.id).toBe(seededBundleId);
 
     await context.close();
   });
