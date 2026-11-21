@@ -214,9 +214,9 @@ describe('Batch 1 UI Unification Browser Tests', () => {
   test('(a) book.html UI shell, single logo, header/footer presence, drawer, overflow & fullPage screenshots', async () => {
     const viewports = [
       { w: 1920, h: 1080 },
-      { w: 1440, h: 900, screenshot: 'book-after-1440.png' },
-      { w: 1366, h: 768, screenshot: 'book-after-1366.png' },
-      { w: 390, h: 844, screenshot: 'book-after-390.png' }
+      { w: 1440, h: 900, screenshot: 'book-final-1440.png', legacyScreenshot: 'book-after-1440.png' },
+      { w: 1366, h: 768, screenshot: 'book-final-1366.png', legacyScreenshot: 'book-after-1366.png' },
+      { w: 390, h: 844, screenshot: 'book-final-390.png', legacyScreenshot: 'book-after-390.png' }
     ];
 
     for (const vp of viewports) {
@@ -291,6 +291,12 @@ describe('Batch 1 UI Unification Browser Tests', () => {
           path: path.join(SCREENSHOT_DIR, vp.screenshot),
           fullPage: true
         });
+        if (vp.legacyScreenshot) {
+          await page.screenshot({
+            path: path.join(SCREENSHOT_DIR, vp.legacyScreenshot),
+            fullPage: true
+          });
+        }
       }
 
       await context.close();
@@ -326,29 +332,15 @@ describe('Batch 1 UI Unification Browser Tests', () => {
     const userLinksDisplay = await authPage.$eval('#userLinks', el => window.getComputedStyle(el).display);
     expect(userLinksDisplay).not.toBe('none');
 
-    // Open user dropdown and click logout
-    const userBtn = await authPage.$('#userMenuBtn');
-    if (userBtn) {
-      await userBtn.click();
-      await authPage.waitForTimeout(300);
-      const logoutBtn = await authPage.$('#logoutBtn');
-      if (logoutBtn) {
-        await Promise.all([
-          authPage.waitForURL('**/login.html'),
-          authPage.evaluate(() => {
-            if (typeof handleGlobalLogout === 'function') {
-              handleGlobalLogout();
-            } else {
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              window.location.href = '/login.html';
-            }
-          })
-        ]);
-        const tokenAfterLogout = await authPage.evaluate(() => localStorage.getItem('token'));
-        expect(tokenAfterLogout).toBeNull();
-      }
-    }
+    // Open user dropdown and click the real logout control (#logoutBtn)
+    await authPage.click('#userMenuBtn');
+    await authPage.waitForTimeout(300);
+    await Promise.all([
+      authPage.waitForURL('**/login.html*'),
+      authPage.click('#logoutBtn')
+    ]);
+    const tokenAfterLogout = await authPage.evaluate(() => localStorage.getItem('token'));
+    expect(tokenAfterLogout).toBeNull();
     await authContext.close();
   });
 
@@ -482,9 +474,9 @@ describe('Batch 1 UI Unification Browser Tests', () => {
   test('(e) bundle.html UI shell, single logo, footer, overflow & fullPage screenshots', async () => {
     const viewports = [
       { w: 1920, h: 1080 },
-      { w: 1440, h: 900, screenshot: 'bundle-after-1440.png' },
-      { w: 1366, h: 768, screenshot: 'bundle-after-1366.png' },
-      { w: 390, h: 844, screenshot: 'bundle-after-390.png' }
+      { w: 1440, h: 900, screenshot: 'bundle-final-1440.png', legacyScreenshot: 'bundle-after-1440.png' },
+      { w: 1366, h: 768, screenshot: 'bundle-final-1366.png', legacyScreenshot: 'bundle-after-1366.png' },
+      { w: 390, h: 844, screenshot: 'bundle-final-390.png', legacyScreenshot: 'bundle-after-390.png' }
     ];
 
     for (const vp of viewports) {
@@ -534,6 +526,12 @@ describe('Batch 1 UI Unification Browser Tests', () => {
           path: path.join(SCREENSHOT_DIR, vp.screenshot),
           fullPage: true
         });
+        if (vp.legacyScreenshot) {
+          await page.screenshot({
+            path: path.join(SCREENSHOT_DIR, vp.legacyScreenshot),
+            fullPage: true
+          });
+        }
       }
 
       await context.close();
@@ -543,9 +541,9 @@ describe('Batch 1 UI Unification Browser Tests', () => {
   test('(f) bundles.html UI shell, single logo, catalog cards, footer, overflow & fullPage screenshots', async () => {
     const viewports = [
       { w: 1920, h: 1080 },
-      { w: 1440, h: 900, screenshot: 'bundles-after-1440.png' },
-      { w: 1366, h: 768, screenshot: 'bundles-after-1366.png' },
-      { w: 390, h: 844, screenshot: 'bundles-after-390.png' }
+      { w: 1440, h: 900, screenshot: 'bundles-final-1440.png', legacyScreenshot: 'bundles-after-1440.png' },
+      { w: 1366, h: 768, screenshot: 'bundles-final-1366.png', legacyScreenshot: 'bundles-after-1366.png' },
+      { w: 390, h: 844, screenshot: 'bundles-final-390.png', legacyScreenshot: 'bundles-after-390.png' }
     ];
 
     for (const vp of viewports) {
@@ -593,9 +591,87 @@ describe('Batch 1 UI Unification Browser Tests', () => {
           path: path.join(SCREENSHOT_DIR, vp.screenshot),
           fullPage: true
         });
+        if (vp.legacyScreenshot) {
+          await page.screenshot({
+            path: path.join(SCREENSHOT_DIR, vp.legacyScreenshot),
+            fullPage: true
+          });
+        }
       }
 
       await context.close();
     }
+  });
+  test('(g) character corruption audit: no U+FFFD, no ??, and rupee sign appears in price areas', async () => {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await context.newPage();
+
+    // 1. Check book.html with seeded book
+    await page.goto(`http://127.0.0.1:3100/book.html?id=${seededBookId}`, { waitUntil: 'load' });
+    await page.waitForTimeout(1000);
+
+    const bookPageText = await page.evaluate(() => document.body.innerText);
+    expect(bookPageText).not.toContain('\uFFFD');
+    expect(bookPageText).not.toContain('??');
+
+    // Assert rupee sign in price areas
+    const pickupPriceText = await page.$eval('#pickupPrice', el => el.textContent);
+    const courierPriceText = await page.$eval('#courierPrice', el => el.textContent);
+    expect(pickupPriceText).toContain('₹');
+    expect(courierPriceText).toContain('₹');
+
+    // 2. Check bundle.html
+    await page.goto(`http://127.0.0.1:3100/bundle.html?id=${seededBundleId}`, { waitUntil: 'load' });
+    await page.waitForTimeout(1000);
+
+    const bundlePageText = await page.evaluate(() => document.body.innerText);
+    expect(bundlePageText).not.toContain('\uFFFD');
+    expect(bundlePageText).not.toContain('??');
+
+    // 3. Check bundles.html
+    await page.goto('http://127.0.0.1:3100/bundles.html', { waitUntil: 'load' });
+    await page.waitForTimeout(1000);
+
+    const bundlesPageText = await page.evaluate(() => document.body.innerText);
+    expect(bundlesPageText).not.toContain('\uFFFD');
+    expect(bundlesPageText).not.toContain('??');
+
+    await context.close();
+  });
+
+  test('(h) footer navigation links point to home page sections and targets exist', async () => {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await context.newPage();
+
+    const footerTargets = [
+      { href: '/#booksSection', sectionId: 'booksSection' },
+      { href: '/#bundlesSection', sectionId: 'bundlesSection' },
+      { href: '/#notificationsSection', sectionId: 'notificationsSection' },
+      { href: '/#trustSection', sectionId: 'trustSection' }
+    ];
+
+    for (const target of footerTargets) {
+      await page.goto(`http://127.0.0.1:3100/book.html?id=${seededBookId}`, { waitUntil: 'load' });
+      await page.waitForTimeout(600);
+
+      const linkSelector = `footer a[href="${target.href}"]`;
+      const link = await page.$(linkSelector);
+      expect(link).not.toBeNull();
+
+      // Click link and wait for navigation to home page with hash
+      await Promise.all([
+        page.waitForNavigation({ waitUntil: 'load' }),
+        link.click()
+      ]);
+
+      const currentUrl = page.url();
+      expect(currentUrl).toContain(target.href);
+
+      // Verify target section exists on landing page
+      const sectionExists = await page.$(`#${target.sectionId}`);
+      expect(sectionExists).not.toBeNull();
+    }
+
+    await context.close();
   });
 });
