@@ -277,11 +277,11 @@ describe('Header Brand Tagline Removal Browser Tests', () => {
       const page = await context.newPage();
       await page.goto('http://127.0.0.1:3100/cart.html', { waitUntil: 'networkidle' });
 
-      await page.waitForSelector('.navbar', { state: 'visible', timeout: 15000 });
-      const headerText = await page.$eval('.navbar', el => el.innerText);
+      await page.waitForSelector('.main-header, .navbar', { state: 'visible', timeout: 15000 });
+      const headerText = await page.$eval('.main-header, .navbar', el => el.innerText);
       expect(headerText.toLowerCase()).not.toContain('disseminating knowledge');
 
-      const brandEl = await page.$('.navbar .logo');
+      const brandEl = await page.$('.main-header .brand-logo, .navbar .logo');
       expect(await brandEl.isVisible()).toBe(true);
       expect((await brandEl.textContent())).toContain('Shree Mata');
 

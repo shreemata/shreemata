@@ -3,508 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0f0e2a">
+    <meta name="theme-color" content="#F7F3EA">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Login - Shree Mata</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
-
-    <style>
-        /* ---------- Page Background ---------- */
-        body {
-            margin: 0;
-            font-family: "Inter", sans-serif;
-            background: linear-gradient(135deg, #0f0e2a 0%, #1a1860 50%, #0f0e2a 100%);
-            background-size: 400% 400%;
-            animation: bgShift 25s ease infinite;
-            min-height: 100vh;
-            overflow-x: hidden;
-            color: #e2e8f0;
-            position: relative;
-        }
-
-        /* Cosmic Aurora Effect */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%; left: -50%;
-            width: 200%; height: 200%;
-            background: radial-gradient(circle at 20% 80%, rgba(201,162,39,0.08) 0%, transparent 40%),
-                        radial-gradient(circle at 80% 20%, rgba(79,70,229,0.1) 0%, transparent 40%),
-                        radial-gradient(circle at 50% 50%, rgba(201,162,39,0.05) 0%, transparent 50%);
-            animation: auroraShift 30s ease-in-out infinite alternate;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        @keyframes bgShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-        @keyframes auroraShift {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            100% { transform: translate(-5%, -5%) rotate(3deg); }
-        }
-
-        /* Decorative Book Illustration */
-        .books-bg {
-            background-image: url("https://cdn-icons-png.flaticon.com/512/3145/3145765.png");
-            background-size: 300px;
-            background-repeat: no-repeat;
-            opacity: 0.04;
-            position: absolute;
-            top: 20%; left: 5%;
-            width: 300px; height: 300px;
-            pointer-events: none;
-            animation: gentleSpin 80s linear infinite;
-            filter: invert(1) sepia(1) saturate(5) hue-rotate(10deg) brightness(1.2);
-            z-index: 0;
-        }
-        @keyframes gentleSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-        /* ---------- Ambient glow orbs ---------- */
-        .orb {
-            position: fixed; border-radius: 50%;
-            filter: blur(80px); opacity: 0.25;
-            pointer-events: none; z-index: 0;
-        }
-        .orb-1 { width: 300px; height: 300px; background: #c9a227; top: -100px; left: -100px; animation: drift1 22s ease-in-out infinite; }
-        .orb-2 { width: 250px; height: 250px; background: #4f46e5; bottom: -80px; right: -80px; animation: drift2 26s ease-in-out infinite; }
-        .orb-3 { width: 200px; height: 200px; background: #7c3aed; top: 45%; right: 8%; animation: drift3 20s ease-in-out infinite; }
-
-        @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(60px,40px) scale(1.15); } }
-        @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-50px,-30px) scale(1.1); } }
-        @keyframes drift3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-30px,50px); } }
-
-        /* ---------- Floating Golden Dust ---------- */
-        .gold-dust {
-            position: fixed; width: 3px; height: 3px;
-            background: #f0c96b; border-radius: 50%;
-            pointer-events: none; z-index: 1;
-            box-shadow: 0 0 10px #c9a227, 0 0 20px rgba(201,162,39,0.5);
-            animation: dustFloat linear infinite;
-            opacity: 0;
-        }
-        @keyframes dustFloat {
-            0% { transform: translateY(100vh) scale(0); opacity: 0; }
-            10% { opacity: 0.8; }
-            90% { opacity: 0.8; }
-            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
-        }
-
-        /* ---------- Floating ambient particles ---------- */
-        .floaty {
-            position: fixed; pointer-events: none; z-index: 1;
-            opacity: 0.15; font-size: 30px;
-            filter: drop-shadow(0 0 10px rgba(201,162,39,0.4));
-            animation: floatY 12s ease-in-out infinite;
-        }
-        .floaty-1 { top: 12%; left: 7%; animation-duration: 14s; }
-        .floaty-2 { top: 22%; right: 10%; font-size: 22px; animation-duration: 10s; animation-delay: 1s; }
-        .floaty-3 { bottom: 18%; left: 12%; font-size: 26px; animation-duration: 16s; animation-delay: 2s; }
-        .floaty-4 { bottom: 28%; right: 6%; font-size: 24px; animation-duration: 11s; animation-delay: 0.5s; }
-
-        @keyframes floatY {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-30px) rotate(10deg); }
-        }
-
-        .particle-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
-
-        @media (max-width: 600px) {
-            .floaty, .books-bg { display: none; }
-            .orb { opacity: 0.15; }
-        }
-
-        /* ---------- Generic Container ---------- */
-        .container {
-            width: 100%;
-            max-width: 1100px;
-            margin-inline: auto;
-            padding-inline: 36px;
-            position: relative;
-            z-index: 2;
-            box-sizing: border-box;
-        }
-
-        @media (max-width: 1439px) {
-            .container {
-                padding-inline: 28px;
-            }
-        }
-
-        @media (max-width: 1023px) {
-            .container {
-                padding-inline: 20px;
-            }
-        }
-
-        @media (max-width: 767px) {
-            .container {
-                padding-inline: 16px;
-            }
-        }
-
-        /* ---------- Navbar ---------- */
-        .navbar {
-            background: rgba(15, 14, 42, 0.75);
-            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            padding: 15px 0;
-            border-bottom: 1px solid rgba(201,162,39,0.15);
-            position: relative; z-index: 10;
-            animation: slideDown 0.6s ease;
-        }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-
-        .navbar-content { display: flex; justify-content: space-between; align-items: center; }
-
-        .logo a {
-            text-decoration: none; font-size: 22px; font-weight: 700;
-            font-family: 'Playfair Display', serif;
-            background: linear-gradient(135deg, #c9a227, #f0c96b);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-            padding: 8px 12px; border-radius: 12px;
-            transition: all 0.3s ease;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .logo a:hover { transform: translateY(-2px); filter: drop-shadow(0 4px 12px rgba(201,162,39,0.4)); }
-        .logo img { transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
-        .logo a:hover img { transform: rotate(360deg) scale(1.15); }
-
-        .nav-links { display: flex; align-items: center; }
-        .nav-links a {
-            margin-left: 20px; text-decoration: none;
-            color: rgba(255,255,255,0.8); font-weight: 500; font-size: 14px;
-            position: relative; transition: all 0.3s ease;
-        }
-        .nav-links a::after {
-            content: ''; position: absolute; left: 0; bottom: -4px;
-            width: 0%; height: 2px;
-            background: linear-gradient(135deg, #c9a227, #f0c96b);
-            transition: width 0.3s ease; border-radius: 2px;
-        }
-        .nav-links a:hover { color: #f0c96b; transform: translateY(-2px); }
-        .nav-links a:hover::after { width: 100%; }
-
-        /* ---------- Auth Layout ---------- */
-        .auth-container {
-            display: flex; justify-content: center; align-items: flex-start;
-            padding: 50px 0 60px; position: relative; z-index: 5;
-            perspective: 1200px;
-        }
-
-        .auth-box {
-            width: 100%; max-width: 480px;
-            padding: 36px 32px; border-radius: 24px;
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            background: rgba(15, 14, 42, 0.65);
-            box-shadow: 0 25px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
-            animation: cardIn 0.9s cubic-bezier(0.21, 1.02, 0.73, 1) both;
-            position: relative; z-index: 2;
-            transition: transform 0.4s ease, box-shadow 0.4s ease;
-            transform-style: preserve-3d;
-            border: 1px solid rgba(201,162,39,0.25);
-            overflow: hidden;
-        }
-
-        /* Animated shimmering border */
-        .auth-box::before {
-            content: ''; position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px;
-            background: linear-gradient(45deg, transparent, #c9a227, transparent, #f0c96b, transparent);
-            background-size: 400% 400%;
-            border-radius: 26px; z-index: -1; opacity: 0.4;
-            animation: gradientBorder 8s ease infinite;
-        }
-        @keyframes gradientBorder {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        @keyframes cardIn {
-            from { opacity: 0; transform: translateY(40px) scale(0.95) rotateX(15deg); }
-            to { opacity: 1; transform: translateY(0) scale(1) rotateX(0deg); }
-        }
-
-        .badge {
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 6px 16px; border-radius: 999px;
-            background: rgba(201,162,39,0.12);
-            font-size: 12px; font-weight: 600; color: #f0c96b;
-            margin: 0 auto 12px;
-            border: 1px solid rgba(201,162,39,0.25);
-            animation: badgeIn 0.6s ease 0.2s both;
-        }
-        @keyframes badgeIn { from { opacity: 0; transform: translateY(-10px) scale(0.8); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .badge .wave { display: inline-block; animation: wave 2.5s ease-in-out infinite; transform-origin: 70% 70%; }
-        @keyframes wave {
-            0%, 60%, 100% { transform: rotate(0deg); }
-            10% { transform: rotate(14deg); } 20% { transform: rotate(-8deg); }
-            30% { transform: rotate(14deg); } 40% { transform: rotate(-4deg); }
-        }
-
-        .logo-wrap { position: relative; display: inline-flex; margin-bottom: 15px; }
-        .logo-wrap img {
-            position: relative; z-index: 1;
-            animation: logoFloat 5s ease-in-out infinite;
-            border-radius: 2%;
-            box-shadow: 0 0 30px rgba(201,162,39,0.3);
-        }
-        .logo-wrap::before {
-            content: ''; position: absolute; top: 50%; left: 50%;
-            width: 110px; height: 110px; border-radius: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 0 0 rgba(201,162,39,0.4);
-            animation: logoPulse 3s ease-out infinite;
-        }
-        @keyframes logoFloat {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-10px) rotate(5deg); }
-        }
-        @keyframes logoPulse {
-            0% { box-shadow: 0 0 0 0 rgba(201,162,39,0.5); }
-            100% { box-shadow: 0 0 0 30px rgba(201,162,39,0); }
-        }
-
-        .auth-box h1 {
-            text-align: center; margin: 0 0 8px;
-            color: #fff; font-size: 26px; font-family: 'Playfair Display', serif;
-            animation: badgeIn 0.6s ease 0.3s both;
-        }
-        .auth-subtitle {
-            text-align: center; margin-bottom: 24px;
-            color: rgba(255,255,255,0.6); font-size: 14px;
-            animation: badgeIn 0.6s ease 0.4s both;
-        }
-
-        /* Tab styling */
-        .tab-container {
-            display: flex; margin-bottom: 24px;
-            background: rgba(15, 14, 42, 0.5);
-            border-radius: 14px; padding: 5px;
-            border: 1px solid rgba(255,255,255,0.05);
-            animation: badgeIn 0.6s ease 0.5s both;
-        }
-        .tab-button {
-            flex: 1; padding: 12px; background: transparent; border: none;
-            border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px;
-            color: rgba(255,255,255,0.6); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .tab-button.active {
-            background: linear-gradient(135deg, #c9a227, #f0c96b);
-            color: #0f0e2a; box-shadow: 0 4px 15px rgba(201,162,39,0.4);
-            transform: scale(1.02);
-        }
-        .tab-button:not(.active):hover { background: rgba(201,162,39,0.1); color: #f0c96b; }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeSlideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-        @keyframes fadeSlideIn { from { opacity: 0; transform: translateX(15px); } to { opacity: 1; transform: translateX(0); } }
-
-        /* ---------- Form Styling ---------- */
-        .form-group { margin-bottom: 18px; position: relative; }
-        label {
-            display: block; font-weight: 600; margin-bottom: 6px;
-            font-size: 13px; color: rgba(255,255,255,0.8);
-            transition: all 0.3s ease;
-        }
-        .form-group:focus-within label { color: #f0c96b; transform: translateX(4px); }
-
-        .input-wrapper { position: relative; }
-        input {
-            width: 100%; padding: 13px 14px; border-radius: 12px;
-            border: 1.5px solid rgba(255,255,255,0.1); outline: none;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 14px; box-sizing: border-box;
-            background: rgba(15, 14, 42, 0.6); color: #fff;
-        }
-        input::placeholder { color: rgba(255,255,255,0.3); }
-        input:focus {
-            border-color: #c9a227;
-            box-shadow: 0 0 0 4px rgba(201,162,39,0.15), 0 0 20px rgba(201,162,39,0.1);
-            background: rgba(15, 14, 42, 0.8);
-            transform: translateY(-2px);
-        }
-
-        .input-wrapper::after {
-            content: ''; position: absolute; bottom: 0; left: 50%;
-            width: 0; height: 2px;
-            background: linear-gradient(90deg, #c9a227, #f0c96b);
-            transition: all 0.4s ease; border-radius: 2px;
-            transform: translateX(-50%);
-        }
-        .input-wrapper:focus-within::after { width: 100%; }
-
-        .input-icon {
-            position: absolute; right: 14px; top: 50%;
-            transform: translateY(-50%); font-size: 16px;
-            opacity: 0.5; transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            z-index: 2;
-        }
-        .input-wrapper:focus-within .input-icon {
-            opacity: 1; transform: translateY(-50%) scale(1.3);
-            color: #f0c96b; filter: drop-shadow(0 0 8px rgba(201,162,39,0.6));
-        }
-
-        /* ---------- Button ---------- */
-        .btn-primary {
-            background: linear-gradient(135deg, #c9a227, #f0c96b, #c9a227);
-            background-size: 220% auto;
-            color: #0f0e2a; border: none; border-radius: 12px;
-            padding: 14px; font-size: 15px; font-weight: 700;
-            cursor: pointer; width: 100%;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative; overflow: hidden;
-            box-shadow: 0 4px 15px rgba(201,162,39,0.3);
-        }
-        /* Shine sweep effect */
-        .btn-primary::after {
-            content: ''; position: absolute; top: -50%; left: -50%;
-            width: 200%; height: 200%;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
-            transform: rotate(30deg) translateX(-100%);
-            transition: transform 0.6s ease;
-        }
-        .btn-primary:hover::after { transform: rotate(30deg) translateX(100%); }
-        
-        .btn-primary:hover {
-            background-position: right center;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(201,162,39,0.5);
-        }
-        .btn-primary:active { transform: translateY(-1px) scale(0.98); }
-
-        .error-message {
-            color: #fca5a5; font-size: 13px; margin-bottom: 10px;
-            animation: shakeIn 0.4s ease;
-            background: rgba(239, 68, 68, 0.15);
-            padding: 10px 14px; border-radius: 8px;
-            border-left: 3px solid #ef4444;
-        }
-        @keyframes shakeIn {
-            0% { opacity: 0; transform: translateX(-10px); }
-            20% { opacity: 1; transform: translateX(8px); }
-            100% { transform: translateX(0); }
-        }
-
-        .auth-footer { text-align: center; margin-top: 20px; font-size: 13px; color: rgba(255,255,255,0.6); }
-        .auth-footer a { color: #f0c96b; font-weight: 600; text-decoration: none; position: relative; transition: all 0.3s ease; }
-        .auth-footer a::after {
-            content: ''; position: absolute; left: 0; bottom: -2px;
-            width: 0%; height: 1.5px; background: linear-gradient(90deg, #c9a227, #f0c96b);
-            transition: width 0.3s ease;
-        }
-        .auth-footer a:hover { transform: translateY(-1px); text-shadow: 0 0 10px rgba(201,162,39,0.5); }
-        .auth-footer a:hover::after { width: 100%; }
-
-        .checkbox-container {
-            display: flex; justify-content: space-between; align-items: center;
-            margin: 18px 0; font-size: 13px;
-        }
-        .checkbox-container label {
-            display: flex; align-items: center; gap: 8px;
-            font-weight: 500; margin-bottom: 0; cursor: pointer;
-            color: rgba(255,255,255,0.7); transition: color 0.3s ease;
-        }
-        .checkbox-container label:hover { color: #f0c96b; }
-        .checkbox-container input[type="checkbox"] {
-            appearance: none; -webkit-appearance: none;
-            width: 18px; height: 18px; min-width: 18px; margin: 0;
-            border: 2px solid rgba(255,255,255,0.3); border-radius: 5px;
-            background: rgba(15,14,42,0.6); position: relative; cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-        .checkbox-container input[type="checkbox"]:checked {
-            background: linear-gradient(135deg, #c9a227, #f0c96b);
-            border-color: #c9a227;
-        }
-        .checkbox-container input[type="checkbox"]:checked::after {
-            content: ''; position: absolute; left: 4px; top: 0px;
-            width: 5px; height: 9px; border: solid #0f0e2a;
-            border-width: 0 2px 2px 0; transform: rotate(45deg);
-        }
-
-        .toggle-password {
-            position: absolute; right: 12px; top: 50%;
-            transform: translateY(-50%); background: none; border: none;
-            cursor: pointer; font-size: 18px; color: rgba(255,255,255,0.5);
-            transition: all 0.3s ease; z-index: 2; padding: 4px; border-radius: 50%;
-        }
-        .toggle-password:hover {
-            color: #f0c96b; transform: translateY(-50%) scale(1.2);
-            background: rgba(201,162,39,0.1);
-        }
-
-        footer { text-align: center; margin-top: 20px; color: rgba(255,255,255,0.4); font-size: 13px; padding-bottom: 20px; z-index: 2; position: relative; }
-
-        /* Confetti */
-        .confetti { position: fixed; width: 10px; height: 10px; pointer-events: none; z-index: 9999; animation: confettiFall 3s linear forwards; }
-        @keyframes confettiFall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
-
-        @media (max-width: 600px) {
-            .floaty, .books-bg { display: none; }
-            .orb { opacity: 0.15; }
-            .auth-container { padding: 24px 0 40px; }
-            .auth-box { padding: 28px 20px; border-radius: 18px; box-sizing: border-box; width: 100%; }
-            input { font-size: 16px !important; }
-        }
-
-        @media (max-width: 360px) {
-            .auth-box { padding: 22px 14px; }
-            .badge { padding: 4px 10px; font-size: 11px; }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-        }
-    </style>
+    <!-- Google Fonts: Inter + Playfair Display -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
+    <link rel="icon" href="/images/press.png" type="image/png">
+    <link rel="stylesheet" href="css/site-shell.css">
 </head>
-<body>
-    <div class="books-bg"></div>
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-    <canvas class="particle-canvas" id="particleCanvas"></canvas>
+<body class="auth-page-body">
+    <canvas class="particle-canvas" id="particleCanvas" style="display: none;"></canvas>
 
-    <!-- Golden Dust Particles -->
-    <div class="gold-dust" style="left: 10%; animation-duration: 12s; animation-delay: 0s;"></div>
-    <div class="gold-dust" style="left: 25%; animation-duration: 15s; animation-delay: 2s;"></div>
-    <div class="gold-dust" style="left: 40%; animation-duration: 10s; animation-delay: 4s;"></div>
-    <div class="gold-dust" style="left: 60%; animation-duration: 14s; animation-delay: 1s;"></div>
-    <div class="gold-dust" style="left: 75%; animation-duration: 11s; animation-delay: 3s;"></div>
-    <div class="gold-dust" style="left: 90%; animation-duration: 16s; animation-delay: 5s;"></div>
+<!-- TOP ANNOUNCEMENT BAR -->
+    <div class="top-bar" role="region" aria-label="Announcement">
+        <div class="top-bar-inner">
+            <div class="top-bar-left">
+                <span class="badge-gold-pill">Store Notice</span>
+                <span>Store pickup &amp; doorstep courier delivery available across Karnataka</span>
+            </div>
+            <div class="top-bar-right">
+                <a href="/track-order.html" class="top-bar-link">📦 Track Your Order</a>
+                <a href="/#trustSection" class="top-bar-link">🛡️ Genuine Curriculum Books</a>
+            </div>
+        </div>
+    </div>
 
-    <div class="floaty floaty-1">📖</div>
-    <div class="floaty floaty-2">✨</div>
-    <div class="floaty floaty-3">🪔</div>
-    <div class="floaty floaty-4">📚</div>
+    <!-- MAIN HEADER -->
+    <header class="main-header" role="banner">
+        <div class="container">
+            <div class="header-inner">
+                <!-- Mobile Menu Hamburger Button -->
+                <button type="button" id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="Open Navigation Menu">☰</button>
 
-    <header>
-        <div class="navbar">
-            <div class="container navbar-content">
-                <div class="logo">
-                    <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
-                        <img src="/images/press.png" alt="Shree Mata Logo" style="width: 45px; height: 45px; ">
-                        <span>Shree Mata</span>
-                    </a>
+                <!-- Brand Logo & Identity -->
+                <a href="/" class="brand-logo logo" aria-label="Shree Mata Home">
+                    <img src="/images/press.png" alt="Shree Mata Logo" width="44" height="44">
+                    <div class="brand-text">
+                        <span class="brand-title">Shree Mata</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Primary Navigation Links -->
+                <nav class="header-nav-links" aria-label="Primary Navigation">
+                    <a href="/#booksSection" class="nav-item-link">Books</a>
+                    <a href="/#booksSection" class="nav-item-link">Categories</a>
+                    <a href="/#notificationsSection" class="nav-item-link">Offers</a>
+                </nav>
+
+                <!-- Wide Search Field -->
+                <div class="header-search">
+                    <div class="search-box" role="search">
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                        <input 
+                            type="search" 
+                            id="searchInput" 
+                            class="search-input" 
+                            placeholder="Search books, subjects, class..." 
+                            aria-label="Search catalog"
+                            autocomplete="off"
+                        >
+                        <button type="button" id="searchBtn" class="search-btn" aria-label="Search">Search</button>
+                    </div>
                 </div>
-                <div class="nav-links">
-                    <a href="/">Home</a>
-                    <a href="signup.html">Sign Up</a>
+
+                <!-- User & Cart Actions -->
+                <div class="header-actions">
+                    <!-- Guest Auth Links -->
+                    <div id="authLinks" class="auth-group">
+                        <a href="/login.html" class="btn-login" aria-label="Account Login">
+                            <span class="btn-login-icon" aria-hidden="true">👤</span>
+                            <span class="btn-login-text">Log In</span>
+                        </a>
+                        <a href="/signup.html" class="btn-signup">Sign Up</a>
+                    </div>
+
+                    <!-- Logged-in User Navigation Dropdown -->
+                    <div id="userLinks" class="user-nav-wrap" style="display: none;">
+                        <button type="button" class="user-name-badge" id="userMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-label="User Account Menu">
+                            <span class="user-avatar-icon" aria-hidden="true">👤</span>
+                            <span id="userName" class="user-name-text">Account</span>
+                            <span class="dropdown-chevron" aria-hidden="true">▾</span>
+                        </button>
+                        <div class="user-dropdown-menu" id="userDropdownMenu" role="menu" aria-labelledby="userMenuBtn">
+                            <div class="dropdown-header">
+                                <div class="dropdown-user-profile">
+                                    <div class="dropdown-user-avatar">👤</div>
+                                    <div class="dropdown-user-info">
+                                        <span class="dropdown-user-name" id="dropdownUserName">User</span>
+                                        <span class="dropdown-user-email" id="dropdownUserEmail"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="/account.html" class="dropdown-item-link" id="accountLink" role="menuitem">
+                                <span class="dropdown-item-icon">👤</span> <span>My Account</span>
+                            </a>
+                            <a href="/orders.html" class="dropdown-item-link" id="ordersLink" role="menuitem">
+                                <span class="dropdown-item-icon">📦</span> <span>My Orders</span>
+                            </a>
+                            <a href="/account.html?section=wallet" class="dropdown-item-link" id="dropdownWalletLink" role="menuitem">
+                                <span class="dropdown-item-icon">👛</span> <span>Wallet & Cashback</span>
+                            </a>
+                            <a href="/referral.html" class="dropdown-item-link" id="referralLink" role="menuitem">
+                                <span class="dropdown-item-icon">💰</span> <span>Referral Network</span>
+                            </a>
+                            <a href="/account.html?section=vip" class="dropdown-item-link" id="dropdownVipLink" role="menuitem">
+                                <span class="dropdown-item-icon">👑</span> <span>VIP Master Card</span>
+                            </a>
+                            <a href="/admin.html" class="dropdown-item-link" id="adminLink" role="menuitem" style="display: none;">
+                                <span class="dropdown-item-icon">⚙️</span> <span>Admin Dashboard</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button type="button" id="logoutBtn" class="btn-logout-item" role="menuitem">
+                                <span class="dropdown-item-icon">🚪</span> <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Orders Link (Quick Access) -->
+                    <a href="/orders.html" class="nav-item-link header-orders-link" style="display: inline-flex; align-items: center; gap: 4px;">Orders</a>
+
+                    <!-- Shopping Cart Button with Dynamic Badge -->
+                    <a href="/cart.html" id="cartLink" class="btn-cart-header" title="Shopping Cart">
+                        <span aria-hidden="true">🛒</span>
+                        <span class="cart-text">Cart</span>
+                        <span id="cartCount" class="cart-count-badge">0</span>
+                    </a>
                 </div>
             </div>
         </div>
     </header>
 
-    <main>
+    <!-- MOBILE NAVIGATION DRAWER -->
+    <div id="mobileNavDrawer" class="mobile-nav-drawer" aria-hidden="true">
+        <div id="drawerBackdrop" class="drawer-backdrop"></div>
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <a href="/" class="brand-logo logo" aria-label="Shree Mata">
+                    <img src="/images/press.png" alt="Shree Mata" width="36" height="36">
+                    <span class="brand-title" style="font-size: 18px;">Shree Mata</span>
+                </a>
+                <button type="button" id="drawerCloseBtn" class="drawer-close-btn" aria-label="Close menu">&times;</button>
+            </div>
+            <nav class="drawer-nav">
+                <a href="/#booksSection" class="drawer-link">📚 All Books</a>
+                <a href="/#booksSection" class="drawer-link">🏷️ Categories & Subjects</a>
+                <a href="/#notificationsSection" class="drawer-link">🎉 Offers & Deals</a>
+                <a href="/track-order.html" class="drawer-link">📦 Track Your Order</a>
+                <a href="/cart.html" class="drawer-link">🛒 Shopping Cart</a>
+            </nav>
+            <div id="drawerAuthSection" class="drawer-auth">
+                <!-- Guest View -->
+                <div id="drawerGuestAuth" class="drawer-auth-buttons">
+                    <a href="/login.html" class="btn-secondary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">Log In</a>
+                    <a href="/signup.html" class="btn-primary btn-full" style="min-height: 44px; display: flex; align-items: center; justify-content: center;">Sign Up</a>
+                </div>
+                <!-- Logged In View -->
+                <div id="drawerUserAuth" class="drawer-user-menu" style="display: none;">
+                    <div class="drawer-user-info" style="display: flex; align-items: center; gap: 10px; padding: 8px 0 14px; border-bottom: 1px solid var(--border-editorial); margin-bottom: 10px;">
+                        <span class="user-avatar-icon" style="font-size: 20px;">👤</span>
+                        <div>
+                            <span style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; display: block;">Signed in as</span>
+                            <span id="drawerUserName" style="font-size: 14.5px; font-weight: 700; color: var(--text-ink);">User</span>
+                        </div>
+                    </div>
+                    <div class="drawer-user-links" style="display: flex; flex-direction: column; gap: 4px;">
+                        <a href="/account.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">👤 My Account</a>
+                        <a href="/orders.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">📦 My Orders</a>
+                        <a href="/referral.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">💰 Referral & Rewards</a>
+                        <a href="/admin.html" id="drawerAdminLink" class="drawer-link" style="min-height: 44px; padding: 10px 12px; display: none;">⚙️ Admin Dashboard</a>
+                        <button type="button" id="drawerLogoutBtn" class="btn-logout-item" style="min-height: 44px; padding: 10px 12px; margin-top: 4px;">🚪 Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+
+    <main class="auth-main-wrap">
         <div class="container">
             <div class="auth-container">
                 <div class="auth-box" id="authBox">
                     <div style="text-align: center;">
                         <div class="badge">
                             <span class="wave">👋</span> Welcome back!
-                        </div>
-                        <div class="logo-wrap">
-                            <img src="/images/press.png" alt="Shree Mata Logo" style="width: 90px; height: 90px;">
                         </div>
                         <h1>Welcome Back</h1>
                         <p class="auth-subtitle">Choose your preferred login method</p>
@@ -533,14 +219,14 @@
                             </div>
                             <div class="checkbox-container">
                                 <label><input type="checkbox" id="rememberMe"> Remember me</label>
-                                <a href="#" onclick="showForgotPassword()" style="color: #f0c96b; text-decoration: none; font-size: 12px; font-weight: 600;">Forgot Password?</a>
+                                <a href="#" onclick="showForgotPassword()" style="color: var(--gold-dark); text-decoration: none; font-size: 13px; font-weight: 600;">Forgot Password?</a>
                             </div>
                             <div id="emailErrorMessage" class="error-message" style="display: none;"></div>
                             <button type="submit" class="btn-primary magnetic-btn" id="emailLoginBtn">Login with Email →</button>
                         </form>
                     </div>
 
-                    <div id="phoneTab" class="tab-content">
+                    <div id="phoneTab" class="tab-content" style="display: none;">
                         <form id="phoneLoginForm">
                             <div class="form-group">
                                 <label for="phoneNumber">📱 Phone Number</label>
@@ -558,7 +244,7 @@
                             </div>
                             <div class="checkbox-container">
                                 <label><input type="checkbox" id="rememberMePhone"> Remember me</label>
-                                <a href="#" onclick="showForgotPassword()" style="color: #f0c96b; text-decoration: none; font-size: 12px; font-weight: 600;">Forgot Password?</a>
+                                <a href="#" onclick="showForgotPassword()" style="color: var(--gold-dark); text-decoration: none; font-size: 13px; font-weight: 600;">Forgot Password?</a>
                             </div>
                             <div id="phoneErrorMessage" class="error-message" style="display: none;"></div>
                             <button type="submit" class="btn-primary magnetic-btn" id="phoneLoginBtn">Login with Phone →</button>
@@ -573,18 +259,84 @@
         </div>
     </main>
 
-    <footer>
-        <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-            <p>&copy; 2026 Shree Mata. All rights reserved.</p>
-            <p style="margin: 0;">
-                <span>Contact Us: </span>
-                <a href="tel:+919845163604" style="color: #D4A72C; text-decoration: none; font-weight: 600;">📞 +91 98451 63604</a>
-            </p>
+<!-- 4-COLUMN LUXURY FOOTER -->
+    <footer class="site-footer" role="contentinfo">
+        <div class="container">
+            <div class="footer-grid">
+                <!-- Brand Info -->
+                <div class="footer-brand-col">
+                    <a href="/" class="footer-brand-logo">
+                        <img src="images/press.png" alt="Shree Mata Logo" width="42" height="42" style="background: white; padding: 2px; border-radius: 4px;">
+                        <span class="footer-brand-title">Shree Mata</span>
+                    </a>
+                    <div style="margin-top: 4px; margin-bottom: 8px;">
+                        <div style="font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #D4A72C; letter-spacing: 0.04em;">Disseminating Knowledge</div>
+                        <div class="footer-brand-slogan-line">Empower Us. <span style="color: #D4A72C;">We Empower You.</span></div>
+                    </div>
+                    <p class="footer-desc">
+                        Your trusted destination for school textbooks, study guides, and complete grade packages with authenticity and care.
+                    </p>
+                    <div class="footer-contact-info">
+                        <a href="tel:+919845163604" class="footer-phone-link" title="Call Shree Mata">
+                            <span class="phone-icon" aria-hidden="true">📞</span>
+                            <span>+91 98451 63604</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- SHOP Column -->
+                <div>
+                    <h4 class="footer-col-title">SHOP</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="/#booksSection">Books</a></li>
+                        <li><a href="/#bundlesSection">Book Sets</a></li>
+                        <li><a href="/#booksSection">Categories</a></li>
+                        <li><a href="/#notificationsSection">Offers</a></li>
+                    </ul>
+                </div>
+
+                <!-- CUSTOMER CARE Column -->
+                <div>
+                    <h4 class="footer-col-title">CUSTOMER CARE</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="tel:+919845163604" class="footer-care-phone"><span aria-hidden="true">📞</span> +91 98451 63604</a></li>
+                        <li><a href="/track-order.html">Track Your Order</a></li>
+                        <li><a href="/account.html">Contact Us</a></li>
+                        <li><a href="/#trustSection">Shipping</a></li>
+                        <li><a href="/#trustSection">Returns</a></li>
+                    </ul>
+                </div>
+
+                <!-- ACCOUNT Column -->
+                <div>
+                    <h4 class="footer-col-title">ACCOUNT</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="/account.html">My Account</a></li>
+                        <li><a href="/orders.html">Orders</a></li>
+                        <li><a href="/referral.html">Referral & Rewards</a></li>
+                        <li><a href="/privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="/terms-and-conditions.html">Terms &amp; Conditions</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer Bottom Bar -->
+            <div class="footer-bottom">
+                <span>© 2026 Shree Mata. All rights reserved.</span>
+                <div style="display: flex; gap: 16px;">
+                    <span>Curriculum Books</span>
+                    <span>•</span>
+                    <span>Secure Checkout</span>
+                    <span>•</span>
+                    <span>Store Pickup & Delivery</span>
+                </div>
+            </div>
         </div>
     </footer>
 
     <script src="js/config.js"></script>
     <script src="js/login.js"></script>
+    <script src="js/global-nav.js"></script>
     <script>
         // Tab switching
         function switchTab(tabName) {
@@ -968,3 +720,4 @@
     </script>
 </body>
 </html>
+
