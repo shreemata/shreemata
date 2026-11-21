@@ -2010,14 +2010,9 @@ img, video, canvas, svg {
         text-overflow: ellipsis !important;
     }
 
+    .brand-logo .brand-sub,
     .brand-sub {
-        font-size: 8.5px !important;
-        letter-spacing: 0.8px !important;
-        line-height: 1.1 !important;
-        color: #64748b !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
+        display: none !important;
     }
 
     /* ROW 1 Right: Account, Cart */

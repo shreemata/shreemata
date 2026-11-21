@@ -114,6 +114,7 @@
 .brand-text {
     display: flex;
     flex-direction: column;
+    justify-content: center;
 }
 
 .brand-title {
@@ -125,12 +126,9 @@
     letter-spacing: -0.01em;
 }
 
+.brand-logo .brand-sub,
 .brand-sub {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--sm-gold-muted);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    display: none !important;
 }
 
 /* Primary Desktop Navigation Links */

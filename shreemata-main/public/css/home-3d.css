@@ -525,12 +525,9 @@ img {
     line-height: 1.15;
 }
 
+.brand-logo .brand-sub,
 .brand-sub {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1.8px;
-    text-transform: uppercase;
-    color: var(--gold-muted);
+    display: none !important;
 }
 
 /* Primary Header Navigation Links */
@@ -3271,13 +3268,7 @@ footer {
     }
 
     .brand-sub {
-        font-size: 8.5px;
-        letter-spacing: 0.8px;
-        line-height: 1.1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        color: #64748b;
+        display: none !important;
     }
 
     /* ROW 1 Right: [Account] [Cart] */
@@ -4143,8 +4134,7 @@ footer {
     }
 
     .brand-sub {
-        font-size: 8.5px;
-        letter-spacing: 1px;
+        display: none !important;
     }
 
     .book-actions {
