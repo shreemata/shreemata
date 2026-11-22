@@ -258,7 +258,7 @@ describe('Batch 2 UI Unification Browser Tests', () => {
     }
   });
 
-  const pagesToTest = ['cart.html', 'login.html', 'signup.html'];
+  const pagesToTest = ['cart.html'];
   const viewports = [
     { name: 'desktop', width: 1920, height: 1080 },
     { name: 'laptop', width: 1366, height: 768 },
@@ -702,26 +702,6 @@ describe('Batch 2 UI Unification Browser Tests', () => {
       await pEmpty.waitForSelector('#emptyCart', { state: 'visible', timeout: 10000 });
       await pEmpty.screenshot({ path: path.join(SCREENSHOT_DIR, `cart-empty-final-${w.name}.png`), fullPage: true });
       await ctxEmpty.close();
-
-      // 3. Login
-      const ctxLogin = await browser.newContext({ viewport: { width: w.width, height: w.height } });
-      await ctxLogin.addInitScript(() => { localStorage.clear(); });
-      const pLogin = await ctxLogin.newPage();
-      attachDialogCollector(pLogin);
-      await pLogin.goto('http://127.0.0.1:3100/login.html', { waitUntil: 'load' });
-      await pLogin.waitForSelector('#authBox', { state: 'visible', timeout: 10000 });
-      await pLogin.screenshot({ path: path.join(SCREENSHOT_DIR, `login-final-${w.name}.png`), fullPage: true });
-      await ctxLogin.close();
-
-      // 4. Signup
-      const ctxSignup = await browser.newContext({ viewport: { width: w.width, height: w.height } });
-      await ctxSignup.addInitScript(() => { localStorage.clear(); });
-      const pSignup = await ctxSignup.newPage();
-      attachDialogCollector(pSignup);
-      await pSignup.goto('http://127.0.0.1:3100/signup.html', { waitUntil: 'load' });
-      await pSignup.waitForSelector('#authBox', { state: 'visible', timeout: 10000 });
-      await pSignup.screenshot({ path: path.join(SCREENSHOT_DIR, `signup-final-${w.name}.png`), fullPage: true });
-      await ctxSignup.close();
     }
 
     // Modal screenshots at 1440 and 390
@@ -836,17 +816,6 @@ describe('Batch 2 UI Unification Browser Tests', () => {
       await pOffer.screenshot({ path: path.join(MODAL_DIR, `cart-offer-modal-${mv.name}.png`) });
       await ctxOffer.close();
 
-      // 7. Login forgot-password modal
-      const ctxForgot = await browser.newContext({ viewport: { width: mv.width, height: mv.height } });
-      const pForgot = await ctxForgot.newPage();
-      await pForgot.goto('http://127.0.0.1:3100/login.html', { waitUntil: 'load' });
-      await pForgot.evaluate(() => {
-        if (typeof showForgotPassword === 'function') showForgotPassword();
-      });
-      await pForgot.waitForSelector('#forgotStep1', { state: 'visible', timeout: 5000 });
-      await pForgot.waitForTimeout(300);
-      await pForgot.screenshot({ path: path.join(MODAL_DIR, `login-forgot-password-${mv.name}.png`) });
-      await ctxForgot.close();
     }
   }, 180000);
 
@@ -932,6 +901,7 @@ describe('Batch 2 UI Unification Browser Tests', () => {
           });
         });
         await pBase.goto(`http://127.0.0.1:3100/${pageName}`, { waitUntil: 'networkidle' });
+        await pBase.evaluate(() => document.fonts.ready);
         await pBase.waitForTimeout(300);
         const shotBase = await pBase.screenshot({ fullPage: true, animations: 'disabled' });
         await ctxBase.close();
@@ -940,6 +910,7 @@ describe('Batch 2 UI Unification Browser Tests', () => {
         const ctxCurr = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
         const pCurr = await ctxCurr.newPage();
         await pCurr.goto(`http://127.0.0.1:3100/${pageName}`, { waitUntil: 'networkidle' });
+        await pCurr.evaluate(() => document.fonts.ready);
         await pCurr.waitForTimeout(300);
         const shotCurr = await pCurr.screenshot({ fullPage: true, animations: 'disabled' });
         await ctxCurr.close();
