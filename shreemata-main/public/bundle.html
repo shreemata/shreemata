@@ -1365,9 +1365,10 @@ ${stockBadge}
             const address1Group = document.getElementById("billingAddress1Group");
             const address1Input = document.getElementById("billingAddress1");
             const address2Group = document.getElementById("billingAddress2Group");
+            const talukDistrictStateRow = document.getElementById("billingTalukDistrictStateRow");
+            const talukInput = document.getElementById("billingTaluk");
             const districtInput = document.getElementById("billingDistrict");
             const stateInput = document.getElementById("billingState");
-            const talukDistrictStateRow = document.getElementById("billingTalukDistrictStateRow");
             const pincodeRow = document.getElementById("billingPincodeRow");
             const pincodeInput = document.getElementById("billingPincode");
             const noteEl = document.getElementById("billingSameAsDeliveryNote");
@@ -1382,6 +1383,7 @@ ${stockBadge}
                 if (address1Input) address1Input.required = true;
                 if (address2Group) address2Group.style.display = "block";
                 if (talukDistrictStateRow) talukDistrictStateRow.style.display = "grid";
+                if (talukInput) talukInput.required = true;
                 if (districtInput) districtInput.required = true;
                 if (stateInput) stateInput.required = true;
                 if (pincodeRow) pincodeRow.style.display = "block";
@@ -1397,6 +1399,7 @@ ${stockBadge}
                 if (address1Input) address1Input.required = false;
                 if (address2Group) address2Group.style.display = "none";
                 if (talukDistrictStateRow) talukDistrictStateRow.style.display = "none";
+                if (talukInput) talukInput.required = false;
                 if (districtInput) districtInput.required = false;
                 if (stateInput) stateInput.required = false;
                 if (pincodeRow) pincodeRow.style.display = "none";
@@ -2590,7 +2593,7 @@ ${stockBadge}
                     style="color: white; font-size: 32px; font-weight: bold; cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.3s;">&times;</span>
             </div>
             <div class="modal-body" style="padding: 30px; padding-top: 15px;">
-                <form id="billingAddressForm">
+                <form id="billingAddressForm" novalidate>
                     <div id="billingModalBanner"
                         style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 18px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
                         <h4 id="billingModalBannerTitle" style="margin: 0 0 8px 0; font-size: 18px;">🚚 Delivery Details</h4>
