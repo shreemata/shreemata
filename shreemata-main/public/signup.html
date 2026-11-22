@@ -15,7 +15,6 @@
     <link rel="stylesheet" href="css/site-shell.css">
 </head>
 <body class="auth-page-body">
-    <canvas class="particle-canvas" id="particleCanvas" style="display: none;"></canvas>
 
 <!-- TOP ANNOUNCEMENT BAR -->
     <div class="top-bar" role="region" aria-label="Announcement">
@@ -394,51 +393,6 @@
             btn.addEventListener('mouseleave', () => { btn.style.transform = 'translate(0, 0)'; });
         });
 
-        // Particle canvas animation (Gold & Indigo theme)
-        const canvas = document.getElementById('particleCanvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        resizeCanvas(); window.addEventListener('resize', resizeCanvas);
-        
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 1.5 + 0.5;
-                this.speedX = Math.random() * 0.3 - 0.15; this.speedY = Math.random() * 0.3 - 0.15;
-                this.opacity = Math.random() * 0.5 + 0.2;
-                this.color = Math.random() > 0.5 ? '#c9a227' : '#4f46e5';
-            }
-            update() {
-                this.x += this.speedX; this.y += this.speedY;
-                if (this.x > canvas.width) this.x = 0; if (this.x < 0) this.x = canvas.width;
-                if (this.y > canvas.height) this.y = 0; if (this.y < 0) this.y = canvas.height;
-            }
-            draw() {
-                ctx.fillStyle = this.color; ctx.globalAlpha = this.opacity;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
-            }
-        }
-        function initParticles() {
-            particles = [];
-            const count = Math.min(60, Math.floor(canvas.width * canvas.height / 25000));
-            for (let i = 0; i < count; i++) particles.push(new Particle());
-        }
-        function animateParticles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => { p.update(); p.draw(); });
-            ctx.globalAlpha = 0.15; ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 0.5;
-            for (let i = 0; i < particles.length; i++) {
-                for (let j = i + 1; j < particles.length; j++) {
-                    const dx = particles[i].x - particles[j].x; const dy = particles[i].y - particles[j].y;
-                    if (Math.sqrt(dx*dx + dy*dy) < 110) {
-                        ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
-                    }
-                }
-            }
-            requestAnimationFrame(animateParticles);
-        }
-        initParticles(); animateParticles();
 
         // Password visibility toggle
         function togglePasswordVisibility(inputId, button) {

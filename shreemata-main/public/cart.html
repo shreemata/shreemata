@@ -241,41 +241,41 @@
                     <!-- Delivery Method Selection -->
                     <div class="delivery-method-section"
                         style="margin-bottom: 20px; padding: 20px; background: var(--bg-ivory-light); border-radius: var(--radius-md); border: 1px solid var(--border-editorial);">
-                        <h4 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #333;">🚚 Delivery
+                        <h4 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: var(--text-ink);">🚚 Delivery
                             Method</h4>
 
                         <div class="delivery-options">
                             <label class="delivery-option"
-                                style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;">
+                                style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 1.5px solid var(--border-editorial); border-radius: var(--radius-md); margin-bottom: 10px; cursor: pointer; transition: all var(--transition-fast);">
                                 <input type="radio" name="deliveryMethod" value="home" checked
-                                    style="width: 18px; height: 18px; accent-color: #ff6f61;">
+                                    style="width: 18px; height: 18px; accent-color: var(--navy-dark);">
                                 <div style="flex: 1;">
-                                    <div style="font-weight: 600; color: #333; font-size: 14px;">🏠 Home Delivery</div>
-                                    <div style="font-size: 12px; color: #666;">Delivered to your address</div>
+                                    <div style="font-weight: 600; color: var(--text-ink); font-size: 14px;">🏠 Home Delivery</div>
+                                    <div style="font-size: 12px; color: var(--text-secondary);">Delivered to your address</div>
                                 </div>
-                                <div style="font-weight: 600; color: #ff6f61;" id="homeDeliveryChargeDisplay">+ ₹<span
+                                <div style="font-weight: 600; color: var(--gold-dark);" id="homeDeliveryChargeDisplay">+ ₹<span
                                         id="homeDeliveryCharge">0</span></div>
                             </label>
 
                             <label class="delivery-option"
-                                style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; transition: all 0.3s ease;">
+                                style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 1.5px solid var(--border-editorial); border-radius: var(--radius-md); cursor: pointer; transition: all var(--transition-fast);">
                                 <input type="radio" name="deliveryMethod" value="pickup"
-                                    style="width: 18px; height: 18px; accent-color: #28a745;">
+                                    style="width: 18px; height: 18px; accent-color: var(--status-success);">
                                 <div style="flex: 1;">
-                                    <div style="font-weight: 600; color: #333; font-size: 14px;">🏪 Store Pickup</div>
-                                    <div style="font-size: 12px; color: #666;">Collect from our store</div>
+                                    <div style="font-weight: 600; color: var(--text-ink); font-size: 14px;">🏪 Store Pickup</div>
+                                    <div style="font-size: 12px; color: var(--text-secondary);">Collect from our store</div>
                                 </div>
-                                <div style="font-weight: 600; color: #28a745;" id="pickupSavingsDisplay">FREE (Save
+                                <div style="font-weight: 600; color: var(--status-success);" id="pickupSavingsDisplay">FREE (Save
                                     ₹<span id="pickupSavings">0</span>!)</div>
                             </label>
                         </div>
 
                         <!-- Store Information (shown when pickup is selected) -->
                         <div id="storeInfo"
-                            style="display: none; margin-top: 15px; padding: 15px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #28a745;">
-                            <h5 style="margin: 0 0 8px 0; color: #155724; font-size: 14px; font-weight: 600;">📍 Store
+                            style="display: none; margin-top: 15px; padding: 15px; background: var(--bg-ivory-surface); border-radius: var(--radius-md); border: 1px solid var(--border-editorial); border-left: 4px solid var(--status-success);">
+                            <h5 style="margin: 0 0 8px 0; color: var(--navy-deep); font-size: 14px; font-weight: 600;">📍 Store
                                 Details</h5>
-                            <div id="storeDetailsContent" style="font-size: 13px; color: #155724; line-height: 1.4;">
+                            <div id="storeDetailsContent" style="font-size: 13px; color: var(--text-body); line-height: 1.4;">
                                 <div><strong>Address:</strong> <span id="storeAddressDisplay">Loading...</span></div>
                                 <div><strong>Hours:</strong> <span id="storeHoursDisplay">Loading...</span></div>
                                 <div><strong>Phone:</strong> <span id="storePhoneDisplay">Loading...</span></div>
@@ -283,7 +283,7 @@
                                     Loading...</div>
                                 <div id="mapLinkContainer" style="margin-top: 10px; display: none;">
                                     <a id="mapLinkButton" href="#" target="_blank"
-                                        style="display: inline-block; background: #28a745; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; transition: all 0.3s ease;">
+                                        style="display: inline-block; background: var(--navy-dark); color: var(--bg-white-pure); padding: 8px 16px; border-radius: var(--radius-full); text-decoration: none; font-size: 12px; font-weight: 600; transition: all var(--transition-fast);">
                                         🗺️ View Store on Map
                                     </a>
                                 </div>
@@ -301,45 +301,45 @@
 
         <!-- Offer Confirmation Modal -->
         <div id="offerModal"
-            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1001; backdrop-filter: blur(4px); overflow-y: auto; padding: 20px;">
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(14, 28, 54, 0.6); z-index: 1001; backdrop-filter: blur(4px); overflow-y: auto; padding: 20px;">
             <div
-                style="background: white; margin: 30px auto; padding: 30px; width: 100%; max-width: 550px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); position: relative;">
+                style="background: var(--bg-white-pure); margin: 30px auto; padding: 30px; width: 100%; max-width: 550px; border-radius: var(--radius-xl); box-shadow: var(--shadow-card-hover); border: 1px solid var(--border-editorial); position: relative;">
                 <!-- Close Button -->
                 <button onclick="closeOfferModal()"
-                    style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 28px; cursor: pointer; color: #999; line-height: 1; padding: 0; width: 32px; height: 32px;">&times;</button>
+                    style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-secondary); line-height: 1; padding: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--bg-ivory-surface);">&times;</button>
 
                 <!-- Header -->
                 <div style="text-align: center; margin-bottom: 20px;">
                     <div style="font-size: 56px; margin-bottom: 10px; line-height: 1;">🎉</div>
-                    <h2 style="margin: 0; color: #28a745; font-size: 24px;">Special Offer Applied!</h2>
+                    <h2 style="margin: 0; color: var(--navy-deep); font-family: var(--font-serif); font-size: 24px; font-weight: 700;">Special Offer Applied!</h2>
                 </div>
 
                 <!-- Offer Details Box -->
                 <div
-                    style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                    style="background: var(--bg-ivory-surface); border: 1px solid var(--border-editorial); padding: 20px; border-radius: var(--radius-lg); margin-bottom: 20px;">
                     <div style="text-align: center; margin-bottom: 15px;">
-                        <h3 id="offerTitle" style="margin: 0 0 8px 0; color: #155724; font-size: 18px;"></h3>
-                        <p id="offerMessage" style="margin: 0; color: #155724; font-size: 14px; line-height: 1.5;"></p>
+                        <h3 id="offerTitle" style="margin: 0 0 8px 0; color: var(--navy-deep); font-family: var(--font-serif); font-size: 18px; font-weight: 700;"></h3>
+                        <p id="offerMessage" style="margin: 0; color: var(--text-body); font-size: 14px; line-height: 1.5;"></p>
                     </div>
 
                     <!-- Pricing Breakdown -->
                     <div style="background: white; padding: 18px; border-radius: 8px;">
                         <div
                             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span style="font-size: 15px; color: #333;">Original Amount:</span>
-                            <span style="font-weight: 600; font-size: 16px; color: #333;">₹<span
+                            <span style="font-size: 15px; color: var(--text-secondary);">Original Amount:</span>
+                            <span style="font-weight: 600; font-size: 16px; color: var(--text-ink);">₹<span
                                     id="offerOriginalAmount">0</span></span>
                         </div>
                         <div
                             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span style="font-size: 15px; color: #dc3545;">Discount:</span>
-                            <span style="font-weight: 600; font-size: 16px; color: #dc3545;">- ₹<span
+                            <span style="font-size: 15px; color: var(--status-error);">Discount:</span>
+                            <span style="font-weight: 600; font-size: 16px; color: var(--status-error);">- ₹<span
                                     id="offerDiscount">0</span></span>
                         </div>
                         <div
-                            style="border-top: 2px solid #e0e0e0; padding-top: 10px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 18px; font-weight: 700; color: #28a745;">You Pay:</span>
-                            <span style="font-size: 22px; font-weight: 700; color: #28a745;">₹<span
+                            style="border-top: 1.5px solid var(--border-editorial); padding-top: 10px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 18px; font-weight: 700; color: var(--navy-dark);">You Pay:</span>
+                            <span style="font-size: 22px; font-weight: 700; color: var(--navy-dark);">₹<span
                                     id="offerFinalAmount">0</span></span>
                         </div>
                     </div>
@@ -347,8 +347,8 @@
 
                 <!-- Note Box -->
                 <div
-                    style="background: #fff3cd; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
-                    <p style="margin: 0; color: #856404; font-size: 13px; line-height: 1.5;">
+                    style="background: var(--gold-pale); border: 1px solid var(--gold-border); border-left: 4px solid var(--gold-muted); padding: 12px 15px; border-radius: var(--radius-md); margin-bottom: 20px;">
+                    <p style="margin: 0; color: var(--gold-dark); font-size: 13px; line-height: 1.5;">
                         <strong>Note:</strong> This offer will be automatically applied at checkout. You'll be charged
                         the discounted amount.
                     </p>
@@ -357,11 +357,11 @@
                 <!-- Action Buttons -->
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <button onclick="acceptOfferAndContinue()" class="btn-primary"
-                        style="flex: 1; min-width: 200px; padding: 14px 20px; font-size: 16px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; transition: all 0.3s;">
+                        style="flex: 1; min-width: 200px; padding: 14px 20px; font-size: 16px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; background: var(--navy-dark); color: var(--bg-white-pure); border-radius: var(--radius-full); transition: all var(--transition-fast);">
                         Continue to Address →
                     </button>
                     <button onclick="closeOfferModal()" class="btn-secondary"
-                        style="padding: 14px 20px; font-size: 16px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; background: #6c757d; color: white; transition: all 0.3s;">
+                        style="padding: 14px 20px; font-size: 16px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; background: var(--bg-white-pure); color: var(--text-secondary); border: 1.5px solid var(--border-editorial); border-radius: var(--radius-full); transition: all var(--transition-fast);">
                         Cancel
                     </button>
                 </div>
@@ -623,13 +623,13 @@
                     <!-- Previous Addresses Dropdown (Initially Hidden) -->
                     <div id="cartPreviousAddressesSection" style="display: none; margin-bottom: 20px;">
                         <div
-                            style="background: #f8f9fa; padding: 15px; border-radius: 12px; border: 2px solid #e9ecef;">
-                            <h5 style="margin: 0 0 15px 0; color: #495057; font-size: 16px;">📍 Select from Previous
+                            style="background: var(--bg-ivory-surface); padding: 15px; border-radius: var(--radius-lg); border: 1.5px solid var(--border-editorial);">
+                            <h5 style="margin: 0 0 15px 0; color: var(--navy-deep); font-size: 16px; font-weight: 600;">📍 Select from Previous
                                 Addresses:</h5>
                             <select id="cartPreviousAddressSelect" onchange="fillCartAddressFromPrevious()" style="
                             width: 100%; 
                             padding: 12px; 
-                            border: 2px solid #ced4da; 
+                            border: 1.5px solid var(--border-editorial); 
                             border-radius: 8px; 
                             font-size: 14px; 
                             background: white; 
@@ -640,7 +640,7 @@
                             <div style="margin-top: 10px; text-align: center;">
                                 <button type="button" onclick="hideCartPreviousAddresses()" style="
                                 padding: 8px 16px; 
-                                background: #6c757d; 
+                                background: var(--bg-white-pure); border: 1.5px solid var(--border-editorial); 
                                 color: white; 
                                 border: none; 
                                 border-radius: 6px; 
@@ -656,87 +656,87 @@
                     <div id="cartBillingNamePhoneRow"
                         style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                         <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Full Name
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--text-ink);">Full Name
                                 *</label>
                             <input type="text" id="cartBillingName" required
-                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
+                                style="width: 100%; padding: 12px; border: 1.5px solid var(--border-editorial); border-radius: 8px; box-sizing: border-box; font-size: 14px;"
                                 placeholder="Full recipient name">
                         </div>
                         <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Phone
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--text-ink);">Phone
                                 Number *</label>
                             <input type="tel" id="cartBillingPhone" required pattern="[0-9]{10}"
-                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
+                                style="width: 100%; padding: 12px; border: 1.5px solid var(--border-editorial); border-radius: 8px; box-sizing: border-box; font-size: 14px;"
                                 placeholder="10-digit phone number">
                         </div>
                     </div>
 
                     <div id="cartBillingEmailGroup" style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Email
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--text-ink);">Email
                             *</label>
                         <input type="email" id="cartBillingEmail" required
-                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
+                            style="width: 100%; padding: 12px; border: 1.5px solid var(--border-editorial); border-radius: 8px; box-sizing: border-box; font-size: 14px;"
                             placeholder="Email for order updates & invoice">
                     </div>
 
                     <div id="cartBillingAddress1Group" style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">House/Building
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--text-ink);">House/Building
                             Address *</label>
                         <input type="text" id="cartBillingAddress1" required
-                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
+                            style="width: 100%; padding: 12px; border: 1.5px solid var(--border-editorial); border-radius: 8px; box-sizing: border-box; font-size: 14px;"
                             placeholder="House number, building name, street">
                     </div>
 
                     <div id="cartBillingAddress2Group" style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Area/Locality
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--text-ink);">Area/Locality
                             (Optional)</label>
                         <input type="text" id="cartBillingAddress2"
-                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
+                            style="width: 100%; padding: 12px; border: 1.5px solid var(--border-editorial); border-radius: 8px; box-sizing: border-box; font-size: 14px;"
                             placeholder="Area, locality, landmark">
                     </div>
 
                     <div id="cartBillingTalukDistrictStateRow"
                         style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                         <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Taluk
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--text-ink);">Taluk
                                 *</label>
                             <input type="text" id="cartBillingTaluk" required
-                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
+                                style="width: 100%; padding: 12px; border: 1.5px solid var(--border-editorial); border-radius: 8px; box-sizing: border-box; font-size: 14px;"
                                 placeholder="Taluk">
                         </div>
                         <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">District
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--text-ink);">District
                                 *</label>
                             <input type="text" id="cartBillingDistrict" required
-                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
+                                style="width: 100%; padding: 12px; border: 1.5px solid var(--border-editorial); border-radius: 8px; box-sizing: border-box; font-size: 14px;"
                                 placeholder="District">
                         </div>
                         <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">State
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--text-ink);">State
                                 *</label>
                             <input type="text" id="cartBillingState" required
-                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
+                                style="width: 100%; padding: 12px; border: 1.5px solid var(--border-editorial); border-radius: 8px; box-sizing: border-box; font-size: 14px;"
                                 placeholder="State">
                         </div>
                     </div>
 
                     <div id="cartBillingPincodeRow" style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Pincode
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--text-ink);">Pincode
                             *</label>
                         <input type="text" id="cartBillingPincode" required pattern="[0-9]{6}"
-                            style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-size: 14px;"
+                            style="width: 100%; padding: 12px; border: 1.5px solid var(--border-editorial); border-radius: 8px; box-sizing: border-box; font-size: 14px;"
                             placeholder="6-digit pincode">
                     </div>
 
                     <div id="cartBillingSameAsDeliveryNote"
-                        style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 14px; background: #e8f4fd; border: 1px solid #b6d4fe; border-radius: 8px; color: #084298; font-size: 13px; font-weight: 500;">
+                        style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 14px; background: var(--navy-pale); border: 1px solid var(--navy-border); border-radius: var(--radius-md); color: var(--navy-deep); font-size: 13px; font-weight: 500;">
                         <span>ℹ️</span>
                         <span>Billing address is the same as the delivery address</span>
                     </div>
 
                     <!-- Sticky Submit Button -->
                     <div
-                        style="position: sticky; bottom: 0; background: white; padding: 20px 0; margin-top: 30px; border-top: 1px solid #e0e0e0;">
+                        style="position: sticky; bottom: 0; background: white; padding: 20px 0; margin-top: 30px; border-top: 1px solid var(--border-editorial);">
                         <div class="modal-form-actions" style="display: flex; gap: 15px;">
                             <button type="submit"
                                 style="flex: 1; padding: 15px; background: var(--navy-dark); color: var(--bg-white-pure); border: none; border-radius: var(--radius-full); font-size: 16px; font-weight: 600; cursor: pointer;">

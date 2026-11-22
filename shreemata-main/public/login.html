@@ -15,7 +15,6 @@
     <link rel="stylesheet" href="css/site-shell.css">
 </head>
 <body class="auth-page-body">
-    <canvas class="particle-canvas" id="particleCanvas" style="display: none;"></canvas>
 
 <!-- TOP ANNOUNCEMENT BAR -->
     <div class="top-bar" role="region" aria-label="Announcement">
@@ -381,51 +380,6 @@
             btn.addEventListener('mouseleave', () => { btn.style.transform = 'translate(0, 0)'; });
         });
 
-        // Particle canvas animation (Gold & Indigo theme)
-        const canvas = document.getElementById('particleCanvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        resizeCanvas(); window.addEventListener('resize', resizeCanvas);
-        
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 1.5 + 0.5;
-                this.speedX = Math.random() * 0.3 - 0.15; this.speedY = Math.random() * 0.3 - 0.15;
-                this.opacity = Math.random() * 0.5 + 0.2;
-                this.color = Math.random() > 0.5 ? '#c9a227' : '#4f46e5';
-            }
-            update() {
-                this.x += this.speedX; this.y += this.speedY;
-                if (this.x > canvas.width) this.x = 0; if (this.x < 0) this.x = canvas.width;
-                if (this.y > canvas.height) this.y = 0; if (this.y < 0) this.y = canvas.height;
-            }
-            draw() {
-                ctx.fillStyle = this.color; ctx.globalAlpha = this.opacity;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
-            }
-        }
-        function initParticles() {
-            particles = [];
-            const count = Math.min(60, Math.floor(canvas.width * canvas.height / 25000));
-            for (let i = 0; i < count; i++) particles.push(new Particle());
-        }
-        function animateParticles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => { p.update(); p.draw(); });
-            ctx.globalAlpha = 0.15; ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 0.5;
-            for (let i = 0; i < particles.length; i++) {
-                for (let j = i + 1; j < particles.length; j++) {
-                    const dx = particles[i].x - particles[j].x; const dy = particles[i].y - particles[j].y;
-                    if (Math.sqrt(dx*dx + dy*dy) < 110) {
-                        ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
-                    }
-                }
-            }
-            requestAnimationFrame(animateParticles);
-        }
-        initParticles(); animateParticles();
 
         // Confetti effect
         function createConfetti() {
@@ -450,25 +404,25 @@
             const modal = document.createElement('div');
             modal.style.cssText = `
                 position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(15,14,42,0.85); z-index: 1000; display: flex;
+                background: rgba(14, 28, 54, 0.6); z-index: 1000; display: flex; backdrop-filter: blur(4px);
                 align-items: center; justify-content: center; padding: 20px;
                 backdrop-filter: blur(8px); animation: modalFadeIn 0.3s ease;
             `;
             modal.innerHTML = `
-                <div style="background: rgba(26, 24, 96, 0.95); padding: 32px; border-radius: 24px; width: 100%; max-width: 450px; 
-                            box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,162,39,0.3); 
-                            max-height: 90vh; overflow-y: auto; position: relative; color: #fff; border: 1px solid rgba(201,162,39,0.2);
+                <div style="background: var(--bg-white-pure); padding: 36px 32px; border-radius: var(--radius-xl); width: 100%; max-width: 450px; 
+                            box-shadow: var(--shadow-card-hover); 
+                            max-height: 90vh; overflow-y: auto; position: relative; color: var(--text-ink); border: 1px solid var(--border-editorial);
                             animation: modalScaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);">
-                    <h2 style="margin: 0 0 20px 0; text-align: center; color: #f0c96b; font-family: 'Playfair Display', serif;">🔐 Reset Password</h2>
+                    <h2 style="margin: 0 0 20px 0; text-align: center; color: var(--navy-deep); font-family: var(--font-serif); font-size: 24px; font-weight: 700;">🔐 Reset Password</h2>
                     
                     <div id="forgotStep1">
-                        <p style="color: rgba(255,255,255,0.7); margin-bottom: 20px; text-align: center; font-size: 14px;">Enter your email to receive a verification code</p>
+                        <p style="color: var(--text-secondary); margin-bottom: 20px; text-align: center; font-size: 14px;">Enter your email to receive a verification code</p>
                         <div style="margin-bottom: 15px;">
-                            <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: rgba(255,255,255,0.8);">Email Address</label>
+                            <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: var(--text-body);">Email Address</label>
                             <input type="email" id="forgotEmail" placeholder="Enter your email"
-                                   style="width: 100%; padding: 12px; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 10px; box-sizing: border-box; background: rgba(15,14,42,0.6); color: #fff; outline: none; transition: all 0.3s;">
+                                   style="width: 100%; padding: 12px; border: 1.5px solid var(--border-editorial); border-radius: var(--radius-md); box-sizing: border-box; background: var(--bg-white-pure); color: var(--text-ink); outline: none; transition: border-color var(--transition-fast);">
                         </div>
-                        <button onclick="sendResetOTP()" id="sendOtpBtn" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #c9a227, #f0c96b); color: #0f0e2a; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 15px; transition: all 0.3s;">
+                        <button onclick="sendResetOTP()" id="sendOtpBtn" style="width: 100%; padding: 13px; background: var(--navy-dark); color: var(--bg-white-pure); border: none; border-radius: var(--radius-full); font-weight: 700; cursor: pointer; font-size: 15px; transition: all var(--transition-fast);">
                             Send Verification Code
                         </button>
                     </div>
@@ -499,7 +453,7 @@
                     <div id="forgotError" style="display: none; color: #fca5a5; background: rgba(239, 68, 68, 0.15); padding: 12px; border-radius: 8px; margin: 15px 0; font-size: 13px; border-left: 3px solid #ef4444;"></div>
                     <div id="forgotSuccess" style="display: none; color: #86efac; background: rgba(34, 197, 94, 0.15); padding: 12px; border-radius: 8px; margin: 15px 0; font-size: 13px; border-left: 3px solid #22c55e;"></div>
                     
-                    <button onclick="closeForgotModal()" style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.1); border: none; font-size: 20px; cursor: pointer; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">&times;</button>
+                    <button onclick="closeForgotModal()" style="position: absolute; top: 15px; right: 15px; background: var(--bg-ivory-surface); border: 1px solid var(--border-editorial); font-size: 20px; cursor: pointer; color: var(--text-secondary); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all var(--transition-fast);">&times;</button>
                 </div>
             `;
             document.body.appendChild(modal);
