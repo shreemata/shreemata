@@ -103,12 +103,13 @@ describe('VIP Master Card Milestones in Commission Distribution', () => {
       { _id: 'order_1', totalAmount: 150, status: 'completed' }
     ]));
     VipMasterCard.find.mockImplementation(() => mockQuery([]));
-    VipMasterCardSequence.findOneAndUpdate.mockResolvedValue({ seq: 1 });
+    VipMasterCardSequence.findOneAndUpdate.mockResolvedValue({ seq: 15 });
+    VipMasterCard.insertMany = jest.fn().mockResolvedValue([]);
     VipMasterCard.prototype.save = jest.fn().mockResolvedValue(true);
 
     const tx = await distributeCommissions('order_1', 'purchaser_vip_123', 150, 30);
     expect(tx).toBeDefined();
-    expect(VipMasterCard.prototype.save).toHaveBeenCalled();
+    expect(VipMasterCard.insertMany).toHaveBeenCalled();
   });
 
   test('2. VIP milestones missing/undefined: handles null Order.find gracefully without throwing .forEach error', async () => {
