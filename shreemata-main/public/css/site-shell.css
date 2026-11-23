@@ -2033,6 +2033,13 @@ body.cart-page-body .weight-chip {
     font-size: 12px !important;
 }
 
+body.cart-page-body .weight-chip svg {
+    display: inline-block !important;
+    vertical-align: middle !important;
+    color: var(--text-muted) !important;
+    flex-shrink: 0 !important;
+}
+
 body.cart-page-body .cart-item-actions-row {
     display: flex !important;
     align-items: center !important;

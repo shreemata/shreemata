@@ -177,7 +177,7 @@ async function loadCart() {
         // Calculate points for this item
         const itemPoints = (item.rewardPoints || 0) * item.quantity;
         const pointsBadge = itemPoints > 0 
-            ? `<div class="points-badge">🎁 +${itemPoints} Points</div>`
+            ? `<div class="points-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: 4px; vertical-align: -1px;"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>+${itemPoints} Points</div>`
             : '';
 
         const itemId = item.id || item.bundleId;
@@ -210,9 +210,9 @@ async function loadCart() {
                 <div class="cart-item-meta-row">
                     ${bundlePill}
                     ${subtitleHtml}
-                    <span class="weight-chip">📦 ${(parseFloat(item.weight) || 0.5).toFixed(2)} kg</span>
+                    <span class="weight-chip"><svg class="weight-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> ${(parseFloat(item.weight) || 0.5).toFixed(2)} kg</span>
                 </div>
-                <div class="weight-info" style="display: none;">📦 ${(parseFloat(item.weight) || 0.5).toFixed(2)} kg × ${item.quantity} = ${itemWeight.toFixed(2)} kg</div>
+                <div class="weight-info" style="display: none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> ${(parseFloat(item.weight) || 0.5).toFixed(2)} kg × ${item.quantity} = ${itemWeight.toFixed(2)} kg</div>
                 ${pointsBadge}
                 
                 <div class="cart-item-actions-row">
@@ -865,14 +865,18 @@ async function updateCartDisplayRealTime() {
         // Update weight display
         const weightDisplay = document.querySelector(`[data-id="${itemId}"]`)?.closest('.cart-item')?.querySelector('.weight-info');
         if (weightDisplay) {
-            weightDisplay.innerHTML = `📦 ${(item.weight || 0.5).toFixed(2)} kg × ${item.quantity} = ${itemWeight.toFixed(2)} kg`;
+            weightDisplay.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> ${(item.weight || 0.5).toFixed(2)} kg × ${item.quantity} = ${itemWeight.toFixed(2)} kg`;
+        }
+        const weightChip = document.querySelector(`.qty-input[data-id="${itemId}"]`)?.closest('.cart-item')?.querySelector('.weight-chip');
+        if (weightChip) {
+            weightChip.innerHTML = `<svg class="weight-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> ${(parseFloat(item.weight) || 0.5).toFixed(2)} kg`;
         }
         
         // Update points display if exists
         const itemPoints = (item.rewardPoints || 0) * item.quantity;
         const pointsBadge = document.querySelector(`[data-id="${itemId}"]`)?.closest('.cart-item')?.querySelector('.points-badge');
         if (pointsBadge && itemPoints > 0) {
-            pointsBadge.innerHTML = `🎁 +${itemPoints} Points`;
+            pointsBadge.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: 4px; vertical-align: -1px;"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>+${itemPoints} Points`;
         }
 
         // Update line total and unit price
@@ -1080,10 +1084,7 @@ async function updateCartSummary() {
 async function removeFromCart(itemId) {
     let cart = getCart();
 
-    cart = cart.filter(item => {
-        const id = item.id || item.bundleId;
-        return id !== itemId && String(id) !== String(itemId) && item.id !== itemId && item.bundleId !== itemId;
-    });
+    cart = cart.filter(item => item.id !== itemId && item.bundleId !== itemId);
 
     saveCart(cart);
     await loadCart();
