@@ -205,8 +205,11 @@
     <main class="cart-main-wrap">
         <div class="container">
             <div class="cart-page-header">
-                <h1 class="cart-page-title">Your Shopping Cart</h1>
-                <p class="cart-page-subtitle">Review your selected books and proceed to checkout</p>
+                <div class="cart-header-title-group">
+                    <h1 class="cart-page-title">Your Shopping Cart</h1>
+                    <span id="cartHeaderCount" class="cart-header-count"></span>
+                </div>
+                <a href="/index.html#books" class="cart-continue-link">Continue shopping &rarr;</a>
             </div>
 
             <!-- Empty Cart State -->
@@ -236,13 +239,12 @@
 
                 <!-- Right Side - Fixed Billing Summary -->
                 <div class="cart-summary" id="cartSummary">
-                    <h3 class="summary-title">📋 Order Summary</h3>
+                    <h3 class="summary-title">Order Summary</h3>
 
                     <!-- Delivery Method Selection -->
                     <div class="delivery-method-section"
                         style="margin-bottom: 20px; padding: 20px; background: var(--bg-ivory-light); border-radius: var(--radius-md); border: 1px solid var(--border-editorial);">
-                        <h4 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: var(--text-ink);">🚚 Delivery
-                            Method</h4>
+                        <h4 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: var(--text-ink);">Delivery Method</h4>
 
                         <div class="delivery-options">
                             <label class="delivery-option"
@@ -250,7 +252,7 @@
                                 <input type="radio" name="deliveryMethod" value="home" checked
                                     style="width: 18px; height: 18px; accent-color: var(--navy-dark);">
                                 <div style="flex: 1;">
-                                    <div style="font-weight: 600; color: var(--text-ink); font-size: 14px;">🏠 Home Delivery</div>
+                                    <div style="font-weight: 600; color: var(--text-ink); font-size: 14px;">Home Delivery</div>
                                     <div style="font-size: 12px; color: var(--text-secondary);">Delivered to your address</div>
                                 </div>
                                 <div style="font-weight: 600; color: var(--gold-dark);" id="homeDeliveryChargeDisplay">+ ₹<span
@@ -262,7 +264,7 @@
                                 <input type="radio" name="deliveryMethod" value="pickup"
                                     style="width: 18px; height: 18px; accent-color: var(--status-success);">
                                 <div style="flex: 1;">
-                                    <div style="font-weight: 600; color: var(--text-ink); font-size: 14px;">🏪 Store Pickup</div>
+                                    <div style="font-weight: 600; color: var(--text-ink); font-size: 14px;">Store Pickup</div>
                                     <div style="font-size: 12px; color: var(--text-secondary);">Collect from our store</div>
                                 </div>
                                 <div style="font-weight: 600; color: var(--status-success);" id="pickupSavingsDisplay">FREE (Save
@@ -293,8 +295,10 @@
 
                     <div id="cartTotal"></div>
                     <button id="checkoutBtn" class="btn-checkout-courier">
-                        🔒 Secure Checkout
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: 8px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        <span>Secure Checkout</span>
                     </button>
+                    <p class="checkout-assurance-line">Secure Checkout • Store Pickup &amp; Delivery</p>
                 </div>
             </div>
         </div>

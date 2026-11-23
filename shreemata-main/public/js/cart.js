@@ -180,29 +180,58 @@ async function loadCart() {
             ? `<div class="points-badge">🎁 +${itemPoints} Points</div>`
             : '';
 
-        const bundleBadge = item.isBundle 
-            ? `<span class="bundle-badge">Bundle</span>`
-            : '';
+        const itemId = item.id || item.bundleId;
+        const lineTotal = itemPrice * item.quantity;
+        const itemTitle = (item.title && String(item.title).trim().toLowerCase() !== 'undefined')
+            ? String(item.title).trim()
+            : ((item.name && String(item.name).trim().toLowerCase() !== 'undefined')
+                ? String(item.name).trim()
+                : (item.isBundle || item.bundleId ? 'Book Set' : 'Book'));
+
+        // Subtitle line (omit author if none; bundle shows Book set pill and count; NEVER print undefined)
+        let subtitleHtml = '';
+        let bundlePill = '';
+        if (item.isBundle || item.bundleId) {
+            bundlePill = '<span class="cart-bundle-pill">Book set</span>';
+            const booksCount = (Array.isArray(item.books) && item.books.length > 0) ? item.books.length : 0;
+            const bundleText = booksCount > 0 ? `${booksCount} books in this set` : 'Complete book set';
+            subtitleHtml = `<span class="cart-item-meta-text">${bundleText}</span>`;
+        } else if (item.author && typeof item.author === 'string' && item.author.trim() && item.author.trim().toLowerCase() !== 'undefined') {
+            subtitleHtml = `<span class="cart-item-meta-text">by ${item.author.trim()}</span>`;
+        }
 
         row.innerHTML = `
-            <img src="${imageUrl}" class="cart-img" alt="${item.title}">
+            <img src="${imageUrl}" class="cart-img" alt="${itemTitle}">
 
-            <div class="cart-info">
-                <h3>${item.title}${bundleBadge}</h3>
-                <p>by ${item.author}</p>
-                <p class="cart-price">₹${(parseFloat(item.price) || 0).toFixed(2)}</p>
-                <div class="weight-info">📦 ${(parseFloat(item.weight) || 0.5).toFixed(2)} kg × ${item.quantity} = ${itemWeight.toFixed(2)} kg</div>
+            <div class="cart-details">
+                <div class="cart-item-header-row">
+                    <h3 class="cart-item-title">${itemTitle}</h3>
+                </div>
+                <div class="cart-item-meta-row">
+                    ${bundlePill}
+                    ${subtitleHtml}
+                    <span class="weight-chip">📦 ${(parseFloat(item.weight) || 0.5).toFixed(2)} kg</span>
+                </div>
+                <div class="weight-info" style="display: none;">📦 ${(parseFloat(item.weight) || 0.5).toFixed(2)} kg × ${item.quantity} = ${itemWeight.toFixed(2)} kg</div>
                 ${pointsBadge}
                 
-                <div class="cart-qty">
-                    <button class="qty-btn" data-id="${item.id || item.bundleId}" data-action="minus">-</button>
-                    <input type="number" class="qty-input" data-id="${item.id || item.bundleId}" value="${item.quantity}" min="1" max="99">
-                    <button class="qty-btn" data-id="${item.id || item.bundleId}" data-action="plus">+</button>
-                </div>
+                <div class="cart-item-actions-row">
+                    <div class="cart-qty-stepper">
+                        <button type="button" class="qty-btn" data-id="${itemId}" data-action="minus" aria-label="Decrease quantity">−</button>
+                        <input type="number" class="qty-input" data-id="${itemId}" value="${item.quantity}" min="1" max="99" aria-label="Quantity">
+                        <button type="button" class="qty-btn" data-id="${itemId}" data-action="plus" aria-label="Increase quantity">+</button>
+                    </div>
 
-                <button class="remove-btn" data-id="${item.id || item.bundleId}">
-                    🗑️ Remove
-                </button>
+                    <button type="button" class="remove-btn" data-id="${itemId}" aria-label="Remove item">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        <span>Remove</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="cart-pricing-col">
+                <div class="cart-line-total">₹<span class="cart-line-total-amount">${lineTotal.toFixed(2)}</span></div>
+                ${item.quantity > 1 ? `<div class="cart-unit-price">₹${itemPrice.toFixed(2)} each</div>` : ''}
             </div>
         `;
 
@@ -258,6 +287,19 @@ async function loadCart() {
                </div>
            </div>`
         : '';
+
+    const cashbackDisplay = totalCashback > 0 
+        ? `<div class="cashback-summary">
+               <div class="cashback-summary-content">
+                   <span style="font-size: 24px;">💰</span>
+                   <span class="cashback-summary-title">You'll get ₹${totalCashback.toFixed(0)} Cashback!</span>
+               </div>
+               <div class="cashback-summary-note">
+                   Instant cashback to your wallet
+               </div>
+           </div>`
+        : '';
+    
     
     // Shipping info display based on delivery method
     let shippingInfo, shippingDetails;
@@ -274,24 +316,41 @@ async function loadCart() {
             : '';
     }
     
+    const headerCountEl = document.getElementById("cartHeaderCount");
+    if (headerCountEl) {
+        headerCountEl.textContent = cart.length === 1 ? '(1 item)' : `(${cart.length} items)`;
+    }
+
+    const deliveryChargeText = deliveryMethod === 'pickup' 
+        ? `<span class="delivery-free-badge">Free</span>`
+        : (courierCharge === 0 ? `<span class="delivery-free-badge">Free</span>` : `₹${courierCharge.toFixed(2)}`);
+
+    const pickupSavingsNote = (deliveryMethod === 'pickup' && shippingResult && shippingResult.cost > 0)
+        ? `<div class="pickup-savings-note">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+             <span>You save ₹${shippingResult.cost.toFixed(0)} with Store Pickup</span>
+           </div>`
+        : '';
+
     cartTotalEl.innerHTML = `
-        <div class="summary-row">
-            <span>Subtotal (${cart.length} items)</span>
-            <span>₹${total.toFixed(2)}</span>
-        </div>
-        <div class="summary-row">
-            <div>
-                <span>${deliveryMethod === 'pickup' ? '🏪 Store Pickup' : '📦 Shipping'} (${totalWeight.toFixed(2)} kg)</span>
-                ${shippingDetails}
+        <div class="summary-breakdown">
+            <div class="summary-row">
+                <span class="summary-label">Items total</span>
+                <span class="summary-value">₹${total.toFixed(2)}</span>
             </div>
-            ${shippingInfo}
+            <div class="summary-row">
+                <span class="summary-label">Delivery charge</span>
+                <span class="summary-value">${deliveryChargeText}</span>
+            </div>
+            ${pickupSavingsNote}
+            <div class="summary-divider"></div>
+            <div class="summary-row total-row">
+                <span class="summary-label-total">Total</span>
+                <span class="summary-value-total">₹${grandTotal.toFixed(2)}</span>
+            </div>
         </div>
         ${pointsDisplay}
         ${cashbackDisplay}
-        <div class="summary-row total-row" style="border-top: 2px solid #eee; padding-top: 10px; margin-top: 10px; font-weight: 700; font-size: 18px;">
-            <span>Total Amount</span>
-            <span>₹${grandTotal.toFixed(2)}</span>
-        </div>
     `;
 
     // Store courier info for checkout
@@ -413,24 +472,41 @@ async function updateCartTotals() {
         : '';
     
     if (cartTotalEl) {
+        const headerCountEl = document.getElementById("cartHeaderCount");
+        if (headerCountEl) {
+            headerCountEl.textContent = cart.length === 1 ? '(1 item)' : `(${cart.length} items)`;
+        }
+
+        const deliveryChargeText = deliveryMethod === 'pickup' 
+            ? `<span class="delivery-free-badge">Free</span>`
+            : (courierCharge === 0 ? `<span class="delivery-free-badge">Free</span>` : `₹${courierCharge.toFixed(2)}`);
+
+        const pickupSavingsNote = (deliveryMethod === 'pickup' && shippingResult && shippingResult.cost > 0)
+            ? `<div class="pickup-savings-note">
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                 <span>You save ₹${shippingResult.cost.toFixed(0)} with Store Pickup</span>
+               </div>`
+            : '';
+
         cartTotalEl.innerHTML = `
-            <div class="summary-row">
-                <span>Subtotal (${cart.length} items)</span>
-                <span>₹${total.toFixed(2)}</span>
-            </div>
-            <div class="summary-row">
-                <div>
-                    <span>${deliveryMethod === 'pickup' ? '🏪 Store Pickup' : '📦 Shipping'} (${totalWeight.toFixed(2)} kg)</span>
-                    ${shippingDetails}
+            <div class="summary-breakdown">
+                <div class="summary-row">
+                    <span class="summary-label">Items total</span>
+                    <span class="summary-value">₹${total.toFixed(2)}</span>
                 </div>
-                ${shippingInfo}
+                <div class="summary-row">
+                    <span class="summary-label">Delivery charge</span>
+                    <span class="summary-value">${deliveryChargeText}</span>
+                </div>
+                ${pickupSavingsNote}
+                <div class="summary-divider"></div>
+                <div class="summary-row total-row">
+                    <span class="summary-label-total">Total</span>
+                    <span class="summary-value-total">₹${grandTotal.toFixed(2)}</span>
+                </div>
             </div>
             ${pointsDisplay}
             ${cashbackDisplay}
-            <div class="summary-row total-row" style="border-top: 2px solid #eee; padding-top: 10px; margin-top: 10px; font-weight: 700; font-size: 18px;">
-                <span>Total Amount</span>
-                <span>₹${grandTotal.toFixed(2)}</span>
-            </div>
         `;
     }
 
@@ -798,7 +874,23 @@ async function updateCartDisplayRealTime() {
         if (pointsBadge && itemPoints > 0) {
             pointsBadge.innerHTML = `🎁 +${itemPoints} Points`;
         }
+
+        // Update line total and unit price
+        const itemPrice = parseFloat(item.price) || 0;
+        const lineTotalEl = document.querySelector(`.qty-input[data-id="${itemId}"]`)?.closest('.cart-item')?.querySelector('.cart-line-total-amount');
+        if (lineTotalEl) {
+            lineTotalEl.textContent = (itemPrice * item.quantity).toFixed(2);
+        }
+        const unitPriceEl = document.querySelector(`.qty-input[data-id="${itemId}"]`)?.closest('.cart-item')?.querySelector('.cart-unit-price');
+        if (unitPriceEl) {
+            unitPriceEl.textContent = item.quantity > 1 ? `₹${itemPrice.toFixed(2)} each` : '';
+        }
     });
+
+    const headerCountEl = document.getElementById("cartHeaderCount");
+    if (headerCountEl) {
+        headerCountEl.textContent = cart.length === 1 ? '(1 item)' : `(${cart.length} items)`;
+    }
 
     // Update cart summary and totals
     await updateCartSummary();
@@ -899,18 +991,38 @@ async function updateCartSummary() {
     // Update cart total display
     const cartTotalElement = document.getElementById('cartTotal');
     if (cartTotalElement) {
+        const headerCountEl = document.getElementById("cartHeaderCount");
+        if (headerCountEl) {
+            headerCountEl.textContent = cart.length === 1 ? '(1 item)' : `(${cart.length} items)`;
+        }
+
+        const deliveryChargeDisplay = (selectedDeliveryMethod === 'pickup' || courierCharge === 0)
+            ? '<span class="delivery-free-badge">Free</span>'
+            : `₹${courierCharge.toFixed(2)}`;
+
+        const pickupSavingsNote = (selectedDeliveryMethod === 'pickup' && homeDeliveryCost > 0)
+            ? `<div class="pickup-savings-note">
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                 <span>You save ₹${homeDeliveryCost.toFixed(0)} with Store Pickup</span>
+               </div>`
+            : '';
+
         cartTotalElement.innerHTML = `
-            <div class="summary-row">
-                <span>Items Total:</span>
-                <span>₹${total.toFixed(2)}</span>
-            </div>
-            <div class="summary-row">
-                <span>Delivery Charge:</span>
-                <span>₹${courierCharge.toFixed(2)}</span>
-            </div>
-            <div class="summary-row">
-                <span>Total Amount:</span>
-                <span>₹${finalTotal.toFixed(2)}</span>
+            <div class="summary-breakdown">
+                <div class="summary-row">
+                    <span class="summary-label">Items total</span>
+                    <span class="summary-value">₹${total.toFixed(2)}</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Delivery charge</span>
+                    <span class="summary-value">${deliveryChargeDisplay}</span>
+                </div>
+                ${pickupSavingsNote}
+                <div class="summary-divider"></div>
+                <div class="summary-row total-row">
+                    <span class="summary-label-total">Total</span>
+                    <span class="summary-value-total">₹${finalTotal.toFixed(2)}</span>
+                </div>
             </div>
         `;
     }
@@ -968,7 +1080,10 @@ async function updateCartSummary() {
 async function removeFromCart(itemId) {
     let cart = getCart();
 
-    cart = cart.filter(item => item.id !== itemId && item.bundleId !== itemId);
+    cart = cart.filter(item => {
+        const id = item.id || item.bundleId;
+        return id !== itemId && String(id) !== String(itemId) && item.id !== itemId && item.bundleId !== itemId;
+    });
 
     saveCart(cart);
     await loadCart();

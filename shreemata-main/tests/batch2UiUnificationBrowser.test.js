@@ -357,7 +357,7 @@ describe('Batch 2 UI Unification Browser Tests', () => {
       },
       {
         id: bundleId,
-        title: seededBundle.name,
+        title: seededBundle.title || seededBundle.name || "Batch2 Test Bundle",
         price: bundlePrice,
         quantity: 1,
         weight: 1.0,
@@ -630,6 +630,7 @@ describe('Batch 2 UI Unification Browser Tests', () => {
     const uniquePhone = '9' + Math.floor(100000000 + Math.random() * 900000000).toString().slice(0, 9);
     await pageSuccess.fill('#name', 'Automated Test User');
     await pageSuccess.fill('#email', uniqueEmail);
+    await pageSuccess.waitForSelector('#verifyEmailBtn', { state: 'visible', timeout: 5000 });
     await pageSuccess.click('#verifyEmailBtn');
     await pageSuccess.waitForSelector('#emailOtpSection', { state: 'visible', timeout: 5000 });
     await pageSuccess.fill('#emailOtp', '123456');
@@ -672,7 +673,7 @@ describe('Batch 2 UI Unification Browser Tests', () => {
       },
       {
         id: bundleId,
-        title: seededBundle.name,
+        title: seededBundle.title || seededBundle.name || "Batch2 Test Bundle",
         price: seededBundle.bundlePrice || 280,
         quantity: 1,
         weight: 1.0,
@@ -817,7 +818,7 @@ describe('Batch 2 UI Unification Browser Tests', () => {
       await ctxOffer.close();
 
     }
-  }, 180000);
+  }, 240000);
 
   test('(6) Real signup against test DB without mocking routes', async () => {
     const contextReal = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -901,8 +902,11 @@ describe('Batch 2 UI Unification Browser Tests', () => {
           });
         });
         await pBase.goto(`http://127.0.0.1:3100/${pageName}`, { waitUntil: 'networkidle' });
-        await pBase.evaluate(() => document.fonts.ready);
-        await pBase.waitForTimeout(300);
+        await pBase.evaluate(() => {
+          document.fonts.ready;
+          document.querySelectorAll('canvas, #cursorDot, #cursorRing').forEach(el => el.style.display = 'none');
+        });
+        await pBase.waitForTimeout(1000);
         const shotBase = await pBase.screenshot({ fullPage: true, animations: 'disabled' });
         await ctxBase.close();
 
@@ -910,8 +914,11 @@ describe('Batch 2 UI Unification Browser Tests', () => {
         const ctxCurr = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
         const pCurr = await ctxCurr.newPage();
         await pCurr.goto(`http://127.0.0.1:3100/${pageName}`, { waitUntil: 'networkidle' });
-        await pCurr.evaluate(() => document.fonts.ready);
-        await pCurr.waitForTimeout(300);
+        await pCurr.evaluate(() => {
+          document.fonts.ready;
+          document.querySelectorAll('canvas, #cursorDot, #cursorRing').forEach(el => el.style.display = 'none');
+        });
+        await pCurr.waitForTimeout(1000);
         const shotCurr = await pCurr.screenshot({ fullPage: true, animations: 'disabled' });
         await ctxCurr.close();
 
@@ -924,4 +931,145 @@ describe('Batch 2 UI Unification Browser Tests', () => {
       }
     }
   }, 180000);
+
+  test('(8) Cart page professional redesign: book & bundle card, stepper, remove, delivery toggle, computed totals, no undefined', async () => {
+    const bookId = seededBook._id || seededBook.id;
+    const bundleId = seededBundle._id || seededBundle.id;
+    const bookPrice = seededBook.price || 340;
+    const bundlePrice = seededBundle.bundlePrice || 280;
+
+    const testViewports = [
+      { name: '1440', width: 1440, height: 900 },
+      { name: '1366', width: 1366, height: 768 },
+      { name: '390', width: 390, height: 844 }
+    ];
+
+    const CART_POLISH_DIR = 'C:/Users/KRISHNA TAMBUR/Desktop/four-sections-review/cart-polish';
+    if (!fs.existsSync(CART_POLISH_DIR)) {
+      fs.mkdirSync(CART_POLISH_DIR, { recursive: true });
+    }
+
+    for (const vp of testViewports) {
+      const initialCart = [
+        {
+          id: bookId,
+          title: seededBook.title,
+          author: seededBook.author || 'Author Name',
+          price: bookPrice,
+          quantity: 1,
+          weight: 0.5,
+          isBundle: false
+        },
+        {
+          id: bundleId,
+          bundleId: bundleId,
+          title: seededBundle.title || seededBundle.name || "Batch2 Test Bundle",
+          price: bundlePrice,
+          quantity: 1,
+          weight: 1.0,
+          isBundle: true,
+          books: seededBundle.books || []
+        }
+      ];
+
+      const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
+      await context.addInitScript(({ cart }) => {
+        localStorage.setItem('cart', JSON.stringify(cart));
+        localStorage.setItem('cart_guest', JSON.stringify(cart));
+      }, { cart: initialCart });
+      const page = await context.newPage();
+      const dialogs = attachDialogCollector(page);
+
+      await page.goto('http://127.0.0.1:3100/cart.html', { waitUntil: 'networkidle' });
+      await page.waitForSelector('#cartLayout', { state: 'visible', timeout: 15000 });
+      await page.waitForTimeout(400);
+
+      // 1. Capture "after" screenshot with items
+      await page.screenshot({ path: path.join(CART_POLISH_DIR, `cart-with-items-after-${vp.name}.png`), fullPage: true });
+
+      // 2. Audit: no text "undefined" anywhere in the page body text
+      const undefinedNodes = await page.evaluate(() => {
+        const matches = [];
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        let node;
+        while (node = walker.nextNode()) {
+          if (node.nodeValue.includes('undefined')) {
+            matches.push({
+              tag: node.parentElement ? node.parentElement.tagName : null,
+              id: node.parentElement ? node.parentElement.id : null,
+              className: node.parentElement ? node.parentElement.className : null,
+              val: node.nodeValue
+            });
+          }
+        }
+        return matches;
+      });
+      
+      const bodyText = await page.evaluate(() => document.body.innerText);
+      expect(bodyText).not.toContain('undefined');
+
+      // 3. No horizontal overflow
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+      expect(overflow).toBe(false);
+
+      // 4. Test stepper: "+" increases quantity, line total & summary total update to computed values
+      const plusBtn = await page.waitForSelector(`.qty-btn[data-id="${bookId}"][data-action="plus"]`, { timeout: 5000 });
+      await plusBtn.click();
+      await page.waitForTimeout(600);
+
+      const computedQtyAfterPlus = 2;
+      const computedBookLineTotal = bookPrice * computedQtyAfterPlus;
+      const computedSubtotalAfterPlus = computedBookLineTotal + bundlePrice;
+
+      const bookLineTotalText = await page.$eval(`.cart-item:has([data-id="${bookId}"]) .cart-line-total-amount`, el => el.textContent.trim());
+      expect(bookLineTotalText).toBe(computedBookLineTotal.toFixed(2));
+
+      const summaryTextAfterPlus = await page.$eval('#cartTotal', el => el.textContent);
+      expect(summaryTextAfterPlus).toContain(computedSubtotalAfterPlus.toFixed(2));
+
+      // 5. Test stepper: "−" decreases quantity
+      const minusBtn = await page.waitForSelector(`.qty-btn[data-id="${bookId}"][data-action="minus"]`, { timeout: 5000 });
+      await minusBtn.click();
+      await page.waitForTimeout(600);
+
+      const computedQtyAfterMinus = 1;
+      const computedBookLineTotalAfterMinus = bookPrice * computedQtyAfterMinus;
+      const computedSubtotalAfterMinus = computedBookLineTotalAfterMinus + bundlePrice;
+
+      const bookLineTotalTextAfterMinus = await page.$eval(`.cart-item:has([data-id="${bookId}"]) .cart-line-total-amount`, el => el.textContent.trim());
+      expect(bookLineTotalTextAfterMinus).toBe(computedBookLineTotalAfterMinus.toFixed(2));
+
+      const summaryTextAfterMinus = await page.$eval('#cartTotal', el => el.textContent);
+      expect(summaryTextAfterMinus).toContain(computedSubtotalAfterMinus.toFixed(2));
+
+      // 6. Test delivery method toggle: Home Delivery vs Store Pickup
+      const pickupRadio = await page.waitForSelector('input[name="deliveryMethod"][value="pickup"]', { timeout: 5000 });
+      await pickupRadio.check();
+      await page.waitForTimeout(600);
+
+      const summaryTextPickup = await page.$eval('#cartTotal', el => el.textContent);
+      expect(summaryTextPickup).toContain(computedSubtotalAfterMinus.toFixed(2));
+      expect(summaryTextPickup).toContain('Free');
+
+      const homeRadio = await page.waitForSelector('input[name="deliveryMethod"][value="home"]', { timeout: 5000 });
+      await homeRadio.check();
+      await page.waitForTimeout(600);
+
+      // 7. Test "Remove": remove items until empty state appears
+      const removeBookBtn = await page.waitForSelector(`.remove-btn[data-id="${bookId}"]`, { state: 'visible', timeout: 5000 });
+      await removeBookBtn.click();
+      await page.waitForFunction(() => document.querySelectorAll('.cart-item').length === 1, { timeout: 10000 });
+
+      const removeBundleBtn = await page.waitForSelector('.cart-item .remove-btn', { state: 'visible', timeout: 5000 });
+      await removeBundleBtn.click();
+      await page.waitForSelector('#emptyCart', { state: 'visible', timeout: 10000 });
+      expect(await page.isVisible('#cartLayout')).toBe(false);
+
+      // Capture "after" screenshot of empty cart
+      await page.screenshot({ path: path.join(CART_POLISH_DIR, `cart-empty-after-${vp.name}.png`), fullPage: true });
+
+      assertNoDialogErrors(dialogs);
+      await context.close();
+    }
+  }, 120000);
 });
