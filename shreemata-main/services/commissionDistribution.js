@@ -923,29 +923,39 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
         }
         console.log(`🏆 User ${purchaserId} cumulative total is ₹${cumulativeTotal.toFixed(2)}. Crossed ${targetMilestones - highestTier} new VIP Master Card milestone(s)!`);
         
-        for (let M = highestTier + 1; M <= targetMilestones; M++) {
-          // Retrieve and increment atomic sequence
-          const counterDoc = await VipMasterCardSequence.findOneAndUpdate(
-            { key: 'vip_master_card_seq' },
-            { $inc: { seq: 1 } },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-          );
-          
-          const padded = String(counterDoc.seq).padStart(8, '0');
+        // Atomically reserve all card sequence numbers in one operation
+        const counterDoc = await VipMasterCardSequence.findOneAndUpdate(
+          { key: 'vip_master_card_seq' },
+          { $inc: { seq: cardsToIssue } },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        
+        const startSeq = counterDoc.seq - cardsToIssue + 1;
+        const cardsToInsert = [];
+        for (let i = 0; i < cardsToIssue; i++) {
+          const currentSeq = startSeq + i;
+          const M = highestTier + 1 + i;
+          const padded = String(currentSeq).padStart(8, '0');
           const part1 = padded.slice(0, 4);
           const part2 = padded.slice(4, 8);
           const cardNumber = `VIP ${part1} ${part2}`;
           
-          const newCard = new VipMasterCard({
+          cardsToInsert.push({
             userId: purchaserId,
             cardNumber,
             tier: M,
             milestoneAmount: M * VIP_MILESTONE_STEP,
             issuedAt: new Date()
           });
-          await newCard.save();
-          console.log(`✅ Issued VIP Master Card ${cardNumber} (Tier ${M}) to User ${purchaserId}`);
         }
+        
+        // Insert cards in chunks of at most 500 with ordered: true to avoid tier gaps
+        const CHUNK_SIZE = 500;
+        for (let i = 0; i < cardsToInsert.length; i += CHUNK_SIZE) {
+          const chunk = cardsToInsert.slice(i, i + CHUNK_SIZE);
+          await VipMasterCard.insertMany(chunk, { ordered: true });
+        }
+        console.log(`✅ Bulk issued ${cardsToInsert.length} VIP Master Cards (Tiers ${highestTier + 1}..${targetMilestones}) to User ${purchaserId}`);
       }
     } catch (vipError) {
       console.error('❌ Error processing VIP Master Card milestones:', vipError);
