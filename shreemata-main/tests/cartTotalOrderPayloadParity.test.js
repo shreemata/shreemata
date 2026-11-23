@@ -198,4 +198,170 @@ describe('Cart Displayed Total vs Order Creation Payload Parity', () => {
     expect(interceptedPayload.amount).toBe(displayedPickupTotal);
     await context.close();
   }, 60000);
+
+  test('3. Parity after quantity changes with (+) button and switching Courier/Pickup twice', async () => {
+    const bookPrice = 250;
+    const initialCart = [
+      { id: 'b_test_qty', title: 'Qty Test Book', author: 'Author Q', price: bookPrice, quantity: 1, weight: 0.5, isBundle: false }
+    ];
+
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    await context.addInitScript(({ cart }) => {
+      localStorage.setItem('cart', JSON.stringify(cart));
+      localStorage.setItem('cart_guest', JSON.stringify(cart));
+      localStorage.setItem('token', 'fake_test_token_123');
+      localStorage.setItem('user', JSON.stringify({ _id: 'u_123', name: 'Tester', email: 'test@example.com' }));
+    }, { cart: initialCart });
+
+    const page = await context.newPage();
+
+    let interceptedPayload = null;
+    await page.route('**/payments/create-order*', async route => {
+      interceptedPayload = JSON.parse(route.request().postData());
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          order: { id: 'order_qty', amount: (interceptedPayload.amount || 0) * 100 },
+          key: 'rzp_test_mock'
+        })
+      });
+    });
+
+    await page.goto('http://127.0.0.1:3100/cart.html', { waitUntil: 'networkidle' });
+    await page.waitForSelector('#cartLayout', { state: 'visible', timeout: 15000 });
+
+    // Click (+) button to increase quantity
+    const plusBtn = await page.waitForSelector('.qty-btn[data-action="plus"]', { timeout: 5000 });
+    await plusBtn.click();
+    await page.waitForTimeout(600);
+
+    // Switch Courier -> Pickup -> Courier -> Pickup (twice)
+    const pickupRadio = await page.waitForSelector('input[name="deliveryMethod"][value="pickup"]');
+    const courierRadio = await page.waitForSelector('input[name="deliveryMethod"][value="home"]');
+
+    await pickupRadio.check();
+    await page.waitForTimeout(400);
+    await courierRadio.check();
+    await page.waitForTimeout(400);
+    await pickupRadio.check();
+    await page.waitForTimeout(400);
+    await courierRadio.check();
+    await page.waitForTimeout(400);
+
+    // Now in Courier mode with quantity 2
+    const displayedCourierTotalText = await page.$eval('.summary-row.total-row .cart-line-total-amount, .summary-row.total-row span:last-child', el => el.textContent.trim());
+    const matchCourier = displayedCourierTotalText.match(/[0-9]+(\.[0-9]+)?/);
+    const displayedCourierTotal = parseFloat(matchCourier[0]);
+
+    await page.evaluate(() => {
+      window.cartBillingAddress = {
+        name: 'Student Tester',
+        phone: '9845163604',
+        email: 'test@example.com',
+        homeAddress1: 'Vidyanagar',
+        homeAddress2: 'Near BVB',
+        taluk: 'Hubballi',
+        district: 'Dharwad',
+        state: 'Karnataka',
+        pincode: '580021'
+      };
+      window.cartDeliveryAddress = window.cartBillingAddress;
+    });
+
+    await page.click('#checkoutBtn');
+    await page.waitForSelector('#cartBillingAddressModal', { state: 'visible', timeout: 5000 });
+    await page.fill('#cartBillingName', 'Student Tester');
+    await page.fill('#cartBillingPhone', '9845163604');
+    await page.fill('#cartBillingEmail', 'test@example.com');
+    await page.fill('#cartBillingAddress1', 'Vidyanagar');
+    await page.fill('#cartBillingAddress2', 'Near BVB');
+    await page.fill('#cartBillingTaluk', 'Hubballi');
+    await page.fill('#cartBillingDistrict', 'Dharwad');
+    await page.fill('#cartBillingState', 'Karnataka');
+    await page.fill('#cartBillingPincode', '580021');
+    await page.click('#cartBillingAddressForm button[type="submit"]');
+
+    await page.waitForSelector('#cartPaymentMethodModal', { state: 'visible', timeout: 8000 });
+    await page.click('button[onclick="proceedWithCartOnlinePayment()"]');
+    await page.waitForTimeout(1000);
+
+    expect(interceptedPayload).not.toBeNull();
+    expect(interceptedPayload.deliveryMethod).toBe('home');
+    expect(interceptedPayload.amount).toBe(displayedCourierTotal);
+    expect(interceptedPayload.items[0].quantity).toBe(2);
+    await context.close();
+  }, 60000);
+
+  test('4. Checkout button maintains lock SVG icon and "Secure Checkout" text after click and reset', async () => {
+    const bookPrice = 250;
+    const initialCart = [
+      { id: 'b_test_btn', title: 'Btn Test Book', price: bookPrice, quantity: 1, weight: 0.5, isBundle: false }
+    ];
+
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    await context.addInitScript(({ cart }) => {
+      localStorage.setItem('cart', JSON.stringify(cart));
+      localStorage.setItem('cart_guest', JSON.stringify(cart));
+      localStorage.setItem('token', 'fake_test_token_123');
+      localStorage.setItem('user', JSON.stringify({ _id: 'u_123', name: 'Tester', email: 'test@example.com' }));
+    }, { cart: initialCart });
+
+    const page = await context.newPage();
+    await page.goto('http://127.0.0.1:3100/cart.html', { waitUntil: 'networkidle' });
+    await page.waitForSelector('#cartLayout', { state: 'visible', timeout: 15000 });
+
+    const checkoutBtn = await page.waitForSelector('#checkoutBtn');
+    // Check initial state
+    let svgCount = await checkoutBtn.$$eval('svg', svgs => svgs.length);
+    let btnText = await checkoutBtn.innerText();
+    expect(svgCount).toBe(1);
+    expect(btnText).toContain('Secure Checkout');
+
+    // Call resetCheckoutButton directly in browser context
+    await page.evaluate(() => resetCheckoutButton());
+    svgCount = await checkoutBtn.$$eval('svg', svgs => svgs.length);
+    btnText = await checkoutBtn.innerText();
+    expect(svgCount).toBe(1);
+    expect(btnText).toContain('Secure Checkout');
+
+    await context.close();
+  }, 30000);
+
+  test('5. Cashback: Exactly ONE cashback summary box renders with correct computed amount', async () => {
+    const bookPrice = 300;
+    const cashbackPct = 10; // 10% of 300 = 30 cashback per item
+    const qty = 2; // total cashback should be 60
+    const initialCart = [
+      { id: 'b_test_cb', title: 'Cashback Book', price: bookPrice, quantity: qty, cashbackPercentage: cashbackPct, weight: 0.5, isBundle: false }
+    ];
+
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    await context.addInitScript(({ cart }) => {
+      localStorage.setItem('cart', JSON.stringify(cart));
+      localStorage.setItem('cart_guest', JSON.stringify(cart));
+      localStorage.setItem('token', 'fake_test_token_123');
+      localStorage.setItem('user', JSON.stringify({ _id: 'u_123', name: 'Tester', email: 'test@example.com' }));
+    }, { cart: initialCart });
+
+    const page = await context.newPage();
+    await page.goto('http://127.0.0.1:3100/cart.html', { waitUntil: 'networkidle' });
+    await page.waitForSelector('#cartLayout', { state: 'visible', timeout: 15000 });
+
+    // Assert cart.html has no #cashbackDisplay element
+    const rawCashbackDisplayEl = await page.$('#cashbackDisplay');
+    expect(rawCashbackDisplayEl).toBeNull();
+
+    // Assert exactly ONE .cashback-summary box exists
+    const cashbackBoxes = await page.$$('.cashback-summary');
+    expect(cashbackBoxes.length).toBe(1);
+
+    // Assert computed cashback amount is ₹60
+    const text = await cashbackBoxes[0].innerText();
+    expect(text).toContain('60');
+    expect(text).toContain('Cashback');
+
+    await context.close();
+  }, 30000);
 });

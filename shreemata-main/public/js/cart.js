@@ -938,25 +938,24 @@ async function updateCartSummary() {
     const selectedDeliveryMethod = document.querySelector('input[name="deliveryMethod"]:checked')?.value;
     
     // Always calculate home delivery cost using the dynamic shipping calculator
-    let homeDeliveryCost = 50;
+    let shippingResult = { cost: 50, isFree: false }; // Default fallback
     if (window.dynamicShipping) {
         try {
             const dynamicResult = await window.dynamicShipping.calculateCartShipping(cart);
-            homeDeliveryCost = dynamicResult.shippingCost;
+            shippingResult = {
+                cost: dynamicResult.shippingCost,
+                isFree: dynamicResult.shippingCost === 0,
+                breakdown: {
+                    calculation: dynamicResult.breakdown
+                }
+            };
         } catch (error) {
             console.error('Error calculating dynamic cart shipping (updateCartSummary):', error);
         }
     } else if (window.shippingCalculator) {
-        const calcResult = window.shippingCalculator.calculateCartShipping(cart);
-        homeDeliveryCost = calcResult.cost;
-    } else {
-        try {
-            homeDeliveryCost = await calculateCourierCharge(totalWeight);
-            if (cart.length > 0 && homeDeliveryCost < 25) homeDeliveryCost = 25;
-        } catch (error) {
-            homeDeliveryCost = cart.length > 0 ? 25 : 0;
-        }
+        shippingResult = window.shippingCalculator.calculateCartShipping(cart);
     }
+    const homeDeliveryCost = shippingResult.cost;
     
     // Set actual courier charge based on selected method
     if (selectedDeliveryMethod === 'home') {
@@ -1110,7 +1109,12 @@ function resetCheckoutButton() {
     const checkoutBtn = document.getElementById("checkoutBtn");
     if (checkoutBtn) {
         checkoutBtn.disabled = false;
-        checkoutBtn.textContent = "🔒 Secure Checkout";
+        const textSpan = checkoutBtn.querySelector("span");
+        if (textSpan) {
+            textSpan.textContent = "Secure Checkout";
+        } else {
+            checkoutBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: 8px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span>Secure Checkout</span>`;
+        }
     }
 }
 
@@ -1118,10 +1122,10 @@ function resetCheckoutButton() {
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
         const checkoutBtn = document.getElementById("checkoutBtn");
-        if (checkoutBtn && checkoutBtn.disabled && checkoutBtn.textContent === "Processing...") {
+        if (checkoutBtn && checkoutBtn.disabled) {
             // If button has been processing for more than 5 seconds, reset it
             setTimeout(() => {
-                if (checkoutBtn.disabled && checkoutBtn.textContent === "Processing...") {
+                if (checkoutBtn.disabled) {
                     resetCheckoutButton();
                     console.log("⚠️ Checkout button reset on page visibility change");
                 }
@@ -1133,9 +1137,9 @@ document.addEventListener('visibilitychange', () => {
 // Also reset on window focus
 window.addEventListener('focus', () => {
     const checkoutBtn = document.getElementById("checkoutBtn");
-    if (checkoutBtn && checkoutBtn.disabled && checkoutBtn.textContent === "Processing...") {
+    if (checkoutBtn && checkoutBtn.disabled) {
         setTimeout(() => {
-            if (checkoutBtn.disabled && checkoutBtn.textContent === "Processing...") {
+            if (checkoutBtn.disabled) {
                 resetCheckoutButton();
                 console.log("⚠️ Checkout button reset on window focus");
             }
@@ -2011,11 +2015,16 @@ async function proceedToPayment() {
     const checkoutBtn = document.getElementById("checkoutBtn");
     if (checkoutBtn) {
         checkoutBtn.disabled = true;
-        checkoutBtn.textContent = "Processing...";
+        const textSpan = checkoutBtn.querySelector("span");
+        if (textSpan) {
+            textSpan.textContent = "Processing...";
+        } else {
+            checkoutBtn.textContent = "Processing...";
+        }
         
         // Safety timeout to reset button after 30 seconds
         setTimeout(() => {
-            if (checkoutBtn.disabled && checkoutBtn.textContent === "Processing...") {
+            if (checkoutBtn.disabled) {
                 resetCheckoutButton();
                 console.log("⚠️ Checkout button reset by timeout");
             }
