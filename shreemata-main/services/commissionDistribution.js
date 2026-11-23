@@ -913,9 +913,14 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
       const highestTier = existingCards.length;
       
       // Calculate how many milestones should be reached
-      const targetMilestones = Math.floor(cumulativeTotal / 100);
+      const VIP_MILESTONE_STEP = 10;
+      const targetMilestones = Math.floor(cumulativeTotal / VIP_MILESTONE_STEP);
       
       if (targetMilestones > highestTier) {
+        const cardsToIssue = targetMilestones - highestTier;
+        if (cardsToIssue > 500) {
+          console.warn(`⚠️ Warning: User ${purchaserId} will be issued ${cardsToIssue} new VIP Master Cards in a single order (cumulative total: ₹${cumulativeTotal.toFixed(2)}).`);
+        }
         console.log(`🏆 User ${purchaserId} cumulative total is ₹${cumulativeTotal.toFixed(2)}. Crossed ${targetMilestones - highestTier} new VIP Master Card milestone(s)!`);
         
         for (let M = highestTier + 1; M <= targetMilestones; M++) {
@@ -935,7 +940,7 @@ async function distributeCommissions(orderId, purchaserId, orderAmount, profitAm
             userId: purchaserId,
             cardNumber,
             tier: M,
-            milestoneAmount: M * 100,
+            milestoneAmount: M * VIP_MILESTONE_STEP,
             issuedAt: new Date()
           });
           await newCard.save();
