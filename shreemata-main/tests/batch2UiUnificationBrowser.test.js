@@ -193,14 +193,20 @@ describe('Batch 2 UI Unification Browser Tests', () => {
     });
 
     // Seed test book
-    const loginRes = await apiPost('/api/login', {
+    let loginRes = await apiPost('/api/login', {
       email: 'admin@shreemata.com',
-      password: 'AdminPassword123!'
+      password: 'DemoPass123!'
     });
+    if (!loginRes || !loginRes.token) {
+      loginRes = await apiPost('/api/login', {
+        email: 'admin@shreemata.com',
+        password: 'AdminPassword123!'
+      });
+    }
     const adminToken = loginRes.token;
 
     const booksRes = await apiGet('/api/books');
-    const existingBooks = Array.isArray(booksRes) ? booksRes : (booksRes.books || []);
+    const existingBooks = Array.isArray(booksRes) ? booksRes : (booksRes.bundles || booksRes.books || []);
     if (existingBooks.length > 0) {
       seededBook = existingBooks[0];
     } else {
@@ -222,11 +228,14 @@ describe('Batch 2 UI Unification Browser Tests', () => {
     if (existingBundles.length > 0) {
       seededBundle = existingBundles[0];
     } else {
-      const createdBundle = await apiPost('/api/bundles', {
+      const bookPriceForBundle = seededBook.price || 340;
+      const computedBundlePrice = Math.max(10, Math.floor(bookPriceForBundle * 0.8));
+      const createdBundle = await apiPost('/api/bundles/admin/create', {
         name: 'Batch2 Test Bundle',
         description: 'Test bundle for batch 2 testing',
-        bundlePrice: 280,
-        items: [{ bookId: seededBook._id || seededBook.id, quantity: 1 }]
+        bundlePrice: computedBundlePrice,
+        bookIds: [seededBook._id || seededBook.id],
+        zeroCommission: true
       }, adminToken);
       seededBundle = createdBundle.bundle || createdBundle;
     }
@@ -902,9 +911,12 @@ describe('Batch 2 UI Unification Browser Tests', () => {
           });
         });
         await pBase.goto(`http://127.0.0.1:3100/${pageName}`, { waitUntil: 'networkidle' });
-        await pBase.evaluate(() => {
-          document.fonts.ready;
+        await pBase.evaluate(async () => {
+          if (document.fonts && document.fonts.ready) await document.fonts.ready;
           document.querySelectorAll('canvas, #cursorDot, #cursorRing').forEach(el => el.style.display = 'none');
+          const style = document.createElement('style');
+          style.textContent = '* { animation: none !important; transition: none !important; } ::-webkit-scrollbar { display: none !important; }';
+          document.head.appendChild(style);
         });
         await pBase.waitForTimeout(1000);
         const shotBase = await pBase.screenshot({ fullPage: true, animations: 'disabled' });
@@ -914,9 +926,12 @@ describe('Batch 2 UI Unification Browser Tests', () => {
         const ctxCurr = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
         const pCurr = await ctxCurr.newPage();
         await pCurr.goto(`http://127.0.0.1:3100/${pageName}`, { waitUntil: 'networkidle' });
-        await pCurr.evaluate(() => {
-          document.fonts.ready;
+        await pCurr.evaluate(async () => {
+          if (document.fonts && document.fonts.ready) await document.fonts.ready;
           document.querySelectorAll('canvas, #cursorDot, #cursorRing').forEach(el => el.style.display = 'none');
+          const style = document.createElement('style');
+          style.textContent = '* { animation: none !important; transition: none !important; } ::-webkit-scrollbar { display: none !important; }';
+          document.head.appendChild(style);
         });
         await pCurr.waitForTimeout(1000);
         const shotCurr = await pCurr.screenshot({ fullPage: true, animations: 'disabled' });
@@ -926,6 +941,8 @@ describe('Batch 2 UI Unification Browser Tests', () => {
         const isByteIdentical = shotBase.equals(shotCurr);
         if (!isByteIdentical) {
           console.warn(`Pixel proof comparison for ${pageName} @ ${vp.name}: base length=${shotBase.length}, curr length=${shotCurr.length}`);
+          fs.writeFileSync(`C:/Users/KRISHNA TAMBUR/Desktop/four-sections-review/diff-${pageName}-${vp.name}-base.png`, shotBase);
+          fs.writeFileSync(`C:/Users/KRISHNA TAMBUR/Desktop/four-sections-review/diff-${pageName}-${vp.name}-curr.png`, shotCurr);
         }
         expect(isByteIdentical).toBe(true);
       }

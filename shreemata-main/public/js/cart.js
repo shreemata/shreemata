@@ -709,10 +709,11 @@ function setupCartActions() {
     document.addEventListener("click", function (e) {
 
         // Quantity buttons
-        if (e.target.classList.contains("qty-btn")) {
+        const qtyBtn = e.target.closest(".qty-btn");
+        if (qtyBtn) {
             e.preventDefault(); // Prevent any default behavior
-            const id = e.target.dataset.id;
-            const action = e.target.dataset.action;
+            const id = qtyBtn.dataset.id;
+            const action = qtyBtn.dataset.action;
             
             if (id && action) {
                 updateQuantity(id, action);
@@ -720,8 +721,9 @@ function setupCartActions() {
         }
 
         // Remove button
-        if (e.target.classList.contains("remove-btn")) {
-            const id = e.target.dataset.id;
+        const removeBtn = e.target.closest(".remove-btn");
+        if (removeBtn) {
+            const id = removeBtn.dataset.id;
             removeFromCart(id);
         }
 
@@ -935,19 +937,25 @@ async function updateCartSummary() {
     let courierCharge = 0;
     const selectedDeliveryMethod = document.querySelector('input[name="deliveryMethod"]:checked')?.value;
     
-    // Always calculate home delivery cost for pickup savings display
-    let homeDeliveryCost = 0;
-    try {
-        homeDeliveryCost = await calculateCourierCharge(totalWeight);
-        
-        // Ensure minimum charge for pickup savings display (if there are items)
-        if (cart.length > 0 && homeDeliveryCost < 25) {
-            homeDeliveryCost = 25; // Minimum ₹25 shipping charge
+    // Always calculate home delivery cost using the dynamic shipping calculator
+    let homeDeliveryCost = 50;
+    if (window.dynamicShipping) {
+        try {
+            const dynamicResult = await window.dynamicShipping.calculateCartShipping(cart);
+            homeDeliveryCost = dynamicResult.shippingCost;
+        } catch (error) {
+            console.error('Error calculating dynamic cart shipping (updateCartSummary):', error);
         }
-    } catch (error) {
-        console.error('Error calculating courier charge:', error);
-        // Fallback minimum charge if there are items
-        homeDeliveryCost = cart.length > 0 ? 25 : 0;
+    } else if (window.shippingCalculator) {
+        const calcResult = window.shippingCalculator.calculateCartShipping(cart);
+        homeDeliveryCost = calcResult.cost;
+    } else {
+        try {
+            homeDeliveryCost = await calculateCourierCharge(totalWeight);
+            if (cart.length > 0 && homeDeliveryCost < 25) homeDeliveryCost = 25;
+        } catch (error) {
+            homeDeliveryCost = cart.length > 0 ? 25 : 0;
+        }
     }
     
     // Set actual courier charge based on selected method
