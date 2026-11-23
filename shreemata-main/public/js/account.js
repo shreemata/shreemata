@@ -367,6 +367,15 @@ async function loadVipSectionData(force = false) {
             const vipData = await res.json();
             accountDataCache.vipCards = vipData;
             
+            if (vipData.minWithdrawal !== undefined) {
+                window.vipSettings = window.vipSettings || {};
+                window.vipSettings.minWithdrawal = Number(vipData.minWithdrawal);
+            }
+            if (vipData.mandatoryReserve !== undefined) {
+                window.vipSettings = window.vipSettings || {};
+                window.vipSettings.mandatoryReserve = Number(vipData.mandatoryReserve);
+            }
+
             if (vipData.bankDetailsSetup !== undefined) {
                 window.isBankDetailsSetup = Boolean(vipData.bankDetailsSetup);
             }
@@ -436,10 +445,11 @@ function renderVipSection(vipData, user) {
     const sortedCards = [...cards].sort((a, b) => (Number(b.tier) || 0) - (Number(a.tier) || 0));
     const activeCard = sortedCards[0] || {};
 
+    const VIP_MILESTONE_STEP = 10;
     const cumulative = Number(vipData?.cumulativeTotal || 0);
     const milestoneAmount = Number(activeCard.milestoneAmount || 0);
-    const nextMilestone = milestoneAmount > 0 ? milestoneAmount : ((Math.floor(cumulative / 100) + 1) * 100);
-    const progressPercent = Math.min(100, Math.max(0, (cumulative % 100)));
+    const nextMilestone = milestoneAmount > 0 ? milestoneAmount : ((Math.floor(cumulative / VIP_MILESTONE_STEP) + 1) * VIP_MILESTONE_STEP);
+    const progressPercent = Math.min(100, Math.max(0, ((cumulative % VIP_MILESTONE_STEP) / VIP_MILESTONE_STEP) * 100));
     const walletBalance = Number(vipData?.walletBalance !== undefined ? vipData.walletBalance : (activeCard.balance !== undefined ? activeCard.balance : (user?.wallet || 0)));
     const totalWithdrawn = Number(activeCard.totalWithdrawn || 0);
     
@@ -1482,9 +1492,10 @@ function renderVipCardsUI(vipData, user) {
         const sortedCards = [...vipData.cards].sort((a, b) => (Number(b.tier) || 0) - (Number(a.tier) || 0));
         const card = sortedCards[0];
         
+        const VIP_MILESTONE_STEP = 10;
         const cumulative = Number(vipData.cumulativeTotal || 0);
-        const nextMilestone = (Math.floor(cumulative / 100) + 1) * 100;
-        const progressPercent = Math.min(100, Math.max(0, (cumulative % 100)));
+        const nextMilestone = (Math.floor(cumulative / VIP_MILESTONE_STEP) + 1) * VIP_MILESTONE_STEP;
+        const progressPercent = Math.min(100, Math.max(0, ((cumulative % VIP_MILESTONE_STEP) / VIP_MILESTONE_STEP) * 100));
         const walletBalance = Number(vipData.walletBalance || user?.wallet || 0);
         
         const cardHtml = `
@@ -2361,8 +2372,8 @@ let currentVipWithdrawState = {
     cardNumber: '',
     cardTier: 1,
     availableBalance: 0,
-    minAmount: 500,
-    minReserve: 50
+    minAmount: 100,
+    minReserve: 100
 };
 
 function openVipWithdrawModal(cardNumber, cardTier) {
@@ -2370,11 +2381,14 @@ function openVipWithdrawModal(cardNumber, cardTier) {
     const balanceText = document.getElementById("walletBalance")?.textContent || "0";
     const parsedBalance = parseFloat(balanceText.replace(/[^\d.]/g, '')) || (user.wallet || 0);
 
+    const minWithdrawal = (window.vipSettings && window.vipSettings.minWithdrawal) || 100;
+    const mandatoryReserve = (window.vipSettings && window.vipSettings.mandatoryReserve) || 100;
+
     currentVipWithdrawState.cardNumber = cardNumber || user.masterCard?.cardNumber || 'VIP Master Card';
     currentVipWithdrawState.cardTier = cardTier || 1;
     currentVipWithdrawState.availableBalance = parsedBalance;
-    currentVipWithdrawState.minAmount = 500;
-    currentVipWithdrawState.minReserve = 50;
+    currentVipWithdrawState.minAmount = minWithdrawal;
+    currentVipWithdrawState.minReserve = mandatoryReserve;
 
     const modal = document.getElementById("vipWithdrawModal");
     if (!modal) return;
@@ -2384,8 +2398,23 @@ function openVipWithdrawModal(cardNumber, cardTier) {
     document.getElementById("vipModalCardInfo").textContent = `Card: ${currentVipWithdrawState.cardNumber} (Tier ${tierDisplay})`;
     document.getElementById("vipModalAvailableBalance").textContent = `₹${currentVipWithdrawState.availableBalance.toFixed(2)}`;
     
-    const maxWithdrawable = Math.max(0, currentVipWithdrawState.availableBalance - 50);
+    const maxWithdrawable = Math.max(0, currentVipWithdrawState.availableBalance - currentVipWithdrawState.minReserve);
     document.getElementById("vipModalMaxWithdrawable").textContent = `₹${maxWithdrawable.toFixed(2)}`;
+
+    // Dynamically update reserve label and rule texts in modal if present in DOM
+    const reserveSpan = modal.querySelector('span[style*="var(--sm-gold-dark)"]');
+    if (reserveSpan && reserveSpan.textContent.includes('50')) {
+        reserveSpan.textContent = `₹${currentVipWithdrawState.minReserve.toFixed(2)}`;
+    }
+    const ruleItems = modal.querySelectorAll('ul li');
+    ruleItems.forEach(li => {
+        if (li.innerHTML.includes('500')) {
+            li.innerHTML = li.innerHTML.replace('500', String(currentVipWithdrawState.minAmount));
+        }
+        if (li.innerHTML.includes('50')) {
+            li.innerHTML = li.innerHTML.replace('50', String(currentVipWithdrawState.minReserve));
+        }
+    });
 
     // Payment destination toggle (Saved vs New)
     const savedContainer = document.getElementById("savedPaymentContainer") || document.getElementById("vipSavedBankSection");
@@ -2430,6 +2459,8 @@ function openVipWithdrawModal(cardNumber, cardTier) {
     const input = document.getElementById("vipWithdrawAmountInput");
     if (input) {
         input.value = "";
+        input.min = String(currentVipWithdrawState.minAmount);
+        input.placeholder = `Enter amount (min ${currentVipWithdrawState.minAmount})`;
     }
 
     const previewBox = document.getElementById("vipWithdrawPreviewBox");
@@ -2452,7 +2483,7 @@ function setVipWithdrawPreset(preset) {
     if (!input) return;
 
     if (preset === 'max') {
-        const maxWithdrawable = Math.max(0, currentVipWithdrawState.availableBalance - 50);
+        const maxWithdrawable = Math.max(0, currentVipWithdrawState.availableBalance - currentVipWithdrawState.minReserve);
         input.value = maxWithdrawable > 0 ? maxWithdrawable : 0;
     } else {
         input.value = preset;
@@ -2484,15 +2515,15 @@ function updateVipWithdrawPreview() {
     remainingEl.textContent = `₹${remaining.toFixed(2)}`;
 
     // Validation rule checks
-    if (val < 500) {
+    if (val < currentVipWithdrawState.minAmount) {
         remainingEl.style.color = "#ef4444";
-        msgEl.innerHTML = `<span style="color: #ef4444; font-weight: 600;">❌ Minimum withdrawal amount allowed is ₹500.</span>`;
+        msgEl.innerHTML = `<span style="color: #ef4444; font-weight: 600;">❌ Minimum withdrawal amount allowed is ₹${currentVipWithdrawState.minAmount}.</span>`;
     } else if (val > currentVipWithdrawState.availableBalance) {
         remainingEl.style.color = "#ef4444";
         msgEl.innerHTML = `<span style="color: #ef4444; font-weight: 600;">❌ Insufficient balance. Available is ₹${currentVipWithdrawState.availableBalance.toFixed(2)}.</span>`;
-    } else if (remaining < 50) {
+    } else if (remaining < currentVipWithdrawState.minReserve) {
         remainingEl.style.color = "#ef4444";
-        msgEl.innerHTML = `<span style="color: #ef4444; font-weight: 600;">❌ A mandatory minimum balance of ₹50 must remain on the card after withdrawal.</span>`;
+        msgEl.innerHTML = `<span style="color: #ef4444; font-weight: 600;">❌ A mandatory minimum balance of ₹${currentVipWithdrawState.minReserve} must remain on the card after withdrawal.</span>`;
     } else {
         remainingEl.style.color = "#10b981";
         msgEl.innerHTML = `<span style="color: #10b981; font-weight: 600;">✅ Valid withdrawal request. ₹${remaining.toFixed(2)} reserve balance will remain.</span>`;
@@ -2514,8 +2545,8 @@ async function submitVipWithdrawal() {
         return;
     }
 
-    if (amount < 500) {
-        alert("Minimum withdrawal amount allowed for VIP Master Card is ₹500.");
+    if (amount < currentVipWithdrawState.minAmount) {
+        alert(`Minimum withdrawal amount allowed for VIP Master Card is ₹${currentVipWithdrawState.minAmount}.`);
         return;
     }
 
@@ -2525,9 +2556,9 @@ async function submitVipWithdrawal() {
         return;
     }
 
-    if ((available - amount) < 50) {
-        const maxWithdrawable = Math.max(0, available - 50);
-        alert(`A mandatory minimum balance of ₹50 must remain in your VIP Master Card balance after withdrawal.\n\nAvailable Balance: ₹${available.toFixed(2)}\nMaximum Withdrawable: ₹${maxWithdrawable.toFixed(2)}`);
+    if ((available - amount) < currentVipWithdrawState.minReserve) {
+        const maxWithdrawable = Math.max(0, available - currentVipWithdrawState.minReserve);
+        alert(`A mandatory minimum balance of ₹${currentVipWithdrawState.minReserve} must remain in your VIP Master Card balance after withdrawal.\n\nAvailable Balance: ₹${available.toFixed(2)}\nMaximum Withdrawable: ₹${maxWithdrawable.toFixed(2)}`);
         return;
     }
 
@@ -2647,7 +2678,7 @@ async function submitVipWithdrawal() {
             if (modalAvailEl) modalAvailEl.textContent = `₹${remainingBal.toFixed(2)}`;
             
             const modalMaxEl = document.getElementById("vipModalMaxWithdrawable");
-            if (modalMaxEl) modalMaxEl.textContent = `₹${Math.max(0, remainingBal - 50).toFixed(2)}`;
+            if (modalMaxEl) modalMaxEl.textContent = `₹${Math.max(0, remainingBal - currentVipWithdrawState.minReserve).toFixed(2)}`;
 
             // 3. Close modal and display prominent success message
             removeVipScannerFile();

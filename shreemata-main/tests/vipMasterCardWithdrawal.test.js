@@ -389,6 +389,104 @@ describe('VIP Master Card Commission Withdrawal System', () => {
       expect(res.status).toBe(400);
       expect(res.data.error).toContain('mandatory minimum balance of ₹100 must remain');
     });
+
+    it('balance 150 withdraw 100 rejected: leaving 50 < 100 reserve is rejected', async () => {
+      user.wallet = 150;
+      await user.save();
+
+      const res = await client.post(
+        '/commission/vip-withdraw',
+        { amount: 100, cardNumber: 'VIP 0000 0001' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      expect(res.status).toBe(400);
+      expect(res.data.error).toContain('mandatory minimum balance of ₹100 must remain');
+      expect(res.data.availableBalance).toBe(150);
+      expect(res.data.maxWithdrawable).toBe(50);
+    });
+
+    it('balance 250 withdraw 100 ok leaving 150', async () => {
+      user.wallet = 250;
+      await user.save();
+
+      const res = await client.post(
+        '/commission/vip-withdraw',
+        { amount: 100, cardNumber: 'VIP 0000 0001' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.withdrawalAmount).toBe(100);
+      expect(res.data.remainingBalance).toBe(150);
+
+      const refreshed = await User.findById(user._id);
+      expect(refreshed.wallet).toBe(150);
+    });
+
+    it('withdraw 150 leaves exactly 100: balance 250 withdraw 150 succeeds leaving exactly 100', async () => {
+      user.wallet = 250;
+      await user.save();
+
+      const res = await client.post(
+        '/commission/vip-withdraw',
+        { amount: 150, cardNumber: 'VIP 0000 0001' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.data.success).toBe(true);
+      expect(res.data.withdrawalAmount).toBe(150);
+      expect(res.data.remainingBalance).toBe(100);
+
+      const refreshed = await User.findById(user._id);
+      expect(refreshed.wallet).toBe(100);
+    });
+
+    it('withdraw 151 rejected with max 150: balance 250 withdraw 151 rejected with maxWithdrawable 150', async () => {
+      user.wallet = 250;
+      await user.save();
+
+      const res = await client.post(
+        '/commission/vip-withdraw',
+        { amount: 151, cardNumber: 'VIP 0000 0001' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      expect(res.status).toBe(400);
+      expect(res.data.error).toContain('mandatory minimum balance of ₹100 must remain');
+      expect(res.data.maxWithdrawable).toBe(150);
+      expect(res.data.availableBalance).toBe(250);
+    });
+
+    it('no card rejected: user with no VIP cards or assigned masterCard cannot withdraw', async () => {
+      // Create user without VIP card or assigned MasterCard
+      const plainUser = await User.create({
+        name: 'Plain User',
+        email: 'plain@example.com',
+        password: 'password123',
+        role: 'user',
+        wallet: 500,
+        bankDetails: {
+          isSetup: true,
+          accountHolderName: 'Plain User',
+          accountNumber: '123456789012',
+          bankName: 'SBI',
+          ifscCode: 'SBIN0001234'
+        }
+      });
+      const plainToken = generateToken(plainUser);
+
+      const res = await client.post(
+        '/commission/vip-withdraw',
+        { amount: 100 },
+        { headers: { Authorization: `Bearer ${plainToken}` } }
+      );
+
+      expect(res.status).toBe(403);
+      expect(res.data.error).toContain('No active VIP Master Card found');
+    });
   });
 
   describe('Successful VIP Master Card Withdrawal for Regular Users', () => {
@@ -530,6 +628,39 @@ describe('VIP Master Card Commission Withdrawal System', () => {
       expect(refundTx).toBeDefined();
       expect(refundTx.amount).toBe(500);
       expect(refundTx.balanceAfter).toBe(1000);
+    });
+
+    it('cancel restores amount: user cancel refunds wallet balance and logs transaction', async () => {
+      // User withdraws ₹200 (wallet becomes 800)
+      const withRes = await client.post(
+        '/commission/vip-withdraw',
+        { amount: 200, cardNumber: 'VIP 0000 0001' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      expect(withRes.status).toBe(200);
+      const withdrawId = withRes.data.withdrawalId;
+
+      // User cancels withdrawal via /api/commission/withdraw/cancel/:withdrawId
+      const cancelRes = await client.post(
+        `/commission/withdraw/cancel/${withdrawId}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      expect(cancelRes.status).toBe(200);
+      expect(cancelRes.data.success).toBe(true);
+
+      // Verify wallet restored to 1000
+      const refreshedUser = await User.findById(user._id);
+      expect(refreshedUser.wallet).toBe(1000);
+
+      // Verify transaction logged
+      const tx = await WalletTransaction.findOne({
+        userId: user._id,
+        category: 'refund',
+        amount: 200
+      });
+      expect(tx).toBeDefined();
+      expect(tx.description).toContain('VIP Master Card');
     });
   });
 
