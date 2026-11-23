@@ -9,6 +9,7 @@ const { sendDeliveryStatusEmail } = require("../utils/emailService");
 const { autoGenerateInvoiceForOrder } = require("./invoices");
 const { isPaymentVerified } = require("../utils/paymentHelper");
 const { validateCourierAddress, isServerOrderDigitalOnly, isBookEntityDigital, isBundleEntityDigital, getAuthoritativeItemDetails } = require("../utils/deliveryAddressValidator");
+const { calculateAuthoritativeOrder } = require("../utils/orderPricingCalculator");
 
 const router = express.Router();
 
@@ -149,19 +150,33 @@ router.post("/", authenticateToken, async (req, res) => {
             validatedAddress = val.sanitizedAddress;
         }
 
+        // 🔒 Server authoritative pricing calculation
+        const pricingResult = await calculateAuthoritativeOrder({
+            items,
+            deliveryMethod,
+            clientCourierCharge: 0,
+            clientAmount: totalAmount
+        });
+
+        if (!pricingResult.success && pricingResult.error !== 'Order amount mismatch') {
+            return res.status(400).json({ error: pricingResult.error, message: pricingResult.message || pricingResult.error });
+        }
+
         const { buildOrderProfitSnapshot, calculateOrderProfitTotal } = require("../services/orderProfit");
-        const orderItems = await buildOrderProfitSnapshot(items);
+        const orderItems = await buildOrderProfitSnapshot(pricingResult.processedItems);
         const calculatedProfit = calculateOrderProfitTotal(orderItems);
 
         // Create Order - rewards will be applied after payment is verified
         const order = await Order.create({
             user_id: req.user.id,
             items: orderItems,
-            totalAmount,
+            totalAmount: pricingResult.expectedTotal,
             orderProfitTotal: calculatedProfit,
             profitAmount: calculatedProfit,
             deliveryMethod: isDigitalOnly ? 'digital' : (deliveryMethod || 'pickup'),
             deliveryAddress: validatedAddress,
+            courierCharge: pricingResult.courierCharge,
+            totalWeight: pricingResult.totalWeight,
             status: "pending",
             rewardApplied: false
         });
@@ -245,32 +260,33 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
             validatedAddress = val.sanitizedAddress;
         }
 
-        // Create order item with all required fields
-        const items = [itemData];
-        
-        console.log('Creating order with data:', {
-            user_id: req.user.id,
-            items,
-            totalAmount,
+        // 🔒 Server authoritative pricing calculation
+        const pricingResult = await calculateAuthoritativeOrder({
+            items: [{ id: bookId, type: itemType, quantity: Number(quantity) }],
             deliveryMethod,
-            courierCharge,
-            paymentType
+            clientCourierCharge: courierCharge,
+            clientAmount: totalAmount
         });
 
+        if (!pricingResult.success && pricingResult.error !== 'Order amount mismatch') {
+            return res.status(400).json({ error: pricingResult.error, message: pricingResult.message || pricingResult.error });
+        }
+
         const { buildOrderProfitSnapshot, calculateOrderProfitTotal } = require("../services/orderProfit");
-        const orderItems = await buildOrderProfitSnapshot(items);
+        const orderItems = await buildOrderProfitSnapshot(pricingResult.processedItems);
         const calculatedProfit = calculateOrderProfitTotal(orderItems);
 
         // Create Order in pending state
         const order = await Order.create({
             user_id: req.user.id,
             items: orderItems,
-            totalAmount,
+            totalAmount: pricingResult.expectedTotal,
             orderProfitTotal: calculatedProfit,
             profitAmount: calculatedProfit,
             deliveryMethod: isDigitalItem ? 'digital' : (deliveryMethod || 'pickup'),
             deliveryAddress: validatedAddress,
-            courierCharge,
+            courierCharge: pricingResult.courierCharge,
+            totalWeight: pricingResult.totalWeight,
             paymentType, // 'cheque' or 'transfer'
             status: "pending_payment_verification",
             rewardApplied: false,
@@ -694,44 +710,33 @@ router.post("/create-cart-pending", authenticateToken, async (req, res) => {
             validatedAddress = val.sanitizedAddress;
         }
 
-        // Process cart items and fetch details for each
-        const processedItems = [];
-        for (const cartItem of cartItems) {
-            const details = await getAuthoritativeItemDetails(cartItem);
-            if (!details.found) {
-                return res.status(400).json({ error: "Item not found", message: `Unknown item: ${cartItem.id || cartItem.bundleId || cartItem.title}` });
-            }
-            const itemData = {
-                id: String(details.entity._id),
-                title: details.entity.title || details.entity.name,
-                author: details.entity.author || (details.kind === 'bundle' ? 'Bundle' : 'Unknown'),
-                quantity: cartItem.quantity || 1,
-                price: details.kind === 'bundle' ? details.entity.bundlePrice : details.entity.price,
-                coverImage: details.entity.cover_image || details.entity.image || details.entity.coverImage || "",
-                type: details.kind,
-                isDigital: details.isDigital
-            };
-            processedItems.push(itemData);
-        }
+        // 🔒 Server authoritative pricing calculation
+        const pricingResult = await calculateAuthoritativeOrder({
+            items: cartItems,
+            deliveryMethod,
+            clientCourierCharge: courierCharge,
+            clientAmount: totalAmount
+        });
 
-        if (processedItems.length === 0) {
-            return res.status(400).json({ error: "No valid items found in cart" });
+        if (!pricingResult.success && pricingResult.error !== 'Order amount mismatch') {
+            return res.status(400).json({ error: pricingResult.error, message: pricingResult.message || pricingResult.error });
         }
 
         const { buildOrderProfitSnapshot, calculateOrderProfitTotal } = require("../services/orderProfit");
-        const orderItems = await buildOrderProfitSnapshot(processedItems);
+        const orderItems = await buildOrderProfitSnapshot(pricingResult.processedItems);
         const calculatedProfit = calculateOrderProfitTotal(orderItems);
 
         // Create Order in pending state with all cart items
         const order = await Order.create({
             user_id: req.user.id,
             items: orderItems,
-            totalAmount,
+            totalAmount: pricingResult.expectedTotal,
             orderProfitTotal: calculatedProfit,
             profitAmount: calculatedProfit,
             deliveryMethod: isDigitalOnly ? 'digital' : (deliveryMethod || 'pickup'),
             deliveryAddress: validatedAddress,
-            courierCharge,
+            courierCharge: pricingResult.courierCharge,
+            totalWeight: pricingResult.totalWeight,
             paymentType, // 'cheque' or 'transfer'
             status: "pending_payment_verification",
             rewardApplied: false,
@@ -755,7 +760,7 @@ router.post("/create-cart-pending", authenticateToken, async (req, res) => {
             message: "Cart pending order created", 
             orderId: order._id.toString(),
             order,
-            itemCount: processedItems.length
+            itemCount: orderItems.length
         });
 
     } catch (err) {

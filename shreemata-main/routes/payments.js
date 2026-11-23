@@ -15,6 +15,7 @@ const Bundle = require("../models/Bundle");
 const { autoGenerateInvoiceForOrder } = require("./invoices");
 const { finalizePaidOrder } = require("../services/orderFinalizer");
 const { validateCourierAddress, isServerOrderDigitalOnly, isBookEntityDigital, isBundleEntityDigital, getAuthoritativeItemDetails } = require("../utils/deliveryAddressValidator");
+const { calculateAuthoritativeOrder } = require("../utils/orderPricingCalculator");
 
 const router = express.Router();
 
@@ -180,6 +181,33 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       console.log("✅ Courier delivery address validation passed");
     }
 
+    // 🔒 AUTHORITATIVE PRICING CALCULATION (DB prices, dynamic shipping, validated offers)
+    const pricingResult = await calculateAuthoritativeOrder({
+      items,
+      deliveryMethod,
+      clientCourierCharge: courierCharge,
+      appliedOffer,
+      clientAmount: amount
+    });
+
+    if (!pricingResult.success) {
+      console.warn(`[SECURITY] Order pricing rejection for user ${req.user?.id || req.user?._id}: ${pricingResult.error} - ${pricingResult.message || ''}`);
+      return res.status(400).json({
+        error: pricingResult.error,
+        message: pricingResult.message || pricingResult.error,
+        expectedTotal: pricingResult.expectedTotal,
+        clientAmount: amount
+      });
+    }
+
+    const {
+      expectedTotal,
+      courierCharge: serverCourierCharge,
+      totalWeight: serverTotalWeight,
+      validatedOffer,
+      processedItems
+    } = pricingResult;
+
     // 📦 STOCK VALIDATION - Check if all items are available (Skip for digital items)
     console.log("📦 Validating stock availability for order items...");
     const Book = require("../models/Book");
@@ -277,48 +305,21 @@ router.post("/create-order", authenticateToken, async (req, res) => {
         phone: String(deliveryAddress.phone || "").trim()
       } : null;
 
-      // Prepare items array properly with authoritative profit and digital snapshots
-      const rawOrderItems = await Promise.all(items.map(async item => {
-        const details = await getAuthoritativeItemDetails(item);
-        const isDigitalItem = details.found ? details.isDigital : false;
-        return {
-          id: item.id,
-          title: item.title,
-          author: item.author,
-          price: Number(item.price),
-          quantity: Number(item.quantity),
-          coverImage: item.coverImage,
-          type: details.found ? details.kind : (item.type || 'book'),
-          isDigital: isDigitalItem,
-          digitalPrice: isDigitalItem ? Number(item.price) : null
-        };
-      }));
-
-      const orderItems = await buildOrderProfitSnapshot(rawOrderItems);
+      // Prepare items with authoritative DB prices and snapshots
+      const orderItems = await buildOrderProfitSnapshot(processedItems);
       const calculatedProfitTotal = calculateOrderProfitTotal(orderItems);
 
-      // Prepare offer data if applicable
-      const offerData = appliedOffer ? {
-        offerId: appliedOffer.offerId,
-        offerTitle: appliedOffer.offerTitle,
-        discountType: appliedOffer.discountType,
-        discountValue: appliedOffer.discountValue,
-        originalAmount: appliedOffer.originalAmount,
-        discountedAmount: appliedOffer.discountedAmount,
-        savings: appliedOffer.savings
-      } : undefined;
-
-      // Create pending order for cheque payment
+      // Create pending order for cheque payment with authoritative server totals
       const pendingOrder = await Order.create({
         user_id: req.user.id,
         items: orderItems,
-        totalAmount: amount,
+        totalAmount: expectedTotal,
         orderProfitTotal: calculatedProfitTotal,
         profitAmount: calculatedProfitTotal,
-        courierCharge: isDigitalOnly ? 0 : (courierCharge || 0),
-        totalWeight: isDigitalOnly ? 0 : (totalWeight || 0),
+        courierCharge: serverCourierCharge,
+        totalWeight: serverTotalWeight,
         deliveryMethod: isDigitalOnly ? 'digital' : (deliveryMethod || 'home'),
-        appliedOffer: offerData,
+        appliedOffer: validatedOffer,
         deliveryAddress: addressData,
         status: "pending_payment_verification", // Special status for cheque payments
         paymentType: "cheque",
@@ -346,7 +347,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       // Create Google Form URL with pre-filled data (using your working form)
       const googleFormUrl = `https://docs.google.com/forms/d/e/1FAIpQLSdkaIGD87RUORM210G8kCWeIx60Fdc88KKkxcnmuee1bOL2Pg/viewform?usp=pp_url` +
         `&entry.1788264298=${pendingOrder._id}` +
-        `&entry.1894225499=${amount}` +
+        `&entry.1894225499=${expectedTotal}` +
         
         `&entry.774046160=${encodeURIComponent(user.email || '')}` +
         `&entry.1406386079=${encodeURIComponent(user.name || '')}` +
@@ -371,7 +372,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
     // =====================================================
 
     const options = {
-      amount: Math.round(amount * 100),
+      amount: Math.round(expectedTotal * 100),
       currency: "INR",
       receipt: "order_" + Date.now()
     };
@@ -397,53 +398,22 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       phone: String(deliveryAddress.phone || "").trim()
     } : null;
 
-    // Prepare items array properly with authoritative profit and digital snapshots
-    const rawOrderItems = await Promise.all(items.map(async item => {
-      const details = await getAuthoritativeItemDetails(item);
-      const isDigitalItem = details.found ? details.isDigital : false;
-      return {
-        id: item.id,
-        title: item.title,
-        author: item.author,
-        price: Number(item.price),
-        quantity: Number(item.quantity),
-        coverImage: item.coverImage,
-        type: details.found ? details.kind : (item.type || 'book'),
-        isDigital: isDigitalItem,
-        digitalPrice: isDigitalItem ? Number(item.price) : null
-      };
-    }));
-
-    const orderItems = await buildOrderProfitSnapshot(rawOrderItems);
+    // Prepare items with authoritative DB prices and snapshots
+    const orderItems = await buildOrderProfitSnapshot(processedItems);
     const calculatedProfitTotal = calculateOrderProfitTotal(orderItems);
 
     console.log("Prepared order items with profit snapshot:", orderItems);
 
-    // Prepare offer data if applicable
-    const offerData = appliedOffer ? {
-      offerId: appliedOffer.offerId,
-      offerTitle: appliedOffer.offerTitle,
-      discountType: appliedOffer.discountType,
-      discountValue: appliedOffer.discountValue,
-      originalAmount: appliedOffer.originalAmount,
-      discountedAmount: appliedOffer.discountedAmount,
-      savings: appliedOffer.savings
-    } : undefined;
-
-    if (offerData) {
-      console.log("Applied offer:", offerData);
-    }
-
     const dbOrder = await Order.create({
       user_id: req.user.id,
       items: orderItems,
-      totalAmount: amount,
+      totalAmount: expectedTotal,
       orderProfitTotal: calculatedProfitTotal,
       profitAmount: calculatedProfitTotal,
-      courierCharge: isDigitalOnly ? 0 : (courierCharge || 0), // No courier charge for digital-only
-      totalWeight: isDigitalOnly ? 0 : (totalWeight || 0), // No weight for digital-only
-      deliveryMethod: isDigitalOnly ? 'digital' : (deliveryMethod || 'home'), // Digital delivery method
-      appliedOffer: offerData,
+      courierCharge: serverCourierCharge,
+      totalWeight: serverTotalWeight,
+      deliveryMethod: isDigitalOnly ? 'digital' : (deliveryMethod || 'home'),
+      appliedOffer: validatedOffer,
       deliveryAddress: addressData,
       status: "pending",
       rewardApplied: false,
@@ -520,13 +490,45 @@ router.post("/verify", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
+    // 🔒 POST-PAYMENT VERIFICATION: Paid amount must equal stored server total
+    const candidatePaidAmount = [req.body.paidAmount, req.body.totalAmount, req.body.amount].find(v => v !== undefined && v !== null);
+    if (candidatePaidAmount !== undefined) {
+      const sentPaid = Number(candidatePaidAmount);
+      if (isNaN(sentPaid) || Math.abs(sentPaid - Number(order.totalAmount)) > 1.00) {
+        console.warn(`[SECURITY] /verify amount mismatch for order ${order._id}: client sent ₹${sentPaid}, order total is ₹${order.totalAmount}`);
+        return res.status(400).json({
+          error: "Paid amount mismatch",
+          message: `Paid amount ₹${sentPaid} does not match order total ₹${order.totalAmount}`
+        });
+      }
+    }
+
+    // Verify amount captured with Razorpay API if available
+    try {
+      if (razorpay && razorpay.payments && typeof razorpay.payments.fetch === 'function') {
+        const payment = await razorpay.payments.fetch(razorpay_payment_id);
+        if (payment && typeof payment.amount === 'number') {
+          const paidInRupees = payment.amount / 100;
+          if (Math.abs(paidInRupees - Number(order.totalAmount)) > 1.00) {
+            console.warn(`[SECURITY] /verify Razorpay fetched payment amount mismatch for order ${order._id}: fetched ₹${paidInRupees}, order total is ₹${order.totalAmount}`);
+            return res.status(400).json({
+              error: "Paid amount mismatch",
+              message: `Razorpay payment amount ₹${paidInRupees} does not match order total ₹${order.totalAmount}`
+            });
+          }
+        }
+      }
+    } catch (fetchErr) {
+      console.log("Payment fetch check note:", fetchErr.message);
+    }
+
     // Execute shared, idempotent order finalization (with async background emails for rapid popup response)
     const result = await finalizePaidOrder(order, {
       razorpay_payment_id,
       razorpay_order_id,
       razorpay_signature,
       items,
-      totalAmount,
+      totalAmount: order.totalAmount,
       deliveryAddress,
       asyncEmails: true
     });
@@ -691,9 +693,18 @@ router.post("/webhook", async (req, res) => {
 
       const order = await Order.findOne({ razorpay_order_id });
       if (order) {
+        // 🔒 POST-PAYMENT VERIFICATION: payment entity amount must equal stored server total
+        if (payment && typeof payment.amount === 'number') {
+          const paidInRupees = payment.amount / 100;
+          if (Math.abs(paidInRupees - Number(order.totalAmount)) > 1.00) {
+            console.warn(`[SECURITY] Webhook payment amount mismatch for order ${order._id}: payment.amount ₹${paidInRupees}, order total ₹${order.totalAmount}`);
+            return res.status(400).send("Payment amount mismatch");
+          }
+        }
         const finalizeResult = await finalizePaidOrder(order, {
           razorpay_payment_id,
-          razorpay_order_id
+          razorpay_order_id,
+          totalAmount: order.totalAmount
         });
         if (!finalizeResult.order?.confirmationEmailSent) {
           const { dispatchOrderEmails } = require("../services/orderFinalizer");
