@@ -315,16 +315,16 @@ describe('VIP Master Card Commission Withdrawal System', () => {
     });
   });
 
-  describe('Validation Rule 1: Minimum Withdrawal Amount (₹500)', () => {
-    it('should reject a withdrawal request below ₹500 (e.g. ₹499)', async () => {
+  describe('Validation Rule 1: Minimum Withdrawal Amount (₹100)', () => {
+    it('should reject a withdrawal request below ₹100 (e.g. ₹99)', async () => {
       const res = await client.post(
         '/commission/vip-withdraw',
-        { amount: 499, cardNumber: 'VIP 0000 0001' },
+        { amount: 99, cardNumber: 'VIP 0000 0001' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       expect(res.status).toBe(400);
-      expect(res.data.error).toContain('Minimum withdrawal amount allowed for VIP Master Card is ₹500');
+      expect(res.data.error).toContain('Minimum withdrawal amount allowed for VIP Master Card is ₹100');
 
       // Verify wallet was NOT deducted
       const refreshedUser = await User.findById(user._id);
@@ -347,18 +347,18 @@ describe('VIP Master Card Commission Withdrawal System', () => {
     });
   });
 
-  describe('Validation Rule 2: Mandatory Minimum Reserve Balance (₹50)', () => {
-    it('should reject when (Available Balance - Requested Amount) < 50 (e.g. Balance ₹1000, Request ₹960)', async () => {
+  describe('Validation Rule 2: Mandatory Minimum Reserve Balance (₹100)', () => {
+    it('should reject when (Available Balance - Requested Amount) < 100 (e.g. Balance ₹1000, Request ₹910)', async () => {
       const res = await client.post(
         '/commission/vip-withdraw',
-        { amount: 960, cardNumber: 'VIP 0000 0001' },
+        { amount: 910, cardNumber: 'VIP 0000 0001' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       expect(res.status).toBe(400);
-      expect(res.data.error).toContain('mandatory minimum balance of ₹50 must remain');
-      expect(res.data.mandatoryReserve).toBe(50);
-      expect(res.data.maxWithdrawable).toBe(950);
+      expect(res.data.error).toContain('mandatory minimum balance of ₹100 must remain');
+      expect(res.data.mandatoryReserve).toBe(100);
+      expect(res.data.maxWithdrawable).toBe(900);
 
       // Verify wallet was NOT deducted
       const refreshedUser = await User.findById(user._id);
@@ -376,7 +376,7 @@ describe('VIP Master Card Commission Withdrawal System', () => {
       expect(res.data.error).toContain('Insufficient balance');
     });
 
-    it('should reject when balance is ₹540 and user requests ₹500 (leaving only ₹40, less than ₹50 reserve)', async () => {
+    it('should reject when balance is ₹540 and user requests ₹500 (leaving only ₹40, less than ₹100 reserve)', async () => {
       user.wallet = 540;
       await user.save();
 
@@ -387,12 +387,12 @@ describe('VIP Master Card Commission Withdrawal System', () => {
       );
 
       expect(res.status).toBe(400);
-      expect(res.data.error).toContain('mandatory minimum balance of ₹50 must remain');
+      expect(res.data.error).toContain('mandatory minimum balance of ₹100 must remain');
     });
   });
 
   describe('Successful VIP Master Card Withdrawal for Regular Users', () => {
-    it('should succeed for regular user when amount >= ₹500 and (Available Balance - Amount) >= ₹50', async () => {
+    it('should succeed for regular user when amount >= ₹100 and (Available Balance - Amount) >= ₹100', async () => {
       // Balance is ₹1000, requesting ₹500 -> remaining ₹500 (>= ₹50 reserve)
       const res = await client.post(
         '/commission/vip-withdraw',
@@ -414,7 +414,7 @@ describe('VIP Master Card Commission Withdrawal System', () => {
       expect(refreshedUser.withdrawals[0].amount).toBe(500);
       expect(refreshedUser.withdrawals[0].balanceBefore).toBe(1000);
       expect(refreshedUser.withdrawals[0].balanceAfter).toBe(500);
-      expect(refreshedUser.withdrawals[0].mandatoryReserve).toBe(50);
+      expect(refreshedUser.withdrawals[0].mandatoryReserve).toBe(100);
       expect(refreshedUser.withdrawals[0].status).toBe('pending');
 
       // Verify accurate ledger tracking in WalletTransaction
@@ -432,19 +432,19 @@ describe('VIP Master Card Commission Withdrawal System', () => {
       expect(refreshedCard.lastWithdrawalDate).toBeDefined();
     });
 
-    it('should allow exact maximum withdrawable amount (Balance ₹1000, Request ₹950, leaving exactly ₹50)', async () => {
+    it('should allow exact maximum withdrawable amount (Balance ₹1000, Request ₹900, leaving exactly ₹100)', async () => {
       const res = await client.post(
         '/commission/vip-withdraw',
-        { amount: 950, cardNumber: 'VIP 0000 0001' },
+        { amount: 900, cardNumber: 'VIP 0000 0001' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       expect(res.status).toBe(200);
       expect(res.data.success).toBe(true);
-      expect(res.data.remainingBalance).toBe(50);
+      expect(res.data.remainingBalance).toBe(100);
 
       const refreshedUser = await User.findById(user._id);
-      expect(refreshedUser.wallet).toBe(50);
+      expect(refreshedUser.wallet).toBe(100);
     });
 
     it('should withdraw successfully using the Digital Profile Master Card (SMC-10001)', async () => {
@@ -564,15 +564,15 @@ describe('VIP Master Card Commission Withdrawal System', () => {
 
       expect(res.status).toBe(200);
       expect(res.data.walletBalance).toBe(1000);
-      expect(res.data.minWithdrawal).toBe(500);
-      expect(res.data.mandatoryReserve).toBe(50);
-      expect(res.data.maxWithdrawable).toBe(950);
+      expect(res.data.minWithdrawal).toBe(100);
+      expect(res.data.mandatoryReserve).toBe(100);
+      expect(res.data.maxWithdrawable).toBe(900);
       expect(res.data.bankDetailsSetup).toBe(true);
       expect(res.data.maskedBankDetails).toBeDefined();
       expect(res.data.cards[0].balance).toBe(1000);
-      expect(res.data.cards[0].minWithdrawal).toBe(500);
-      expect(res.data.cards[0].mandatoryReserve).toBe(50);
-      expect(res.data.cards[0].maxWithdrawable).toBe(950);
+      expect(res.data.cards[0].minWithdrawal).toBe(100);
+      expect(res.data.cards[0].mandatoryReserve).toBe(100);
+      expect(res.data.cards[0].maxWithdrawable).toBe(900);
     });
 
     it('should include Digital Profile Master Card in GET /api/users/profile/vip-mastercards if no milestone cards exist', async () => {
@@ -588,9 +588,9 @@ describe('VIP Master Card Commission Withdrawal System', () => {
       expect(res.data.cards).toHaveLength(1);
       expect(res.data.cards[0].cardNumber).toBe('SMC-10001');
       expect(res.data.cards[0].balance).toBe(1000);
-      expect(res.data.cards[0].minWithdrawal).toBe(500);
-      expect(res.data.cards[0].mandatoryReserve).toBe(50);
-      expect(res.data.cards[0].maxWithdrawable).toBe(950);
+      expect(res.data.cards[0].minWithdrawal).toBe(100);
+      expect(res.data.cards[0].mandatoryReserve).toBe(100);
+      expect(res.data.cards[0].maxWithdrawable).toBe(900);
     });
   });
 });

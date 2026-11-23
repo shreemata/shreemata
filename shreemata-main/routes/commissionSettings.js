@@ -4,6 +4,9 @@ const mongoose = require("mongoose");
 const CommissionSettings = require("../models/CommissionSettings");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 
+const VIP_MIN_WITHDRAWAL = 100;
+const VIP_MANDATORY_RESERVE = 100;
+
 /* -------------------------------------------
    GET /api/admin/commission-settings
    Get current commission settings
@@ -788,8 +791,8 @@ router.get("/commission/settings", authenticateToken, async (req, res) => {
     res.json({ 
       settings: {
         minimumWithdrawalAmount: settings.minimumWithdrawalAmount || 100,
-        vipMinimumWithdrawalAmount: 500,
-        vipMandatoryReserveBalance: 50
+        vipMinimumWithdrawalAmount: VIP_MIN_WITHDRAWAL,
+        vipMandatoryReserveBalance: VIP_MANDATORY_RESERVE
       }
     });
   } catch (err) {
@@ -1034,12 +1037,12 @@ const handleVipWithdrawRequest = async (req, res) => {
       });
     }
 
-    // Rule 1: Minimum withdrawal is ₹500
-    if (numericAmount < 500) {
+    // Rule 1: Minimum withdrawal is ₹100
+    if (numericAmount < VIP_MIN_WITHDRAWAL) {
       return res.status(400).json({ 
         success: false,
-        error: "Minimum withdrawal amount allowed for VIP Master Card is ₹500.",
-        minAmount: 500
+        error: `Minimum withdrawal amount allowed for VIP Master Card is ₹${VIP_MIN_WITHDRAWAL}.`,
+        minAmount: VIP_MIN_WITHDRAWAL
       });
     }
 
@@ -1112,13 +1115,13 @@ const handleVipWithdrawRequest = async (req, res) => {
     }
 
     const remainingAfterWithdrawal = availableBalance - numericAmount;
-    if (remainingAfterWithdrawal < 50) {
-      const maxWithdrawable = Math.max(0, availableBalance - 50);
+    if (remainingAfterWithdrawal < VIP_MANDATORY_RESERVE) {
+      const maxWithdrawable = Math.max(0, availableBalance - VIP_MANDATORY_RESERVE);
       return res.status(400).json({
         success: false,
-        error: `A mandatory minimum balance of ₹50 must remain in your VIP Master Card balance after withdrawal. Available: ₹${availableBalance.toFixed(2)}, Maximum withdrawable: ₹${maxWithdrawable.toFixed(2)}.`,
+        error: `A mandatory minimum balance of ₹${VIP_MANDATORY_RESERVE} must remain in your VIP Master Card balance after withdrawal. Available: ₹${availableBalance.toFixed(2)}, Maximum withdrawable: ₹${maxWithdrawable.toFixed(2)}.`,
         availableBalance,
-        mandatoryReserve: 50,
+        mandatoryReserve: VIP_MANDATORY_RESERVE,
         maxWithdrawable
       });
     }
@@ -1193,7 +1196,7 @@ const handleVipWithdrawRequest = async (req, res) => {
       cardId: targetCard ? targetCard._id : null,
       balanceBefore,
       balanceAfter,
-      mandatoryReserve: 50,
+      mandatoryReserve: VIP_MANDATORY_RESERVE,
       upi: user.bankDetails?.upiId || null,
       bankName: user.bankDetails?.bankName || null,
       bank: user.bankDetails?.accountNumber || null,
@@ -1262,7 +1265,7 @@ const handleVipWithdrawRequest = async (req, res) => {
       message: "VIP Master Card withdrawal request submitted successfully",
       withdrawalAmount: numericAmount,
       remainingBalance: balanceAfter,
-      mandatoryReserve: 50,
+      mandatoryReserve: VIP_MANDATORY_RESERVE,
       cardNumber,
       cardTier,
       transactionId: ledgerTx._id,
