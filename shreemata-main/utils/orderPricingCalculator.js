@@ -145,9 +145,15 @@ async function calculateAuthoritativeOrder({
       authoritativeWeight = (typeof bundle.weight === 'number' && bundle.weight > 0) ? bundle.weight : 1.0;
     } else if (details.kind === 'note') {
       const note = details.entity;
-      authoritativePrice = (typeof note.price === 'number' && note.price >= 0)
-        ? note.price
-        : (Number(item.price) || 0);
+      const dbPrice = note ? note.price : undefined;
+      const parsedPrice = Number(dbPrice);
+      if (dbPrice === undefined || dbPrice === null || isNaN(parsedPrice) || parsedPrice < 0) {
+        return {
+          error: 'Invalid note price',
+          message: `Note "${item.title || item.id || 'unknown'}" has no valid price in database`
+        };
+      }
+      authoritativePrice = parsedPrice;
       authoritativeWeight = 0;
     } else {
       const book = details.entity;
@@ -193,45 +199,14 @@ async function calculateAuthoritativeOrder({
   if (isDigitalOnly || isPickup) {
     finalCourierCharge = 0;
   } else {
-    // Courier delivery for physical items
+    // Courier delivery for physical items - ALWAYS use server-computed charge
     const CommissionSettings = mongoose.models.CommissionSettings || require('../models/CommissionSettings');
     const settings = await CommissionSettings.getSettings().catch(() => null);
     const shippingRates = (settings && Array.isArray(settings.shippingRates) && settings.shippingRates.length > 0)
       ? settings.shippingRates
       : DEFAULT_SHIPPING_RATES;
 
-    const computedShipping = calculateShippingCharge(totalWeight, shippingRates);
-
-    if (clientCourierCharge !== undefined && clientCourierCharge !== null) {
-      const sentCourier = Number(clientCourierCharge);
-      if (sentCourier === 0) {
-        return {
-          error: 'Courier charge required',
-          message: 'Courier charge cannot be zero for courier delivery orders'
-        };
-      }
-      if (sentCourier < 0) {
-        return {
-          error: 'Invalid courier charge',
-          message: 'Courier charge cannot be negative'
-        };
-      }
-      if (sentCourier < computedShipping - 1.00) {
-        return {
-          error: 'Insufficient courier charge',
-          message: `Courier charge ₹${sentCourier} is below the required rate ₹${computedShipping} for ${totalWeight}kg`
-        };
-      }
-      finalCourierCharge = sentCourier;
-    } else {
-      // If courierCharge omitted from client request:
-      // If client amount matches itemsTotal (legacy test without shipping): accept 0
-      if (clientAmount !== undefined && clientAmount !== null && Math.abs(Number(clientAmount) - itemsTotal) <= 1.00) {
-        finalCourierCharge = 0;
-      } else {
-        finalCourierCharge = computedShipping;
-      }
-    }
+    finalCourierCharge = calculateShippingCharge(totalWeight, shippingRates);
   }
 
   // Offer validation & calculation

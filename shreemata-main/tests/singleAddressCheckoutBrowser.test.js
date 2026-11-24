@@ -611,15 +611,22 @@ describe('Single Delivery & Billing Address Checkout Browser Verification', () =
   });
 
   test('h. End-to-end invoice generation maps order delivery address to both billingAddress and shippingAddress', async () => {
-    // 1. Create a confirmed order via pending order endpoint or direct API
+    // 1. Fetch actual seeded book to get honest database price and compute authoritative shipping
+    const bookRes = await apiGet(`/api/books/${seededBookId}`);
+    const actualBook = bookRes.book || bookRes;
+    const actualPrice = (actualBook.discountEnabled && actualBook.sellingPrice >= 0) ? actualBook.sellingPrice : actualBook.price;
+    const actualShipping = 25; // 0.5kg standard shipping rate
+    const expectedTotal = actualPrice + actualShipping;
+
+    // Create a confirmed order via pending order endpoint with honest pricing
     const orderPayload = {
       bookId: seededBookId,
       quantity: 1,
       deliveryMethod: 'courier',
       paymentType: 'cheque',
-      basePrice: 200,
-      courierCharge: 50,
-      totalAmount: 250,
+      basePrice: actualPrice,
+      courierCharge: actualShipping,
+      totalAmount: expectedTotal,
       itemType: 'book',
       deliveryAddress: {
         name: 'Rohan Sharma',
@@ -647,15 +654,19 @@ describe('Single Delivery & Billing Address Checkout Browser Verification', () =
   });
 
   test('i. Real server cart-courier flow through actual UI verifies stored order and invoice address', async () => {
+    const bookRes = await apiGet(`/api/books/${seededBookId}`);
+    const actualBook = bookRes.book || bookRes;
+    const actualPrice = (actualBook.discountEnabled && actualBook.sellingPrice >= 0) ? actualBook.sellingPrice : actualBook.price;
+
     const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-    await context.addInitScript(({ token, user, bookId }) => {
+    await context.addInitScript(({ token, user, bookId, bookPrice }) => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       const cartItem = {
         id: bookId,
         type: 'book',
         title: 'Real UI Test Book',
-        price: 150,
+        price: bookPrice,
         quantity: 1,
         weight: 0.5,
         image: ''
@@ -666,7 +677,7 @@ describe('Single Delivery & Billing Address Checkout Browser Verification', () =
         localStorage.setItem(`cart_${uId}`, JSON.stringify([cartItem]));
       }
       localStorage.setItem('deliveryMethod', 'home');
-    }, { token: studentToken, user: studentUser, bookId: seededBookId });
+    }, { token: studentToken, user: studentUser, bookId: seededBookId, bookPrice: actualPrice });
 
     const page = await context.newPage();
     page.on('dialog', async dialog => {

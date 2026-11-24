@@ -119,7 +119,7 @@ router.get("/check-payments/pending", authenticateToken, isAdmin, async (req, re
  */
 router.post("/", authenticateToken, async (req, res) => {
     try {
-        const { items, totalAmount, deliveryMethod, deliveryAddress } = req.body;
+        const { items, totalAmount, deliveryMethod, deliveryAddress, courierCharge } = req.body;
 
         if (!items || items.length === 0) {
             return res.status(400).json({ error: "No items in order" });
@@ -154,11 +154,11 @@ router.post("/", authenticateToken, async (req, res) => {
         const pricingResult = await calculateAuthoritativeOrder({
             items,
             deliveryMethod,
-            clientCourierCharge: 0,
+            clientCourierCharge: courierCharge,
             clientAmount: totalAmount
         });
 
-        if (!pricingResult.success && pricingResult.error !== 'Order amount mismatch') {
+        if (!pricingResult.success) {
             return res.status(400).json({ error: pricingResult.error, message: pricingResult.message || pricingResult.error });
         }
 
@@ -268,7 +268,7 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
             clientAmount: totalAmount
         });
 
-        if (!pricingResult.success && pricingResult.error !== 'Order amount mismatch') {
+        if (!pricingResult.success) {
             return res.status(400).json({ error: pricingResult.error, message: pricingResult.message || pricingResult.error });
         }
 
@@ -718,7 +718,7 @@ router.post("/create-cart-pending", authenticateToken, async (req, res) => {
             clientAmount: totalAmount
         });
 
-        if (!pricingResult.success && pricingResult.error !== 'Order amount mismatch') {
+        if (!pricingResult.success) {
             return res.status(400).json({ error: pricingResult.error, message: pricingResult.message || pricingResult.error });
         }
 

@@ -469,7 +469,7 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
     const res = await axios.post(
       `${baseUrl}/api/payments/create-order`,
       {
-        amount: 180,
+        amount: 175,
         items: [{
           id: String(testBook._id),
           title: testBook.title,
@@ -480,7 +480,7 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
         }],
         deliveryMethod: 'courier',
         deliveryAddress: customAddr,
-        courierCharge: 30
+        courierCharge: 25
       },
       { headers: { Authorization: `Bearer ${buyerToken}` } }
     );
@@ -814,7 +814,7 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
 
     // Valid address -> 200
     const successRes = await axios.post(`${baseUrl}/api/payments/create-order`, {
-      amount: 150,
+      amount: 175,
       items: [{
         id: String(testBook._id),
         title: testBook.title,
@@ -823,6 +823,7 @@ describe('Part (A): Courier Delivery Address Validation & Storage', () => {
         type: 'book'
       }],
       deliveryMethod: 'home',
+      courierCharge: 25,
       deliveryAddress: {
         name: 'Home Customer',
         phone: '9876543210',

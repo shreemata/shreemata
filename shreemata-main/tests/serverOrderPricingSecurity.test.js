@@ -33,6 +33,7 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const Book = require('../models/Book');
 const Bundle = require('../models/Bundle');
+const Note = require('../models/Note');
 const Notification = require('../models/Notification');
 const CommissionSettings = require('../models/CommissionSettings');
 
@@ -545,7 +546,7 @@ describe('STEP 3: Tampered Requests are Strictly Rejected (HTTP 400)', () => {
       throw new Error('Should have failed');
     } catch (err) {
       expect(err.response.status).toBe(400);
-      expect(err.response.data.error).toMatch(/courier charge/i);
+      expect(err.response.data.error).toMatch(/Order amount mismatch|courier charge/i);
     }
   });
 
@@ -832,5 +833,865 @@ describe('STEP 3: Post-Payment Verification & Webhook Amount Enforcement', () =>
     const completedOrder = await Order.findById(testOrder._id);
     expect(completedOrder.status).toBe('completed');
     expect(completedOrder.totalAmount).toBe(honestTotal);
+  });
+
+  // =========================================================================
+  // ROUND 2 - ITEM 1: Stock Check Regression in POST /create-order
+  // =========================================================================
+  describe('ROUND 2 - ITEM 1: Stock Check Regression in POST /create-order', () => {
+    let outOfStockBook;
+    let limitedStockBook;
+    let digitalNoStockBook;
+    let bundleOutOfStock;
+
+    beforeAll(async () => {
+      outOfStockBook = await Book.create({
+        title: 'Stock Check OOS Book',
+        author: 'Stock Author',
+        price: 150,
+        weight: 0.5,
+        trackStock: true,
+        stockStatus: 'out_of_stock',
+        stockQuantity: 0,
+        isDigital: false
+      });
+
+      limitedStockBook = await Book.create({
+        title: 'Stock Check Limited Book',
+        author: 'Stock Author',
+        price: 150,
+        weight: 0.5,
+        trackStock: true,
+        stockStatus: 'in_stock',
+        stockQuantity: 2,
+        isDigital: false
+      });
+
+      digitalNoStockBook = await Book.create({
+        title: 'Stock Check Digital Zero Stock',
+        author: 'Digital Author',
+        price: 120,
+        weight: 0,
+        trackStock: true,
+        stockQuantity: 0,
+        stockStatus: 'out_of_stock',
+        isDigital: true
+      });
+
+      bundleOutOfStock = await Bundle.create({
+        name: 'Bundle With OOS Book',
+        bundlePrice: 200,
+        originalPrice: 250,
+        weight: 0.5,
+        books: [outOfStockBook._id],
+        isDigital: false
+      });
+    });
+
+    test('1. Out-of-stock book is rejected with HTTP 400 Insufficient stock', async () => {
+      const orderCountBefore = await Order.countDocuments();
+      try {
+        await axios.post(
+          `${baseUrl}/api/payments/create-order`,
+          {
+            amount: 175, // 150 + 25 shipping
+            items: [{ id: String(outOfStockBook._id), type: 'book', quantity: 1 }],
+            deliveryMethod: 'courier',
+            deliveryAddress: defaultDeliveryAddress
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        throw new Error('Should have failed');
+      } catch (err) {
+        expect(err.response.status).toBe(400);
+        expect(err.response.data.error).toBe('Insufficient stock');
+        expect(err.response.data.outOfStockItem).toBeDefined();
+        expect(err.response.data.outOfStockItem.availableQuantity).toBe(0);
+      }
+      expect(await Order.countDocuments()).toBe(orderCountBefore);
+    });
+
+    test('2. Insufficient quantity is rejected with HTTP 400 Insufficient stock', async () => {
+      const orderCountBefore = await Order.countDocuments();
+      try {
+        await axios.post(
+          `${baseUrl}/api/payments/create-order`,
+          {
+            amount: 485, // 150 * 3 (450) + 35 shipping for 1.5kg
+            items: [{ id: String(limitedStockBook._id), type: 'book', quantity: 3 }],
+            deliveryMethod: 'courier',
+            deliveryAddress: defaultDeliveryAddress
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        throw new Error('Should have failed');
+      } catch (err) {
+        expect(err.response.status).toBe(400);
+        expect(err.response.data.error).toBe('Insufficient stock');
+        expect(err.response.data.outOfStockItem).toBeDefined();
+        expect(err.response.data.outOfStockItem.availableQuantity).toBe(2);
+      }
+      expect(await Order.countDocuments()).toBe(orderCountBefore);
+    });
+
+    test('3. Bundle with insufficient stock book is rejected with HTTP 400 Insufficient stock', async () => {
+      const orderCountBefore = await Order.countDocuments();
+      try {
+        await axios.post(
+          `${baseUrl}/api/payments/create-order`,
+          {
+            amount: 225, // 200 + 25 shipping
+            items: [{ id: String(bundleOutOfStock._id), type: 'bundle', quantity: 1 }],
+            deliveryMethod: 'courier',
+            deliveryAddress: defaultDeliveryAddress
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        throw new Error('Should have failed');
+      } catch (err) {
+        expect(err.response.status).toBe(400);
+        expect(err.response.data.error).toBe('Insufficient stock');
+        expect(err.response.data.outOfStockItem).toBeDefined();
+      }
+      expect(await Order.countDocuments()).toBe(orderCountBefore);
+    });
+
+    test('4. Digital item with no stock is accepted (stock tracking skipped)', async () => {
+      const res = await axios.post(
+        `${baseUrl}/api/payments/create-order`,
+        {
+          amount: 120,
+          items: [{ id: String(digitalNoStockBook._id), type: 'book', quantity: 1 }],
+          deliveryMethod: 'courier',
+          deliveryAddress: null
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+      expect(res.status).toBe(200);
+      expect(res.data.order).toBeDefined();
+    });
+
+    test('5. Exact stock available is accepted', async () => {
+      const res = await axios.post(
+        `${baseUrl}/api/payments/create-order`,
+        {
+          amount: 335, // 150 * 2 (300) + 35 shipping for 1.0kg
+          items: [{ id: String(limitedStockBook._id), type: 'book', quantity: 2 }],
+          deliveryMethod: 'courier',
+          deliveryAddress: defaultDeliveryAddress
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+      expect(res.status).toBe(200);
+      expect(res.data.order).toBeDefined();
+    });
+  });
+
+  // =========================================================================
+  // ROUND 2 - ITEM 2: Shipping Enforcements in orderPricingCalculator
+  // =========================================================================
+  describe('ROUND 2 - ITEM 2: Shipping Enforcements in orderPricingCalculator', () => {
+    test('1. Courier order with courierCharge omitted and amount = itemsTotal is rejected (400 amount mismatch)', async () => {
+      // bookA: price 200, weight 0.5kg -> server shipping is 25, expected total is 225
+      const itemsTotal = bookA.price; // 200
+      try {
+        await axios.post(
+          `${baseUrl}/api/payments/create-order`,
+          {
+            amount: itemsTotal, // 200 (omitting shipping 25)
+            items: [{ id: String(bookA._id), type: 'book', quantity: 1 }],
+            deliveryMethod: 'courier',
+            deliveryAddress: defaultDeliveryAddress
+            // courierCharge omitted
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        throw new Error('Should have failed');
+      } catch (err) {
+        expect(err.response.status).toBe(400);
+        expect(err.response.data.error).toBe('Order amount mismatch');
+      }
+    });
+
+    test('2. Courier order with the correct charge is accepted and stored courierCharge equals SERVER value', async () => {
+      const bookPrice = bookA.price; // 200
+      const serverShipping = 25; // 0.5kg
+      const correctTotal = bookPrice + serverShipping; // 225
+
+      const res = await axios.post(
+        `${baseUrl}/api/payments/create-order`,
+        {
+          amount: correctTotal,
+          items: [{ id: String(bookA._id), type: 'book', quantity: 1 }],
+          deliveryMethod: 'courier',
+          courierCharge: serverShipping,
+          deliveryAddress: defaultDeliveryAddress
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+
+      expect(res.status).toBe(200);
+      const rzpOrderId = res.data.order.id;
+      const savedOrder = await Order.findOne({ razorpay_order_id: rzpOrderId });
+      expect(savedOrder).toBeDefined();
+      expect(savedOrder.courierCharge).toBe(serverShipping);
+      expect(savedOrder.totalAmount).toBe(correctTotal);
+    });
+
+    test('3. Browser courierCharge higher than the server value is rejected (400 amount mismatch)', async () => {
+      const bookPrice = bookA.price; // 200
+      const serverShipping = 25;
+      const inflatedShipping = 50;
+      const tamperedTotal = bookPrice + inflatedShipping; // 250 instead of 225
+
+      try {
+        await axios.post(
+          `${baseUrl}/api/payments/create-order`,
+          {
+            amount: tamperedTotal,
+            items: [{ id: String(bookA._id), type: 'book', quantity: 1 }],
+            deliveryMethod: 'courier',
+            courierCharge: inflatedShipping,
+            deliveryAddress: defaultDeliveryAddress
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        throw new Error('Should have failed');
+      } catch (err) {
+        expect(err.response.status).toBe(400);
+        expect(err.response.data.error).toBe('Order amount mismatch');
+      }
+    });
+  });
+
+  // =========================================================================
+  // ROUND 2 - ITEM 3: The Other Order Routes Pricing & Tampering Protection
+  // =========================================================================
+  describe('ROUND 2 - ITEM 3: The Other Order Routes Pricing & Tampering Protection', () => {
+    // -----------------------------------------------------------------------
+    // Route 1: POST /api/orders
+    // -----------------------------------------------------------------------
+    describe('Route 1: POST /api/orders', () => {
+      test('1. Honest book: courier (with server charge) and pickup (charge 0)', async () => {
+        // Courier
+        const courierRes = await axios.post(
+          `${baseUrl}/api/orders`,
+          {
+            items: [{ id: String(bookA._id), type: 'book', quantity: 1 }],
+            deliveryMethod: 'courier',
+            courierCharge: 25,
+            totalAmount: 225,
+            deliveryAddress: defaultDeliveryAddress
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect([200, 201]).toContain(courierRes.status);
+        expect(courierRes.data.order.totalAmount).toBe(225);
+        expect(courierRes.data.order.courierCharge).toBe(25);
+
+        // Pickup
+        const pickupRes = await axios.post(
+          `${baseUrl}/api/orders`,
+          {
+            items: [{ id: String(bookA._id), type: 'book', quantity: 1 }],
+            deliveryMethod: 'pickup',
+            totalAmount: 200
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect([200, 201]).toContain(pickupRes.status);
+        expect(pickupRes.data.order.totalAmount).toBe(200);
+        expect(pickupRes.data.order.courierCharge).toBe(0);
+      });
+
+      test('2. Honest bundle: courier and pickup', async () => {
+        // bundleA: 450, weight 1.3kg -> shipping 35 -> 485
+        const courierRes = await axios.post(
+          `${baseUrl}/api/orders`,
+          {
+            items: [{ id: String(bundleA._id), type: 'bundle', quantity: 1 }],
+            deliveryMethod: 'courier',
+            courierCharge: 35,
+            totalAmount: 485,
+            deliveryAddress: defaultDeliveryAddress
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect([200, 201]).toContain(courierRes.status);
+        expect(courierRes.data.order.totalAmount).toBe(485);
+      });
+
+      test('3. Honest cart with book and bundle (pickup and courier)', async () => {
+        // bookA (200, 0.5kg) + bundleA (450, 1.3kg) = 650, weight 1.8kg -> shipping 35
+        const courierRes = await axios.post(
+          `${baseUrl}/api/orders`,
+          {
+            items: [
+              { id: String(bookA._id), type: 'book', quantity: 1 },
+              { id: String(bundleA._id), type: 'bundle', quantity: 1 }
+            ],
+            deliveryMethod: 'courier',
+            courierCharge: 35,
+            totalAmount: 685,
+            deliveryAddress: defaultDeliveryAddress
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect([200, 201]).toContain(courierRes.status);
+        expect(courierRes.data.order.totalAmount).toBe(685);
+
+        // Pickup
+        const pickupRes = await axios.post(
+          `${baseUrl}/api/orders`,
+          {
+            items: [
+              { id: String(bookA._id), type: 'book', quantity: 1 },
+              { id: String(bundleA._id), type: 'bundle', quantity: 1 }
+            ],
+            deliveryMethod: 'pickup',
+            totalAmount: 650
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect([200, 201]).toContain(pickupRes.status);
+        expect(pickupRes.data.order.totalAmount).toBe(650);
+      });
+
+      test('4. Tampered totalAmount is rejected with 400 and no order document is created', async () => {
+        const orderCountBefore = await Order.countDocuments();
+        try {
+          await axios.post(
+            `${baseUrl}/api/orders`,
+            {
+              items: [{ id: String(bookA._id), type: 'book', quantity: 1 }],
+              deliveryMethod: 'pickup',
+              totalAmount: 1 // Underpayment tamper: 1 instead of 200
+            },
+            { headers: { Authorization: `Bearer ${buyerToken}` } }
+          );
+          throw new Error('Should have failed');
+        } catch (err) {
+          expect(err.response.status).toBe(400);
+          expect(err.response.data.error).toBe('Order amount mismatch');
+        }
+        expect(await Order.countDocuments()).toBe(orderCountBefore);
+      });
+
+      test('5. Tampered item price is ignored and DB price is enforced', async () => {
+        // Pass forged price 5 inside item, but honest totalAmount 200 for pickup
+        const res = await axios.post(
+          `${baseUrl}/api/orders`,
+          {
+            items: [{ id: String(bookA._id), type: 'book', price: 5, quantity: 1 }],
+            deliveryMethod: 'pickup',
+            totalAmount: 200
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect([200, 201]).toContain(res.status);
+        expect(res.data.order.items[0].price).toBe(200); // DB price enforced
+      });
+
+      test('6. Unknown item is rejected with 400 and no order is created', async () => {
+        const orderCountBefore = await Order.countDocuments();
+        const fakeId = new mongoose.Types.ObjectId().toString();
+        try {
+          await axios.post(
+            `${baseUrl}/api/orders`,
+            {
+              items: [{ id: fakeId, type: 'book', quantity: 1 }],
+              deliveryMethod: 'pickup',
+              totalAmount: 200
+            },
+            { headers: { Authorization: `Bearer ${buyerToken}` } }
+          );
+          throw new Error('Should have failed');
+        } catch (err) {
+          expect(err.response.status).toBe(400);
+        }
+        expect(await Order.countDocuments()).toBe(orderCountBefore);
+      });
+
+      test('7. Quantity 0 is rejected with 400 and no order is created', async () => {
+        const orderCountBefore = await Order.countDocuments();
+        try {
+          await axios.post(
+            `${baseUrl}/api/orders`,
+            {
+              items: [{ id: String(bookA._id), type: 'book', quantity: 0 }],
+              deliveryMethod: 'pickup',
+              totalAmount: 200
+            },
+            { headers: { Authorization: `Bearer ${buyerToken}` } }
+          );
+          throw new Error('Should have failed');
+        } catch (err) {
+          expect(err.response.status).toBe(400);
+        }
+        expect(await Order.countDocuments()).toBe(orderCountBefore);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    // Route 2: POST /api/orders/create-pending
+    // -----------------------------------------------------------------------
+    describe('Route 2: POST /api/orders/create-pending', () => {
+      test('1. Honest book: courier and pickup', async () => {
+        // Courier
+        const courierRes = await axios.post(
+          `${baseUrl}/api/orders/create-pending`,
+          {
+            bookId: String(bookA._id),
+            itemType: 'book',
+            quantity: 1,
+            paymentType: 'cheque',
+            deliveryMethod: 'courier',
+            courierCharge: 25,
+            totalAmount: 225,
+            deliveryAddress: defaultDeliveryAddress
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect(courierRes.status).toBe(200);
+        expect(courierRes.data.orderId).toBeDefined();
+
+        const savedOrder = await Order.findById(courierRes.data.orderId);
+        expect(savedOrder.totalAmount).toBe(225);
+        expect(savedOrder.courierCharge).toBe(25);
+
+        // Pickup
+        const pickupRes = await axios.post(
+          `${baseUrl}/api/orders/create-pending`,
+          {
+            bookId: String(bookA._id),
+            itemType: 'book',
+            quantity: 1,
+            paymentType: 'transfer',
+            deliveryMethod: 'pickup',
+            totalAmount: 200
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect(pickupRes.status).toBe(200);
+      });
+
+      test('2. Honest bundle: courier and pickup', async () => {
+        const courierRes = await axios.post(
+          `${baseUrl}/api/orders/create-pending`,
+          {
+            bookId: String(bundleA._id),
+            itemType: 'bundle',
+            quantity: 1,
+            paymentType: 'cheque',
+            deliveryMethod: 'courier',
+            courierCharge: 35,
+            totalAmount: 485,
+            deliveryAddress: defaultDeliveryAddress
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect(courierRes.status).toBe(200);
+        const savedOrder = await Order.findById(courierRes.data.orderId);
+        expect(savedOrder.totalAmount).toBe(485);
+      });
+
+      test('3. Tampered totalAmount is rejected with 400 and no order created', async () => {
+        const orderCountBefore = await Order.countDocuments();
+        try {
+          await axios.post(
+            `${baseUrl}/api/orders/create-pending`,
+            {
+              bookId: String(bookA._id),
+              itemType: 'book',
+              quantity: 1,
+              paymentType: 'cheque',
+              deliveryMethod: 'pickup',
+              totalAmount: 1
+            },
+            { headers: { Authorization: `Bearer ${buyerToken}` } }
+          );
+          throw new Error('Should have failed');
+        } catch (err) {
+          expect(err.response.status).toBe(400);
+          expect(err.response.data.error).toBe('Order amount mismatch');
+        }
+        expect(await Order.countDocuments()).toBe(orderCountBefore);
+      });
+
+      test('4. Tampered item basePrice is ignored and DB price is enforced', async () => {
+        const res = await axios.post(
+          `${baseUrl}/api/orders/create-pending`,
+          {
+            bookId: String(bookA._id),
+            itemType: 'book',
+            basePrice: 10, // forged
+            quantity: 1,
+            paymentType: 'transfer',
+            deliveryMethod: 'pickup',
+            totalAmount: 200 // honest DB total
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect(res.status).toBe(200);
+        const savedOrder = await Order.findById(res.data.orderId);
+        expect(savedOrder.items[0].price).toBe(200);
+      });
+
+      test('5. Unknown item is rejected with 400 and no order created', async () => {
+        const orderCountBefore = await Order.countDocuments();
+        const fakeId = new mongoose.Types.ObjectId().toString();
+        try {
+          await axios.post(
+            `${baseUrl}/api/orders/create-pending`,
+            {
+              bookId: fakeId,
+              itemType: 'book',
+              quantity: 1,
+              paymentType: 'cheque',
+              deliveryMethod: 'pickup',
+              totalAmount: 200
+            },
+            { headers: { Authorization: `Bearer ${buyerToken}` } }
+          );
+          throw new Error('Should have failed');
+        } catch (err) {
+          expect(err.response.status).toBe(400);
+        }
+        expect(await Order.countDocuments()).toBe(orderCountBefore);
+      });
+
+      test('6. Quantity 0 is rejected with 400 and no order created', async () => {
+        const orderCountBefore = await Order.countDocuments();
+        try {
+          await axios.post(
+            `${baseUrl}/api/orders/create-pending`,
+            {
+              bookId: String(bookA._id),
+              itemType: 'book',
+              quantity: 0,
+              paymentType: 'cheque',
+              deliveryMethod: 'pickup',
+              totalAmount: 200
+            },
+            { headers: { Authorization: `Bearer ${buyerToken}` } }
+          );
+          throw new Error('Should have failed');
+        } catch (err) {
+          expect(err.response.status).toBe(400);
+        }
+        expect(await Order.countDocuments()).toBe(orderCountBefore);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    // Route 3: POST /api/orders/create-cart-pending
+    // -----------------------------------------------------------------------
+    describe('Route 3: POST /api/orders/create-cart-pending', () => {
+      test('1. Honest book: courier and pickup', async () => {
+        // Courier
+        const courierRes = await axios.post(
+          `${baseUrl}/api/orders/create-cart-pending`,
+          {
+            cartItems: [{ id: String(bookA._id), type: 'book', quantity: 1 }],
+            paymentType: 'cheque',
+            deliveryMethod: 'courier',
+            courierCharge: 25,
+            totalAmount: 225,
+            deliveryAddress: defaultDeliveryAddress
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect(courierRes.status).toBe(200);
+        expect(courierRes.data.orderId).toBeDefined();
+
+        const savedOrder = await Order.findById(courierRes.data.orderId);
+        expect(savedOrder.totalAmount).toBe(225);
+        expect(savedOrder.courierCharge).toBe(25);
+
+        // Pickup
+        const pickupRes = await axios.post(
+          `${baseUrl}/api/orders/create-cart-pending`,
+          {
+            cartItems: [{ id: String(bookA._id), type: 'book', quantity: 1 }],
+            paymentType: 'transfer',
+            deliveryMethod: 'pickup',
+            totalAmount: 200
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect(pickupRes.status).toBe(200);
+      });
+
+      test('2. Honest bundle: courier and pickup', async () => {
+        const courierRes = await axios.post(
+          `${baseUrl}/api/orders/create-cart-pending`,
+          {
+            cartItems: [{ id: String(bundleA._id), type: 'bundle', quantity: 1 }],
+            paymentType: 'cheque',
+            deliveryMethod: 'courier',
+            courierCharge: 35,
+            totalAmount: 485,
+            deliveryAddress: defaultDeliveryAddress
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect(courierRes.status).toBe(200);
+        const savedOrder = await Order.findById(courierRes.data.orderId);
+        expect(savedOrder.totalAmount).toBe(485);
+      });
+
+      test('3. Honest cart with book and bundle (pickup and courier)', async () => {
+        // bookA (200, 0.5kg) + bundleA (450, 1.3kg) = 650, weight 1.8kg -> shipping 35
+        const courierRes = await axios.post(
+          `${baseUrl}/api/orders/create-cart-pending`,
+          {
+            cartItems: [
+              { id: String(bookA._id), type: 'book', quantity: 1 },
+              { id: String(bundleA._id), type: 'bundle', quantity: 1 }
+            ],
+            paymentType: 'cheque',
+            deliveryMethod: 'courier',
+            courierCharge: 35,
+            totalAmount: 685,
+            deliveryAddress: defaultDeliveryAddress
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect(courierRes.status).toBe(200);
+        const savedOrder = await Order.findById(courierRes.data.orderId);
+        expect(savedOrder.totalAmount).toBe(685);
+
+        // Pickup
+        const pickupRes = await axios.post(
+          `${baseUrl}/api/orders/create-cart-pending`,
+          {
+            cartItems: [
+              { id: String(bookA._id), type: 'book', quantity: 1 },
+              { id: String(bundleA._id), type: 'bundle', quantity: 1 }
+            ],
+            paymentType: 'transfer',
+            deliveryMethod: 'pickup',
+            totalAmount: 650
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect(pickupRes.status).toBe(200);
+      });
+
+      test('4. Tampered totalAmount is rejected with 400 and no order created', async () => {
+        const orderCountBefore = await Order.countDocuments();
+        try {
+          await axios.post(
+            `${baseUrl}/api/orders/create-cart-pending`,
+            {
+              cartItems: [{ id: String(bookA._id), type: 'book', quantity: 1 }],
+              paymentType: 'cheque',
+              deliveryMethod: 'pickup',
+              totalAmount: 1
+            },
+            { headers: { Authorization: `Bearer ${buyerToken}` } }
+          );
+          throw new Error('Should have failed');
+        } catch (err) {
+          expect(err.response.status).toBe(400);
+          expect(err.response.data.error).toBe('Order amount mismatch');
+        }
+        expect(await Order.countDocuments()).toBe(orderCountBefore);
+      });
+
+      test('5. Tampered item price is ignored and DB price is enforced', async () => {
+        const res = await axios.post(
+          `${baseUrl}/api/orders/create-cart-pending`,
+          {
+            cartItems: [{ id: String(bookA._id), type: 'book', price: 10, quantity: 1 }],
+            paymentType: 'cheque',
+            deliveryMethod: 'pickup',
+            totalAmount: 200
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        expect(res.status).toBe(200);
+        const savedOrder = await Order.findById(res.data.orderId);
+        expect(savedOrder.items[0].price).toBe(200);
+      });
+
+      test('6. Unknown item is rejected with 400 and no order created', async () => {
+        const orderCountBefore = await Order.countDocuments();
+        const fakeId = new mongoose.Types.ObjectId().toString();
+        try {
+          await axios.post(
+            `${baseUrl}/api/orders/create-cart-pending`,
+            {
+              cartItems: [{ id: fakeId, type: 'book', quantity: 1 }],
+              paymentType: 'cheque',
+              deliveryMethod: 'pickup',
+              totalAmount: 200
+            },
+            { headers: { Authorization: `Bearer ${buyerToken}` } }
+          );
+          throw new Error('Should have failed');
+        } catch (err) {
+          expect(err.response.status).toBe(400);
+        }
+        expect(await Order.countDocuments()).toBe(orderCountBefore);
+      });
+
+      test('7. Quantity 0 is rejected with 400 and no order created', async () => {
+        const orderCountBefore = await Order.countDocuments();
+        try {
+          await axios.post(
+            `${baseUrl}/api/orders/create-cart-pending`,
+            {
+              cartItems: [{ id: String(bookA._id), type: 'book', quantity: 0 }],
+              paymentType: 'cheque',
+              deliveryMethod: 'pickup',
+              totalAmount: 200
+            },
+            { headers: { Authorization: `Bearer ${buyerToken}` } }
+          );
+          throw new Error('Should have failed');
+        } catch (err) {
+          expect(err.response.status).toBe(400);
+        }
+        expect(await Order.countDocuments()).toBe(orderCountBefore);
+      });
+    });
+  });
+
+  // =========================================================================
+  // ROUND 2 - ITEM 4: Notes Database Pricing Enforcement
+  // =========================================================================
+  describe('ROUND 2 - ITEM 4: Notes Database Pricing Enforcement', () => {
+    let noteWithDbPrice;
+    let noteWithoutPrice;
+
+    beforeAll(async () => {
+      noteWithDbPrice = await Note.create({
+        title: 'Security Physics Notes With DB Price',
+        section: 'notes',
+        subject: 'Physics',
+        classLevel: '12',
+        pdfUrl: 'private/notes/phys12.pdf',
+        price: 75
+      });
+
+      noteWithoutPrice = await Note.create({
+        title: 'Security Chemistry Notes Without DB Price',
+        section: 'notes',
+        subject: 'Chemistry',
+        classLevel: '12',
+        pdfUrl: 'private/notes/chem12.pdf'
+        // price not provided
+      });
+    });
+
+    test('1. Note with valid database price is accepted using the DB price', async () => {
+      const res = await axios.post(
+        `${baseUrl}/api/payments/create-order`,
+        {
+          amount: 75,
+          items: [{ id: String(noteWithDbPrice._id), type: 'notes', quantity: 1 }],
+          deliveryMethod: 'courier',
+          deliveryAddress: null
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+      expect(res.status).toBe(200);
+      expect(res.data.order).toBeDefined();
+
+      const savedOrder = await Order.findOne({ razorpay_order_id: res.data.order.id });
+      expect(savedOrder.items[0].price).toBe(75);
+      expect(savedOrder.totalAmount).toBe(75);
+    });
+
+    test('2. Note with missing or invalid database price is rejected with HTTP 400', async () => {
+      const orderCountBefore = await Order.countDocuments();
+      try {
+        await axios.post(
+          `${baseUrl}/api/payments/create-order`,
+          {
+            amount: 50, // client sends amount and forged item price
+            items: [{ id: String(noteWithoutPrice._id), type: 'notes', price: 50, quantity: 1 }],
+            deliveryMethod: 'courier',
+            deliveryAddress: null
+          },
+          { headers: { Authorization: `Bearer ${buyerToken}` } }
+        );
+        throw new Error('Should have failed');
+      } catch (err) {
+        expect(err.response.status).toBe(400);
+        expect(err.response.data.error).toBe('Invalid note price');
+      }
+      expect(await Order.countDocuments()).toBe(orderCountBefore);
+    });
+  });
+
+  // =========================================================================
+  // ROUND 2 - ITEM 5: /verify Razorpay Fetch Throw Resilience
+  // =========================================================================
+  describe('ROUND 2 - ITEM 5: /verify Razorpay Fetch Throw Resilience', () => {
+    test('When razorpay.payments.fetch throws, /verify logs with console.error, fails open, and finalizes with stored order.totalAmount', async () => {
+      const honestTotal = 225;
+      const rzpOrderId = `order_fetch_err_${Date.now()}`;
+      const testOrder = await Order.create({
+        user_id: buyerUser._id,
+        items: [{
+          id: String(bookA._id),
+          title: bookA.title,
+          price: 200,
+          quantity: 1,
+          type: 'book',
+          isDigital: false
+        }],
+        totalAmount: honestTotal,
+        courierCharge: 25,
+        deliveryMethod: 'courier',
+        deliveryAddress: defaultDeliveryAddress,
+        status: 'pending',
+        razorpay_order_id: rzpOrderId,
+        rewardApplied: false
+      });
+
+      const Razorpay = require('razorpay');
+      const rzpInstance = Razorpay.mock.results[0]?.value;
+      if (rzpInstance && rzpInstance.payments && rzpInstance.payments.fetch) {
+        rzpInstance.payments.fetch.mockRejectedValueOnce(new Error('Simulated Razorpay Network Gateway Timeout'));
+      }
+
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      const paymentId = `pay_fetch_err_${Date.now()}`;
+      const validSig = crypto
+        .createHmac('sha256', RZP_SECRET)
+        .update(rzpOrderId + '|' + paymentId)
+        .digest('hex');
+
+      const res = await axios.post(
+        `${baseUrl}/api/payments/verify`,
+        {
+          razorpay_order_id: rzpOrderId,
+          razorpay_payment_id: paymentId,
+          razorpay_signature: validSig,
+          totalAmount: honestTotal
+        },
+        { headers: { Authorization: `Bearer ${buyerToken}` } }
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.data.success).toBe(true);
+
+      // Verify that console.error was called for the fetch error
+      const fetchErrorLogged = consoleErrorSpy.mock.calls.some(call =>
+        call.some(arg => typeof arg === 'string' && (arg.includes('Payment fetch check error') || arg.includes('Simulated Razorpay')))
+      );
+      expect(fetchErrorLogged).toBe(true);
+
+      // Confirm stored order.totalAmount was finalized
+      const completedOrder = await Order.findById(testOrder._id);
+      expect(completedOrder.status).toBe('completed');
+      expect(completedOrder.totalAmount).toBe(honestTotal);
+
+      consoleErrorSpy.mockRestore();
+    });
   });
 });

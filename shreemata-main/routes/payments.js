@@ -213,57 +213,61 @@ router.post("/create-order", authenticateToken, async (req, res) => {
     const Book = require("../models/Book");
     const Bundle = require("../models/Bundle");
     
-    for (const item of items) {
+    for (const serverItem of processedItems) {
       try {
-        const details = await getAuthoritativeItemDetails(item);
-        if (!details.found) {
-          return res.status(400).json({
-            error: "Item not found",
-            message: `The item "${item.title || item.id}" is no longer available or could not be found`
-          });
-        }
-
         // Skip stock validation for digital items
-        if (details.isDigital) {
-          console.log(`📱 Skipping stock validation for digital item: ${item.title}`);
+        if (serverItem.isDigital) {
+          console.log(`📱 Skipping stock validation for digital item: ${serverItem.title}`);
           continue;
         }
 
-        if (details.kind === 'book') {
-          const book = details.entity;
-          // Check stock availability
-          if (book.trackStock) {
-            if (book.stockStatus === 'out_of_stock' || (typeof book.stockQuantity === 'number' && book.stockQuantity < item.quantity)) {
+        if (serverItem.type === 'book') {
+          const book = await Book.findById(serverItem.id);
+          if (book && book.trackStock) {
+            if (book.stockStatus === 'out_of_stock' || (typeof book.stockQuantity === 'number' && book.stockQuantity < serverItem.quantity)) {
               return res.status(400).json({ 
                 error: "Insufficient stock",
                 message: `Sorry, "${book.title}" is ${book.stockStatus === 'out_of_stock' ? 'out of stock' : `only available in quantity of ${book.stockQuantity}`}. Please update your cart.`,
+                details: {
+                  id: book._id,
+                  title: book.title,
+                  availableQuantity: book.stockQuantity,
+                  requestedQuantity: serverItem.quantity
+                },
                 outOfStockItem: {
                   id: book._id,
                   title: book.title,
                   availableQuantity: book.stockQuantity,
-                  requestedQuantity: item.quantity
+                  requestedQuantity: serverItem.quantity
                 }
               });
             }
           }
-        } else if (details.kind === 'bundle') {
-          const bundle = details.entity;
-          // Check stock for each book in the bundle
-          if (bundle.books) {
+        } else if (serverItem.type === 'bundle') {
+          const bundle = await Bundle.findById(serverItem.id);
+          if (bundle && bundle.books) {
             for (const bundleBook of bundle.books) {
-              const book = await Book.findById(bundleBook._id || bundleBook.id);
+              const book = await Book.findById(bundleBook._id || bundleBook.id || bundleBook);
               if (book && book.trackStock) {
-                if (book.stockStatus === 'out_of_stock' || (typeof book.stockQuantity === 'number' && book.stockQuantity < item.quantity)) {
+                if (book.stockStatus === 'out_of_stock' || (typeof book.stockQuantity === 'number' && book.stockQuantity < serverItem.quantity)) {
                   return res.status(400).json({ 
-                    error: "Insufficient stock in bundle",
-                    message: `Sorry, the book "${book.title}" in bundle "${bundle.title || bundle.name}" is ${book.stockStatus === 'out_of_stock' ? 'out of stock' : `only available in quantity of ${book.stockQuantity}`}. Please update your cart.`,
-                    outOfStockItem: {
+                    error: "Insufficient stock",
+                    message: `Sorry, the book "${book.title}" in bundle "${bundle.name || bundle.title}" is ${book.stockStatus === 'out_of_stock' ? 'out of stock' : `only available in quantity of ${book.stockQuantity}`}. Please update your cart.`,
+                    details: {
                       bundleId: bundle._id,
-                      bundleTitle: bundle.title || bundle.name,
+                      bundleTitle: bundle.name || bundle.title,
                       bookId: book._id,
                       bookTitle: book.title,
                       availableQuantity: book.stockQuantity,
-                      requestedQuantity: item.quantity
+                      requestedQuantity: serverItem.quantity
+                    },
+                    outOfStockItem: {
+                      bundleId: bundle._id,
+                      bundleTitle: bundle.name || bundle.title,
+                      bookId: book._id,
+                      bookTitle: book.title,
+                      availableQuantity: book.stockQuantity,
+                      requestedQuantity: serverItem.quantity
                     }
                   });
                 }
@@ -272,7 +276,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
           }
         }
       } catch (stockError) {
-        console.error(`❌ Error validating stock for item ${item.id}:`, stockError);
+        console.error(`❌ Error validating stock for item ${serverItem.id}:`, stockError);
         return res.status(500).json({ 
           error: "Stock validation failed",
           message: "Unable to verify stock availability. Please try again."
@@ -519,7 +523,7 @@ router.post("/verify", authenticateToken, async (req, res) => {
         }
       }
     } catch (fetchErr) {
-      console.log("Payment fetch check note:", fetchErr.message);
+      console.error("Payment fetch check error in /verify:", fetchErr.message);
     }
 
     // Execute shared, idempotent order finalization (with async background emails for rapid popup response)

@@ -141,6 +141,10 @@ const noteSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  price: {
+    type: Number,
+    min: [0, 'price cannot be negative']
+  },
   viewCount: {
     type: Number,
     default: 0,
