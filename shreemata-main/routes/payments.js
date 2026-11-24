@@ -613,9 +613,9 @@ router.post("/cancel", authenticateToken, async (req, res) => {
 // =====================================================
 // 2.6️⃣ CLEANUP ABANDONED ORDERS
 // =====================================================
-router.post("/cleanup-abandoned", async (req, res) => {
+router.post("/cleanup-abandoned", authenticateToken, isAdmin, async (req, res) => {
   try {
-    // Find orders that are pending for more than 1 hour
+    // Find online orders that are pending for more than 1 hour
     const oneHourAgo = new Date();
     oneHourAgo.setHours(oneHourAgo.getHours() - 1);
 
@@ -623,7 +623,11 @@ router.post("/cleanup-abandoned", async (req, res) => {
       {
         status: "pending",
         createdAt: { $lt: oneHourAgo },
-        rewardApplied: false
+        rewardApplied: false,
+        paymentType: { $nin: ["check", "cheque", "transfer"] },
+        "paymentDetails.type": { $nin: ["check", "cheque", "transfer"] },
+        "paymentDetails.status": { $nin: ["pending_verification", "verified"] },
+        razorpay_order_id: { $exists: true, $ne: null, $ne: "" }
       },
       {
         status: "abandoned",
@@ -814,126 +818,196 @@ router.post("/test-cashback", authenticateToken, async (req, res) => {
 });
 
 // =====================================================
-// 🔄 CHEQUE PAYMENT WEBHOOK (Google Form Submission)
+// 🔄 GOOGLE FORM WEBHOOK HARDENING HELPERS
 // =====================================================
-router.post("/webhook/cheque-payment-submitted", async (req, res) => {
+let formWebhookSecretWarned = false;
+
+function verifyFormWebhookSecret(req) {
+  const secretEnv = (process.env.FORM_WEBHOOK_SECRET || '').trim();
+  if (!secretEnv) {
+    if (!formWebhookSecretWarned) {
+      console.warn("⚠️ [SECURITY WARNING] FORM_WEBHOOK_SECRET is not configured! Google Form webhooks are currently unauthenticated.");
+      formWebhookSecretWarned = true;
+    }
+    return { ok: true };
+  }
+
+  const provided = (req.headers["x-webhook-secret"] || (req.body && req.body.secret) || "").trim();
+  if (!provided) {
+    return { ok: false, error: "Missing webhook secret" };
+  }
+
+  const secretBuf = Buffer.from(secretEnv, "utf8");
+  const providedBuf = Buffer.from(provided, "utf8");
+
+  if (secretBuf.length !== providedBuf.length || !crypto.timingSafeEqual(secretBuf, providedBuf)) {
+    return { ok: false, error: "Invalid webhook secret" };
+  }
+
+  return { ok: true };
+}
+
+const ALLOWED_WEBHOOK_URL_HOSTS = new Set([
+  'drive.google.com',
+  'docs.google.com',
+  'drive.usercontent.google.com',
+  'lh3.googleusercontent.com',
+  'res.cloudinary.com'
+]);
+
+function sanitizeWebhookString(val, maxLen = 100) {
+  if (val === null || val === undefined) return '';
+  const str = String(val);
+  return str
+    .replace(/[<>]/g, '')
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+    .trim()
+    .slice(0, maxLen);
+}
+
+function validateWebhookUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return { valid: true, url: '' };
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return { valid: true, url: '' };
   try {
-    console.log("📝 Cheque payment form submitted - RAW BODY:", JSON.stringify(req.body, null, 2));
-    
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'https:') {
+      return { valid: false, error: 'Only HTTPS URLs are allowed' };
+    }
+    const host = parsed.hostname.toLowerCase();
+    if (!ALLOWED_WEBHOOK_URL_HOSTS.has(host)) {
+      return { valid: false, error: `URL host '${host}' is not permitted` };
+    }
+    return { valid: true, url: trimmed };
+  } catch (err) {
+    return { valid: false, error: 'Invalid URL format' };
+  }
+}
+
+async function handleChequePaymentSubmission(req, res, isLegacy = false) {
+  try {
+    const secretCheck = verifyFormWebhookSecret(req);
+    if (!secretCheck.ok) {
+      return res.status(401).json({ error: secretCheck.error });
+    }
+
     const { 
       orderId, 
       chequeNumber, 
+      checkNumber,
       bankName, 
       chequeDate, 
+      checkDate,
       utrNumber, 
       formResponseId,
       driveFileIds,
       chequeImageUrl,
+      checkImageUrl,
       chequeImageDriveId,
-      allResponses,  // Add this field
-      paymentType    // Add this field to detect cheque vs transfer
-    } = req.body;
+      checkImageDriveId,
+      allResponses,
+      paymentType 
+    } = req.body || {};
 
-    console.log("🔍 Extracted fields:");
-    console.log("  orderId:", orderId);
-    console.log("  paymentType:", paymentType);
-    console.log("  checkImageUrl:", checkImageUrl);
-    console.log("  checkImageDriveId:", checkImageDriveId);
-    console.log("  driveFileIds:", driveFileIds);
-    console.log("  formResponseId:", formResponseId);
-    console.log("  allResponses:", allResponses ? 'Present' : 'Missing');
-
-    if (!orderId) {
-      return res.status(400).json({ error: "Order ID is required" });
-    }
-
-    // Validate ObjectId format
-    const mongoose = require('mongoose');
-    if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      console.log(`❌ Invalid ObjectId format: "${orderId}"`);
+    if (!orderId || typeof orderId !== 'string' || !/^[0-9a-fA-F]{24}$/.test(orderId.trim())) {
       return res.status(400).json({ 
         error: "Invalid Order ID format", 
-        message: "Order ID must be a valid MongoDB ObjectId",
-        receivedOrderId: orderId,
-        expectedFormat: "24-character hex string (e.g., 507f1f77bcf86cd799439011)"
+        message: "Order ID must be a 24-character hex string (e.g., 507f1f77bcf86cd799439011)"
       });
     }
 
-    // Update order with cheque payment details including image URLs
-    const updateData = {
-      'paymentDetails.status': 'pending_verification',
-      'paymentDetails.chequeNumber': chequeNumber,
-      'paymentDetails.bankName': bankName,
-      'paymentDetails.chequeDate': chequeDate ? new Date(chequeDate) : null,
-      'paymentDetails.utrNumber': utrNumber,
-      'paymentDetails.googleFormSubmissionId': formResponseId,
-      'paymentDetails.updatedAt': new Date()
-    };
-
-    // Update payment type if provided (for unified form handling)
-    if (paymentType && (paymentType === 'check' || paymentType === 'cheque' || paymentType === 'transfer')) {
-      updateData['paymentType'] = paymentType;
-      updateData['paymentDetails.type'] = paymentType;
-      console.log('💾 ✅ Updated payment type to:', paymentType);
-    }
-
-    // Add image URLs if provided - with detailed logging
-    if (chequeImageUrl) {
-      updateData['paymentDetails.chequeImageUrl'] = chequeImageUrl;
-      console.log('💾 ✅ Saving chequeImageUrl:', chequeImageUrl);
-    } else {
-      console.log('💾 ❌ No chequeImageUrl provided');
-    }
-    
-    if (chequeImageDriveId) {
-      updateData['paymentDetails.chequeImageDriveId'] = chequeImageDriveId;
-      console.log('💾 ✅ Saving chequeImageDriveId:', chequeImageDriveId);
-    } else {
-      console.log('💾 ❌ No chequeImageDriveId provided');
-    }
-    
-    if (driveFileIds && Array.isArray(driveFileIds) && driveFileIds.length > 0) {
-      updateData['paymentDetails.driveFileIds'] = driveFileIds;
-      console.log('💾 ✅ Saving driveFileIds:', driveFileIds);
-    } else {
-      console.log('💾 ❌ No driveFileIds provided or empty array');
-    }
-
-    // Add form responses data
-    if (allResponses && typeof allResponses === 'object') {
-      updateData['allResponses'] = allResponses;
-      console.log('💾 ✅ Saving allResponses:', Object.keys(allResponses).length, 'fields');
-    } else {
-      console.log('💾 ❌ No allResponses provided');
-    }
-
-    console.log('💾 Complete updateData being sent to MongoDB:', JSON.stringify(updateData, null, 2));
-
-    const order = await Order.findByIdAndUpdate(orderId, updateData, { new: true });
-
+    const cleanOrderId = orderId.trim();
+    const order = await Order.findById(cleanOrderId);
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    console.log('✅ Order updated successfully');
-    console.log('🔍 Final paymentDetails in database:', JSON.stringify(order.paymentDetails, null, 2));
-    console.log('🔍 Final allResponses in database:', order.allResponses ? 'Present' : 'Missing');
-
-    // Send notification to admin (optional)
-    try {
-      const user = await User.findById(order.user_id);
-      if (user) {
-        console.log(`📧 Cheque payment submitted by ${user.name} for order ${orderId}`);
-        // You can send admin notification email here
-      }
-    } catch (emailError) {
-      console.error("Error sending admin notification:", emailError);
+    const isCheque = order.paymentType === 'cheque' || order.paymentType === 'check' || order.paymentDetails?.type === 'cheque' || order.paymentDetails?.type === 'check';
+    if (!isCheque) {
+      return res.status(400).json({ error: "Payment method mismatch: order is not a cheque order" });
     }
+
+    const blockedOrderStatuses = ['completed', 'cancelled', 'failed'];
+    const blockedPaymentStatuses = ['pending_verification', 'verified', 'completed', 'cancelled'];
+    if (blockedOrderStatuses.includes(order.status) || blockedPaymentStatuses.includes(order.paymentDetails?.status)) {
+      return res.status(400).json({ 
+        error: "Order is already verified or pending verification",
+        orderStatus: order.status,
+        paymentStatus: order.paymentDetails?.status
+      });
+    }
+
+    const rawImageUrl = chequeImageUrl || checkImageUrl;
+    const validatedImage = validateWebhookUrl(rawImageUrl);
+    if (!validatedImage.valid) {
+      return res.status(400).json({ error: validatedImage.error });
+    }
+
+    const cNum = sanitizeWebhookString(chequeNumber || checkNumber, 50);
+    const rawDate = chequeDate || checkDate;
+    const parsedDate = rawDate && !isNaN(new Date(rawDate).getTime()) ? new Date(rawDate) : null;
+    const cDriveId = sanitizeWebhookString(chequeImageDriveId || checkImageDriveId, 100);
+
+    let cleanDriveFileIds = [];
+    if (Array.isArray(driveFileIds)) {
+      cleanDriveFileIds = driveFileIds
+        .filter(id => typeof id === 'string' && /^[a-zA-Z0-9_-]{10,100}$/.test(id.trim()))
+        .slice(0, 20)
+        .map(id => id.trim());
+    }
+
+    let cleanAllResponses = undefined;
+    if (allResponses && typeof allResponses === 'object' && !Array.isArray(allResponses)) {
+      cleanAllResponses = {};
+      const entries = Object.entries(allResponses).slice(0, 50);
+      for (const [k, v] of entries) {
+        const cleanKey = sanitizeWebhookString(k, 100);
+        if (!cleanKey) continue;
+        if (Array.isArray(v)) {
+          cleanAllResponses[cleanKey] = v.slice(0, 10).map(item => sanitizeWebhookString(item, 500));
+        } else if (typeof v === 'string') {
+          cleanAllResponses[cleanKey] = sanitizeWebhookString(v, 500);
+        } else if (typeof v === 'number' || typeof v === 'boolean') {
+          cleanAllResponses[cleanKey] = v;
+        }
+      }
+    }
+
+    const updateData = {
+      'paymentDetails.status': 'pending_verification',
+      'paymentDetails.chequeNumber': cNum,
+      'paymentDetails.checkNumber': cNum,
+      'paymentDetails.bankName': sanitizeWebhookString(bankName, 100),
+      'paymentDetails.chequeDate': parsedDate,
+      'paymentDetails.checkDate': parsedDate,
+      'paymentDetails.utrNumber': sanitizeWebhookString(utrNumber, 50),
+      'paymentDetails.googleFormSubmissionId': sanitizeWebhookString(formResponseId, 100),
+      'paymentDetails.updatedAt': new Date(),
+      'paymentType': 'cheque',
+      'paymentDetails.type': 'cheque'
+    };
+
+    if (validatedImage.url) {
+      updateData['paymentDetails.chequeImageUrl'] = validatedImage.url;
+      updateData['paymentDetails.checkImageUrl'] = validatedImage.url;
+    }
+    if (cDriveId) {
+      updateData['paymentDetails.chequeImageDriveId'] = cDriveId;
+      updateData['paymentDetails.checkImageDriveId'] = cDriveId;
+    }
+    if (cleanDriveFileIds.length > 0) {
+      updateData['paymentDetails.driveFileIds'] = cleanDriveFileIds;
+    }
+    if (cleanAllResponses) {
+      updateData['allResponses'] = cleanAllResponses;
+    }
+
+    await Order.findByIdAndUpdate(cleanOrderId, updateData, { new: true });
 
     res.json({ 
       success: true, 
-      message: "Cheque payment details received",
-      orderId: orderId,
+      message: isLegacy ? "Check payment details received (legacy endpoint)" : "Cheque payment details received",
+      orderId: cleanOrderId,
       status: "pending_verification"
     });
 
@@ -941,88 +1015,15 @@ router.post("/webhook/cheque-payment-submitted", async (req, res) => {
     console.error("Cheque payment webhook error:", error);
     res.status(500).json({ error: "Error processing cheque payment submission" });
   }
-});
+}
 
-// =====================================================
-// 🔄 BACKWARD COMPATIBILITY: OLD CHECK PAYMENT WEBHOOK
-// =====================================================
-router.post("/webhook/check-payment-submitted", async (req, res) => {
-  // Redirect to the new cheque payment webhook for backward compatibility
-  console.log("📝 Legacy check payment webhook called - redirecting to cheque webhook");
-  
-  // Forward the request to the cheque payment handler
+async function handleBankTransferSubmission(req, res) {
   try {
-    // Re-use the same logic as the cheque payment webhook
-    const { 
-      orderId, 
-      chequeNumber, 
-      bankName, 
-      chequeDate, 
-      utrNumber, 
-      formResponseId,
-      driveFileIds,
-      chequeImageUrl,
-      chequeImageDriveId,
-      allResponses,
-      paymentType
-    } = req.body;
-
-    // Update order with cheque payment details including image URLs
-    const updateData = {
-      'paymentDetails.status': 'pending_verification',
-      'paymentDetails.chequeNumber': chequeNumber,
-      'paymentDetails.bankName': bankName,
-      'paymentDetails.chequeDate': chequeDate ? new Date(chequeDate) : null,
-      'paymentDetails.utrNumber': utrNumber,
-      'paymentDetails.googleFormSubmissionId': formResponseId,
-      'paymentDetails.updatedAt': new Date()
-    };
-
-    // Update payment type if provided (for unified form handling)
-    if (paymentType && (paymentType === 'check' || paymentType === 'cheque' || paymentType === 'transfer')) {
-      updateData['paymentType'] = paymentType;
-      updateData['paymentDetails.type'] = paymentType;
+    const secretCheck = verifyFormWebhookSecret(req);
+    if (!secretCheck.ok) {
+      return res.status(401).json({ error: secretCheck.error });
     }
 
-    // Add image URLs if provided
-    if (chequeImageUrl) {
-      updateData['paymentDetails.chequeImageUrl'] = chequeImageUrl;
-    }
-    
-    if (chequeImageDriveId) {
-      updateData['paymentDetails.chequeImageDriveId'] = chequeImageDriveId;
-    }
-    
-    if (driveFileIds && Array.isArray(driveFileIds) && driveFileIds.length > 0) {
-      updateData['paymentDetails.driveFileIds'] = driveFileIds;
-    }
-
-    const order = await Order.findByIdAndUpdate(orderId, updateData, { new: true });
-
-    if (!order) {
-      return res.status(404).json({ error: "Order not found" });
-    }
-
-    res.json({ 
-      success: true, 
-      message: "Check payment details received (legacy endpoint)",
-      orderId: orderId,
-      status: "pending_verification"
-    });
-
-  } catch (error) {
-    console.error("Legacy check payment webhook error:", error);
-    res.status(500).json({ error: "Error processing check payment submission" });
-  }
-});
-
-// =====================================================
-// 🔄 BANK TRANSFER WEBHOOK (Google Form Submission)
-// =====================================================
-router.post("/webhook/bank-transfer-submitted", async (req, res) => {
-  try {
-    console.log("🏦 Bank transfer form submitted - RAW BODY:", JSON.stringify(req.body, null, 2));
-    
     const { 
       orderId, 
       transferNumber, 
@@ -1035,106 +1036,103 @@ router.post("/webhook/bank-transfer-submitted", async (req, res) => {
       driveFileIds,
       transferReceiptUrl,
       transferReceiptDriveId,
-      allResponses,
-      paymentType = 'transfer'  // Default to transfer
-    } = req.body;
+      allResponses
+    } = req.body || {};
 
-    console.log("🔍 Extracted bank transfer fields:");
-    console.log("  orderId:", orderId);
-    console.log("  transferReceiptUrl:", transferReceiptUrl);
-    console.log("  transferReceiptDriveId:", transferReceiptDriveId);
-    console.log("  driveFileIds:", driveFileIds);
-    console.log("  utrNumber:", utrNumber);
-    console.log("  formResponseId:", formResponseId);
-    console.log("  allResponses:", allResponses ? 'Present' : 'Missing');
-
-    if (!orderId) {
-      return res.status(400).json({ error: "Order ID is required" });
-    }
-
-    // Validate ObjectId format
-    const mongoose = require('mongoose');
-    if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      console.log(`❌ Invalid ObjectId format: "${orderId}"`);
+    if (!orderId || typeof orderId !== 'string' || !/^[0-9a-fA-F]{24}$/.test(orderId.trim())) {
       return res.status(400).json({ 
         error: "Invalid Order ID format", 
-        message: "Order ID must be a valid MongoDB ObjectId",
-        receivedOrderId: orderId,
-        expectedFormat: "24-character hex string (e.g., 507f1f77bcf86cd799439011)"
+        message: "Order ID must be a 24-character hex string (e.g., 507f1f77bcf86cd799439011)"
       });
     }
 
-    // Update order with bank transfer details
-    const updateData = {
-      'paymentDetails.status': 'pending_verification',
-      'paymentDetails.transferNumber': transferNumber,
-      'paymentDetails.bankName': bankName,
-      'paymentDetails.transferDate': transferDate ? new Date(transferDate) : null,
-      'paymentDetails.utrNumber': utrNumber,
-      'paymentDetails.accountNumber': accountNumber,
-      'paymentDetails.ifscCode': ifscCode,
-      'paymentDetails.googleFormSubmissionId': formResponseId,
-      'paymentDetails.updatedAt': new Date(),
-      'paymentType': 'transfer'  // Ensure payment type is set
-    };
-
-    // Add receipt URLs if provided - with detailed logging
-    if (transferReceiptUrl) {
-      updateData['paymentDetails.transferReceiptUrl'] = transferReceiptUrl;
-      console.log('💾 ✅ Saving transferReceiptUrl:', transferReceiptUrl);
-    } else {
-      console.log('💾 ❌ No transferReceiptUrl provided');
-    }
-    
-    if (transferReceiptDriveId) {
-      updateData['paymentDetails.transferReceiptDriveId'] = transferReceiptDriveId;
-      console.log('💾 ✅ Saving transferReceiptDriveId:', transferReceiptDriveId);
-    } else {
-      console.log('💾 ❌ No transferReceiptDriveId provided');
-    }
-    
-    if (driveFileIds && Array.isArray(driveFileIds) && driveFileIds.length > 0) {
-      updateData['paymentDetails.driveFileIds'] = driveFileIds;
-      console.log('💾 ✅ Saving driveFileIds:', driveFileIds);
-    } else {
-      console.log('💾 ❌ No driveFileIds provided or empty array');
-    }
-
-    // Add form responses data
-    if (allResponses && typeof allResponses === 'object') {
-      updateData['allResponses'] = allResponses;
-      console.log('💾 ✅ Saving allResponses:', Object.keys(allResponses).length, 'fields');
-    } else {
-      console.log('💾 ❌ No allResponses provided');
-    }
-
-    console.log('💾 Complete bank transfer updateData being sent to MongoDB:', JSON.stringify(updateData, null, 2));
-
-    const order = await Order.findByIdAndUpdate(orderId, updateData, { new: true });
-
+    const cleanOrderId = orderId.trim();
+    const order = await Order.findById(cleanOrderId);
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    console.log('✅ Bank transfer order updated successfully');
-    console.log('🔍 Final paymentDetails in database:', JSON.stringify(order.paymentDetails, null, 2));
-    console.log('🔍 Final allResponses in database:', order.allResponses ? 'Present' : 'Missing');
-
-    // Send notification to admin (optional)
-    try {
-      const user = await User.findById(order.user_id);
-      if (user) {
-        console.log(`📧 Bank transfer submitted by ${user.name} for order ${orderId}`);
-        // You can send admin notification email here
-      }
-    } catch (emailError) {
-      console.error("Error sending admin notification:", emailError);
+    const isTransfer = order.paymentType === 'transfer' || order.paymentDetails?.type === 'transfer';
+    if (!isTransfer) {
+      return res.status(400).json({ error: "Payment method mismatch: order is not a bank transfer order" });
     }
+
+    const blockedOrderStatuses = ['completed', 'cancelled', 'failed'];
+    const blockedPaymentStatuses = ['pending_verification', 'verified', 'completed', 'cancelled'];
+    if (blockedOrderStatuses.includes(order.status) || blockedPaymentStatuses.includes(order.paymentDetails?.status)) {
+      return res.status(400).json({ 
+        error: "Order is already verified or pending verification",
+        orderStatus: order.status,
+        paymentStatus: order.paymentDetails?.status
+      });
+    }
+
+    const validatedReceipt = validateWebhookUrl(transferReceiptUrl);
+    if (!validatedReceipt.valid) {
+      return res.status(400).json({ error: validatedReceipt.error });
+    }
+
+    const parsedDate = transferDate && !isNaN(new Date(transferDate).getTime()) ? new Date(transferDate) : null;
+    const cleanDriveId = sanitizeWebhookString(transferReceiptDriveId, 100);
+
+    let cleanDriveFileIds = [];
+    if (Array.isArray(driveFileIds)) {
+      cleanDriveFileIds = driveFileIds
+        .filter(id => typeof id === 'string' && /^[a-zA-Z0-9_-]{10,100}$/.test(id.trim()))
+        .slice(0, 20)
+        .map(id => id.trim());
+    }
+
+    let cleanAllResponses = undefined;
+    if (allResponses && typeof allResponses === 'object' && !Array.isArray(allResponses)) {
+      cleanAllResponses = {};
+      const entries = Object.entries(allResponses).slice(0, 50);
+      for (const [k, v] of entries) {
+        const cleanKey = sanitizeWebhookString(k, 100);
+        if (!cleanKey) continue;
+        if (Array.isArray(v)) {
+          cleanAllResponses[cleanKey] = v.slice(0, 10).map(item => sanitizeWebhookString(item, 500));
+        } else if (typeof v === 'string') {
+          cleanAllResponses[cleanKey] = sanitizeWebhookString(v, 500);
+        } else if (typeof v === 'number' || typeof v === 'boolean') {
+          cleanAllResponses[cleanKey] = v;
+        }
+      }
+    }
+
+    const updateData = {
+      'paymentDetails.status': 'pending_verification',
+      'paymentDetails.transferNumber': sanitizeWebhookString(transferNumber, 50),
+      'paymentDetails.bankName': sanitizeWebhookString(bankName, 100),
+      'paymentDetails.transferDate': parsedDate,
+      'paymentDetails.utrNumber': sanitizeWebhookString(utrNumber, 50),
+      'paymentDetails.accountNumber': sanitizeWebhookString(accountNumber, 50),
+      'paymentDetails.ifscCode': sanitizeWebhookString(ifscCode, 20),
+      'paymentDetails.googleFormSubmissionId': sanitizeWebhookString(formResponseId, 100),
+      'paymentDetails.updatedAt': new Date(),
+      'paymentType': 'transfer',
+      'paymentDetails.type': 'transfer'
+    };
+
+    if (validatedReceipt.url) {
+      updateData['paymentDetails.transferReceiptUrl'] = validatedReceipt.url;
+    }
+    if (cleanDriveId) {
+      updateData['paymentDetails.transferReceiptDriveId'] = cleanDriveId;
+    }
+    if (cleanDriveFileIds.length > 0) {
+      updateData['paymentDetails.driveFileIds'] = cleanDriveFileIds;
+    }
+    if (cleanAllResponses) {
+      updateData['allResponses'] = cleanAllResponses;
+    }
+
+    await Order.findByIdAndUpdate(cleanOrderId, updateData, { new: true });
 
     res.json({ 
       success: true, 
       message: "Bank transfer details received",
-      orderId: orderId,
+      orderId: cleanOrderId,
       status: "pending_verification"
     });
 
@@ -1142,8 +1140,28 @@ router.post("/webhook/bank-transfer-submitted", async (req, res) => {
     console.error("Bank transfer webhook error:", error);
     res.status(500).json({ error: "Error processing bank transfer submission" });
   }
+}
+
+// =====================================================
+// 🔄 CHEQUE PAYMENT WEBHOOK (Google Form Submission)
+// =====================================================
+router.post("/webhook/cheque-payment-submitted", async (req, res) => {
+  await handleChequePaymentSubmission(req, res, false);
 });
 
+// =====================================================
+// 🔄 BACKWARD COMPATIBILITY: OLD CHECK PAYMENT WEBHOOK
+// =====================================================
+router.post("/webhook/check-payment-submitted", async (req, res) => {
+  await handleChequePaymentSubmission(req, res, true);
+});
+
+// =====================================================
+// 🔄 BANK TRANSFER WEBHOOK (Google Form Submission)
+// =====================================================
+router.post("/webhook/bank-transfer-submitted", async (req, res) => {
+  await handleBankTransferSubmission(req, res);
+});
 // =====================================================
 // 🔍 ADMIN: CHECK UTR DUPLICATE
 // =====================================================

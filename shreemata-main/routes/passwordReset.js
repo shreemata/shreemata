@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const PasswordResetRequest = require("../models/PasswordResetRequest");
@@ -37,7 +38,7 @@ router.get("/security-questions", (req, res) => {
 router.post("/setup-security", authenticateToken, async (req, res) => {
   try {
     const { question1, answer1, question2, answer2, question3, answer3 } = req.body;
-    
+
     // Validate input
     if (!question1 || !answer1 || !question2 || !answer2 || !question3 || !answer3) {
       return res.status(400).json({
@@ -45,7 +46,7 @@ router.post("/setup-security", authenticateToken, async (req, res) => {
         error: "All security questions and answers are required"
       });
     }
-    
+
     // Ensure all questions are different
     if (question1 === question2 || question2 === question3 || question1 === question3) {
       return res.status(400).json({
@@ -53,17 +54,17 @@ router.post("/setup-security", authenticateToken, async (req, res) => {
         error: "Please select different security questions"
       });
     }
-    
+
     // Validate questions are from predefined list
-    if (!SECURITY_QUESTIONS.includes(question1) || 
-        !SECURITY_QUESTIONS.includes(question2) || 
-        !SECURITY_QUESTIONS.includes(question3)) {
+    if (!SECURITY_QUESTIONS.includes(question1) ||
+      !SECURITY_QUESTIONS.includes(question2) ||
+      !SECURITY_QUESTIONS.includes(question3)) {
       return res.status(400).json({
         success: false,
         error: "Invalid security questions selected"
       });
     }
-    
+
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({
@@ -71,12 +72,12 @@ router.post("/setup-security", authenticateToken, async (req, res) => {
         error: "User not found"
       });
     }
-    
+
     // Hash the answers for security
     const hashedAnswer1 = await bcrypt.hash(answer1.toLowerCase().trim(), 10);
     const hashedAnswer2 = await bcrypt.hash(answer2.toLowerCase().trim(), 10);
     const hashedAnswer3 = await bcrypt.hash(answer3.toLowerCase().trim(), 10);
-    
+
     // Update user security questions
     user.securityQuestions = {
       question1: { question: question1, answer: hashedAnswer1 },
@@ -84,14 +85,14 @@ router.post("/setup-security", authenticateToken, async (req, res) => {
       question3: { question: question3, answer: hashedAnswer3 },
       isSetup: true
     };
-    
+
     await user.save();
-    
+
     res.json({
       success: true,
       message: "Security questions setup successfully"
     });
-    
+
   } catch (error) {
     console.error("Error setting up security questions:", error);
     res.status(500).json({
@@ -108,40 +109,39 @@ router.post("/setup-security", authenticateToken, async (req, res) => {
 router.post("/get-questions", async (req, res) => {
   try {
     const { email } = req.body;
-    
+
     if (!email) {
       return res.status(400).json({
         success: false,
         error: "Email is required"
       });
     }
-    
+
+    const fallbackQuestions = {
+      question1: SECURITY_QUESTIONS[0],
+      question2: SECURITY_QUESTIONS[1],
+      question3: SECURITY_QUESTIONS[2]
+    };
+
     const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found"
+    if (!user || !user.securityQuestions || !user.securityQuestions.isSetup) {
+      // Return identical shape and status to prevent user enumeration
+      return res.json({
+        success: true,
+        questions: fallbackQuestions
       });
     }
-    
-    if (!user.securityQuestions.isSetup) {
-      return res.status(400).json({
-        success: false,
-        error: "Security questions not setup for this account"
-      });
-    }
-    
-    // Return only the questions, not the answers
+
+    // Return only the questions without disclosing internal userId
     res.json({
       success: true,
       questions: {
-        question1: user.securityQuestions.question1.question,
-        question2: user.securityQuestions.question2.question,
-        question3: user.securityQuestions.question3.question
-      },
-      userId: user._id
+        question1: user.securityQuestions.question1?.question || fallbackQuestions.question1,
+        question2: user.securityQuestions.question2?.question || fallbackQuestions.question2,
+        question3: user.securityQuestions.question3?.question || fallbackQuestions.question3
+      }
     });
-    
+
   } catch (error) {
     console.error("Error getting security questions:", error);
     res.status(500).json({
@@ -157,81 +157,81 @@ router.post("/get-questions", async (req, res) => {
 --------------------------------------------*/
 router.post("/submit-request", async (req, res) => {
   try {
-    const { userId, answer1, answer2, answer3, newPassword, confirmPassword } = req.body;
-    
-    // Validate input
-    if (!userId || !answer1 || !answer2 || !answer3 || !newPassword || !confirmPassword) {
+    const { userId, email, answer1, answer2, answer3, newPassword, confirmPassword } = req.body;
+
+    // Validate input (accepts either userId or email)
+    if ((!userId && !email) || !answer1 || !answer2 || !answer3 || !newPassword || !confirmPassword) {
       return res.status(400).json({
         success: false,
         error: "All fields are required"
       });
     }
-    
+
     if (newPassword !== confirmPassword) {
       return res.status(400).json({
         success: false,
         error: "Passwords do not match"
       });
     }
-    
+
     if (newPassword.length < 6) {
       return res.status(400).json({
         success: false,
         error: "Password must be at least 6 characters long"
       });
     }
-    
-    const user = await User.findById(userId);
+
+    const user = userId && mongoose.Types.ObjectId.isValid(userId)
+      ? await User.findById(userId)
+      : (email ? await User.findOne({ email: email.toLowerCase().trim() }) : null);
+
     if (!user) {
       return res.status(404).json({
         success: false,
         error: "User not found"
       });
     }
-    
-    if (!user.securityQuestions.isSetup) {
+
+    if (!user.securityQuestions || !user.securityQuestions.isSetup) {
       return res.status(400).json({
         success: false,
         error: "Security questions not setup for this account"
       });
     }
-    
+
     // Check if there's already a pending request
     const existingRequest = await PasswordResetRequest.findOne({
-      userId: userId,
+      userId: user._id,
       status: 'pending'
     });
-    
+
     if (existingRequest) {
       return res.status(400).json({
         success: false,
         error: "A password reset request is already pending approval"
       });
     }
-    
-    // Verify security answers against stored hashes
+
+    // Verify security answers against stored hashes (do not log plaintext answers)
     console.log('🔍 Verifying security answers for user:', user.email);
-    console.log('Answer 1 provided:', answer1.toLowerCase().trim());
-    console.log('Answer 2 provided:', answer2.toLowerCase().trim());
-    console.log('Answer 3 provided:', answer3.toLowerCase().trim());
-    
+
     const answer1Match = await bcrypt.compare(answer1.toLowerCase().trim(), user.securityQuestions.question1.answer);
     const answer2Match = await bcrypt.compare(answer2.toLowerCase().trim(), user.securityQuestions.question2.answer);
     const answer3Match = await bcrypt.compare(answer3.toLowerCase().trim(), user.securityQuestions.question3.answer);
-    
+
     console.log('Verification results:', {
       answer1Match,
       answer2Match,
       answer3Match
     });
-    
+
     // Calculate match score
     const correctAnswers = [answer1Match, answer2Match, answer3Match].filter(Boolean).length;
     const matchPercentage = Math.round((correctAnswers / 3) * 100);
-    
+
     // Hash the new password
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-    
+
     // Create password reset request with verification results
     const resetRequest = new PasswordResetRequest({
       userId: userId,
@@ -266,9 +266,9 @@ router.post("/submit-request", async (req, res) => {
       ipAddress: req.ip || req.connection.remoteAddress,
       userAgent: req.get('User-Agent')
     });
-    
+
     await resetRequest.save();
-    
+
     // Different response based on match percentage
     let message = "Password reset request submitted successfully.";
     if (matchPercentage === 100) {
@@ -278,13 +278,13 @@ router.post("/submit-request", async (req, res) => {
     } else {
       message += " Some security answers didn't match - admin will review carefully.";
     }
-    
+
     res.json({
       success: true,
       message: message,
       matchPercentage: matchPercentage
     });
-    
+
   } catch (error) {
     console.error("Error submitting password reset request:", error);
     res.status(500).json({
@@ -301,23 +301,23 @@ router.post("/submit-request", async (req, res) => {
 router.get("/admin/requests", authenticateToken, isAdmin, async (req, res) => {
   try {
     const { status = 'pending', page = 1, limit = 20 } = req.query;
-    
+
     const query = {};
     if (status !== 'all') {
       query.status = status;
     }
-    
+
     const skip = (page - 1) * limit;
-    
+
     const requests = await PasswordResetRequest.find(query)
       .populate('userId', 'name email phone')
       .populate('processedBy', 'name email')
       .sort({ requestedAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
-    
+
     const total = await PasswordResetRequest.countDocuments(query);
-    
+
     res.json({
       success: true,
       requests,
@@ -328,7 +328,7 @@ router.get("/admin/requests", authenticateToken, isAdmin, async (req, res) => {
         pages: Math.ceil(total / limit)
       }
     });
-    
+
   } catch (error) {
     console.error("Error fetching password reset requests:", error);
     res.status(500).json({
@@ -345,31 +345,31 @@ router.get("/admin/requests", authenticateToken, isAdmin, async (req, res) => {
 router.post("/admin/process", authenticateToken, isAdmin, async (req, res) => {
   try {
     const { requestId, action, adminNotes = "" } = req.body;
-    
+
     if (!requestId || !action || !['approve', 'reject'].includes(action)) {
       return res.status(400).json({
         success: false,
         error: "Invalid request parameters"
       });
     }
-    
+
     const resetRequest = await PasswordResetRequest.findById(requestId)
       .populate('userId', 'name email');
-    
+
     if (!resetRequest) {
       return res.status(404).json({
         success: false,
         error: "Password reset request not found"
       });
     }
-    
+
     if (resetRequest.status !== 'pending') {
       return res.status(400).json({
         success: false,
         error: "Request has already been processed"
       });
     }
-    
+
     // Check if request has expired
     if (new Date() > resetRequest.expiresAt) {
       resetRequest.status = 'rejected';
@@ -377,13 +377,13 @@ router.post("/admin/process", authenticateToken, isAdmin, async (req, res) => {
       resetRequest.processedBy = req.user.id;
       resetRequest.processedAt = new Date();
       await resetRequest.save();
-      
+
       return res.status(400).json({
         success: false,
         error: "Request has expired"
       });
     }
-    
+
     if (action === 'approve') {
       // Update user's password
       const user = await User.findById(resetRequest.userId);
@@ -391,23 +391,23 @@ router.post("/admin/process", authenticateToken, isAdmin, async (req, res) => {
         user.password = resetRequest.newPasswordHash;
         await user.save();
       }
-      
+
       resetRequest.status = 'approved';
     } else {
       resetRequest.status = 'rejected';
     }
-    
+
     resetRequest.processedBy = req.user.id;
     resetRequest.processedAt = new Date();
     resetRequest.adminNotes = adminNotes;
-    
+
     await resetRequest.save();
-    
+
     res.json({
       success: true,
       message: `Password reset request ${action}d successfully`
     });
-    
+
   } catch (error) {
     console.error("Error processing password reset request:", error);
     res.status(500).json({
@@ -419,12 +419,19 @@ router.post("/admin/process", authenticateToken, isAdmin, async (req, res) => {
 
 /* -------------------------------------------
    POST /api/password-reset/test-answers
-   Test endpoint to debug answer verification (REMOVE IN PRODUCTION)
+   Admin-only test endpoint (no debug or match booleans returned)
 --------------------------------------------*/
-router.post("/test-answers", async (req, res) => {
+router.post("/test-answers", authenticateToken, isAdmin, async (req, res) => {
   try {
-    const { email, answer1, answer2, answer3 } = req.body;
-    
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: "Email is required"
+      });
+    }
+
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(404).json({
@@ -432,49 +439,20 @@ router.post("/test-answers", async (req, res) => {
         error: "User not found"
       });
     }
-    
-    if (!user.securityQuestions.isSetup) {
+
+    if (!user.securityQuestions || !user.securityQuestions.isSetup) {
       return res.status(400).json({
         success: false,
         error: "Security questions not setup"
       });
     }
-    
-    // Test verification
-    const processedAnswer1 = answer1.toLowerCase().trim();
-    const processedAnswer2 = answer2.toLowerCase().trim();
-    const processedAnswer3 = answer3.toLowerCase().trim();
-    
-    const answer1Match = await bcrypt.compare(processedAnswer1, user.securityQuestions.question1.answer);
-    const answer2Match = await bcrypt.compare(processedAnswer2, user.securityQuestions.question2.answer);
-    const answer3Match = await bcrypt.compare(processedAnswer3, user.securityQuestions.question3.answer);
-    
+
+    // Admin validation without leaking match data or verification booleans
     res.json({
       success: true,
-      debug: {
-        processedAnswers: {
-          answer1: processedAnswer1,
-          answer2: processedAnswer2,
-          answer3: processedAnswer3
-        },
-        verification: {
-          answer1Match,
-          answer2Match,
-          answer3Match
-        },
-        questions: {
-          question1: user.securityQuestions.question1.question,
-          question2: user.securityQuestions.question2.question,
-          question3: user.securityQuestions.question3.question
-        },
-        hashedAnswersExist: {
-          answer1: !!user.securityQuestions.question1.answer,
-          answer2: !!user.securityQuestions.question2.answer,
-          answer3: !!user.securityQuestions.question3.answer
-        }
-      }
+      message: "Security answers evaluated"
     });
-    
+
   } catch (error) {
     console.error("Error testing answers:", error);
     res.status(500).json({
