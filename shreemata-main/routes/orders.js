@@ -1,5 +1,6 @@
 // routes/orders.js
 const express = require("express");
+const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const User = require("../models/User");
 const Bundle = require("../models/Bundle");
@@ -346,44 +347,100 @@ router.get("/", authenticateToken, async (req, res) => {
 });
 
 /**
+ * Helper to mask customer name for public tracking display (First name + last initial).
+ */
+function maskCustomerName(fullName) {
+    if (!fullName || typeof fullName !== 'string') return '';
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0];
+    const firstName = parts[0];
+    const lastInitial = parts[parts.length - 1][0].toUpperCase();
+    return `${firstName} ${lastInitial}.`;
+}
+
+/**
+ * Strips all sensitive data and returns strictly what public tracking requires.
+ */
+function formatSafeTrackingOrder(order) {
+    if (!order) return null;
+
+    const rawName = (order.deliveryAddress && order.deliveryAddress.name) ||
+                    (order.user_id && order.user_id.name) || '';
+    const customerName = maskCustomerName(rawName);
+
+    const trackingInfo = order.trackingInfo || {};
+    const courierNum = (trackingInfo.trackingId || order.courierNumber || '').trim();
+
+    const safeOrder = {
+        _id: String(order._id),
+        orderNumber: String(order._id).slice(-8).toUpperCase(),
+        status: order.status || 'pending',
+        deliveryStatus: order.deliveryStatus || 'pending',
+        deliveryMethod: order.deliveryMethod || 'home',
+        createdAt: order.createdAt || null,
+        updatedAt: order.updatedAt || null,
+        items: Array.isArray(order.items)
+            ? order.items.map(item => ({
+                title: item.title || '',
+                quantity: typeof item.quantity === 'number' ? item.quantity : 1
+            }))
+            : []
+    };
+
+    if (customerName) {
+        safeOrder.customerName = customerName;
+    }
+
+    if (courierNum) {
+        safeOrder.courierNumber = courierNum;
+    }
+
+    safeOrder.trackingInfo = {
+        trackingId: courierNum,
+        trackingUrl: trackingInfo.trackingUrl || '',
+        trackingWebsite: trackingInfo.trackingWebsite || '',
+        updatedAt: trackingInfo.updatedAt || null
+    };
+
+    return safeOrder;
+}
+
+/**
  * PUBLIC ORDER TRACKING ROUTE (SAFE FOR CUSTOMERS)
  */
 router.get("/track/:orderId", async (req, res) => {
     try {
-        const rawId = (req.params.orderId || '').trim();
+        const rawId = typeof req.params.orderId === 'string' ? req.params.orderId.trim() : '';
         if (!rawId) {
             return res.status(400).json({ error: "Order ID or Number is required" });
         }
 
-        let order = null;
+        // Validate identifier format: strictly 24-hex ObjectId or Razorpay order_ format
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(rawId);
+        const isRazorpayId = /^order_[a-zA-Z0-9]+$/.test(rawId);
 
-        // 1. Try finding by MongoDB ObjectId
-        if (mongoose.Types.ObjectId.isValid(rawId)) {
-            order = await Order.findById(rawId)
-                .populate("user_id", "name email phone")
-                .lean();
+        if (!isObjectId && !isRazorpayId) {
+            return res.status(400).json({ error: "Invalid order identifier format" });
         }
 
-        // 2. Try finding by razorpay_order_id or payment reference
-        if (!order) {
-            order = await Order.findOne({
-                $or: [
-                    { razorpay_order_id: rawId },
-                    { 'paymentDetails.utrNumber': rawId },
-                    { 'paymentDetails.checkNumber': rawId },
-                    { 'paymentDetails.transferNumber': rawId }
-                ]
-            })
-            .populate("user_id", "name email phone")
-            .lean();
+        let order = null;
+        if (isObjectId) {
+            order = await Order.findById(new mongoose.Types.ObjectId(rawId))
+                .populate("user_id", "name")
+                .lean();
+        } else if (isRazorpayId) {
+            order = await Order.findOne({ razorpay_order_id: rawId })
+                .populate("user_id", "name")
+                .lean();
         }
 
         if (!order) {
             return res.status(404).json({ error: "Order not found" });
         }
 
-        const sanitized = sanitizeOrderForCustomer(order, req);
-        res.json({ success: true, order: sanitized });
+        const safeOrder = formatSafeTrackingOrder(order);
+        res.json({ success: true, order: safeOrder });
     } catch (err) {
         console.error("Error in GET /orders/track/:orderId:", err);
         res.status(500).json({ error: "Server error tracking order" });
