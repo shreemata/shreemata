@@ -598,4 +598,19 @@ describe('4. Real-Browser Playwright UI Tests', () => {
       await page.close();
     }
   });
+
+  describe('5. Admin UI Clarifications and Deprecations', () => {
+    test('admin-commission-settings.html contains note that tiers are not used for customer pricing', () => {
+      const fs = require('fs');
+      const html = fs.readFileSync(path.join(REPO_DIR, 'public', 'admin-commission-settings.html'), 'utf-8');
+      expect(html).toContain('Customer courier charge is a flat Rs 25 per started kg (minimum Rs 25). The tiers below are not used for customer pricing.');
+    });
+
+    test('admin-bundles.html no longer contains "max ₹100" and contains "₹25 per started kg"', () => {
+      const fs = require('fs');
+      const html = fs.readFileSync(path.join(REPO_DIR, 'public', 'admin-bundles.html'), 'utf-8');
+      expect(html).not.toContain('max ₹100');
+      expect(html).toContain('₹25 per started kg');
+    });
+  });
 });
