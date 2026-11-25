@@ -16,6 +16,34 @@ const OTP_IP_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const OTP_CODE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes (preserved from existing implementation)
 const OTP_MAX_VERIFY_ATTEMPTS = 5;
 
+const LOOPBACK_IPS = new Set([
+  "127.0.0.1",
+  "::1",
+  "::ffff:127.0.0.1"
+]);
+
+/**
+ * Extracts client IP safely behind a reverse proxy (e.g. Nginx).
+ * Only trusts X-Forwarded-For if the direct socket connection is loopback.
+ * If loopback and XFF exists, returns the last comma-separated IP entry (trimmed).
+ * Otherwise returns the raw socket remote address.
+ */
+function getClientIp(req) {
+  if (!req) return "127.0.0.1";
+  const socketAddress = (req.socket && req.socket.remoteAddress) || (req.connection && req.connection.remoteAddress) || "";
+  if (LOOPBACK_IPS.has(socketAddress)) {
+    const xff = req.headers && (req.headers["x-forwarded-for"] || req.headers["X-Forwarded-For"]);
+    if (xff && typeof xff === "string") {
+      const parts = xff.split(",");
+      const last = parts[parts.length - 1].trim();
+      if (last) {
+        return last;
+      }
+    }
+  }
+  return socketAddress || "127.0.0.1";
+}
+
 /**
  * Atomically checks and reserves an OTP send slot for registration.
  * Implements escalating wait times: sends 1-3 immediate; send 4 waits 5m; send 5 waits 10m; send 6 waits 15m; send 7+ waits 60m.
@@ -26,30 +54,61 @@ async function checkAndReserveOtpSend(email, clientIp) {
   const now = new Date();
   const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
-  // 1. Looser per-IP rate limiting (100 sends/hour/IP) to defend against bot floods
+  // 1. Per-IP rate limiting (100 sends/hour/IP) with fixed 1-hour window independent of TTL
   if (clientIp) {
     try {
-      const ipWindowStart = new Date(now.getTime() - OTP_IP_WINDOW_MS);
-      let ipRecord = await OtpIpLimit.findOne({ ip: clientIp });
-      if (!ipRecord || ipRecord.firstSentAt < ipWindowStart) {
-        await OtpIpLimit.findOneAndUpdate(
-          { ip: clientIp },
-          { $set: { count: 1, firstSentAt: now } },
-          { upsert: true, new: true }
-        );
-      } else {
-        if (ipRecord.count >= OTP_IP_LIMIT_PER_HOUR) {
-          const remainingSeconds = Math.ceil((OTP_IP_WINDOW_MS - (now.getTime() - ipRecord.firstSentAt.getTime())) / 1000);
+      const MAX_IP_RETRIES = 5;
+      for (let attempt = 0; attempt < MAX_IP_RETRIES; attempt++) {
+        let ipRecord = await OtpIpLimit.findOne({ ip: clientIp });
+        if (!ipRecord) {
+          try {
+            ipRecord = await OtpIpLimit.findOneAndUpdate(
+              { ip: clientIp },
+              { $setOnInsert: { ip: clientIp, count: 0, firstSentAt: new Date(0) } },
+              { upsert: true, new: true }
+            );
+          } catch (insertErr) {
+            ipRecord = await OtpIpLimit.findOne({ ip: clientIp });
+          }
+        }
+
+        if (!ipRecord) continue;
+
+        let currentCount = ipRecord.count || 0;
+        let firstSentAt = ipRecord.firstSentAt || new Date(0);
+        const timeSinceFirst = now.getTime() - firstSentAt.getTime();
+        const isWindowExpired = timeSinceFirst >= OTP_IP_WINDOW_MS;
+
+        if (isWindowExpired) {
+          currentCount = 0;
+          firstSentAt = now;
+        }
+
+        if (currentCount >= OTP_IP_LIMIT_PER_HOUR) {
+          const remainingMs = OTP_IP_WINDOW_MS - (now.getTime() - ipRecord.firstSentAt.getTime());
+          const retryAfterSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
           return {
             allowed: false,
-            retryAfterSeconds: Math.max(1, remainingSeconds),
+            retryAfterSeconds,
             error: "Too many requests from this IP address. Please try again later."
           };
         }
-        await OtpIpLimit.updateOne(
-          { ip: clientIp },
-          { $inc: { count: 1 } }
-        );
+
+        // Atomic conditional update on { _id, count, firstSentAt }
+        const ipQuery = {
+          _id: ipRecord._id,
+          count: ipRecord.count,
+          firstSentAt: ipRecord.firstSentAt
+        };
+        const ipUpdate = isWindowExpired
+          ? { $set: { count: 1, firstSentAt: now } }
+          : { $inc: { count: 1 } };
+
+        const updatedIp = await OtpIpLimit.findOneAndUpdate(ipQuery, ipUpdate, { new: true });
+        if (updatedIp) {
+          break; // Slot successfully reserved
+        }
+        // Concurrency conflict occurred, retry loop
       }
     } catch (ipErr) {
       console.warn("⚠️ [EMAIL OTP] IP rate check warning:", ipErr.message);
@@ -198,7 +257,7 @@ router.post("/send-email-otp", async (req, res) => {
     }
 
     // Atomic rate limiting check with escalating wait times & IP protection
-    const clientIp = req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress || '127.0.0.1';
+    const clientIp = getClientIp(req);
     const reservation = await checkAndReserveOtpSend(email, clientIp);
 
     if (!reservation.allowed) {
@@ -1321,6 +1380,9 @@ router.post("/reset-password", async (req, res) => {
 
 router.OTP_SEND_WAITS_MINUTES = OTP_SEND_WAITS_MINUTES;
 router.checkAndReserveOtpSend = checkAndReserveOtpSend;
+router.getClientIp = getClientIp;
+router.OTP_IP_LIMIT_PER_HOUR = OTP_IP_LIMIT_PER_HOUR;
+router.OTP_IP_WINDOW_MS = OTP_IP_WINDOW_MS;
 
 module.exports = router;
 

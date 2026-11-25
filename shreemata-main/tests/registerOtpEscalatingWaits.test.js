@@ -13,6 +13,7 @@ const REPO_DIR = path.resolve(__dirname, '..');
 
 const { setupTestDB, teardownTestDB, clearTestDB } = require('./setup');
 const OtpSendLimit = require('../models/OtpSendLimit');
+const { OtpIpLimit } = require('../models/OtpSendLimit');
 const User = require('../models/User');
 const authRoutes = require('../routes/auth');
 const emailService = require('../utils/emailService');
@@ -410,6 +411,121 @@ describe('Register Email Verification OTP Escalating Waits Suite', () => {
     expect(isStillDisabled).toBe(true);
 
     await page.close();
+  });
+
+
+  describe('getClientIp helper unit tests', () => {
+    const getClientIp = authRoutes.getClientIp;
+
+    it('loopback + "1.2.3.4, 5.6.7.8" returns "5.6.7.8"', () => {
+      const req = {
+        socket: { remoteAddress: '127.0.0.1' },
+        headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' }
+      };
+      expect(getClientIp(req)).toBe('5.6.7.8');
+
+      // Also verify IPv6 and IPv4-mapped loopback addresses
+      expect(getClientIp({ socket: { remoteAddress: '::1' }, headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' } })).toBe('5.6.7.8');
+      expect(getClientIp({ socket: { remoteAddress: '::ffff:127.0.0.1' }, headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' } })).toBe('5.6.7.8');
+    });
+
+    it('non-loopback socket with spoofed XFF returns the socket address', () => {
+      const req = {
+        socket: { remoteAddress: '203.0.113.195' },
+        headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' }
+      };
+      expect(getClientIp(req)).toBe('203.0.113.195');
+    });
+
+    it('loopback without XFF returns the socket address', () => {
+      const req = {
+        socket: { remoteAddress: '127.0.0.1' },
+        headers: {}
+      };
+      expect(getClientIp(req)).toBe('127.0.0.1');
+    });
+  });
+
+  describe('IP rate limit integration tests', () => {
+    it('two requests with different X-Forwarded-For values use separate counters', async () => {
+      const resA = await client.post('/send-email-otp', { email: 'user_ipa@example.com' }, {
+        headers: { 'X-Forwarded-For': '198.51.100.1' }
+      });
+      expect(resA.status).toBe(200);
+
+      const resB = await client.post('/send-email-otp', { email: 'user_ipb@example.com' }, {
+        headers: { 'X-Forwarded-For': '198.51.100.2' }
+      });
+      expect(resB.status).toBe(200);
+
+      const docA = await OtpIpLimit.findOne({ ip: '198.51.100.1' });
+      const docB = await OtpIpLimit.findOne({ ip: '198.51.100.2' });
+
+      expect(docA).not.toBeNull();
+      expect(docB).not.toBeNull();
+      expect(docA.count).toBe(1);
+      expect(docB.count).toBe(1);
+    });
+
+    it('when the stored count for IP A is at the limit, A gets 429 with the right retryAfterSeconds while IP B still gets 200', async () => {
+      const ipA = '198.51.100.10';
+      const ipB = '198.51.100.20';
+
+      // Seed IP A at the 100 limit, first sent 10 minutes (600s) ago -> exactly 50 minutes (3000s) left
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      await OtpIpLimit.create({
+        ip: ipA,
+        count: authRoutes.OTP_IP_LIMIT_PER_HOUR,
+        firstSentAt: tenMinutesAgo
+      });
+
+      // Request from IP A gets HTTP 429
+      const resA = await client.post('/send-email-otp', { email: 'limit_user_a@example.com' }, {
+        headers: { 'X-Forwarded-For': ipA }
+      });
+      expect(resA.status).toBe(429);
+      expect(resA.data.success).toBe(false);
+      expect(resA.data.error).toBe('Too many requests from this IP address. Please try again later.');
+      // 3600 - 600 = 3000 seconds remaining
+      expect(resA.data.retryAfterSeconds).toBeGreaterThanOrEqual(2995);
+      expect(resA.data.retryAfterSeconds).toBeLessThanOrEqual(3000);
+      expect(resA.headers['retry-after']).toBe(String(resA.data.retryAfterSeconds));
+
+      // Request from IP B succeeds with 200
+      const resB = await client.post('/send-email-otp', { email: 'limit_user_b@example.com' }, {
+        headers: { 'X-Forwarded-For': ipB }
+      });
+      expect(resB.status).toBe(200);
+      expect(resB.data.success).toBe(true);
+
+      const docB = await OtpIpLimit.findOne({ ip: ipB });
+      expect(docB.count).toBe(1);
+    });
+
+    it('an expired firstSentAt (move it back in the database) resets the window', async () => {
+      const ipA = '198.51.100.30';
+
+      // Seed IP A at limit with firstSentAt 60 minutes + 5 seconds ago (expired window)
+      const sixtyOneMinutesAgo = new Date(Date.now() - (60 * 60 + 5) * 1000);
+      await OtpIpLimit.create({
+        ip: ipA,
+        count: authRoutes.OTP_IP_LIMIT_PER_HOUR,
+        firstSentAt: sixtyOneMinutesAgo
+      });
+
+      const res = await client.post('/send-email-otp', { email: 'reset_window_user@example.com' }, {
+        headers: { 'X-Forwarded-For': ipA }
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.data.success).toBe(true);
+
+      const refreshedDoc = await OtpIpLimit.findOne({ ip: ipA });
+      expect(refreshedDoc).not.toBeNull();
+      expect(refreshedDoc.count).toBe(1);
+      // firstSentAt has been reset to now
+      expect(Date.now() - refreshedDoc.firstSentAt.getTime()).toBeLessThan(5000);
+    });
   });
 
 });
