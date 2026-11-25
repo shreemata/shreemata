@@ -14,13 +14,9 @@
  * @returns {number} - Courier charge in rupees
  */
 function calculateCourierCharge(totalWeight) {
-    if (totalWeight <= 0) return 0;
-    
-    // Calculate charge: ₹25 per kg (rounded up)
-    const charge = Math.ceil(totalWeight) * 25;
-    
-    // Cap at ₹100
-    return Math.min(charge, 100);
+    if (!totalWeight || totalWeight <= 0) return 0;
+    const normalizedWeight = Math.round(Number(totalWeight) * 1000) / 1000;
+    return 25 * Math.max(1, Math.ceil(normalizedWeight));
 }
 
 /**

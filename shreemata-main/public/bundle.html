@@ -728,7 +728,7 @@
                             style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;">
                             <button onclick="decreaseQuantity()"
                                 style="width: 40px; height: 40px; border: 1.5px solid var(--border-editorial, #E8E2D9); background: var(--bg-card, #FFFDF9); color: var(--navy-dark, #162B4D); border-radius: 8px; cursor: pointer; font-size: 20px; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">−</button>
-                            <input type="number" id="bundleQuantity" value="1" min="1" max="10"
+                            <input type="number" id="bundleQuantity" value="1" min="1" max="100000"
                                 onchange="updateBundlePrices()"
                                 style="width: 60px; height: 40px; text-align: center; border: 1.5px solid var(--border-editorial, #E8E2D9); border-radius: 8px; font-size: 18px; font-weight: 600; background: var(--bg-card, #FFFDF9); color: var(--text-ink, #1F2937);">
                             <button onclick="increaseQuantity()"
@@ -2033,7 +2033,7 @@ ${stockBadge}
         function increaseQuantity() {
             const quantityInput = document.getElementById('bundleQuantity');
             let currentQuantity = parseInt(quantityInput.value);
-            if (currentQuantity < 10) {
+            if (currentQuantity < 100000) {
                 quantityInput.value = currentQuantity + 1;
                 updateBundlePrices();
             }
@@ -2152,14 +2152,19 @@ ${stockBadge}
 
         async function calculateCourierCharge(weight) {
             try {
+                if (window.dynamicShipping) {
+                    return await window.dynamicShipping.calculateShippingCharge(weight);
+                }
                 if (window.shippingCalculator) {
                     const shippingResult = window.shippingCalculator.calculateShipping(weight, 0);
                     return shippingResult.cost || 0;
                 }
-                return 50 + (weight * 25);
+                const normalizedWeight = Math.round(Number(weight) * 1000) / 1000;
+                return 25 * Math.max(1, Math.ceil(normalizedWeight));
             } catch (error) {
                 console.error('Error calculating courier charge:', error);
-                return 50 + (weight * 25);
+                const normalizedWeight = Math.round(Number(weight) * 1000) / 1000;
+                return 25 * Math.max(1, Math.ceil(normalizedWeight));
             }
         }
 

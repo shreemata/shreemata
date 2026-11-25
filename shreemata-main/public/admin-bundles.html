@@ -454,9 +454,9 @@
 
         // Calculate courier charge
         function calculateCourierCharge(totalWeight) {
-            if (totalWeight <= 0) return 0;
-            const charge = Math.ceil(totalWeight) * 25;
-            return Math.min(charge, 100);
+            if (!totalWeight || totalWeight <= 0) return 0;
+            const normalizedWeight = Math.round(Number(totalWeight) * 1000) / 1000;
+            return 25 * Math.max(1, Math.ceil(normalizedWeight));
         }
 
         // Copy auto courier charge to manual field

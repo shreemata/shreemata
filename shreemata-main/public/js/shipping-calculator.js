@@ -43,34 +43,24 @@ class ShippingCalculator {
      * @returns {Object} Shipping calculation details
      */
     calculateShipping(totalWeight, orderValue) {
-        // Check for free shipping
-        if (this.settings.freeShippingThreshold > 0 && orderValue >= this.settings.freeShippingThreshold) {
+        if (!totalWeight || totalWeight <= 0) {
             return {
                 cost: 0,
-                isFree: true,
-                breakdown: {
-                    baseCharge: 0,
-                    weightCharge: 0,
-                    totalWeight: totalWeight,
-                    reason: `Free shipping for orders above ₹${this.settings.freeShippingThreshold}`
-                }
+                isFree: false,
+                breakdown: { baseCharge: 0, weightCharge: 0, totalWeight: 0, ratePerKg: 25, calculation: '₹0' }
             };
         }
-
-        // Calculate shipping cost
-        const baseCharge = this.settings.baseShippingCharge;
-        const weightCharge = totalWeight * this.settings.shippingRatePerKg;
-        const totalCost = baseCharge + weightCharge;
-
+        const normalizedWeight = Math.round(Number(totalWeight) * 1000) / 1000;
+        const cost = 25 * Math.max(1, Math.ceil(normalizedWeight));
         return {
-            cost: Math.round(totalCost * 100) / 100, // Round to 2 decimal places
+            cost: cost,
             isFree: false,
             breakdown: {
-                baseCharge: baseCharge,
-                weightCharge: weightCharge,
+                baseCharge: 25,
+                weightCharge: cost,
                 totalWeight: totalWeight,
-                ratePerKg: this.settings.shippingRatePerKg,
-                calculation: `₹${baseCharge} (base) + ₹${weightCharge} (${totalWeight}kg × ₹${this.settings.shippingRatePerKg}/kg)`
+                ratePerKg: 25,
+                calculation: `₹25 per started kg = ₹${cost}`
             }
         };
     }

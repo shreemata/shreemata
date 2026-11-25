@@ -54,34 +54,14 @@ class DynamicShippingCalculator {
 
     /**
      * Calculate shipping charge for given weight
+     * Rule: ₹25 per started kg of total order weight, minimum ₹25
      * @param {number} weight - Total weight in kg
      * @returns {Promise<number>} - Shipping charge in rupees
      */
     async calculateShippingCharge(weight) {
-        if (weight <= 0) return 0;
-
-        const rates = await this.fetchShippingSettings();
-        
-        // Find matching weight range
-        for (const rate of rates) {
-            if (weight >= rate.minWeight && weight <= rate.maxWeight) {
-                console.log(`📦 Weight ${weight}kg matches range ${rate.minWeight}-${rate.maxWeight}kg = ₹${rate.rate}`);
-                return rate.rate;
-            }
-        }
-        
-        // If no exact match, find the highest range that the weight exceeds
-        const applicableRates = rates.filter(rate => weight > rate.maxWeight);
-        if (applicableRates.length > 0) {
-            const highestRate = applicableRates[applicableRates.length - 1];
-            console.log(`📦 Weight ${weight}kg exceeds all ranges, using highest rate: ₹${highestRate.rate}`);
-            return highestRate.rate;
-        }
-        
-        // Fallback to first rate if weight is below all ranges
-        const fallbackRate = rates[0]?.rate || 25;
-        console.log(`📦 Weight ${weight}kg below all ranges, using fallback rate: ₹${fallbackRate}`);
-        return fallbackRate;
+        if (!weight || weight <= 0) return 0;
+        const normalizedWeight = Math.round(Number(weight) * 1000) / 1000;
+        return 25 * Math.max(1, Math.ceil(normalizedWeight));
     }
 
     /**

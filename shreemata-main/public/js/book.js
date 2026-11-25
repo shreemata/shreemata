@@ -139,7 +139,7 @@ function updateQuantity(change) {
 
     // Ensure quantity is within bounds
     if (currentQty < 1) currentQty = 1;
-    if (currentQty > 10) currentQty = 10;
+    if (currentQty > 100000) currentQty = 100000;
 
     // Check stock limits if book has limited stock
     const book = window.currentBook;
@@ -161,7 +161,7 @@ function updateQuantityFromInput() {
 
     // Ensure quantity is within bounds
     if (qty < 1) qty = 1;
-    if (qty > 10) qty = 10;
+    if (qty > 100000) qty = 100000;
 
     // Check stock limits if book has limited stock
     const book = window.currentBook;
@@ -963,10 +963,9 @@ async function calculateCourierCharge(totalWeight) {
         }
     }
 
-    // Fallback to hardcoded calculation
-    const charge = Math.ceil(totalWeight / 100);
-    const finalCharge = Math.max(charge, 50);
-    return isNaN(finalCharge) ? 0 : finalCharge;
+    // Fallback to calculation
+    const normalizedWeight = Math.round(Number(totalWeight) * 1000) / 1000;
+    return 25 * Math.max(1, Math.ceil(normalizedWeight));
 }
 
 /* -----------------------------------
@@ -2182,22 +2181,19 @@ async function createBookPendingOrderWithAddresses(paymentType, deliveryMethod, 
 // Courier charge calculation function
 async function calculateCourierCharge(weight) {
     try {
-        // Use the global shipping calculator if available
+        if (window.dynamicShipping) {
+            return await window.dynamicShipping.calculateShippingCharge(weight);
+        }
         if (window.shippingCalculator) {
             const shippingResult = window.shippingCalculator.calculateShipping(weight, 0);
             return shippingResult.cost || 0;
         }
-    
-        // Fallback calculation if shipping calculator not available
-        const baseCharge = 50;
-        const ratePerKg = 25;
-        return baseCharge + (weight * ratePerKg);
+        const normalizedWeight = Math.round(Number(weight) * 1000) / 1000;
+        return 25 * Math.max(1, Math.ceil(normalizedWeight));
     } catch (error) {
         console.error('Error calculating courier charge:', error);
-        // Fallback calculation
-        const baseCharge = 50;
-        const ratePerKg = 25;
-        return baseCharge + (weight * ratePerKg);
+        const normalizedWeight = Math.round(Number(weight) * 1000) / 1000;
+        return 25 * Math.max(1, Math.ceil(normalizedWeight));
     }
 }
 

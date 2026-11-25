@@ -225,6 +225,14 @@ router.post("/create-pending", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "Missing required fields" });
         }
 
+        const qty = Number(quantity);
+        if (!Number.isInteger(qty) || qty < 1) {
+            return res.status(400).json({ error: "Invalid item quantity", message: "Quantity must be a positive integer >= 1" });
+        }
+        if (qty > 100000) {
+            return res.status(400).json({ error: "Quantity limit exceeded", message: "Quantity cannot exceed 100,000" });
+        }
+
         const details = await getAuthoritativeItemDetails({ id: bookId, type: itemType });
         if (!details.found) {
             console.error('Item not found:', bookId);

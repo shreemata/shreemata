@@ -218,7 +218,7 @@ async function loadCart() {
                 <div class="cart-item-actions-row">
                     <div class="cart-qty-stepper">
                         <button type="button" class="qty-btn" data-id="${itemId}" data-action="minus" aria-label="Decrease quantity">−</button>
-                        <input type="number" class="qty-input" data-id="${itemId}" value="${item.quantity}" min="1" max="99" aria-label="Quantity">
+                        <input type="number" class="qty-input" data-id="${itemId}" value="${item.quantity}" min="1" max="100000" aria-label="Quantity">
                         <button type="button" class="qty-btn" data-id="${itemId}" data-action="plus" aria-label="Increase quantity">+</button>
                     </div>
 
@@ -697,9 +697,9 @@ async function calculateCourierCharge(totalWeight) {
         }
     }
     
-    // Fallback to hardcoded calculation
-    const charge = Math.ceil(totalWeight) * 25;
-    return Math.min(charge, 100);
+    // Fallback to calculation
+    const normalizedWeight = Math.round(Number(totalWeight) * 1000) / 1000;
+    return 25 * Math.max(1, Math.ceil(normalizedWeight));
 }
 
 /* ------------------------------
@@ -800,7 +800,7 @@ async function updateQuantity(itemId, action) {
         return;
     }
 
-    if (action === "plus") item.quantity++;
+    if (action === "plus" && item.quantity < 100000) item.quantity++;
     if (action === "minus" && item.quantity > 1) item.quantity--;
 
     saveCart(cart);
@@ -821,8 +821,8 @@ async function updateQuantityDirect(itemId, newQuantity) {
     // Validate quantity
     if (isNaN(newQuantity) || newQuantity < 1) {
         newQuantity = 1;
-    } else if (newQuantity > 99) {
-        newQuantity = 99;
+    } else if (newQuantity > 100000) {
+        newQuantity = 100000;
     }
 
     // Only update if quantity actually changed

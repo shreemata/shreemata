@@ -248,11 +248,11 @@ describe('STEP 3: Honest Checkouts with Server-Authoritative Totals', () => {
   });
 
   test('2. Honest checkout: several quantities of a single book (courier delivery)', async () => {
-    // bookA: DB price 200, qty 3 -> 600, weight 1.5kg -> shipping 35 -> total 635
+    // bookA: DB price 200, qty 3 -> 600, weight 1.5kg -> shipping 50 -> total 650
     const qty = 3;
     const itemsTotal = bookA.price * qty; // 600
-    const shipping = 35; // 1.5kg (1 to 1.99kg)
-    const expectedTotal = itemsTotal + shipping; // 635
+    const shipping = 50; // 1.5kg
+    const expectedTotal = itemsTotal + shipping; // 650
 
     const res = await axios.post(
       `${baseUrl}/api/payments/create-order`,
@@ -276,10 +276,10 @@ describe('STEP 3: Honest Checkouts with Server-Authoritative Totals', () => {
   });
 
   test('3. Honest checkout: a bundle (courier delivery)', async () => {
-    // bundleA: bundlePrice 450, weight 1.3kg -> shipping 35 -> total 485
+    // bundleA: bundlePrice 450, weight 1.3kg -> shipping 50 -> total 500
     const bundlePrice = bundleA.bundlePrice; // 450
-    const shipping = 35; // 1.3kg
-    const expectedTotal = bundlePrice + shipping; // 485
+    const shipping = 50; // 1.3kg
+    const expectedTotal = bundlePrice + shipping; // 500
 
     const res = await axios.post(
       `${baseUrl}/api/payments/create-order`,
@@ -303,12 +303,12 @@ describe('STEP 3: Honest Checkouts with Server-Authoritative Totals', () => {
   });
 
   test('4. Honest checkout: book plus bundle (courier delivery)', async () => {
-    // bookB: sellingPrice 280, wt 0.8kg; bundleA: 450, wt 1.3kg -> itemsTotal 730, weight 2.1kg -> shipping 45 -> total 775
+    // bookB: sellingPrice 280, wt 0.8kg; bundleA: 450, wt 1.3kg -> itemsTotal 730, weight 2.1kg -> shipping 75 -> total 805
     const bookPrice = bookB.sellingPrice; // 280
     const bundlePrice = bundleA.bundlePrice; // 450
     const itemsTotal = bookPrice + bundlePrice; // 730
-    const shipping = 45; // 2.1kg (2 to 2.99kg)
-    const expectedTotal = itemsTotal + shipping; // 775
+    const shipping = 75; // 2.1kg
+    const expectedTotal = itemsTotal + shipping; // 805
 
     const res = await axios.post(
       `${baseUrl}/api/payments/create-order`,
@@ -384,12 +384,12 @@ describe('STEP 3: Honest Checkouts with Server-Authoritative Totals', () => {
   });
 
   test('7. Honest checkout: valid offer applied', async () => {
-    // bookB: sellingPrice 280, qty 2 = 560; validOffer: min 400, flat 50 off -> 510; wt 1.6kg -> shipping 35 -> total 545
+    // bookB: sellingPrice 280, qty 2 = 560; validOffer: min 400, flat 50 off -> 510; wt 1.6kg -> shipping 50 -> total 560
     const qty = 2;
     const itemsTotal = bookB.sellingPrice * qty; // 560
     const discount = 50;
-    const shipping = 35; // 1.6kg
-    const expectedTotal = itemsTotal - discount + shipping; // 545
+    const shipping = 50; // 1.6kg
+    const expectedTotal = itemsTotal - discount + shipping; // 560
 
     const res = await axios.post(
       `${baseUrl}/api/payments/create-order`,
@@ -419,7 +419,7 @@ describe('STEP 3: Honest Checkouts with Server-Authoritative Totals', () => {
 
 describe('STEP 3: Tampered Requests are Strictly Rejected (HTTP 400)', () => {
   test('1. Tampered payload: amount ₹1 for ₹500 cart is rejected (400)', async () => {
-    // bookA (200) + bookB (280) = 480 + shipping 35 = 515. Attacker sends amount: 1
+    // bookA (200) + bookB (280) = 480 + shipping 50 = 530. Attacker sends amount: 1
     try {
       await axios.post(
         `${baseUrl}/api/payments/create-order`,
@@ -430,7 +430,7 @@ describe('STEP 3: Tampered Requests are Strictly Rejected (HTTP 400)', () => {
             { id: String(bookB._id), quantity: 1, type: 'book' }
           ],
           deliveryMethod: 'courier',
-          courierCharge: 35,
+          courierCharge: 50,
           deliveryAddress: defaultDeliveryAddress
         },
         { headers: { Authorization: `Bearer ${buyerToken}` } }
@@ -439,7 +439,7 @@ describe('STEP 3: Tampered Requests are Strictly Rejected (HTTP 400)', () => {
     } catch (err) {
       expect(err.response.status).toBe(400);
       expect(err.response.data.error).toMatch(/mismatch/i);
-      expect(err.response.data.expectedTotal).toBe(515);
+      expect(err.response.data.expectedTotal).toBe(530);
     }
   });
 
@@ -917,7 +917,7 @@ describe('STEP 3: Post-Payment Verification & Webhook Amount Enforcement', () =>
         await axios.post(
           `${baseUrl}/api/payments/create-order`,
           {
-            amount: 485, // 150 * 3 (450) + 35 shipping for 1.5kg
+            amount: 500, // 150 * 3 (450) + 50 shipping for 1.5kg
             items: [{ id: String(limitedStockBook._id), type: 'book', quantity: 3 }],
             deliveryMethod: 'courier',
             deliveryAddress: defaultDeliveryAddress
@@ -975,7 +975,7 @@ describe('STEP 3: Post-Payment Verification & Webhook Amount Enforcement', () =>
       const res = await axios.post(
         `${baseUrl}/api/payments/create-order`,
         {
-          amount: 335, // 150 * 2 (300) + 35 shipping for 1.0kg
+          amount: 325, // 150 * 2 (300) + 25 shipping for 1.0kg
           items: [{ id: String(limitedStockBook._id), type: 'book', quantity: 2 }],
           deliveryMethod: 'courier',
           deliveryAddress: defaultDeliveryAddress
@@ -1105,24 +1105,24 @@ describe('STEP 3: Post-Payment Verification & Webhook Amount Enforcement', () =>
       });
 
       test('2. Honest bundle: courier and pickup', async () => {
-        // bundleA: 450, weight 1.3kg -> shipping 35 -> 485
+        // bundleA: 450, weight 1.3kg -> shipping 50 -> 500
         const courierRes = await axios.post(
           `${baseUrl}/api/orders`,
           {
             items: [{ id: String(bundleA._id), type: 'bundle', quantity: 1 }],
             deliveryMethod: 'courier',
-            courierCharge: 35,
-            totalAmount: 485,
+            courierCharge: 50,
+            totalAmount: 500,
             deliveryAddress: defaultDeliveryAddress
           },
           { headers: { Authorization: `Bearer ${buyerToken}` } }
         );
         expect([200, 201]).toContain(courierRes.status);
-        expect(courierRes.data.order.totalAmount).toBe(485);
+        expect(courierRes.data.order.totalAmount).toBe(500);
       });
 
       test('3. Honest cart with book and bundle (pickup and courier)', async () => {
-        // bookA (200, 0.5kg) + bundleA (450, 1.3kg) = 650, weight 1.8kg -> shipping 35
+        // bookA (200, 0.5kg) + bundleA (450, 1.3kg) = 650, weight 1.8kg -> shipping 50
         const courierRes = await axios.post(
           `${baseUrl}/api/orders`,
           {
@@ -1131,14 +1131,14 @@ describe('STEP 3: Post-Payment Verification & Webhook Amount Enforcement', () =>
               { id: String(bundleA._id), type: 'bundle', quantity: 1 }
             ],
             deliveryMethod: 'courier',
-            courierCharge: 35,
-            totalAmount: 685,
+            courierCharge: 50,
+            totalAmount: 700,
             deliveryAddress: defaultDeliveryAddress
           },
           { headers: { Authorization: `Bearer ${buyerToken}` } }
         );
         expect([200, 201]).toContain(courierRes.status);
-        expect(courierRes.data.order.totalAmount).toBe(685);
+        expect(courierRes.data.order.totalAmount).toBe(700);
 
         // Pickup
         const pickupRes = await axios.post(
@@ -1284,15 +1284,15 @@ describe('STEP 3: Post-Payment Verification & Webhook Amount Enforcement', () =>
             quantity: 1,
             paymentType: 'cheque',
             deliveryMethod: 'courier',
-            courierCharge: 35,
-            totalAmount: 485,
+            courierCharge: 50,
+            totalAmount: 500,
             deliveryAddress: defaultDeliveryAddress
           },
           { headers: { Authorization: `Bearer ${buyerToken}` } }
         );
         expect(courierRes.status).toBe(200);
         const savedOrder = await Order.findById(courierRes.data.orderId);
-        expect(savedOrder.totalAmount).toBe(485);
+        expect(savedOrder.totalAmount).toBe(500);
       });
 
       test('3. Tampered totalAmount is rejected with 400 and no order created', async () => {
@@ -1429,19 +1429,19 @@ describe('STEP 3: Post-Payment Verification & Webhook Amount Enforcement', () =>
             cartItems: [{ id: String(bundleA._id), type: 'bundle', quantity: 1 }],
             paymentType: 'cheque',
             deliveryMethod: 'courier',
-            courierCharge: 35,
-            totalAmount: 485,
+            courierCharge: 50,
+            totalAmount: 500,
             deliveryAddress: defaultDeliveryAddress
           },
           { headers: { Authorization: `Bearer ${buyerToken}` } }
         );
         expect(courierRes.status).toBe(200);
         const savedOrder = await Order.findById(courierRes.data.orderId);
-        expect(savedOrder.totalAmount).toBe(485);
+        expect(savedOrder.totalAmount).toBe(500);
       });
 
       test('3. Honest cart with book and bundle (pickup and courier)', async () => {
-        // bookA (200, 0.5kg) + bundleA (450, 1.3kg) = 650, weight 1.8kg -> shipping 35
+        // bookA (200, 0.5kg) + bundleA (450, 1.3kg) = 650, weight 1.8kg -> shipping 50
         const courierRes = await axios.post(
           `${baseUrl}/api/orders/create-cart-pending`,
           {
@@ -1451,15 +1451,15 @@ describe('STEP 3: Post-Payment Verification & Webhook Amount Enforcement', () =>
             ],
             paymentType: 'cheque',
             deliveryMethod: 'courier',
-            courierCharge: 35,
-            totalAmount: 685,
+            courierCharge: 50,
+            totalAmount: 700,
             deliveryAddress: defaultDeliveryAddress
           },
           { headers: { Authorization: `Bearer ${buyerToken}` } }
         );
         expect(courierRes.status).toBe(200);
         const savedOrder = await Order.findById(courierRes.data.orderId);
-        expect(savedOrder.totalAmount).toBe(685);
+        expect(savedOrder.totalAmount).toBe(700);
 
         // Pickup
         const pickupRes = await axios.post(

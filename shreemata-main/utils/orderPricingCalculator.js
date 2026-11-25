@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const { getAuthoritativeItemDetails } = require('./deliveryAddressValidator');
 
+const SHIPPING_RATE_PER_KG = 25;
+
 const DEFAULT_SHIPPING_RATES = [
   { minWeight: 0, maxWeight: 0.99, rate: 25 },
   { minWeight: 1, maxWeight: 1.99, rate: 35 },
@@ -10,29 +12,14 @@ const DEFAULT_SHIPPING_RATES = [
 ];
 
 /**
- * Calculates shipping charge based on weight and shipping rates.
- * Exact functional parity with public/js/dynamic-shipping.js
+ * Calculates shipping charge based on weight.
+ * Rule: flat ₹25 per started kg, minimum ₹25: charge = 25 * Math.max(1, Math.ceil(normalizedWeight))
+ * Total weight is rounded to 3 decimal places before Math.ceil so float sums (0.3+0.7, 3x0.1) cannot push 1.0 up to 2.
  */
 function calculateShippingCharge(weight, rates) {
   if (!weight || weight <= 0) return 0;
-  const activeRates = (Array.isArray(rates) && rates.length > 0) ? rates : DEFAULT_SHIPPING_RATES;
-
-  // Find matching weight range
-  for (const rate of activeRates) {
-    if (weight >= rate.minWeight && weight <= rate.maxWeight) {
-      return rate.rate;
-    }
-  }
-
-  // If no exact match, find the highest range that the weight exceeds
-  const applicableRates = activeRates.filter(rate => weight > rate.maxWeight);
-  if (applicableRates.length > 0) {
-    const highestRate = applicableRates[applicableRates.length - 1];
-    return highestRate.rate;
-  }
-
-  // Fallback to first rate if weight is below all ranges
-  return activeRates[0]?.rate || 25;
+  const normalizedWeight = Math.round(Number(weight) * 1000) / 1000;
+  return SHIPPING_RATE_PER_KG * Math.max(1, Math.ceil(normalizedWeight));
 }
 
 /**
@@ -126,6 +113,12 @@ async function calculateAuthoritativeOrder({
         message: `Quantity for item "${item.title || item.id || 'unknown'}" must be a positive integer >= 1`
       };
     }
+    if (qty > 100000) {
+      return {
+        error: 'Quantity limit exceeded',
+        message: `Quantity for item "${item.title || item.id || 'unknown'}" cannot exceed 100,000`
+      };
+    }
 
     const details = await getAuthoritativeItemDetails(item);
     if (!details || !details.found) {
@@ -199,14 +192,8 @@ async function calculateAuthoritativeOrder({
   if (isDigitalOnly || isPickup) {
     finalCourierCharge = 0;
   } else {
-    // Courier delivery for physical items - ALWAYS use server-computed charge
-    const CommissionSettings = mongoose.models.CommissionSettings || require('../models/CommissionSettings');
-    const settings = await CommissionSettings.getSettings().catch(() => null);
-    const shippingRates = (settings && Array.isArray(settings.shippingRates) && settings.shippingRates.length > 0)
-      ? settings.shippingRates
-      : DEFAULT_SHIPPING_RATES;
-
-    finalCourierCharge = calculateShippingCharge(totalWeight, shippingRates);
+    // Courier delivery for physical items - flat ₹25 per started kg, minimum ₹25
+    finalCourierCharge = calculateShippingCharge(totalWeight);
   }
 
   // Offer validation & calculation
@@ -256,6 +243,7 @@ async function calculateAuthoritativeOrder({
 }
 
 module.exports = {
+  SHIPPING_RATE_PER_KG,
   calculateShippingCharge,
   validateAndCalculateOffer,
   calculateAuthoritativeOrder,

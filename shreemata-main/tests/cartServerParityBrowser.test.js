@@ -428,7 +428,7 @@ describe('Cart-to-Server Parity Browser Verification Suite', () => {
   // b) 1 book, quantity 3
   // =========================================================================
   describe('b) 1 book, quantity 3', () => {
-    test('Courier: displays ₹635 (weight 1.5kg -> ₹35 shipping), payload ₹635, server order ₹635 (HTTP 200)', async () => {
+    test('Courier: displays ₹650 (weight 1.5kg -> ₹50 shipping), payload ₹650, server order ₹650 (HTTP 200)', async () => {
       const cart = [
         {
           id: String(bookStd._id),
@@ -471,7 +471,7 @@ describe('Cart-to-Server Parity Browser Verification Suite', () => {
   // c) 1 bundle
   // =========================================================================
   describe('c) 1 bundle', () => {
-    test('Courier: displays ₹485 (weight 1.2kg -> ₹35 shipping), payload ₹485, server order ₹485 (HTTP 200)', async () => {
+    test('Courier: displays ₹500 (weight 1.2kg -> ₹50 shipping), payload ₹500, server order ₹500 (HTTP 200)', async () => {
       const cart = [
         {
           id: String(bundleStd._id),
@@ -651,8 +651,8 @@ describe('Cart-to-Server Parity Browser Verification Suite', () => {
       });
     }, 60000);
 
-    // Boundary 5.0 kg - Just Over: 4*0.48kg (1.92) + 4*0.55kg (2.20) + 1.00kg = 5.12kg -> rate ₹75
-    test('Boundary 5kg - Just Over (5.12kg) Courier: total ₹1675 (HTTP 200)', async () => {
+    // Boundary 5.0 kg - Just Over: 4*0.48kg (1.92) + 4*0.55kg (2.20) + 1.00kg = 5.12kg -> rate ₹150
+    test('Boundary 5kg - Just Over (5.12kg) Courier: total ₹1750 (HTTP 200)', async () => {
       const cart = [
         { id: String(bookBaseA._id), title: bookBaseA.title, price: bookBaseA.price, quantity: 4, weight: bookBaseA.weight, isBundle: false },
         { id: String(bookOver2._id), title: bookOver2.title, price: bookOver2.price, quantity: 4, weight: bookOver2.weight, isBundle: false },
@@ -683,7 +683,7 @@ describe('Cart-to-Server Parity Browser Verification Suite', () => {
   // e) Book with custom weight saved in DB, and bundle with no weight saved
   // =========================================================================
   describe('e) Book with custom weight + bundle with no weight saved', () => {
-    test('Courier: displays ₹784 (weight 0.75 + 1.00 = 1.75kg -> ₹35 shipping), payload ₹784, server order ₹784 (HTTP 200)', async () => {
+    test('Courier: displays ₹799 (weight 0.75 + 1.00 = 1.75kg -> ₹50 shipping), payload ₹799, server order ₹799 (HTTP 200)', async () => {
       const cart = [
         { id: String(bookCustom._id), title: bookCustom.title, price: bookCustom.price, quantity: 1, weight: bookCustom.weight, isBundle: false },
         { id: String(bundleNoWeight._id), bundleId: String(bundleNoWeight._id), title: bundleNoWeight.name, price: bundleNoWeight.bundlePrice, quantity: 1, isBundle: true, books: bundleNoWeight.books }
