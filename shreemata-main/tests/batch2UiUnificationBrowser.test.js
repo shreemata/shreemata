@@ -35,6 +35,7 @@ const { spawn, execSync } = require('child_process');
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { chromium } = require('C:/Users/KRISHNA TAMBUR/browser-test/node_modules/playwright-core');
 
 const CHROME_PATH = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
@@ -177,7 +178,8 @@ describe('Batch 2 UI Unification Browser Tests', () => {
     const isUp = await checkPortOpen(3100);
     if (!isUp) {
       console.log('Starting dev-run-four-sections.js on port 3100...');
-      devServerProcess = spawn('node', ['scripts/dev-run-four-sections.js'], {
+      const captureFixturePath = path.resolve(__dirname, 'fixtures/captureOtpMail.js');
+      devServerProcess = spawn('node', ['-r', captureFixturePath, 'scripts/dev-run-four-sections.js'], {
         cwd: REPO_DIR,
         stdio: 'pipe',
         windowsHide: true
@@ -837,7 +839,7 @@ describe('Batch 2 UI Unification Browser Tests', () => {
     let capturedOtp = null;
     const otpListener = data => {
       const text = data.toString();
-      const match = text.match(/Generated email OTP for .*?:\s*(\d{6})/);
+      const match = text.match(/TEST_OTP_CAPTURE:.*?:(\d{6})/);
       if (match) {
         capturedOtp = match[1];
       }
@@ -857,12 +859,26 @@ describe('Batch 2 UI Unification Browser Tests', () => {
 
     await pageReal.waitForSelector('#emailOtpSection', { state: 'visible', timeout: 10000 });
     
-    // Wait for OTP to be printed by backend server
+    // Wait for OTP to be emitted by test fixture to stdout or written to temp dir
+    const captureDir = path.join(os.tmpdir(), 'shreemata-test-otp');
+    const safeEmail = String(realEmail).replace(/[^a-zA-Z0-9_.-]/g, '_');
+    const otpFilePath = path.join(captureDir, `${safeEmail}.otp`);
+
     const startWait = Date.now();
     while (!capturedOtp && Date.now() - startWait < 5000) {
+      if (fs.existsSync(otpFilePath)) {
+        try {
+          const content = fs.readFileSync(otpFilePath, 'utf-8').trim();
+          if (/^\d{6}$/.test(content)) {
+            capturedOtp = content;
+            break;
+          }
+        } catch (e) {}
+      }
       await new Promise(r => setTimeout(r, 200));
     }
     expect(capturedOtp).not.toBeNull();
+    expect(capturedOtp).toMatch(/^\d{6}$/);
 
     await pageReal.fill('#emailOtp', capturedOtp);
     await pageReal.click('#verifyOtpBtn');
