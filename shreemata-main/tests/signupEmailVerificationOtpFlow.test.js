@@ -149,17 +149,24 @@ describe('Signup Email Verification OTP Flow Suite', () => {
 
     expect(res.status).toBe(400);
     expect(res.data.success).toBe(false);
-    expect(res.data.error).toMatch(/2 attempts remaining/i);
+    expect(res.data.error).toMatch(/4 attempts remaining/i);
   });
 
-  it('7. rate limits consecutive OTP requests within cooldown window', async () => {
+  it('7. rate limits consecutive OTP requests according to escalating wait rules', async () => {
     const testEmail = 'cooldown@example.com';
     const firstRes = await client.post('/send-email-otp', { email: testEmail });
     expect(firstRes.status).toBe(200);
 
     const secondRes = await client.post('/send-email-otp', { email: testEmail });
-    expect(secondRes.status).toBe(429);
-    expect(secondRes.data.error).toMatch(/Please wait \d+ seconds/i);
+    expect(secondRes.status).toBe(200);
+
+    const thirdRes = await client.post('/send-email-otp', { email: testEmail });
+    expect(thirdRes.status).toBe(200);
+
+    const fourthRes = await client.post('/send-email-otp', { email: testEmail });
+    expect(fourthRes.status).toBe(429);
+    expect(fourthRes.data.error).toMatch(/Please wait before requesting another code/i);
+    expect(fourthRes.data.retryAfterSeconds).toBeGreaterThan(0);
   });
 
   it('8. blocks signup when email is unverified and allows signup when verified', async () => {

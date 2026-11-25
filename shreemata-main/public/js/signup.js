@@ -27,6 +27,63 @@ document.addEventListener('DOMContentLoaded', () => {
 // Email verification setup
 let emailVerified = false;
 let emailOtpSent = false;
+let otpCountdownInterval = null;
+
+function formatCountdown(totalSeconds) {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    if (mins > 0) {
+        return `${mins} min ${secs} sec`;
+    }
+    return `${secs} sec`;
+}
+
+function startOtpCooldown(retryAfterSeconds, statusElement, activeBtn) {
+    if (otpCountdownInterval) {
+        clearInterval(otpCountdownInterval);
+        otpCountdownInterval = null;
+    }
+
+    let remaining = Math.max(1, parseInt(retryAfterSeconds, 10) || 60);
+
+    const verifyBtn = document.getElementById('verifyEmailBtn');
+    const resendBtn = document.getElementById('resendOtpBtn');
+
+    if (verifyBtn) verifyBtn.disabled = true;
+    if (resendBtn) {
+        resendBtn.disabled = true;
+        resendBtn.textContent = 'Resend Code';
+    }
+
+    function render() {
+        if (remaining <= 0) {
+            clearInterval(otpCountdownInterval);
+            otpCountdownInterval = null;
+            if (verifyBtn) {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify Email';
+            }
+            if (resendBtn) {
+                resendBtn.disabled = false;
+                resendBtn.textContent = 'Resend Code';
+            }
+            if (statusElement) {
+                statusElement.textContent = '';
+                statusElement.className = '';
+            }
+            return;
+        }
+
+        if (statusElement) {
+            statusElement.textContent = `Please wait ${formatCountdown(remaining)} before requesting a new code`;
+            statusElement.className = 'error';
+        }
+        remaining--;
+    }
+
+    render();
+    otpCountdownInterval = setInterval(render, 1000);
+}
 
 function setupEmailVerification() {
     const emailInput = document.getElementById('email');
@@ -82,6 +139,10 @@ function setupEmailVerification() {
             const data = await response.json();
 
             if (data.success) {
+                if (otpCountdownInterval) {
+                    clearInterval(otpCountdownInterval);
+                    otpCountdownInterval = null;
+                }
                 emailOtpSent = true;
                 emailOtpSection.style.display = 'block';
                 emailStatus.textContent = '✓ Verification code sent to your email';
@@ -89,8 +150,13 @@ function setupEmailVerification() {
                 this.style.display = 'none';
                 emailOtpInput.focus();
             } else {
-                emailStatus.textContent = data.error || 'Failed to send verification code';
-                emailStatus.className = 'error';
+                if (response.status === 429 && data.retryAfterSeconds) {
+                    startOtpCooldown(data.retryAfterSeconds, emailStatus, this);
+                    return;
+                } else {
+                    emailStatus.textContent = data.error || 'Failed to send verification code';
+                    emailStatus.className = 'error';
+                }
             }
         } catch (error) {
             console.error('Email OTP send error:', error);
@@ -172,20 +238,32 @@ function setupEmailVerification() {
             const data = await response.json();
 
             if (data.success) {
+                if (otpCountdownInterval) {
+                    clearInterval(otpCountdownInterval);
+                    otpCountdownInterval = null;
+                }
                 otpStatus.textContent = '✓ New verification code sent to your email';
                 otpStatus.className = 'success';
+                this.disabled = false;
+                this.textContent = 'Resend Code';
             } else {
-                otpStatus.textContent = data.error || 'Failed to resend verification code';
-                otpStatus.className = 'error';
+                if (response.status === 429 && data.retryAfterSeconds) {
+                    startOtpCooldown(data.retryAfterSeconds, otpStatus, this);
+                    return;
+                } else {
+                    otpStatus.textContent = data.error || 'Failed to resend verification code';
+                    otpStatus.className = 'error';
+                    this.disabled = false;
+                    this.textContent = 'Resend Code';
+                }
             }
         } catch (error) {
             console.error('Email OTP resend error:', error);
             otpStatus.textContent = 'Network error. Please try again.';
             otpStatus.className = 'error';
+            this.disabled = false;
+            this.textContent = 'Resend Code';
         }
-
-        this.disabled = false;
-        this.textContent = 'Resend Code';
     });
 
     // Auto-format OTP input

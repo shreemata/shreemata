@@ -5,6 +5,156 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const emailService = require("../utils/emailService");
 
+const OtpSendLimit = require("../models/OtpSendLimit");
+const { OtpIpLimit } = require("../models/OtpSendLimit");
+
+// Escalating wait times (in minutes) for register verification codes:
+// Sends 1, 2, 3: immediate (0 min); Send 4: 5 min; Send 5: 10 min; Send 6: 15 min; Send 7+: 60 min (repeating).
+const OTP_SEND_WAITS_MINUTES = [0, 0, 0, 5, 10, 15, 60];
+const OTP_IP_LIMIT_PER_HOUR = 100;
+const OTP_IP_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const OTP_CODE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes (preserved from existing implementation)
+const OTP_MAX_VERIFY_ATTEMPTS = 5;
+
+/**
+ * Atomically checks and reserves an OTP send slot for registration.
+ * Implements escalating wait times: sends 1-3 immediate; send 4 waits 5m; send 5 waits 10m; send 6 waits 15m; send 7+ waits 60m.
+ * Enforces atomic reservation so parallel requests cannot both pass at the limit.
+ */
+async function checkAndReserveOtpSend(email, clientIp) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const now = new Date();
+  const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+  // 1. Looser per-IP rate limiting (100 sends/hour/IP) to defend against bot floods
+  if (clientIp) {
+    try {
+      const ipWindowStart = new Date(now.getTime() - OTP_IP_WINDOW_MS);
+      let ipRecord = await OtpIpLimit.findOne({ ip: clientIp });
+      if (!ipRecord || ipRecord.firstSentAt < ipWindowStart) {
+        await OtpIpLimit.findOneAndUpdate(
+          { ip: clientIp },
+          { $set: { count: 1, firstSentAt: now } },
+          { upsert: true, new: true }
+        );
+      } else {
+        if (ipRecord.count >= OTP_IP_LIMIT_PER_HOUR) {
+          const remainingSeconds = Math.ceil((OTP_IP_WINDOW_MS - (now.getTime() - ipRecord.firstSentAt.getTime())) / 1000);
+          return {
+            allowed: false,
+            retryAfterSeconds: Math.max(1, remainingSeconds),
+            error: "Too many requests from this IP address. Please try again later."
+          };
+        }
+        await OtpIpLimit.updateOne(
+          { ip: clientIp },
+          { $inc: { count: 1 } }
+        );
+      }
+    } catch (ipErr) {
+      console.warn("⚠️ [EMAIL OTP] IP rate check warning:", ipErr.message);
+    }
+  }
+
+  // 2. Per-Email escalating wait times with atomic conditional update
+  const MAX_RETRIES = 5;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    let doc = await OtpSendLimit.findOne({ email: normalizedEmail });
+    if (!doc) {
+      try {
+        doc = await OtpSendLimit.findOneAndUpdate(
+          { email: normalizedEmail },
+          {
+            $setOnInsert: {
+              email: normalizedEmail,
+              sendCount: 0,
+              lastSentAt: new Date(0)
+            }
+          },
+          { upsert: true, new: true }
+        );
+      } catch (insertErr) {
+        doc = await OtpSendLimit.findOne({ email: normalizedEmail });
+      }
+    }
+
+    if (!doc) continue;
+
+    let currentSendCount = doc.sendCount || 0;
+    let lastSentAt = doc.lastSentAt || new Date(0);
+    const timeSinceLastSend = now.getTime() - lastSentAt.getTime();
+
+    // 24-hour reset: if >= 24h passed with no send, reset count to 0
+    const is24hExpired = timeSinceLastSend >= TWENTY_FOUR_HOURS_MS;
+    if (is24hExpired) {
+      currentSendCount = 0;
+      lastSentAt = new Date(0);
+    }
+
+    // Determine required wait time in minutes and milliseconds
+    const waitIndex = Math.min(currentSendCount, OTP_SEND_WAITS_MINUTES.length - 1);
+    const waitMinutes = OTP_SEND_WAITS_MINUTES[waitIndex];
+    const waitMs = waitMinutes * 60 * 1000;
+    const elapsedMs = now.getTime() - lastSentAt.getTime();
+
+    if (waitMs > 0 && elapsedMs < waitMs) {
+      const remainingMs = waitMs - elapsedMs;
+      const retryAfterSeconds = Math.ceil(remainingMs / 1000);
+      return {
+        allowed: false,
+        retryAfterSeconds,
+        error: "Please wait before requesting another code"
+      };
+    }
+
+    // Atomically increment sendCount and update lastSentAt with optimistic condition
+    const targetQuery = {
+      _id: doc._id,
+      sendCount: doc.sendCount,
+      lastSentAt: doc.lastSentAt
+    };
+    const targetUpdate = is24hExpired
+      ? { $set: { sendCount: 1, lastSentAt: now } }
+      : { $inc: { sendCount: 1 }, $set: { lastSentAt: now } };
+
+    const updated = await OtpSendLimit.findOneAndUpdate(targetQuery, targetUpdate, { new: true });
+    if (updated) {
+      return {
+        allowed: true,
+        previousSendCount: currentSendCount,
+        newSendCount: updated.sendCount,
+        reservedAt: now,
+        previousLastSentAt: doc.lastSentAt
+      };
+    }
+    // Concurrency conflict occurred, retry loop
+  }
+
+  // If contention exceeded loop retries, evaluate current document state
+  const finalDoc = await OtpSendLimit.findOne({ email: normalizedEmail });
+  if (finalDoc) {
+    const waitIndex = Math.min(finalDoc.sendCount, OTP_SEND_WAITS_MINUTES.length - 1);
+    const waitMinutes = OTP_SEND_WAITS_MINUTES[waitIndex];
+    const waitMs = waitMinutes * 60 * 1000;
+    const elapsedMs = now.getTime() - finalDoc.lastSentAt.getTime();
+    if (waitMs > 0 && elapsedMs < waitMs) {
+      const remainingMs = waitMs - elapsedMs;
+      const retryAfterSeconds = Math.ceil(remainingMs / 1000);
+      return {
+        allowed: false,
+        retryAfterSeconds,
+        error: "Please wait before requesting another code"
+      };
+    }
+  }
+
+  return {
+    allowed: false,
+    retryAfterSeconds: 5,
+    error: "Please wait before requesting another code"
+  };
+}
+
 const router = express.Router();
 
 const VIP_MIN_WITHDRAWAL = 100;
@@ -47,31 +197,34 @@ router.post("/send-email-otp", async (req, res) => {
       });
     }
 
-    // Rate limiting: 30-second cooldown between resends for the same email
-    global.emailOtpStore = global.emailOtpStore || new Map();
-    const existingOtp = global.emailOtpStore.get(email) || global.emailOtpStore.get(rawEmail.trim());
-    if (existingOtp && existingOtp.createdAt && (Date.now() - existingOtp.createdAt < 30 * 1000)) {
-      const waitSeconds = Math.ceil((30 * 1000 - (Date.now() - existingOtp.createdAt)) / 1000);
+    // Atomic rate limiting check with escalating wait times & IP protection
+    const clientIp = req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress || '127.0.0.1';
+    const reservation = await checkAndReserveOtpSend(email, clientIp);
+
+    if (!reservation.allowed) {
+      res.set("Retry-After", String(reservation.retryAfterSeconds));
       return res.status(429).json({
         success: false,
-        error: `Please wait ${waitSeconds} seconds before requesting another code.`
+        error: reservation.error || "Please wait before requesting another code",
+        retryAfterSeconds: reservation.retryAfterSeconds
       });
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log(`📧 [EMAIL OTP] Generated email OTP for ${email}: ${otp}`);
+    // Generate cryptographically secure 6-digit OTP (crypto.randomInt)
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    console.log(`📧 [EMAIL OTP] Generated email OTP for ${email}`);
 
     // Store OTP for email verification before dispatching
     try {
       const otpRecord = {
         otp: otp,
         createdAt: Date.now(),
-        expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+        expiresAt: Date.now() + OTP_CODE_EXPIRY_MS, // 10 minutes
         attempts: 0,
         isEmailVerification: true,
         verified: false
       };
+      global.emailOtpStore = global.emailOtpStore || new Map();
       global.emailOtpStore.set(email, otpRecord);
       if (rawEmail.trim() !== email) {
         global.emailOtpStore.set(rawEmail.trim(), otpRecord);
@@ -106,6 +259,17 @@ router.post("/send-email-otp", async (req, res) => {
         global.emailOtpStore.delete(email);
         global.emailOtpStore.delete(rawEmail.trim());
 
+        // Revert reserved send slot since email was not sent
+        await OtpSendLimit.findOneAndUpdate(
+          { email, lastSentAt: reservation.reservedAt },
+          {
+            $set: {
+              sendCount: reservation.previousSendCount,
+              lastSentAt: reservation.previousLastSentAt
+            }
+          }
+        );
+
         return res.status(500).json({ 
           success: false, 
           error: "Failed to send verification email. Please try again." 
@@ -115,6 +279,17 @@ router.post("/send-email-otp", async (req, res) => {
       console.error(`❌ [EMAIL OTP] Email sending exception for ${email}:`, emailError.message || emailError);
       global.emailOtpStore.delete(email);
       global.emailOtpStore.delete(rawEmail.trim());
+
+      // Revert reserved send slot
+      await OtpSendLimit.findOneAndUpdate(
+        { email, lastSentAt: reservation.reservedAt },
+        {
+          $set: {
+            sendCount: reservation.previousSendCount,
+            lastSentAt: reservation.previousLastSentAt
+          }
+        }
+      );
 
       return res.status(500).json({ 
         success: false, 
@@ -167,25 +342,33 @@ router.post("/verify-email-otp", async (req, res) => {
       });
     }
 
-    // Check attempt limit
-    if (storedData.attempts >= 3) {
+    // Check attempt limit: 5 wrong attempts max per issued code
+    if (storedData.attempts >= OTP_MAX_VERIFY_ATTEMPTS) {
       global.emailOtpStore.delete(email);
       global.emailOtpStore.delete(String(rawEmail).trim());
       return res.status(400).json({ 
         success: false, 
-        error: "Too many failed attempts. Please request a new code." 
+        error: "Too many failed attempts. This code has been invalidated. Please request a new code." 
       });
     }
 
     // Verify OTP
     if (storedData.otp !== otp) {
       storedData.attempts += 1;
+      if (storedData.attempts >= OTP_MAX_VERIFY_ATTEMPTS) {
+        global.emailOtpStore.delete(email);
+        global.emailOtpStore.delete(String(rawEmail).trim());
+        return res.status(400).json({ 
+          success: false, 
+          error: "Too many failed attempts. This code has been invalidated. Please request a new code." 
+        });
+      }
       global.emailOtpStore.set(email, storedData);
       global.emailOtpStore.set(String(rawEmail).trim(), storedData);
       
       return res.status(400).json({ 
         success: false, 
-        error: `Invalid verification code. ${3 - storedData.attempts} attempts remaining.` 
+        error: `Invalid verification code. ${OTP_MAX_VERIFY_ATTEMPTS - storedData.attempts} attempts remaining.` 
       });
     }
 
@@ -517,6 +700,13 @@ router.post("/signup", async (req, res) => {
     }
 
     // Create user WITHOUT tree placement (tree placement happens on first purchase only)
+    // Reset OTP send limit counter for this email upon successful registration
+    try {
+      await OtpSendLimit.deleteMany({ email: normalizedEmail });
+    } catch (limitCleanErr) {
+      console.warn("⚠️ Failed to clean OtpSendLimit on signup:", limitCleanErr.message);
+    }
+
     const newUser = await User.create({
       name,
       email,
@@ -1128,6 +1318,9 @@ router.post("/reset-password", async (req, res) => {
     });
   }
 });
+
+router.OTP_SEND_WAITS_MINUTES = OTP_SEND_WAITS_MINUTES;
+router.checkAndReserveOtpSend = checkAndReserveOtpSend;
 
 module.exports = router;
 
