@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const emailService = require("../utils/emailService");
+const { getEmailTypoSuggestion } = require("../utils/emailTypoDomains");
 
 const OtpSendLimit = require("../models/OtpSendLimit");
 const { OtpIpLimit } = require("../models/OtpSendLimit");
@@ -241,6 +242,17 @@ router.post("/send-email-otp", async (req, res) => {
       return res.status(400).json({ 
         success: false, 
         error: "Invalid email format" 
+      });
+    }
+
+    // Check for mistyped email domains BEFORE rate limiting reservation or sending
+    const typoCheck = getEmailTypoSuggestion(email);
+    if (typoCheck) {
+      console.warn(`⚠️ [EMAIL OTP] Mistyped email domain detected: ${email} -> ${typoCheck.suggestion}`);
+      return res.status(400).json({
+        success: false,
+        error: `Did you mean ${typoCheck.suggestion}?`,
+        suggestion: typoCheck.suggestion
       });
     }
 

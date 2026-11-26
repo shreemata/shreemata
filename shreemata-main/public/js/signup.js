@@ -29,6 +29,61 @@ let emailVerified = false;
 let emailOtpSent = false;
 let otpCountdownInterval = null;
 
+const EMAIL_TYPO_DOMAINS = {
+    // Gmail typos
+    'gamil.com': 'gmail.com',
+    'gmial.com': 'gmail.com',
+    'gmai.com': 'gmail.com',
+    'gmaill.com': 'gmail.com',
+    'gnail.com': 'gmail.com',
+    'gmail.con': 'gmail.com',
+    'gmail.co': 'gmail.com',
+    'gmail.cm': 'gmail.com',
+    'gmail.om': 'gmail.com',
+    'gmail.comm': 'gmail.com',
+    'gmil.com': 'gmail.com',
+    'gmal.com': 'gmail.com',
+
+    // Yahoo typos
+    'yahooo.com': 'yahoo.com',
+    'yaho.com': 'yahoo.com',
+    'yahoo.con': 'yahoo.com',
+
+    // Hotmail typos
+    'hotmial.com': 'hotmail.com',
+    'hotmal.com': 'hotmail.com',
+    'hotmail.con': 'hotmail.com',
+
+    // Outlook typos
+    'outlok.com': 'outlook.com',
+    'outlook.con': 'outlook.com'
+};
+
+function getEmailTypoSuggestion(email) {
+    if (!email || typeof email !== 'string') return null;
+    const trimmed = email.trim();
+    const atIndex = trimmed.lastIndexOf('@');
+    if (atIndex <= 0 || atIndex === trimmed.length - 1) return null;
+
+    const local = trimmed.slice(0, atIndex);
+    const domain = trimmed.slice(atIndex + 1).toLowerCase();
+
+    if (Object.prototype.hasOwnProperty.call(EMAIL_TYPO_DOMAINS, domain)) {
+        const correctedDomain = EMAIL_TYPO_DOMAINS[domain];
+        const suggestion = `${local}@${correctedDomain}`;
+        return {
+            original: trimmed,
+            local,
+            typoDomain: domain,
+            correctedDomain,
+            suggestion,
+            error: `Did you mean ${suggestion}?`
+        };
+    }
+
+    return null;
+}
+
 function formatCountdown(totalSeconds) {
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
@@ -95,8 +150,46 @@ function setupEmailVerification() {
     const resendOtpBtn = document.getElementById('resendOtpBtn');
     const otpStatus = document.getElementById('otpStatus');
 
+    function showEmailSuggestion(suggestion) {
+        if (emailStatus.dataset.suggestion === suggestion && emailStatus.querySelector('#useEmailSuggestionBtn')) {
+            return;
+        }
+        emailStatus.dataset.suggestion = suggestion;
+        emailStatus.className = 'error';
+        emailStatus.innerHTML = '';
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = `Did you mean ${suggestion}? `;
+
+        const useBtn = document.createElement('button');
+        useBtn.type = 'button';
+        useBtn.id = 'useEmailSuggestionBtn';
+        useBtn.className = 'use-email-suggestion-btn';
+        useBtn.textContent = `Use ${suggestion}`;
+        useBtn.style.cssText = 'background:none;border:none;padding:0;color:#2b6cb0;text-decoration:underline;cursor:pointer;font-size:inherit;font-family:inherit;font-weight:600;';
+
+        useBtn.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+        });
+
+        useBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            delete emailStatus.dataset.suggestion;
+            emailInput.value = suggestion;
+            emailStatus.textContent = '';
+            emailStatus.className = '';
+            verifyEmailBtn.style.display = 'inline-block';
+            emailInput.focus();
+            emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+
+        emailStatus.appendChild(textSpan);
+        emailStatus.appendChild(useBtn);
+    }
+
     // Show verify button when email is entered
     emailInput.addEventListener('input', function() {
+        delete emailStatus.dataset.suggestion;
         const email = this.value.trim();
         if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             verifyEmailBtn.style.display = 'inline-block';
@@ -112,6 +205,16 @@ function setupEmailVerification() {
         }
     });
 
+    // Suggest correction on blur if typo domain detected
+    emailInput.addEventListener('blur', function() {
+        const email = this.value.trim();
+        if (!email) return;
+        const suggestionInfo = getEmailTypoSuggestion(email);
+        if (suggestionInfo) {
+            showEmailSuggestion(suggestionInfo.suggestion);
+        }
+    });
+
     // Send email OTP
     verifyEmailBtn.addEventListener('click', async function() {
         const email = emailInput.value.trim();
@@ -119,6 +222,12 @@ function setupEmailVerification() {
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             emailStatus.textContent = 'Please enter a valid email address';
             emailStatus.className = 'error';
+            return;
+        }
+
+        const suggestionInfo = getEmailTypoSuggestion(email);
+        if (suggestionInfo) {
+            showEmailSuggestion(suggestionInfo.suggestion);
             return;
         }
 
@@ -153,6 +262,8 @@ function setupEmailVerification() {
                 if (response.status === 429 && data.retryAfterSeconds) {
                     startOtpCooldown(data.retryAfterSeconds, emailStatus, this);
                     return;
+                } else if (data && data.suggestion) {
+                    showEmailSuggestion(data.suggestion);
                 } else {
                     emailStatus.textContent = data.error || 'Failed to send verification code';
                     emailStatus.className = 'error';
@@ -220,6 +331,12 @@ function setupEmailVerification() {
     // Resend email OTP
     resendOtpBtn.addEventListener('click', async function() {
         const email = emailInput.value.trim();
+
+        const suggestionInfo = getEmailTypoSuggestion(email);
+        if (suggestionInfo) {
+            showEmailSuggestion(suggestionInfo.suggestion);
+            return;
+        }
 
         this.disabled = true;
         this.textContent = 'Sending...';
