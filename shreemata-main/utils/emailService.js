@@ -39,15 +39,15 @@ if (transporter) {
 
 async function sendEmailSafely(mailOptions) {
     if (!transporter) {
-        console.log('⚠️ (Email skipped - SMTP credentials not set):', mailOptions.subject);
+        console.log('(Email skipped - SMTP credentials not set):', mailOptions.subject);
         return { messageId: 'skipped_no_smtp', accepted: [mailOptions.to], rejected: [], response: 'skipped' };
     }
     // Ensure 'from' header is populated
     if (!mailOptions.from) {
-        mailOptions.from = `"Shree Mata" <${fromEmail}>`;
+        mailOptions.from = `"Shree Mata" <${fromEmail || emailUser || supportEmail}>`;
     }
     if (!mailOptions.replyTo) {
-        mailOptions.replyTo = `"Shree Mata Support" <${supportEmail}>`;
+        mailOptions.replyTo = supportEmail;
     }
     return transporter.sendMail(mailOptions);
 }
@@ -405,68 +405,47 @@ async function sendDeliveryStatusEmail(order, user, newStatus, trackingInfo = ''
 async function sendEmailOTP(email, otp) {
     try {
         const mailOptions = {
-            from: `"Shree Mata" <${fromEmail}>`,
+            from: `"Shree Mata" <${fromEmail || emailUser || supportEmail}>`,
+            replyTo: supportEmail,
             to: email,
-            subject: 'Email Verification Code - Shree Mata',
-            html: `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                </head>
-                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                        <h1 style="color: white; margin: 0;">📚 Shree Mata</h1>
-                        <p style="color: white; margin: 10px 0 0 0;">Email Verification</p>
-                    </div>
-                    
-                    <div style="background: white; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
-                        <h2 style="color: #667eea; margin-top: 0;">Verify Your Email Address</h2>
-                        
-                        <p>Thank you for signing up with Shree Mata! To complete your registration, please verify your email address.</p>
-                        
-                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-                            <p style="margin: 0 0 10px 0; font-size: 16px; color: #666;">Your verification code is:</p>
-                            <div style="font-size: 32px; font-weight: 700; color: #667eea; letter-spacing: 8px; font-family: 'Courier New', monospace;">${otp}</div>
-                            <p style="margin: 10px 0 0 0; font-size: 14px; color: #999;">This code will expire in 10 minutes</p>
-                        </div>
-
-                        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
-                            <p style="margin: 0; color: #856404; font-size: 14px;">
-                                <strong>⚠️ Security Notice:</strong><br>
-                                • Do not share this code with anyone<br>
-                                • We will never ask for this code over phone or email<br>
-                                • If you didn't request this verification, please ignore this email
-                            </p>
-                        </div>
-
-                        <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions, please contact us at <a href="mailto:${supportEmail}" style="color: #667eea; text-decoration: underline;">${supportEmail}</a>
-                        </p>
-                    </div>
-
-                    <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-                        <p>© ${new Date().getFullYear()} Shree Mata. All rights reserved.</p>
-                    </div>
-                </body>
-                </html>
-            `
+            subject: 'Your Shree Mata verification code',
+            text: `Your Shree Mata verification code is: ${otp}\n\nYou asked to register at shreemata.com. Please use this verification code to complete your registration.\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, ignore this email.\n\n--\nShree Mata\nhttps://shreemata.com`,
+            html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Shree Mata verification code</title>
+</head>
+<body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f7f9fc; color: #2d3748; line-height: 1.6;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        <tr>
+            <td style="padding: 32px 32px 24px 32px;">
+                <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600; color: #1a202c;">Shree Mata</h1>
+                <p style="margin: 0 0 24px 0; font-size: 15px; color: #4a5568;">You asked to register at shreemata.com. Please use the verification code below to complete your registration.</p>
+                <div style="background-color: #edf2f7; border-radius: 6px; padding: 20px; text-align: center; margin: 24px 0;">
+                    <div style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #2b6cb0; font-family: 'Courier New', Courier, monospace;">${otp}</div>
+                    <div style="margin-top: 8px; font-size: 13px; color: #718096;">This code will expire in 10 minutes.</div>
+                </div>
+                <p style="margin: 24px 0 0 0; font-size: 14px; color: #718096;">If you did not request this, ignore this email.</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 16px 32px 24px 32px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #a0aec0; text-align: center;">
+                Shree Mata &bull; <a href="https://shreemata.com" style="color: #4a5568; text-decoration: none;">shreemata.com</a>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`
         };
 
-        const info = await sendEmailSafely(mailOptions);
-        console.log('✅ Email OTP sent:', info.messageId);
-        console.log('📧 Email details:', {
-            from: mailOptions.from,
-            to: mailOptions.to,
-            subject: mailOptions.subject,
-            accepted: info.accepted,
-            rejected: info.rejected,
-            response: info.response
-        });
+        const dispatchFn = module.exports.sendEmailSafely || sendEmailSafely;
+        const info = await dispatchFn(mailOptions);
+        console.log('Email OTP sent:', info.messageId);
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error('❌ Error sending email OTP:', error);
+        console.error('Error sending email OTP:', error.message || error);
         return { success: false, error: error.message };
     }
 }
@@ -477,60 +456,47 @@ async function sendEmailOTP(email, otp) {
 async function sendPasswordResetOTP(email, otp) {
     try {
         const mailOptions = {
-            from: `"Shree Mata" <${fromEmail}>`,
+            from: `"Shree Mata" <${fromEmail || emailUser || supportEmail}>`,
+            replyTo: supportEmail,
             to: email,
-            subject: 'Password Reset Code - Shree Mata',
-            html: `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                </head>
-                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                        <h1 style="color: white; margin: 0;">📚 Shree Mata</h1>
-                        <p style="color: white; margin: 10px 0 0 0;">Password Reset Request</p>
-                    </div>
-                    
-                    <div style="background: white; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
-                        <h2 style="color: #667eea; margin-top: 0;">🔐 Reset Your Password</h2>
-                        
-                        <p>We received a request to reset your password. To proceed with the password reset, please use the verification code below:</p>
-                        
-                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-                            <p style="margin: 0 0 10px 0; font-size: 16px; color: #666;">Your password reset code is:</p>
-                            <div style="font-size: 32px; font-weight: 700; color: #667eea; letter-spacing: 8px; font-family: 'Courier New', monospace;">${otp}</div>
-                            <p style="margin: 10px 0 0 0; font-size: 14px; color: #999;">This code will expire in 10 minutes</p>
-                        </div>
-
-                        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
-                            <p style="margin: 0; color: #856404; font-size: 14px;">
-                                <strong>⚠️ Security Notice:</strong><br>
-                                • Do not share this code with anyone<br>
-                                • We will never ask for this code over phone or email<br>
-                                • If you didn't request this password reset, please ignore this email and your password will remain unchanged
-                            </p>
-                        </div>
-
-                        <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions, please contact us at <a href="mailto:${supportEmail}" style="color: #667eea; text-decoration: underline;">${supportEmail}</a>
-                        </p>
-                    </div>
-
-                    <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-                        <p>© ${new Date().getFullYear()} Shree Mata. All rights reserved.</p>
-                    </div>
-                </body>
-                </html>
-            `
+            subject: 'Your Shree Mata password reset code',
+            text: `Your Shree Mata password reset code is: ${otp}\n\nYou asked to reset your password at shreemata.com. Please use the verification code below to proceed with resetting your password.\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, ignore this email.\n\n--\nShree Mata\nhttps://shreemata.com`,
+            html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Shree Mata password reset code</title>
+</head>
+<body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f7f9fc; color: #2d3748; line-height: 1.6;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        <tr>
+            <td style="padding: 32px 32px 24px 32px;">
+                <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600; color: #1a202c;">Shree Mata</h1>
+                <p style="margin: 0 0 24px 0; font-size: 15px; color: #4a5568;">You asked to reset your password at shreemata.com. Please use the verification code below to proceed with resetting your password.</p>
+                <div style="background-color: #edf2f7; border-radius: 6px; padding: 20px; text-align: center; margin: 24px 0;">
+                    <div style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #2b6cb0; font-family: 'Courier New', Courier, monospace;">${otp}</div>
+                    <div style="margin-top: 8px; font-size: 13px; color: #718096;">This code will expire in 10 minutes.</div>
+                </div>
+                <p style="margin: 24px 0 0 0; font-size: 14px; color: #718096;">If you did not request this, ignore this email.</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 16px 32px 24px 32px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #a0aec0; text-align: center;">
+                Shree Mata &bull; <a href="https://shreemata.com" style="color: #4a5568; text-decoration: none;">shreemata.com</a>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`
         };
 
-        const info = await sendEmailSafely(mailOptions);
-        console.log('✅ Password reset OTP sent:', info.messageId);
+        const dispatchFn = module.exports.sendEmailSafely || sendEmailSafely;
+        const info = await dispatchFn(mailOptions);
+        console.log('Password reset OTP sent:', info.messageId);
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error('❌ Error sending password reset OTP:', error);
+        console.error('Error sending password reset OTP:', error.message || error);
         return { success: false, error: error.message };
     }
 }
@@ -540,102 +506,59 @@ async function sendPasswordResetOTP(email, otp) {
  */
 async function sendEmployeeVerificationEmail(employee, verificationToken) {
     try {
-        // Use the actual domain from environment variable, fallback to shreemata.com
         const baseUrl = process.env.FRONTEND_URL || 'https://shreemata.com';
         const directVerificationUrl = `${baseUrl}/api/employees/verify-email/${verificationToken}`;
-        const fallbackVerificationUrl = `${baseUrl}/employee-verify.html?token=${verificationToken}`;
         
-        console.log('📧 Sending employee verification email to:', employee.email);
-        console.log('🔗 Direct verification URL:', directVerificationUrl);
-        console.log('🔗 Fallback verification URL:', fallbackVerificationUrl);
+        console.log('Sending employee verification email to:', employee.email);
+        console.log('Verification URL:', directVerificationUrl);
         
         const mailOptions = {
-            from: `"Shree Mata HR" <${fromEmail}>`,
+            from: `"Shree Mata" <${fromEmail || emailUser || supportEmail}>`,
+            replyTo: supportEmail,
             to: employee.email,
-            subject: 'Employee Account Verification - Shree Mata',
-            html: `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                </head>
-                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                        <h1 style="color: white; margin: 0;">🏢 Shree Mata</h1>
-                        <p style="color: white; margin: 10px 0 0 0;">Employee Account Verification</p>
-                    </div>
-                    
-                    <div style="background: white; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
-                        <h2 style="color: #667eea; margin-top: 0;">Welcome to Shree Mata! 🎉</h2>
-                        
-                        <p>Dear ${employee.name},</p>
-                        <p>Welcome to the Shree Mata team! Your employee account has been created and we need to verify your email address to complete the setup.</p>
-                        
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                            <p style="margin: 5px 0;"><strong>Employee ID:</strong> ${employee.employeeId}</p>
-                            <p style="margin: 5px 0;"><strong>Name:</strong> ${employee.name}</p>
-                            <p style="margin: 5px 0;"><strong>Designation:</strong> ${employee.designation}</p>
-                            <p style="margin: 5px 0;"><strong>Department:</strong> ${employee.department}</p>
-                            <p style="margin: 5px 0;"><strong>Joining Date:</strong> ${new Date(employee.joiningDate).toLocaleDateString()}</p>
-                        </div>
-
-                        <div style="text-align: center; margin: 30px 0;">
-                            <a href="${directVerificationUrl}" 
-                               style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin-bottom: 15px;">
-                                ✅ Verify Email Address (One-Click)
-                            </a>
-                            <br>
-                            <a href="${fallbackVerificationUrl}" 
-                               style="display: inline-block; background: #6c757d; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 14px;">
-                                🔗 Alternative Verification Link
-                            </a>
-                        </div>
-
-                        <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196F3;">
-                            <p style="margin: 0; color: #1976D2; font-size: 14px;">
-                                <strong>📱 Quick Verification:</strong><br>
-                                Simply click the blue "Verify Email Address" button above for instant verification. 
-                                If that doesn't work, use the alternative link below it.
-                            </p>
-                        </div>
-
-                        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
-                            <p style="margin: 0; color: #856404; font-size: 14px;">
-                                <strong>⚠️ Important:</strong><br>
-                                • This verification link will expire in 24 hours<br>
-                                • You must verify your email to receive salary notifications<br>
-                                • If you didn't expect this email, please contact HR immediately<br>
-                                • If the links don't work, please contact HR with your Employee ID: <strong>${employee.employeeId}</strong>
-                            </p>
-                        </div>
-
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
-                            <p style="margin: 0; color: #666; font-size: 14px;">
-                                <strong>Need Help?</strong><br>
-                                Contact HR at <a href="mailto:${supportEmail}" style="color: #667eea;">${supportEmail}</a><br>
-                                Include your Employee ID: <strong>${employee.employeeId}</strong>
-                            </p>
-                        </div>
-                    </div>
-
-                    <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-                        <p>© ${new Date().getFullYear()} Shree Mata. All rights reserved.</p>
-                        <p>This email was sent to ${employee.email}</p>
-                    </div>
-                </body>
-                </html>
-            `
+            subject: 'Verify your Shree Mata employee account',
+            text: `Verify your Shree Mata employee account\n\nWelcome to Shree Mata, ${employee.name}. An employee account has been created for you (Employee ID: ${employee.employeeId}).\n\nPlease verify your email address by visiting this link:\n${directVerificationUrl}\n\nThis verification link will expire in 24 hours.\n\nIf you did not expect this email, ignore this email.\n\n--\nShree Mata\nhttps://shreemata.com`,
+            html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify your Shree Mata employee account</title>
+</head>
+<body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f7f9fc; color: #2d3748; line-height: 1.6;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        <tr>
+            <td style="padding: 32px 32px 24px 32px;">
+                <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600; color: #1a202c;">Shree Mata</h1>
+                <p style="margin: 0 0 24px 0; font-size: 15px; color: #4a5568;">Welcome to Shree Mata, ${employee.name}. An employee account has been created for you. Please verify your email address to complete setup.</p>
+                <div style="background-color: #edf2f7; border-radius: 6px; padding: 16px; margin: 20px 0; font-size: 14px; color: #2d3748;">
+                    <div><strong>Employee ID:</strong> ${employee.employeeId}</div>
+                    <div style="margin-top: 4px;"><strong>Department:</strong> ${employee.department}</div>
+                    <div style="margin-top: 4px;"><strong>Designation:</strong> ${employee.designation}</div>
+                </div>
+                <div style="text-align: center; margin: 24px 0;">
+                    <a href="${directVerificationUrl}" style="display: inline-block; background-color: #2b6cb0; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">Verify Email Address</a>
+                </div>
+                <p style="margin: 8px 0 0 0; font-size: 13px; color: #718096; text-align: center;">This link will expire in 24 hours.</p>
+                <p style="margin: 24px 0 0 0; font-size: 14px; color: #718096;">If you did not expect this email, ignore this email.</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 16px 32px 24px 32px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #a0aec0; text-align: center;">
+                Shree Mata &bull; <a href="https://shreemata.com" style="color: #4a5568; text-decoration: none;">shreemata.com</a>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`
         };
 
-        const info = await sendEmailSafely(mailOptions);
-        console.log('✅ Employee verification email sent successfully:', info.messageId);
-        console.log('📧 Email sent to:', employee.email);
-        console.log('🔗 Verification URLs included in email');
-        
+        const dispatchFn = module.exports.sendEmailSafely || sendEmailSafely;
+        const info = await dispatchFn(mailOptions);
+        console.log('Employee verification email sent:', info.messageId);
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error('❌ Error sending employee verification email:', error);
+        console.error('Error sending employee verification email:', error.message || error);
         return { success: false, error: error.message };
     }
 }
@@ -755,68 +678,52 @@ async function sendSalaryNotificationEmail(employee, salaryRecord) {
 async function sendSalaryUpdateOTP(employee, otp, salaryDetails) {
     try {
         const mailOptions = {
-            from: `"Shree Mata HR" <${fromEmail}>`,
+            from: `"Shree Mata" <${fromEmail || emailUser || supportEmail}>`,
+            replyTo: supportEmail,
             to: employee.email,
-            subject: 'Salary Update Verification - Shree Mata',
-            html: `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                </head>
-                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                        <h1 style="color: white; margin: 0;">🏢 Shree Mata</h1>
-                        <p style="color: white; margin: 10px 0 0 0;">Salary Update Verification</p>
-                    </div>
-                    
-                    <div style="background: white; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
-                        <h2 style="color: #667eea; margin-top: 0;">🔐 Verify Salary Update</h2>
-                        
-                        <p>Dear ${employee.name},</p>
-                        <p>A salary update has been initiated for your account. Please verify this action using the OTP below:</p>
-                        
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                            <p style="margin: 5px 0;"><strong>Employee ID:</strong> ${employee.employeeId}</p>
-                            <p style="margin: 5px 0;"><strong>Period:</strong> ${salaryDetails.periodDescription || salaryDetails.period}</p>
-                            <p style="margin: 5px 0;"><strong>Amount:</strong> ₹${salaryDetails.totalSalary}</p>
-                            <p style="margin: 5px 0;"><strong>Status:</strong> ${salaryDetails.paymentStatus.toUpperCase()}</p>
-                        </div>
-
-                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-                            <p style="margin: 0 0 10px 0; font-size: 16px; color: #666;">Your verification code is:</p>
-                            <div style="font-size: 32px; font-weight: 700; color: #667eea; letter-spacing: 8px; font-family: 'Courier New', monospace;">${otp}</div>
-                            <p style="margin: 10px 0 0 0; font-size: 14px; color: #999;">This code will expire in 10 minutes</p>
-                        </div>
-
-                        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
-                            <p style="margin: 0; color: #856404; font-size: 14px;">
-                                <strong>⚠️ Security Notice:</strong><br>
-                                • Do not share this code with anyone<br>
-                                • Only authorized HR personnel should request this verification<br>
-                                • If you didn't expect this salary update, please contact HR immediately
-                            </p>
-                        </div>
-
-                        <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                            If you have any questions, please contact HR at <a href="mailto:${supportEmail}" style="color: #667eea; text-decoration: underline;">${supportEmail}</a>
-                        </p>
-                    </div>
-
-                    <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-                        <p>© ${new Date().getFullYear()} Shree Mata. All rights reserved.</p>
-                    </div>
-                </body>
-                </html>
-            `
+            subject: 'Your Shree Mata salary verification code',
+            text: `Your Shree Mata salary verification code is: ${otp}\n\nA salary update was requested for employee ${employee.employeeId} (${employee.name}) at shreemata.com.\n\nAmount: Rs ${salaryDetails.totalSalary}\nPeriod: ${salaryDetails.periodDescription || salaryDetails.period || 'Current'}\nStatus: ${String(salaryDetails.paymentStatus || '').toUpperCase()}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, ignore this email.\n\n--\nShree Mata\nhttps://shreemata.com`,
+            html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Shree Mata salary verification code</title>
+</head>
+<body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f7f9fc; color: #2d3748; line-height: 1.6;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        <tr>
+            <td style="padding: 32px 32px 24px 32px;">
+                <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600; color: #1a202c;">Shree Mata</h1>
+                <p style="margin: 0 0 24px 0; font-size: 15px; color: #4a5568;">A salary update was requested for employee ${employee.employeeId} (${employee.name}) at shreemata.com. Please use the verification code below to verify this update.</p>
+                <div style="background-color: #edf2f7; border-radius: 6px; padding: 16px; margin: 20px 0; font-size: 14px; color: #2d3748;">
+                    <div><strong>Amount:</strong> Rs ${salaryDetails.totalSalary}</div>
+                    <div style="margin-top: 4px;"><strong>Period:</strong> ${salaryDetails.periodDescription || salaryDetails.period || 'Current'}</div>
+                    <div style="margin-top: 4px;"><strong>Status:</strong> ${String(salaryDetails.paymentStatus || '').toUpperCase()}</div>
+                </div>
+                <div style="background-color: #edf2f7; border-radius: 6px; padding: 20px; text-align: center; margin: 24px 0;">
+                    <div style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #2b6cb0; font-family: 'Courier New', Courier, monospace;">${otp}</div>
+                    <div style="margin-top: 8px; font-size: 13px; color: #718096;">This code will expire in 10 minutes.</div>
+                </div>
+                <p style="margin: 24px 0 0 0; font-size: 14px; color: #718096;">If you did not request this, ignore this email.</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 16px 32px 24px 32px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #a0aec0; text-align: center;">
+                Shree Mata &bull; <a href="https://shreemata.com" style="color: #4a5568; text-decoration: none;">shreemata.com</a>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`
         };
 
-        const info = await sendEmailSafely(mailOptions);
-        console.log('✅ Salary update OTP sent:', info.messageId);
+        const dispatchFn = module.exports.sendEmailSafely || sendEmailSafely;
+        const info = await dispatchFn(mailOptions);
+        console.log('Salary update OTP sent:', info.messageId);
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error('❌ Error sending salary update OTP:', error);
+        console.error('Error sending salary update OTP:', error.message || error);
         return { success: false, error: error.message };
     }
 }
@@ -962,6 +869,7 @@ async function sendSalaryPaymentStatusUpdateEmail(employee, salaryRecord, oldSta
 }
 
 module.exports = {
+    sendEmailSafely,
     sendOrderConfirmationEmail,
     sendAdminNotification,
     sendDeliveryStatusEmail,
