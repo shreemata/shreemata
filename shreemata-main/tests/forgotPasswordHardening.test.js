@@ -262,39 +262,71 @@ describe('Forgot Password Hardening & Rate Limiting Suite', () => {
     expect(records[0].email).toBe('pwreset:caseuser@example.com');
   });
 
-  it('5. unknown email gives the same status and body shape as a known one and sends zero emails', async () => {
+  it('5. unknown email has identical status sequence and JSON body sequence to known email and sends zero emails', async () => {
     const sendSpy = jest.spyOn(emailService, 'sendPasswordResetOTP').mockResolvedValue({ success: true, messageId: 'm' });
 
     const hashedPassword = await bcrypt.hash('KnownPass123!', 10);
     await User.create({
       name: 'Known User',
-      email: 'known@example.com',
+      email: 'known_sequence@example.com',
       password: hashedPassword
     });
 
-    // Request for known email
-    const knownRes = await client.post('/api/auth/forgot-password-send-email-otp', { email: 'known@example.com' });
-    expect(knownRes.status).toBe(200);
-    expect(knownRes.data).toEqual({
-      success: true,
-      message: 'If an account exists for this email, a verification code has been sent.'
-    });
-    expect(sendSpy).toHaveBeenCalledTimes(1);
+    // 1. Send 6 consecutive requests for known email
+    const knownResponses = [];
+    for (let i = 0; i < 6; i++) {
+      // Clear IP rate limit records between requests so IP limit never blocks before email limit
+      await OtpDailyIpLimit.deleteMany({});
+      await OtpIpLimit.deleteMany({});
+      const res = await client.post('/api/auth/forgot-password-send-email-otp', {
+        email: 'known_sequence@example.com'
+      });
+      knownResponses.push(res);
+    }
 
-    // Request for unknown email
-    const unknownRes = await client.post('/api/auth/forgot-password-send-email-otp', { email: 'ghost_user_999@example.com' });
-    expect(unknownRes.status).toBe(200);
-    expect(unknownRes.data).toEqual({
-      success: true,
-      message: 'If an account exists for this email, a verification code has been sent.'
-    });
+    // 2. Send 6 consecutive requests for unknown email
+    const unknownResponses = [];
+    for (let i = 0; i < 6; i++) {
+      // Clear IP rate limit records between requests so IP limit never blocks before email limit
+      await OtpDailyIpLimit.deleteMany({});
+      await OtpIpLimit.deleteMany({});
+      const res = await client.post('/api/auth/forgot-password-send-email-otp', {
+        email: 'ghost_sequence_999@example.com'
+      });
+      unknownResponses.push(res);
+    }
 
-    // Email dispatch must NOT have occurred for unknown email (still 1 call from known user)
-    expect(sendSpy).toHaveBeenCalledTimes(1);
+    // Verify status sequence: [200, 200, 200, 429, 429, 429]
+    expect(knownResponses.map(r => r.status)).toEqual([200, 200, 200, 429, 429, 429]);
+    expect(unknownResponses.map(r => r.status)).toEqual([200, 200, 200, 429, 429, 429]);
 
-    // Unknown email must NOT create an OtpSendLimit record
-    const ghostLimit = await OtpSendLimit.findOne({ email: /ghost_user_999/ });
-    expect(ghostLimit).toBeNull();
+    // Verify field-by-field JSON bodies
+    for (let i = 0; i < 6; i++) {
+      const kData = knownResponses[i].data;
+      const uData = unknownResponses[i].data;
+
+      expect(uData.success).toBe(kData.success);
+
+      if (kData.success) {
+        expect(uData.message).toBe(kData.message);
+      } else {
+        expect(uData.error).toBe(kData.error);
+        expect(typeof uData.retryAfterSeconds).toBe('number');
+        expect(typeof kData.retryAfterSeconds).toBe('number');
+        // retryAfterSeconds allowed to differ by at most 1 second
+        const diff = Math.abs(uData.retryAfterSeconds - kData.retryAfterSeconds);
+        expect(diff).toBeLessThanOrEqual(1);
+      }
+    }
+
+    // Assert that unknown email never causes a send call (only the 3 successful known requests sent email)
+    expect(sendSpy).toHaveBeenCalledTimes(3);
+    for (const call of sendSpy.mock.calls) {
+      expect(call[0]).toBe('known_sequence@example.com');
+      expect(call[0]).not.toContain('ghost_sequence_999');
+    }
+
+    sendSpy.mockRestore();
   });
 
   it('6. daily IP cap returns 429 for both paths', async () => {

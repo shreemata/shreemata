@@ -285,6 +285,26 @@ async function checkAndReserveOtpSend(email, clientIp, options = {}) {
   };
 }
 
+/**
+ * Rolls back a reserved OTP send slot if email delivery fails.
+ */
+checkAndReserveOtpSend.rollbackSlot = async function(reservation) {
+  if (!reservation || !reservation.emailKey || !reservation.reservedAt) return;
+  try {
+    await OtpSendLimit.findOneAndUpdate(
+      { email: reservation.emailKey, lastSentAt: reservation.reservedAt },
+      {
+        $set: {
+          sendCount: reservation.previousSendCount,
+          lastSentAt: reservation.previousLastSentAt
+        }
+      }
+    );
+  } catch (err) {
+    console.warn("⚠️ [OTP ROLLBACK] Error reverting reserved send slot:", err.message);
+  }
+};
+
 const router = express.Router();
 
 const VIP_MIN_WITHDRAWAL = 100;
@@ -570,30 +590,8 @@ const handleSendPasswordResetEmailOtp = async (req, res) => {
 
     const clientIp = getClientIp(req);
 
-    // Check if email exists in database (case-insensitive)
-    const user = await User.findOne({ email: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
-    if (!user) {
-      // Consume IP counter but send nothing, keep identical response shape and status
-      const ipReservation = await checkAndReserveOtpSend(email, clientIp, { ipOnly: true });
-      if (!ipReservation.allowed) {
-        if (ipReservation.retryAfterSeconds) {
-          res.set("Retry-After", String(ipReservation.retryAfterSeconds));
-        }
-        return res.status(429).json({
-          success: false,
-          error: ipReservation.error,
-          retryAfterSeconds: ipReservation.retryAfterSeconds
-        });
-      }
-
-      console.log(`🔐 Password reset requested for unregistered email address`);
-      return res.json({
-        success: true,
-        message: "If an account exists for this email, a verification code has been sent."
-      });
-    }
-
-    // Reserve send slot BEFORE sending email (with its OWN counter namespace)
+    // Reserve send slot BEFORE checking user existence or sending email (with its OWN counter namespace)
+    // Both known and unknown emails consume the SAME per-email escalating counter and return the SAME 429
     const reservation = await checkAndReserveOtpSend(email, clientIp, { purpose: 'pwreset' });
     if (!reservation.allowed) {
       if (reservation.retryAfterSeconds) {
@@ -603,6 +601,16 @@ const handleSendPasswordResetEmailOtp = async (req, res) => {
         success: false,
         error: reservation.error,
         retryAfterSeconds: reservation.retryAfterSeconds
+      });
+    }
+
+    // Check if email exists in database (case-insensitive)
+    const user = await User.findOne({ email: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
+    if (!user) {
+      console.log(`🔐 Password reset requested for unregistered email address`);
+      return res.json({
+        success: true,
+        message: "If an account exists for this email, a verification code has been sent."
       });
     }
 
@@ -637,6 +645,7 @@ const handleSendPasswordResetEmailOtp = async (req, res) => {
         global.passwordResetOtpStore.delete(email);
 
         // Roll back reserved send slot when mail transport fails
+        await checkAndReserveOtpSend.rollbackSlot(reservation);
         await OtpSendLimit.findOneAndUpdate(
           { email: reservation.emailKey, lastSentAt: reservation.reservedAt },
           {
@@ -657,6 +666,7 @@ const handleSendPasswordResetEmailOtp = async (req, res) => {
       global.passwordResetOtpStore.delete(email);
 
       // Roll back reserved send slot when mail transport throws
+      await checkAndReserveOtpSend.rollbackSlot(reservation);
       await OtpSendLimit.findOneAndUpdate(
         { email: reservation.emailKey, lastSentAt: reservation.reservedAt },
         {
