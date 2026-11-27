@@ -469,7 +469,7 @@ describe('4-Section Platform: Content, Access Control, and Subscriptions', () =>
         headers: { Authorization: `Bearer ${expiredToken}` }
       });
       expect(res.status).toBe(403);
-      expect(res.data.code).toBe('SUBSCRIPTION_REQUIRED');
+      expect(res.data.code).toBe('CLASS_SUBSCRIPTION_REQUIRED');
       expect(res.data.section).toBe('notes');
     });
   });

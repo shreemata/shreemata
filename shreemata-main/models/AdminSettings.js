@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { normalizeClassLevel } = require('../utils/classLevelHelper');
 
 const adminSettingsSchema = new mongoose.Schema({
   // Virtual Tree Settings (Priority 1)
@@ -75,6 +76,13 @@ const adminSettingsSchema = new mongoose.Schema({
       active: { type: Boolean, default: false },
       description: { type: String, default: 'Access to other study materials and resources', trim: true }
     }
+  },
+  
+  // Class-specific pricing for notes section (normalized classKey -> price in INR)
+  classPrices: {
+    type: Map,
+    of: Number,
+    default: () => new Map()
   },
   
   // Metadata
@@ -156,6 +164,34 @@ adminSettingsSchema.statics.getSectionPlan = function(settings, section = 'notes
     active: (targetPlan && typeof targetPlan.active === 'boolean') ? targetPlan.active : false,
     description: (targetPlan && targetPlan.description) ? targetPlan.description : 'Unlimited streaming access to video lectures'
   };
+};
+
+// Authoritative class price resolver with fallback to section plan price
+adminSettingsSchema.statics.getClassPrice = function(settings, classKey) {
+  const normKey = normalizeClassLevel(classKey);
+  const defaultNotesPlan = this.getSectionPlan(settings, 'notes');
+  const defaultPrice = defaultNotesPlan.price || 99;
+
+  if (!normKey) {
+    return defaultPrice;
+  }
+
+  const cp = settings?.classPrices;
+  let customPrice = null;
+
+  if (cp) {
+    if (typeof cp.get === 'function') {
+      customPrice = cp.get(normKey);
+    } else if (typeof cp === 'object') {
+      customPrice = cp[normKey];
+    }
+  }
+
+  if (typeof customPrice === 'number' && !Number.isNaN(customPrice) && customPrice >= 1 && Number.isInteger(customPrice)) {
+    return customPrice;
+  }
+
+  return defaultPrice;
 };
 
 // Pure in-memory document method to apply partial updates cleanly
@@ -240,6 +276,30 @@ adminSettingsSchema.methods.applyUpdates = function(updates) {
           }
         }
       }
+    }
+  }
+
+  // Handle classPrices updates
+  if (updates.classPrices && typeof updates.classPrices === 'object') {
+    if (!this.classPrices) {
+      this.classPrices = new Map();
+    }
+    const entries = updates.classPrices instanceof Map
+      ? updates.classPrices.entries()
+      : Object.entries(updates.classPrices);
+
+    for (const [rawKey, rawPrice] of entries) {
+      const normKey = normalizeClassLevel(rawKey);
+      if (normKey && typeof rawPrice === 'number' && !Number.isNaN(rawPrice) && rawPrice >= 1 && rawPrice <= 100000 && Number.isInteger(rawPrice)) {
+        if (typeof this.classPrices.set === 'function') {
+          this.classPrices.set(normKey, rawPrice);
+        } else {
+          this.classPrices[normKey] = rawPrice;
+        }
+      }
+    }
+    if (typeof this.markModified === 'function') {
+      this.markModified('classPrices');
     }
   }
 

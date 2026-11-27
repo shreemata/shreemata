@@ -148,6 +148,7 @@ describe('PDF Preview Pages & Access Control', () => {
     await NoteSubscription.create({
       userId: notesSubUser._id,
       section: 'notes',
+      classLevel: 'Class 10',
       planType: 'standard',
       durationDays: 30,
       amountPaid: 99,
@@ -334,7 +335,7 @@ describe('PDF Preview Pages & Access Control', () => {
     });
 
     expect(res.status).toBe(403);
-    expect(res.data.code).toBe('SUBSCRIPTION_REQUIRED');
+    expect(res.data.code).toBe('CLASS_SUBSCRIPTION_REQUIRED');
     expect(res.data.error).toMatch(/Download is only available for subscribers/i);
   });
 
@@ -347,7 +348,7 @@ describe('PDF Preview Pages & Access Control', () => {
     });
 
     expect(resStream.status).toBe(403);
-    expect(resStream.data.code).toBe('SUBSCRIPTION_REQUIRED');
+    expect(resStream.data.code).toBe('CLASS_SUBSCRIPTION_REQUIRED');
 
     const resDl = await client.get(`/api/notes/${noteLocked._id}/download`, {
       headers: { Authorization: `Bearer ${regularToken}` }

@@ -11,10 +11,12 @@ const jwt = require("jsonwebtoken");
 const Note = require("../models/Note");
 const NoteSubscription = require("../models/NoteSubscription");
 const User = require("../models/User");
+const AdminSettings = require("../models/AdminSettings");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { FEATURES } = require("../config/features");
 const { getOrCreatePreviewPdf, invalidatePreviewCache } = require("../utils/pdfPreviewService");
 const { getOrCreateStampedPdf, invalidateWatermarkCache } = require("../utils/pdfWatermarkService");
+const { normalizeClassLevel } = require("../utils/classLevelHelper");
 
 const router = express.Router();
 
@@ -263,10 +265,7 @@ async function evaluateItemAccess(item, user) {
     return { allowed: true, hasFullAccess: true, previewOnly: false, isFree: false, isAdmin: false, subscription: activeSubscription };
   }
 
-  // 2. PDF SECTIONS: notes and question_papers
-  // Rule 2: subscriber (paid or admin_grant) and admin = full file.
-  // Logged-in non-entitled user = PREVIEW ONLY. Not logged in = 401.
-  // isFree must NO LONGER grant full access for notes and question_papers (ignore it).
+  // 2. PDF SECTIONS: notes, question_papers, others
   if (!user) {
     return {
       allowed: false,
@@ -283,43 +282,136 @@ async function evaluateItemAccess(item, user) {
   }
 
   const now = new Date();
-  const subQuery = {
+
+  // For non-notes sections (question_papers, others), keep section-wide logic unchanged
+  if (targetSection !== 'notes') {
+    const activeSubscription = await NoteSubscription.findOne({
+      userId: user.id,
+      section: targetSection,
+      status: 'active',
+      expiresAt: { $gt: now }
+    }).lean();
+
+    if (activeSubscription) {
+      return {
+        allowed: true,
+        hasFullAccess: true,
+        previewOnly: false,
+        isFree: false,
+        isAdmin: false,
+        subscription: activeSubscription,
+        previewPages: effectivePreviewPages
+      };
+    }
+
+    if (effectivePreviewPages === 0) {
+      return {
+        allowed: false,
+        status: 403,
+        error: `An active subscription is required to access ${targetSection}`,
+        code: "SUBSCRIPTION_REQUIRED",
+        section: targetSection,
+        hasFullAccess: false,
+        previewOnly: false,
+        previewPages: 0
+      };
+    }
+
+    return {
+      allowed: true,
+      hasFullAccess: false,
+      previewOnly: true,
+      isFree: false,
+      isAdmin: false,
+      previewPages: effectivePreviewPages
+    };
+  }
+
+  // =========================================================================
+  // CLASS-SCOPED ACCESS RULE FOR SECTION "notes":
+  // =========================================================================
+  const rawNoteClass = (item.classLevel || '').trim();
+  const normNoteClass = normalizeClassLevel(rawNoteClass);
+
+  const adminSettings = await AdminSettings.getSettings();
+  const serverClassPrice = AdminSettings.getClassPrice(adminSettings, normNoteClass);
+
+  const activeNotesSubs = await NoteSubscription.find({
     userId: user.id,
     status: 'active',
-    expiresAt: { $gt: now }
-  };
-  if (targetSection === 'notes') {
-    subQuery.$or = [
+    expiresAt: { $gt: now },
+    $or: [
       { section: 'notes' },
       { section: { $exists: false } },
       { section: null }
-    ];
-  } else {
-    subQuery.section = targetSection;
-  }
+    ]
+  }).lean();
 
-  const activeSubscription = await NoteSubscription.findOne(subQuery).lean();
-
-  if (activeSubscription) {
+  // Rule A: Pass with planType === 'admin_grant' and no class stored is unrestricted (grants all classes)
+  const unrestrictedAdminGrant = activeNotesSubs.find(
+    s => s.planType === 'admin_grant' && (!s.classLevel || normalizeClassLevel(s.classLevel) === '')
+  );
+  if (unrestrictedAdminGrant) {
     return {
       allowed: true,
       hasFullAccess: true,
       previewOnly: false,
       isFree: false,
       isAdmin: false,
-      subscription: activeSubscription,
-      previewPages: effectivePreviewPages
+      subscription: unrestrictedAdminGrant,
+      previewPages: effectivePreviewPages,
+      classLevel: rawNoteClass,
+      classPrice: serverClassPrice
     };
   }
 
-  // Logged-in non-entitled user: check previewPages
+  // Rule B: A note with empty classLevel is readable with ANY active notes pass
+  if (!normNoteClass) {
+    if (activeNotesSubs.length > 0) {
+      return {
+        allowed: true,
+        hasFullAccess: true,
+        previewOnly: false,
+        isFree: false,
+        isAdmin: false,
+        subscription: activeNotesSubs[0],
+        previewPages: effectivePreviewPages,
+        classLevel: rawNoteClass,
+        classPrice: serverClassPrice
+      };
+    }
+  } else {
+    // Rule C: Pass with matching classLevel gives full access
+    const matchingPass = activeNotesSubs.find(
+      s => s.classLevel && normalizeClassLevel(s.classLevel) === normNoteClass
+    );
+    if (matchingPass) {
+      return {
+        allowed: true,
+        hasFullAccess: true,
+        previewOnly: false,
+        isFree: false,
+        isAdmin: false,
+        subscription: matchingPass,
+        previewPages: effectivePreviewPages,
+        classLevel: rawNoteClass,
+        classPrice: serverClassPrice
+      };
+    }
+  }
+
+  // If no full-access pass matched:
+  // Legacy pass without class gives preview only
+  // Mismatch or no subscription:
   if (effectivePreviewPages === 0) {
     return {
       allowed: false,
       status: 403,
-      error: `An active subscription is required to access ${targetSection}`,
-      code: "SUBSCRIPTION_REQUIRED",
-      section: targetSection,
+      error: `A subscription for ${rawNoteClass || 'this class'} is required to access this item`,
+      code: "CLASS_SUBSCRIPTION_REQUIRED",
+      section: 'notes',
+      classLevel: rawNoteClass,
+      classPrice: serverClassPrice,
       hasFullAccess: false,
       previewOnly: false,
       previewPages: 0
@@ -332,15 +424,19 @@ async function evaluateItemAccess(item, user) {
     previewOnly: true,
     isFree: false,
     isAdmin: false,
+    code: "CLASS_SUBSCRIPTION_REQUIRED",
+    section: 'notes',
+    classLevel: rawNoteClass,
+    classPrice: serverClassPrice,
     previewPages: effectivePreviewPages
   };
 }
 
 /**
  * Sanitizes item to NEVER leak internal storage paths (pdfUrl) or video URLs in list/detail endpoints.
- * Rule 4: Exposes previewPages (effective), totalPages, hasFullAccess, and previewOnly.
+ * Rule 4: Exposes previewPages (effective), totalPages, hasFullAccess, previewOnly, and classPrice.
  */
-function sanitizeNote(note, userAccess = null) {
+function sanitizeNote(note, userAccess = null, serverClassPrice = null) {
   if (!note) return null;
   const isVideo = (note.section || 'notes') === 'videos';
   const effectivePreview = (note.previewPages !== undefined && note.previewPages !== null)
@@ -363,7 +459,7 @@ function sanitizeNote(note, userAccess = null) {
     }
   }
 
-  return {
+  const result = {
     id: note._id,
     section: note.section || 'notes',
     title: note.title,
@@ -387,6 +483,12 @@ function sanitizeNote(note, userAccess = null) {
     createdAt: note.createdAt,
     updatedAt: note.updatedAt
   };
+
+  if (serverClassPrice !== null && serverClassPrice !== undefined) {
+    result.classPrice = serverClassPrice;
+  }
+
+  return result;
 }
 
 function isPdfSection(section) {
@@ -503,28 +605,47 @@ router.get("/", optionalAuth, async (req, res) => {
         .lean()
     ]);
 
-    let isUserEntitled = false;
+    const adminSettings = await AdminSettings.getSettings();
+
+    let userActiveNotesSubs = [];
+    let hasUnrestrictedAdminGrant = false;
+    const userActiveClasses = new Set();
+    let hasOtherSectionActive = false;
+
     if (req.user) {
       if (req.user.role === "admin") {
-        isUserEntitled = true;
+        // admin has full access to everything
       } else {
         const now = new Date();
-        const subQuery = {
-          userId: req.user.id,
-          status: "active",
-          expiresAt: { $gt: now }
-        };
         if (rawSection === 'notes') {
-          subQuery.$or = [
-            { section: 'notes' },
-            { section: { $exists: false } },
-            { section: null }
-          ];
+          userActiveNotesSubs = await NoteSubscription.find({
+            userId: req.user.id,
+            status: "active",
+            expiresAt: { $gt: now },
+            $or: [
+              { section: "notes" },
+              { section: { $exists: false } },
+              { section: null }
+            ]
+          }).lean();
+
+          for (const sub of userActiveNotesSubs) {
+            if (sub.planType === 'admin_grant' && (!sub.classLevel || !normalizeClassLevel(sub.classLevel))) {
+              hasUnrestrictedAdminGrant = true;
+            }
+            if (sub.classLevel && normalizeClassLevel(sub.classLevel)) {
+              userActiveClasses.add(normalizeClassLevel(sub.classLevel));
+            }
+          }
         } else {
-          subQuery.section = rawSection;
+          const activeSub = await NoteSubscription.findOne({
+            userId: req.user.id,
+            section: rawSection,
+            status: "active",
+            expiresAt: { $gt: now }
+          }).select('_id').lean();
+          if (activeSub) hasOtherSectionActive = true;
         }
-        const activeSub = await NoteSubscription.findOne(subQuery).select('_id').lean();
-        if (activeSub) isUserEntitled = true;
       }
     }
 
@@ -534,13 +655,13 @@ router.get("/", optionalAuth, async (req, res) => {
         ? Math.max(0, Math.min(20, parseInt(n.previewPages, 10) || 0))
         : 2;
 
-      let hasFullAccess;
-      let previewOnly;
+      let hasFullAccess = false;
+      let previewOnly = false;
 
-      if (isUserEntitled) {
+      if (req.user && req.user.role === 'admin') {
         hasFullAccess = true;
         previewOnly = false;
-      } else {
+      } else if (!req.user) {
         if (isVideo) {
           hasFullAccess = Boolean(n.isFree);
           previewOnly = false;
@@ -548,9 +669,38 @@ router.get("/", optionalAuth, async (req, res) => {
           hasFullAccess = false;
           previewOnly = effectivePreview > 0;
         }
+      } else if (rawSection === 'notes') {
+        const normClass = normalizeClassLevel(n.classLevel);
+        if (hasUnrestrictedAdminGrant) {
+          hasFullAccess = true;
+          previewOnly = false;
+        } else if (!normClass && userActiveNotesSubs.length > 0) {
+          hasFullAccess = true;
+          previewOnly = false;
+        } else if (normClass && userActiveClasses.has(normClass)) {
+          hasFullAccess = true;
+          previewOnly = false;
+        } else {
+          hasFullAccess = false;
+          previewOnly = effectivePreview > 0;
+        }
+      } else {
+        if (hasOtherSectionActive) {
+          hasFullAccess = true;
+          previewOnly = false;
+        } else {
+          if (isVideo) {
+            hasFullAccess = Boolean(n.isFree);
+            previewOnly = false;
+          } else {
+            hasFullAccess = false;
+            previewOnly = effectivePreview > 0;
+          }
+        }
       }
 
-      return sanitizeNote(n, { hasFullAccess, previewOnly });
+      const noteClassPrice = AdminSettings.getClassPrice(adminSettings, n.classLevel);
+      return sanitizeNote(n, { hasFullAccess, previewOnly }, noteClassPrice);
     });
 
     return res.json({
@@ -643,7 +793,7 @@ router.get("/:id", optionalAuth, async (req, res) => {
 
     return res.json({
       success: true,
-      note: sanitizeNote(note, access)
+      note: sanitizeNote(note, access, access.classPrice)
     });
   } catch (err) {
     console.error("Error fetching note details:", err.message);
@@ -673,7 +823,9 @@ router.get("/:id/stream", optionalAuth, async (req, res) => {
       return res.status(access.status).json({
         error: access.error,
         code: access.code,
-        section: access.section
+        section: access.section,
+        ...(access.classLevel !== undefined ? { classLevel: access.classLevel } : {}),
+        ...(access.classPrice !== undefined ? { classPrice: access.classPrice } : {})
       });
     }
 
@@ -828,7 +980,9 @@ router.get("/:id/media-url", optionalAuth, async (req, res) => {
       return res.status(access.status).json({
         error: access.error,
         code: access.code,
-        section: access.section
+        section: access.section,
+        ...(access.classLevel !== undefined ? { classLevel: access.classLevel } : {}),
+        ...(access.classPrice !== undefined ? { classPrice: access.classPrice } : {})
       });
     }
 
@@ -868,15 +1022,22 @@ router.get("/:id/download", optionalAuth, async (req, res) => {
       return res.status(access.status).json({
         error: access.error,
         code: access.code,
-        section: access.section
+        section: access.section,
+        ...(access.classLevel !== undefined ? { classLevel: access.classLevel } : {}),
+        ...(access.classPrice !== undefined ? { classPrice: access.classPrice } : {})
       });
     }
 
     if (access.previewOnly) {
+      const isNotes = (note.section || 'notes') === 'notes';
       return res.status(403).json({
         error: "Download is only available for subscribers with full access",
-        code: "SUBSCRIPTION_REQUIRED",
-        section: note.section || 'notes'
+        code: isNotes ? "CLASS_SUBSCRIPTION_REQUIRED" : "SUBSCRIPTION_REQUIRED",
+        section: note.section || 'notes',
+        ...(isNotes ? {
+          classLevel: note.classLevel || '',
+          classPrice: access.classPrice
+        } : {})
       });
     }
 

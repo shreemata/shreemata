@@ -8,8 +8,10 @@ const NoteSubscription = require("../models/NoteSubscription");
 const SubscriptionOrder = require("../models/SubscriptionOrder");
 const AdminSettings = require("../models/AdminSettings");
 const User = require("../models/User");
+const Note = require("../models/Note");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 const { FEATURES } = require("../config/features");
+const { normalizeClassLevel } = require("../utils/classLevelHelper");
 
 const router = express.Router();
 
@@ -59,14 +61,22 @@ function addOneCalendarMonth(baseDate) {
   return new Date(Date.UTC(targetYear, targetMonth, targetDay, hours, minutes, seconds, ms));
 }
 
-function getLockKey(userId, section = 'notes') {
+function getLockKey(userId, section = 'notes', classLevel = '') {
+  const normClass = normalizeClassLevel(classLevel);
+  if (section === 'notes' && normClass) {
+    return `${userId}:${section}:${normClass}`;
+  }
   if (section === 'notes') {
     return String(userId);
   }
   return `${userId}:${section}`;
 }
 
-function getTimelineId(userId, section = 'notes') {
+function getTimelineId(userId, section = 'notes', classLevel = '') {
+  const normClass = normalizeClassLevel(classLevel);
+  if (section === 'notes' && normClass) {
+    return `${userId}:${section}:${normClass}`;
+  }
   if (section === 'notes') {
     try {
       return new mongoose.Types.ObjectId(String(userId));
@@ -216,9 +226,9 @@ async function acquireUserRenewalDbLock(lockId, ttlMs = 15000, maxRetries = 35, 
   };
 }
 
-async function withUserRenewalLock(userId, section, fn) {
-  const inProcessKey = getLockKey(userId, section);
-  const dbLockId = getTimelineId(userId, section);
+async function withUserRenewalLock(userId, section, fn, classLevel = '') {
+  const inProcessKey = getLockKey(userId, section, classLevel);
+  const dbLockId = getTimelineId(userId, section, classLevel);
 
   return withUserVerificationLock(inProcessKey, async () => {
     const dbLock = await acquireUserRenewalDbLock(dbLockId);
@@ -310,16 +320,51 @@ router.get("/my-status", authenticateToken, async (req, res) => {
 
     const activeSub = await NoteSubscription.findOne(activeSubQuery).sort({ expiresAt: -1 }).lean();
 
+    let activeClasses = [];
+    let needsClassChoice = false;
+    let selectableClasses = [];
+
+    if (rawSection === 'notes') {
+      const allActiveNotesSubs = await NoteSubscription.find({
+        userId: req.user.id,
+        $or: [{ section: 'notes' }, { section: { $exists: false } }, { section: null }],
+        status: 'active',
+        expiresAt: { $gt: now }
+      }).lean();
+
+      activeClasses = [...new Set(
+        allActiveNotesSubs
+          .map(s => s.classLevel ? s.classLevel.trim() : '')
+          .filter(Boolean)
+      )];
+
+      needsClassChoice = allActiveNotesSubs.some(
+        s => s.planType !== 'admin_grant' && (!s.classLevel || normalizeClassLevel(s.classLevel) === '')
+      );
+
+      const publishedNotes = await Note.find({
+        section: 'notes',
+        isPublished: true,
+        classLevel: { $exists: true, $ne: '' }
+      }).select('classLevel').lean();
+
+      selectableClasses = [...new Set(
+        publishedNotes.map(n => n.classLevel.trim()).filter(Boolean)
+      )];
+    }
+
     if (activeSub) {
       const daysRemaining = Math.max(0, Math.ceil((new Date(activeSub.expiresAt).getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
       const isGrantedByAdmin = activeSub.planType === 'admin_grant';
-      return res.json({
+      const responseData = {
         success: true,
         hasActiveSubscription: true,
         isGrantedByAdmin,
         subscription: {
           id: activeSub._id,
           section: activeSub.section || 'notes',
+          classLevel: activeSub.classLevel || null,
+          classChosenAt: activeSub.classChosenAt || null,
           planType: activeSub.planType,
           isGrantedByAdmin,
           status: activeSub.status,
@@ -329,7 +374,13 @@ router.get("/my-status", authenticateToken, async (req, res) => {
           grantedAt: activeSub.grantedAt || null,
           note: activeSub.note || null
         }
-      });
+      };
+      if (rawSection === 'notes') {
+        responseData.activeClasses = activeClasses;
+        responseData.needsClassChoice = needsClassChoice;
+        responseData.selectableClasses = selectableClasses;
+      }
+      return res.json(responseData);
     }
 
     // Check if user had a previous subscription that is now expired
@@ -346,7 +397,7 @@ router.get("/my-status", authenticateToken, async (req, res) => {
 
     const lastSub = await NoteSubscription.findOne(lastSubQuery).sort({ expiresAt: -1 }).lean();
 
-    return res.json({
+    const responseData = {
       success: true,
       hasActiveSubscription: false,
       subscription: null,
@@ -354,10 +405,17 @@ router.get("/my-status", authenticateToken, async (req, res) => {
       lastSubscription: lastSub ? {
         id: lastSub._id,
         section: lastSub.section,
+        classLevel: lastSub.classLevel || null,
         status: lastSub.status,
         expiresAt: lastSub.expiresAt
       } : null
-    });
+    };
+    if (rawSection === 'notes') {
+      responseData.activeClasses = activeClasses;
+      responseData.needsClassChoice = needsClassChoice;
+      responseData.selectableClasses = selectableClasses;
+    }
+    return res.json(responseData);
   } catch (err) {
     console.error("Error fetching subscription status:", err.message);
     return res.status(500).json({ error: "Failed to fetch subscription status" });
@@ -390,7 +448,33 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       });
     }
 
-    const amountInPaise = Math.round(plan.price * 100);
+    let targetClass = '';
+    let targetPrice = plan.price;
+
+    if (rawSection === 'notes') {
+      const rawClass = req.body.classLevel;
+      if (!rawClass || typeof rawClass !== 'string' || !normalizeClassLevel(rawClass)) {
+        return res.status(400).json({ error: "classLevel is required for study notes subscriptions" });
+      }
+      targetClass = normalizeClassLevel(rawClass);
+
+      const publishedNotes = await Note.find({
+        section: 'notes',
+        isPublished: true,
+        classLevel: { $exists: true, $ne: '' }
+      }).select('classLevel').lean();
+
+      const matchedNote = publishedNotes.find(n => normalizeClassLevel(n.classLevel) === targetClass);
+      if (!matchedNote) {
+        return res.status(400).json({
+          error: `Unknown class '${rawClass}'. Class must match at least one published study note.`
+        });
+      }
+
+      targetPrice = AdminSettings.getClassPrice(rawSettings, targetClass);
+    }
+
+    const amountInPaise = Math.round(targetPrice * 100);
 
     const rzpConfig = getRazorpayConfig();
     const razorpay = getRazorpayClient();
@@ -408,6 +492,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       notes: {
         subscriptionUserId: req.user.id.toString(),
         section: rawSection,
+        classLevel: targetClass,
         planType: "standard",
         durationDays: String(plan.durationDays)
       }
@@ -417,6 +502,7 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       razorpayOrderId: razorpayOrder.id,
       userId: req.user.id,
       section: rawSection,
+      classLevel: targetClass,
       durationDays: plan.durationDays,
       amountPaise: amountInPaise,
       currency: "INR",
@@ -430,7 +516,8 @@ router.post("/create-order", authenticateToken, async (req, res) => {
       amount: amountInPaise,
       currency: "INR",
       key: rzpConfig.keyId,
-      section: rawSection
+      section: rawSection,
+      ...(targetClass ? { classLevel: targetClass } : {})
     });
   } catch (err) {
     console.error("Subscription create-order error:", err.message);
@@ -442,6 +529,113 @@ router.post("/create-order", authenticateToken, async (req, res) => {
 });
 
 // =========================================================================
+// 2b. POST /api/subscriptions/choose-class (One-Time Class Choice for Legacy Passes)
+// =========================================================================
+router.post("/choose-class", authenticateToken, async (req, res) => {
+  try {
+    const rawClass = req.body.classLevel;
+    if (!rawClass || typeof rawClass !== "string" || !normalizeClassLevel(rawClass)) {
+      return res.status(400).json({ error: "classLevel is required" });
+    }
+
+    const normClass = normalizeClassLevel(rawClass);
+
+    // Validate that requested class matches at least one published study note
+    const publishedNotes = await Note.find({
+      section: "notes",
+      isPublished: true,
+      classLevel: { $exists: true, $ne: "" }
+    }).select("classLevel").lean();
+
+    const matchedNote = publishedNotes.find(n => normalizeClassLevel(n.classLevel) === normClass);
+    if (!matchedNote) {
+      return res.status(400).json({
+        error: `Unknown class '${rawClass}'. Class must match at least one published study note.`
+      });
+    }
+
+    const now = new Date();
+
+    // Atomic update condition: active notes pass, not expired, planType not admin_grant, and classLevel empty
+    const legacyQuery = {
+      userId: req.user.id,
+      status: "active",
+      expiresAt: { $gt: now },
+      planType: { $ne: "admin_grant" },
+      $or: [
+        { section: "notes" },
+        { section: { $exists: false } },
+        { section: null }
+      ],
+      $and: [
+        {
+          $or: [
+            { classLevel: "" },
+            { classLevel: null },
+            { classLevel: { $exists: false } }
+          ]
+        }
+      ]
+    };
+
+    const updatedSub = await NoteSubscription.findOneAndUpdate(
+      legacyQuery,
+      {
+        $set: {
+          classLevel: normClass,
+          classChosenAt: now
+        }
+      },
+      { new: true }
+    );
+
+    if (!updatedSub) {
+      // Check if user already locked in a class choice on an active pass
+      const alreadyChosen = await NoteSubscription.findOne({
+        userId: req.user.id,
+        status: "active",
+        expiresAt: { $gt: now },
+        planType: { $ne: "admin_grant" },
+        $or: [
+          { section: "notes" },
+          { section: { $exists: false } },
+          { section: null }
+        ],
+        classLevel: { $exists: true, $nin: ["", null] }
+      }).lean();
+
+      if (alreadyChosen) {
+        return res.status(409).json({
+          error: "Class has already been chosen for this subscription",
+          classLevel: alreadyChosen.classLevel,
+          classChosenAt: alreadyChosen.classChosenAt
+        });
+      }
+
+      return res.status(404).json({
+        error: "No active legacy subscription found waiting for class choice"
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `Class '${normClass}' chosen successfully`,
+      subscription: {
+        id: updatedSub._id,
+        section: updatedSub.section || "notes",
+        classLevel: updatedSub.classLevel,
+        classChosenAt: updatedSub.classChosenAt,
+        status: updatedSub.status,
+        expiresAt: updatedSub.expiresAt
+      }
+    });
+  } catch (err) {
+    console.error("Error in choose-class:", err.message);
+    return res.status(500).json({ error: "Failed to choose class for subscription" });
+  }
+});
+
+// =========================================================================
 // Shared, Idempotent Subscription Activation Function
 // =========================================================================
 async function activateSubscriptionForOrder({ subOrder, paymentId, signature = null, paymentDetails = {} }) {
@@ -449,6 +643,9 @@ async function activateSubscriptionForOrder({ subOrder, paymentId, signature = n
   const targetSection = subOrder.section || 'notes';
   const targetDurationDays = subOrder.durationDays;
   const orderId = subOrder.razorpayOrderId;
+  const targetClass = (targetSection === 'notes' && subOrder.classLevel)
+    ? normalizeClassLevel(subOrder.classLevel)
+    : '';
 
   return await withUserRenewalLock(userId, targetSection, async (dbLock) => {
     // 1. Idempotency & replay check
@@ -488,7 +685,7 @@ async function activateSubscriptionForOrder({ subOrder, paymentId, signature = n
       }
     }
 
-    const timelineId = getTimelineId(userId, targetSection);
+    const timelineId = getTimelineId(userId, targetSection, targetClass);
 
     // 3. Stacking & Expiry Calculation
     let createdSub = null;
@@ -507,12 +704,17 @@ async function activateSubscriptionForOrder({ subOrder, paymentId, signature = n
         const now = new Date();
         let baseDate = now;
 
-        const currentActiveSub = await NoteSubscription.findOne({
+        const activeSubFilter = {
           userId: userId,
           section: targetSection,
           status: "active",
           expiresAt: { $gt: now }
-        }).sort({ expiresAt: -1 });
+        };
+        if (targetSection === 'notes') {
+          activeSubFilter.classLevel = targetClass;
+        }
+
+        const currentActiveSub = await NoteSubscription.findOne(activeSubFilter).sort({ expiresAt: -1 });
 
         if (currentActiveSub && new Date(currentActiveSub.expiresAt) > baseDate) {
           baseDate = new Date(currentActiveSub.expiresAt);
@@ -621,6 +823,7 @@ async function activateSubscriptionForOrder({ subOrder, paymentId, signature = n
         const subscriptionDocs = await NoteSubscription.create([{
           userId: userId,
           section: targetSection,
+          classLevel: targetClass,
           planType: subOrder.planType || "standard",
           durationDays: targetDurationDays || 30,
           amountPaid: amountInRupees,
@@ -686,7 +889,7 @@ async function activateSubscriptionForOrder({ subOrder, paymentId, signature = n
       success: true,
       subscription: createdSub
     };
-  });
+  }, targetClass);
 }
 
 // =========================================================================

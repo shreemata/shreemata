@@ -23,6 +23,11 @@ const subscriptionOrderSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  classLevel: {
+    type: String,
+    default: '',
+    trim: true
+  },
   durationDays: {
     type: Number,
     default: 30,

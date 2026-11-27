@@ -17,6 +17,14 @@ const noteSubscriptionSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  classLevel: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  classChosenAt: {
+    type: Date
+  },
   planType: {
     type: String,
     default: 'standard',
@@ -123,18 +131,18 @@ const noteSubscriptionSchema = new mongoose.Schema({
   collection: 'notesubscriptions'
 });
 
-// Compound indexes for subscription status queries and expiry checks scoped by section
-noteSubscriptionSchema.index({ userId: 1, section: 1, status: 1, expiresAt: -1 });
+// Compound indexes for subscription status queries and expiry checks scoped by section & class
+noteSubscriptionSchema.index({ userId: 1, section: 1, classLevel: 1, status: 1, expiresAt: -1 });
 
-// Database-level concurrency guard: prevent concurrent workers from committing overlapping active subscriptions per section
+// Database-level concurrency guard: prevent concurrent workers from committing overlapping active subscriptions per section & class
 noteSubscriptionSchema.index(
-  { userId: 1, section: 1, expiresAt: 1 },
+  { userId: 1, section: 1, classLevel: 1, expiresAt: 1 },
   { unique: true, partialFilterExpression: { status: 'active' } }
 );
 
-// Sequence concurrency guard: guarantees monotonically ordered non-colliding renewal allocations per user and section
+// Sequence concurrency guard: guarantees monotonically ordered non-colliding renewal allocations per user, section & class
 noteSubscriptionSchema.index(
-  { userId: 1, section: 1, subscriptionIndex: 1 },
+  { userId: 1, section: 1, classLevel: 1, subscriptionIndex: 1 },
   { unique: true, partialFilterExpression: { subscriptionIndex: { $type: 'number' } } }
 );
 
