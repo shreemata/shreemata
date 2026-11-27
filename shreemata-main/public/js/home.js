@@ -178,6 +178,7 @@ async function loadNotifications() {
             // Show drop-up notification for offers
             showDropupNotification(data.notifications);
         }
+        initOffersLinkHandlers();
     } catch (err) {
         console.error("Error loading notifications:", err);
         console.error("API URL:", API_URL);
@@ -219,6 +220,10 @@ window.currentOfferIndex = 0;
 window.allOffers = [];
 window.offerCycleInterval = null;
 window.displayCurrentOffer = displayCurrentOffer;
+window.hideDropupNotification = hideDropupNotification;
+window.previousOffer = previousOffer;
+window.nextOffer = nextOffer;
+window.goToOffer = goToOffer;
 
 function showDropupNotification(notifications) {
     // Find all offers to display
@@ -286,10 +291,20 @@ function createOfferDots() {
     if (!dotsContainer) return;
     
     dotsContainer.innerHTML = '';
+    dotsContainer.style.display = 'flex';
+    dotsContainer.style.alignItems = 'center';
+    dotsContainer.style.gap = '6px';
     
     for (let i = 0; i < allOffers.length; i++) {
         const dot = document.createElement('div');
         dot.className = `dropup-dot ${i === currentOfferIndex ? 'active' : ''}`;
+        dot.style.width = '8px';
+        dot.style.height = '8px';
+        dot.style.borderRadius = '50%';
+        dot.style.display = 'inline-block';
+        dot.style.cursor = 'pointer';
+        dot.setAttribute('role', 'button');
+        dot.setAttribute('aria-label', `Go to offer ${i + 1}`);
         dot.onclick = () => goToOffer(i);
         dotsContainer.appendChild(dot);
     }
@@ -370,6 +385,132 @@ function updateOfferDots() {
     });
 }
 
+function hideDropupNotification() {
+    if (offerCycleInterval) {
+        clearInterval(offerCycleInterval);
+        offerCycleInterval = null;
+        window.offerCycleInterval = null;
+    }
+    const dropupElement = document.getElementById('dropupNotification');
+    if (dropupElement) {
+        dropupElement.classList.remove('show');
+    }
+}
+
+function previousOffer() {
+    if (!allOffers || allOffers.length <= 1) return;
+    if (offerCycleInterval) {
+        clearInterval(offerCycleInterval);
+        offerCycleInterval = null;
+        window.offerCycleInterval = null;
+    }
+    currentOfferIndex = (currentOfferIndex - 1 + allOffers.length) % allOffers.length;
+    window.currentOfferIndex = currentOfferIndex;
+    displayCurrentOffer();
+}
+
+function nextOffer() {
+    if (!allOffers || allOffers.length <= 1) return;
+    if (offerCycleInterval) {
+        clearInterval(offerCycleInterval);
+        offerCycleInterval = null;
+        window.offerCycleInterval = null;
+    }
+    currentOfferIndex = (currentOfferIndex + 1) % allOffers.length;
+    window.currentOfferIndex = currentOfferIndex;
+    displayCurrentOffer();
+}
+
+function goToOffer(index) {
+    if (!allOffers || index < 0 || index >= allOffers.length) return;
+    if (offerCycleInterval) {
+        clearInterval(offerCycleInterval);
+        offerCycleInterval = null;
+        window.offerCycleInterval = null;
+    }
+    currentOfferIndex = index;
+    window.currentOfferIndex = currentOfferIndex;
+    displayCurrentOffer();
+}
+
+// Attach dropup controls to window
+window.hideDropupNotification = hideDropupNotification;
+window.previousOffer = previousOffer;
+window.nextOffer = nextOffer;
+window.goToOffer = goToOffer;
+
+function isSectionVisible(el) {
+    if (!el) return false;
+    if (el.hidden) return false;
+    if (el.style && el.style.display === 'none') return false;
+    if (typeof window.getComputedStyle === 'function') {
+        const style = window.getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden') return false;
+    }
+    return el.offsetHeight > 0;
+}
+
+function handleOffersLinkClick(e) {
+    const notifSection = document.getElementById('notificationsSection');
+    const isVisible = isSectionVisible(notifSection);
+
+    if (!isVisible) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof window.closeMobileNavDrawer === 'function') {
+            window.closeMobileNavDrawer();
+        } else {
+            const drawer = document.getElementById('mobileNavDrawer');
+            if (drawer) {
+                drawer.classList.remove('open', 'is-open');
+                drawer.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            }
+        }
+        const bundlesSection = document.getElementById('bundlesSection');
+        const booksSection = document.getElementById('booksSection');
+        const target = isSectionVisible(bundlesSection) ? bundlesSection : booksSection;
+        if (target && typeof target.scrollIntoView === 'function') {
+            target.scrollIntoView({ behavior: 'smooth' });
+        }
+    } else {
+        if (typeof window.closeMobileNavDrawer === 'function') {
+            window.closeMobileNavDrawer();
+        } else {
+            const drawer = document.getElementById('mobileNavDrawer');
+            if (drawer) {
+                drawer.classList.remove('open', 'is-open');
+                drawer.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            }
+        }
+    }
+}
+
+function initOffersLinkHandlers() {
+    const offerLinks = document.querySelectorAll('a[href$="#notificationsSection"]');
+    offerLinks.forEach(link => {
+        if (link.dataset && link.dataset.offersHandlerBound) return;
+        if (link.dataset) link.dataset.offersHandlerBound = 'true';
+        link.addEventListener('click', handleOffersLinkClick);
+    });
+}
+window.initOffersLinkHandlers = initOffersLinkHandlers;
+
+// Event delegation fallback so dynamically added offer links are always caught
+document.addEventListener('click', (e) => {
+    const link = e.target && e.target.closest && e.target.closest('a[href$="#notificationsSection"]');
+    if (!link) return;
+    if (link.dataset && link.dataset.offersHandlerBound) return;
+    handleOffersLinkClick.call(link, e);
+});
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initOffersLinkHandlers();
+} else {
+    document.addEventListener('DOMContentLoaded', initOffersLinkHandlers);
+}
+
 /* ------------------------------
    LOAD BOOKS WITH FILTERS (INFINITE SCROLL)
 --------------------------------*/
@@ -445,6 +586,7 @@ function updateCartCount() {
    EVENT LISTENERS
 --------------------------------*/
 function setupEventListeners() {
+    initOffersLinkHandlers();
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
