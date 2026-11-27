@@ -222,7 +222,7 @@ describe('Forgot Password Verification Code / OTP Email End-to-End Suite', () =>
     expect(newPasswordValid).toBe(true);
   });
 
-  it('9. rate limiting cooldown blocks rapid resends', async () => {
+  it('9. rate limiting cooldown blocks rapid resends after 3 free sends', async () => {
     const hashedPassword = await bcrypt.hash('OldPass123!', 10);
     await User.create({
       name: 'Test User 9',
@@ -230,14 +230,21 @@ describe('Forgot Password Verification Code / OTP Email End-to-End Suite', () =>
       password: hashedPassword
     });
 
-    // First request
-    const firstRes = await client.post('/forgot-password-send-email-otp', { email: 'user9@example.com' });
-    expect(firstRes.status).toBe(200);
+    // Sends 1, 2, 3 are immediate
+    const res1 = await client.post('/forgot-password-send-email-otp', { email: 'user9@example.com' });
+    expect(res1.status).toBe(200);
 
-    // Immediate second request (should trigger cooldown 429)
-    const secondRes = await client.post('/forgot-password-send-email-otp', { email: 'user9@example.com' });
-    expect(secondRes.status).toBe(429);
-    expect(secondRes.data.error).toContain('Please wait');
+    const res2 = await client.post('/forgot-password-send-email-otp', { email: 'user9@example.com' });
+    expect(res2.status).toBe(200);
+
+    const res3 = await client.post('/forgot-password-send-email-otp', { email: 'user9@example.com' });
+    expect(res3.status).toBe(200);
+
+    // Send 4 triggers escalating wait cooldown (429)
+    const res4 = await client.post('/forgot-password-send-email-otp', { email: 'user9@example.com' });
+    expect(res4.status).toBe(429);
+    expect(res4.data.error).toContain('Please wait');
+    expect(res4.data.retryAfterSeconds).toBeGreaterThan(0);
   });
 
   it('10. unknown email response does not leak account existence', async () => {

@@ -7,13 +7,15 @@ const emailService = require("../utils/emailService");
 const { getEmailTypoSuggestion } = require("../utils/emailTypoDomains");
 
 const OtpSendLimit = require("../models/OtpSendLimit");
-const { OtpIpLimit } = require("../models/OtpSendLimit");
+const { OtpIpLimit, OtpDailyIpLimit } = require("../models/OtpSendLimit");
 
-// Escalating wait times (in minutes) for register verification codes:
+// Escalating wait times (in minutes) for verification codes (register and password reset):
 // Sends 1, 2, 3: immediate (0 min); Send 4: 5 min; Send 5: 10 min; Send 6: 15 min; Send 7+: 60 min (repeating).
 const OTP_SEND_WAITS_MINUTES = [0, 0, 0, 5, 10, 15, 60];
 const OTP_IP_LIMIT_PER_HOUR = 100;
+const OTP_IP_LIMIT_PER_DAY = 300;
 const OTP_IP_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const OTP_IP_DAILY_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 const OTP_CODE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes (preserved from existing implementation)
 const OTP_MAX_VERIFY_ATTEMPTS = 5;
 
@@ -46,16 +48,79 @@ function getClientIp(req) {
 }
 
 /**
- * Atomically checks and reserves an OTP send slot for registration.
+ * Atomically checks and reserves an OTP send slot for registration or password reset.
  * Implements escalating wait times: sends 1-3 immediate; send 4 waits 5m; send 5 waits 10m; send 6 waits 15m; send 7+ waits 60m.
  * Enforces atomic reservation so parallel requests cannot both pass at the limit.
  */
-async function checkAndReserveOtpSend(email, clientIp) {
-  const normalizedEmail = email.trim().toLowerCase();
+async function checkAndReserveOtpSend(email, clientIp, options = {}) {
+  const normalizedEmail = (email || '').trim().toLowerCase();
+  const purpose = options.purpose || 'register';
+  const ipOnly = Boolean(options.ipOnly);
+  const emailKey = purpose === 'pwreset' ? `pwreset:${normalizedEmail}` : normalizedEmail;
   const now = new Date();
   const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
-  // 1. Per-IP rate limiting (100 sends/hour/IP) with fixed 1-hour window independent of TTL
+  // 1. Per-IP Daily rate limiting (300 sends/24h/IP) with fixed 24-hour window
+  if (clientIp) {
+    try {
+      const MAX_IP_RETRIES = 5;
+      for (let attempt = 0; attempt < MAX_IP_RETRIES; attempt++) {
+        let dailyRecord = await OtpDailyIpLimit.findOne({ ip: clientIp });
+        if (!dailyRecord) {
+          try {
+            dailyRecord = await OtpDailyIpLimit.findOneAndUpdate(
+              { ip: clientIp },
+              { $setOnInsert: { ip: clientIp, count: 0, firstSentAt: new Date(0) } },
+              { upsert: true, new: true }
+            );
+          } catch (insertErr) {
+            dailyRecord = await OtpDailyIpLimit.findOne({ ip: clientIp });
+          }
+        }
+
+        if (!dailyRecord) continue;
+
+        let currentCount = dailyRecord.count || 0;
+        let firstSentAt = dailyRecord.firstSentAt || new Date(0);
+        const timeSinceFirst = now.getTime() - firstSentAt.getTime();
+        const isWindowExpired = timeSinceFirst >= OTP_IP_DAILY_WINDOW_MS;
+
+        if (isWindowExpired) {
+          currentCount = 0;
+          firstSentAt = now;
+        }
+
+        if (currentCount >= OTP_IP_LIMIT_PER_DAY) {
+          const remainingMs = OTP_IP_DAILY_WINDOW_MS - (now.getTime() - dailyRecord.firstSentAt.getTime());
+          const retryAfterSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
+          return {
+            allowed: false,
+            retryAfterSeconds,
+            error: "Too many requests from this IP address. Please try again later."
+          };
+        }
+
+        // Atomic conditional update on { _id, count, firstSentAt }
+        const ipQuery = {
+          _id: dailyRecord._id,
+          count: dailyRecord.count,
+          firstSentAt: dailyRecord.firstSentAt
+        };
+        const ipUpdate = isWindowExpired
+          ? { $set: { count: 1, firstSentAt: now } }
+          : { $inc: { count: 1 } };
+
+        const updatedDaily = await OtpDailyIpLimit.findOneAndUpdate(ipQuery, ipUpdate, { new: true });
+        if (updatedDaily) {
+          break; // Daily slot successfully reserved
+        }
+      }
+    } catch (dailyErr) {
+      console.warn("⚠️ [EMAIL OTP] Daily IP rate check warning:", dailyErr.message);
+    }
+  }
+
+  // 2. Per-IP Hourly rate limiting (100 sends/hour/IP) with fixed 1-hour window independent of TTL
   if (clientIp) {
     try {
       const MAX_IP_RETRIES = 5;
@@ -116,17 +181,21 @@ async function checkAndReserveOtpSend(email, clientIp) {
     }
   }
 
-  // 2. Per-Email escalating wait times with atomic conditional update
+  if (ipOnly) {
+    return { allowed: true };
+  }
+
+  // 3. Per-Email escalating wait times with atomic conditional update
   const MAX_RETRIES = 5;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    let doc = await OtpSendLimit.findOne({ email: normalizedEmail });
+    let doc = await OtpSendLimit.findOne({ email: emailKey });
     if (!doc) {
       try {
         doc = await OtpSendLimit.findOneAndUpdate(
-          { email: normalizedEmail },
+          { email: emailKey },
           {
             $setOnInsert: {
-              email: normalizedEmail,
+              email: emailKey,
               sendCount: 0,
               lastSentAt: new Date(0)
             }
@@ -134,7 +203,7 @@ async function checkAndReserveOtpSend(email, clientIp) {
           { upsert: true, new: true }
         );
       } catch (insertErr) {
-        doc = await OtpSendLimit.findOne({ email: normalizedEmail });
+        doc = await OtpSendLimit.findOne({ email: emailKey });
       }
     }
 
@@ -184,14 +253,15 @@ async function checkAndReserveOtpSend(email, clientIp) {
         previousSendCount: currentSendCount,
         newSendCount: updated.sendCount,
         reservedAt: now,
-        previousLastSentAt: doc.lastSentAt
+        previousLastSentAt: doc.lastSentAt,
+        emailKey
       };
     }
     // Concurrency conflict occurred, retry loop
   }
 
   // If contention exceeded loop retries, evaluate current document state
-  const finalDoc = await OtpSendLimit.findOne({ email: normalizedEmail });
+  const finalDoc = await OtpSendLimit.findOne({ email: emailKey });
   if (finalDoc) {
     const waitIndex = Math.min(finalDoc.sendCount, OTP_SEND_WAITS_MINUTES.length - 1);
     const waitMinutes = OTP_SEND_WAITS_MINUTES[waitIndex];
@@ -487,9 +557,35 @@ const handleSendPasswordResetEmailOtp = async (req, res) => {
       });
     }
 
+    // Check for mistyped domains BEFORE reserving a slot or consuming counters
+    const typoCheck = getEmailTypoSuggestion(email);
+    if (typoCheck) {
+      console.warn(`⚠️ [PASSWORD RESET OTP] Mistyped email domain detected: ${email} -> ${typoCheck.suggestion}`);
+      return res.status(400).json({
+        success: false,
+        error: `Did you mean ${typoCheck.suggestion}?`,
+        suggestion: typoCheck.suggestion
+      });
+    }
+
+    const clientIp = getClientIp(req);
+
     // Check if email exists in database (case-insensitive)
     const user = await User.findOne({ email: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
     if (!user) {
+      // Consume IP counter but send nothing, keep identical response shape and status
+      const ipReservation = await checkAndReserveOtpSend(email, clientIp, { ipOnly: true });
+      if (!ipReservation.allowed) {
+        if (ipReservation.retryAfterSeconds) {
+          res.set("Retry-After", String(ipReservation.retryAfterSeconds));
+        }
+        return res.status(429).json({
+          success: false,
+          error: ipReservation.error,
+          retryAfterSeconds: ipReservation.retryAfterSeconds
+        });
+      }
+
       console.log(`🔐 Password reset requested for unregistered email address`);
       return res.json({
         success: true,
@@ -497,34 +593,36 @@ const handleSendPasswordResetEmailOtp = async (req, res) => {
       });
     }
 
-    global.passwordResetOtpStore = global.passwordResetOtpStore || new Map();
-    const existingEntry = global.passwordResetOtpStore.get(email);
-
-    // Rate limiting: 60s cooldown between consecutive code requests
-    if (existingEntry && (Date.now() - existingEntry.createdAt) < 60 * 1000) {
-      const waitSeconds = Math.ceil((60 * 1000 - (Date.now() - existingEntry.createdAt)) / 1000);
+    // Reserve send slot BEFORE sending email (with its OWN counter namespace)
+    const reservation = await checkAndReserveOtpSend(email, clientIp, { purpose: 'pwreset' });
+    if (!reservation.allowed) {
+      if (reservation.retryAfterSeconds) {
+        res.set("Retry-After", String(reservation.retryAfterSeconds));
+      }
       return res.status(429).json({
         success: false,
-        error: `Please wait ${waitSeconds} seconds before requesting another code.`
+        error: reservation.error,
+        retryAfterSeconds: reservation.retryAfterSeconds
       });
     }
 
-    // Generate cryptographically safe 6-digit OTP
+    // Generate cryptographically safe 6-digit OTP using crypto.randomInt
     const otp = crypto.randomInt(100000, 1000000).toString();
     const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
 
     // Store OTP before sending email
+    global.passwordResetOtpStore = global.passwordResetOtpStore || new Map();
     global.passwordResetOtpStore.set(email, {
       otp: otp,
       otpHash: otpHash,
       createdAt: Date.now(),
-      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+      expiresAt: Date.now() + OTP_CODE_EXPIRY_MS, // 10 minutes
       attempts: 0,
       userId: user._id,
       isPasswordReset: true
     });
 
-    // Send OTP via email
+    // Send OTP via email using emailService
     try {
       const emailResult = await emailService.sendPasswordResetOTP(email, otp);
       
@@ -532,11 +630,23 @@ const handleSendPasswordResetEmailOtp = async (req, res) => {
         console.log(`✅ Password reset OTP email delivered to ${email}`);
         return res.json({
           success: true,
-          message: "Password reset code sent to your email"
+          message: "If an account exists for this email, a verification code has been sent."
         });
       } else {
         console.error('Email service error during password reset:', emailResult?.error || 'Unknown email error');
         global.passwordResetOtpStore.delete(email);
+
+        // Roll back reserved send slot when mail transport fails
+        await OtpSendLimit.findOneAndUpdate(
+          { email: reservation.emailKey, lastSentAt: reservation.reservedAt },
+          {
+            $set: {
+              sendCount: reservation.previousSendCount,
+              lastSentAt: reservation.previousLastSentAt
+            }
+          }
+        );
+
         return res.status(500).json({ 
           success: false, 
           error: "Failed to send password reset email. Please try again." 
@@ -545,6 +655,18 @@ const handleSendPasswordResetEmailOtp = async (req, res) => {
     } catch (emailError) {
       console.error("Email sending exception during password reset:", emailError.message || emailError);
       global.passwordResetOtpStore.delete(email);
+
+      // Roll back reserved send slot when mail transport throws
+      await OtpSendLimit.findOneAndUpdate(
+        { email: reservation.emailKey, lastSentAt: reservation.reservedAt },
+        {
+          $set: {
+            sendCount: reservation.previousSendCount,
+            lastSentAt: reservation.previousLastSentAt
+          }
+        }
+      );
+
       return res.status(500).json({ 
         success: false, 
         error: "Failed to send password reset email. Please try again." 
@@ -595,7 +717,7 @@ const handleVerifyPasswordResetEmailOtp = async (req, res) => {
     }
 
     // Check attempt limit
-    if (storedData.attempts >= 3) {
+    if (storedData.attempts >= OTP_MAX_VERIFY_ATTEMPTS) {
       global.passwordResetOtpStore.delete(email);
       return res.status(400).json({ 
         success: false, 
@@ -609,9 +731,16 @@ const handleVerifyPasswordResetEmailOtp = async (req, res) => {
 
     if (!isValid) {
       storedData.attempts += 1;
+      if (storedData.attempts >= OTP_MAX_VERIFY_ATTEMPTS) {
+        global.passwordResetOtpStore.delete(email);
+        return res.status(400).json({ 
+          success: false, 
+          error: "Too many failed attempts. Please request a new code." 
+        });
+      }
       global.passwordResetOtpStore.set(email, storedData);
       
-      const remainingAttempts = 3 - storedData.attempts;
+      const remainingAttempts = OTP_MAX_VERIFY_ATTEMPTS - storedData.attempts;
       return res.status(400).json({ 
         success: false, 
         error: `Invalid verification code. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.` 
@@ -1374,6 +1503,11 @@ router.post("/reset-password", async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
+    // Clear reset rate limit counter upon successful password reset
+    try {
+      await OtpSendLimit.deleteOne({ email: `pwreset:${user.email.toLowerCase()}` });
+    } catch (_) {}
+
     console.log(`Password reset successfully for user ${user.email}`);
 
     res.json({
@@ -1394,7 +1528,11 @@ router.OTP_SEND_WAITS_MINUTES = OTP_SEND_WAITS_MINUTES;
 router.checkAndReserveOtpSend = checkAndReserveOtpSend;
 router.getClientIp = getClientIp;
 router.OTP_IP_LIMIT_PER_HOUR = OTP_IP_LIMIT_PER_HOUR;
+router.OTP_IP_LIMIT_PER_DAY = OTP_IP_LIMIT_PER_DAY;
 router.OTP_IP_WINDOW_MS = OTP_IP_WINDOW_MS;
+router.OTP_IP_DAILY_WINDOW_MS = OTP_IP_DAILY_WINDOW_MS;
+router.VIP_MIN_WITHDRAWAL = VIP_MIN_WITHDRAWAL;
+router.VIP_MANDATORY_RESERVE = VIP_MANDATORY_RESERVE;
 
 module.exports = router;
 
@@ -1811,7 +1949,7 @@ router.post("/users/profile/vip-mastercards/withdraw", authenticateToken, async 
           <h2>Hello ${user.name},</h2>
           <p>Your VIP Master Card withdrawal request of <b>₹${numericAmount.toFixed(2)}</b> has been received and is pending admin approval.</p>
           <p><strong>Card:</strong> ${cardNumber} (Tier ${cardTier})</p>
-          <p><strong>Remaining Balance:</strong> ₹${balanceAfter.toFixed(2)} (Mandatory ₹50 reserve maintained)</p>
+          <p><strong>Remaining Balance:</strong> ₹${balanceAfter.toFixed(2)} (Mandatory ₹${VIP_MANDATORY_RESERVE} reserve maintained)</p>
           <p>Status: <b>Pending Admin Approval</b></p>
           <br>
           <p>Shree Mata Team</p>

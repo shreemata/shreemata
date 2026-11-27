@@ -1248,7 +1248,7 @@ const handleVipWithdrawRequest = async (req, res) => {
           <h2>Hello ${user.name},</h2>
           <p>Your VIP Master Card withdrawal request of <b>₹${numericAmount.toFixed(2)}</b> has been received and is pending admin approval.</p>
           <p><strong>Card:</strong> ${cardNumber} (Tier ${cardTier})</p>
-          <p><strong>Remaining Balance:</strong> ₹${balanceAfter.toFixed(2)} (Mandatory ₹50 reserve maintained)</p>
+          <p><strong>Remaining Balance:</strong> ₹${balanceAfter.toFixed(2)} (Mandatory ₹${VIP_MANDATORY_RESERVE} reserve maintained)</p>
           <p>Status: <b>Pending Admin Approval</b></p>
           <p>Funds will be transferred to your registered bank account or UPI ID within 24-48 hours.</p>
           <br>
@@ -1337,4 +1337,9 @@ router.post("/simulate-commission-payout", authenticateToken, isAdmin, async (re
   }
 });
 
+router.VIP_MIN_WITHDRAWAL = VIP_MIN_WITHDRAWAL;
+router.VIP_MANDATORY_RESERVE = VIP_MANDATORY_RESERVE;
+
 module.exports = router;
+module.exports.VIP_MIN_WITHDRAWAL = VIP_MIN_WITHDRAWAL;
+module.exports.VIP_MANDATORY_RESERVE = VIP_MANDATORY_RESERVE;
