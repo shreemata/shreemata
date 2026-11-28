@@ -55,6 +55,7 @@ describe('Admin Dashboard Link Visibility & Access Enforcement Suite', () => {
   let normalUser, normalToken;
   let adminUser, adminToken;
   let oldGlobalNavSource;
+  let oldHome3dCssSource;
 
   const auditedAdminRoutes = [
     { name: 'Admin Settings', path: '/api/admin/settings' },
@@ -72,6 +73,10 @@ describe('Admin Dashboard Link Visibility & Access Enforcement Suite', () => {
     process.env.JWT_SECRET = 'test_jwt_secret_admin_link_audit_secure';
 
     oldGlobalNavSource = execSync('git show 078d67c:shreemata-main/public/js/global-nav.js', {
+      cwd: REPO_DIR
+    }).toString('utf8');
+
+    oldHome3dCssSource = execSync('git show 078d67c:shreemata-main/public/css/home-3d.css', {
       cwd: REPO_DIR
     }).toString('utf8');
 
@@ -524,6 +529,14 @@ describe('Admin Dashboard Link Visibility & Access Enforcement Suite', () => {
         status: 200,
         contentType: 'application/javascript',
         body: oldGlobalNavSource
+      });
+    });
+
+    await pageOld.route('**/css/home-3d.css', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'text/css',
+        body: oldHome3dCssSource
       });
     });
 

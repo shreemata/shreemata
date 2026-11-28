@@ -3455,10 +3455,10 @@ footer {
         margin: 6px 0 !important;
     }
 
-    .user-dropdown-menu a,
-    .dropdown-item,
-    .dropdown-item-link,
-    .btn-logout-item {
+    .user-dropdown-menu a:not([style*="display: none"]):not([style*="display:none"]):not([hidden]),
+    .dropdown-item:not([style*="display: none"]):not([style*="display:none"]):not([hidden]),
+    .dropdown-item-link:not([style*="display: none"]):not([style*="display:none"]):not([hidden]),
+    .btn-logout-item:not([style*="display: none"]):not([style*="display:none"]):not([hidden]) {
         min-height: 44px !important;
         height: 44px !important;
         padding: 0 10px !important;
@@ -3472,6 +3472,13 @@ footer {
         text-decoration: none !important;
         box-sizing: border-box !important;
         transition: background 0.15s ease !important;
+    }
+
+    .user-dropdown-menu a[style*="display: none"],
+    .user-dropdown-menu a[style*="display:none"],
+    .dropdown-item-link[style*="display: none"],
+    .dropdown-item-link[style*="display:none"] {
+        display: none !important;
     }
 
     .user-dropdown-menu a:hover,

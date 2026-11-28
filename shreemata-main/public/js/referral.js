@@ -41,11 +41,14 @@ function checkAuth() {
     const dropdownUserName = document.getElementById("dropdownUserName");
     if (dropdownUserName) dropdownUserName.textContent = user.name || "User";
 
-    if (user.role === "admin") {
+    if (user && user.role === "admin") {
         const adminLink = document.getElementById("adminLink");
         if (adminLink) adminLink.style.display = "flex";
         const drawerAdminLink = document.getElementById("drawerAdminLink");
         if (drawerAdminLink) drawerAdminLink.style.display = "flex";
+    } else {
+        const adminElements = document.querySelectorAll('#adminLink, #drawerAdminLink, a[href="/admin.html"], a[href="admin.html"], a[href="/admin-dashboard"]');
+        adminElements.forEach(el => el.remove());
     }
 
     const logoutBtn = document.getElementById("logoutBtn");

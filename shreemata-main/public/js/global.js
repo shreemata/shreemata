@@ -31,12 +31,18 @@ function updateNavbarAuth() {
         if (userLinks) userLinks.style.display = "inline-flex";
         if (userName) userName.textContent = user.name || "Account";
         if (referralLink) referralLink.style.display = "inline-flex";
-        if (adminLink) adminLink.style.display = user.role === "admin" ? "inline-flex" : "none";
+        if (user && user.role === "admin") {
+            if (adminLink) adminLink.style.display = "inline-flex";
+        } else {
+            const adminElements = document.querySelectorAll('#adminLink, #drawerAdminLink, a[href="/admin.html"], a[href="admin.html"], a[href="/admin-dashboard"]');
+            adminElements.forEach(el => el.remove());
+        }
     } else {
         if (authLinks) authLinks.style.display = "flex";
         if (userLinks) userLinks.style.display = "none";
         if (referralLink) referralLink.style.display = "none";
-        if (adminLink) adminLink.style.display = "none";
+        const adminElements = document.querySelectorAll('#adminLink, #drawerAdminLink, a[href="/admin.html"], a[href="admin.html"], a[href="/admin-dashboard"]');
+        adminElements.forEach(el => el.remove());
     }
 }
 

@@ -32,9 +32,12 @@ function checkAuth() {
             updateCartCount();
         }
 
-        if (user.role === "admin") {
+        if (user && user.role === "admin") {
             const adminLink = document.getElementById("adminLink");
             if (adminLink) adminLink.style.display = "block";
+        } else {
+            const adminElements = document.querySelectorAll('#adminLink, #drawerAdminLink, a[href="/admin.html"], a[href="admin.html"], a[href="/admin-dashboard"]');
+            adminElements.forEach(el => el.remove());
         }
     } else {
         // Guest mode
@@ -43,6 +46,8 @@ function checkAuth() {
             cartLink.style.display = "inline-flex";
             updateCartCount();
         }
+        const adminElements = document.querySelectorAll('#adminLink, #drawerAdminLink, a[href="/admin.html"], a[href="admin.html"], a[href="/admin-dashboard"]');
+        adminElements.forEach(el => el.remove());
     }
 }
 
