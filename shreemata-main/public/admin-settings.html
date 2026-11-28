@@ -364,7 +364,7 @@
                         </div>
                         <div class="setting-item">
                             <label>Price (₹):</label>
-                            <input type="number" id="plan_notes_price" min="1" max="100000" step="any" placeholder="299">
+                            <input type="number" id="plan_notes_price" min="1" max="100000" step="any" placeholder="Price in ₹">
                         </div>
                         <div class="setting-item">
                             <label>Duration (Days):</label>
@@ -843,7 +843,7 @@
         }
 
         let adminClassPrices = {};
-        let adminDefaultPrice = 99;
+        let adminDefaultPrice = null;
 
         async function loadClassPrices() {
             const token = localStorage.getItem('token');
@@ -851,50 +851,39 @@
             if (!container) return;
 
             try {
-                const [pricesRes, notesRes] = await Promise.all([
-                    fetch(`${API_URL}/admin/settings/class-prices`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    }),
-                    fetch(`${API_URL}/notes?section=notes`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    })
-                ]);
+                const pricesRes = await fetch(`${API_URL}/admin/settings/class-prices`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
 
                 if (pricesRes.ok) {
                     const pData = await pricesRes.json();
                     adminClassPrices = pData.classPrices || {};
-                    adminDefaultPrice = pData.defaultPrice || 99;
-                }
+                    adminDefaultPrice = (typeof pData.defaultPrice === 'number' && !Number.isNaN(pData.defaultPrice) && pData.defaultPrice >= 1) ? pData.defaultPrice : null;
 
-                // Collect distinct classes found on published notes, preserving original spelling
-                const classMap = new Map(); // normalizedKey -> originalSpelling
-                if (notesRes.ok) {
-                    const nData = await notesRes.json();
-                    const notes = nData.notes || [];
-                    notes.forEach(n => {
-                        if (n.classLevel && n.classLevel.trim()) {
-                            const raw = n.classLevel.trim();
-                            const norm = raw.toLowerCase().replace(/\s+/g, ' ');
-                            if (!classMap.has(norm)) {
-                                classMap.set(norm, raw);
+                    // Build classMap from server-returned classes array [{ key, label }]
+                    const classMap = new Map(); // normalizedKey -> originalSpelling
+                    if (Array.isArray(pData.classes)) {
+                        pData.classes.forEach(c => {
+                            if (c && c.key && c.label) {
+                                classMap.set(c.key, c.label);
                             }
-                        }
-                    });
-                }
-
-                // Also include any classes that already have a configured price in adminClassPrices
-                for (const normKey of Object.keys(adminClassPrices)) {
-                    if (!classMap.has(normKey)) {
-                        classMap.set(normKey, normKey.charAt(0).toUpperCase() + normKey.slice(1));
+                        });
                     }
-                }
 
-                renderClassPricesUI(classMap);
+                    // Also include any classes that already have a configured price in adminClassPrices
+                    for (const normKey of Object.keys(adminClassPrices)) {
+                        if (!classMap.has(normKey)) {
+                            classMap.set(normKey, normKey.charAt(0).toUpperCase() + normKey.slice(1));
+                        }
+                    }
+
+                    renderClassPricesUI(classMap);
+                } else {
+                    container.innerHTML = '<p style="color: #dc2626; font-size: 13px;">Error loading class prices.</p>';
+                }
             } catch (err) {
                 console.error('Error loading class prices:', err);
                 container.innerHTML = '<p style="color: #dc2626; font-size: 13px;">Error loading class prices.</p>';
@@ -910,11 +899,16 @@
                 return;
             }
 
+            const hasValidDefault = typeof adminDefaultPrice === 'number' && !Number.isNaN(adminDefaultPrice) && adminDefaultPrice >= 1;
+            const defaultBadge = hasValidDefault
+                ? `<span class="badge badge-default-price" style="background: #e2e8f0; color: #475569; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">default: ₹${adminDefaultPrice}</span>`
+                : `<span class="badge badge-default-price-error" style="background: #fee2e2; color: #dc2626; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">Default price unavailable</span>`;
+            const placeholderVal = hasValidDefault ? adminDefaultPrice : '';
+
             let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
             classMap.forEach((displayName, normKey) => {
                 const hasCustom = adminClassPrices[normKey] !== undefined && adminClassPrices[normKey] !== null;
                 const currentVal = hasCustom ? adminClassPrices[normKey] : '';
-                const defaultBadge = `<span class="badge badge-default-price" style="background: #e2e8f0; color: #475569; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">default: ₹${adminDefaultPrice}</span>`;
 
                 html += `
                     <div class="class-price-row" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 6px;">
@@ -924,7 +918,7 @@
                         </div>
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <span style="color: #64748b; font-size: 13px;">₹</span>
-                            <input type="number" class="class-price-input" data-class="${escapeHtml(normKey)}" value="${escapeHtml(String(currentVal))}" placeholder="${adminDefaultPrice}" min="1" max="100000" step="1" style="width: 100px; padding: 5px 8px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                            <input type="number" class="class-price-input" data-class="${escapeHtml(normKey)}" value="${escapeHtml(String(currentVal))}" placeholder="${placeholderVal ? escapeHtml(String(placeholderVal)) : 'Price'}" min="1" max="100000" step="1" style="width: 100px; padding: 5px 8px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 4px;">
                         </div>
                     </div>
                 `;

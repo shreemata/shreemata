@@ -900,14 +900,24 @@
 
                     if (errJson.code === 'CLASS_SUBSCRIPTION_REQUIRED') {
                         const reqClass = errJson.classLevel || (note && note.classLevel) || '';
-                        const reqPrice = (errJson.classPrice !== undefined && errJson.classPrice !== null) ? errJson.classPrice : ((note && note.classPrice) || 299);
-                        showAccessDenied(
-                            "Active Class Subscription Required",
-                            `Access to ${reqClass || 'this class'} requires an active subscription. Unlock complete access today.`,
-                            `⚡ Buy ${reqClass} - ₹${reqPrice}`,
-                            null,
-                            () => initiateReaderCheckout(reqClass)
-                        );
+                        const hasPrice = (typeof errJson.classPrice === 'number' && !Number.isNaN(errJson.classPrice) && errJson.classPrice >= 1) || (note && typeof note.classPrice === 'number' && !Number.isNaN(note.classPrice) && note.classPrice >= 1);
+                        const reqPrice = (typeof errJson.classPrice === 'number' && !Number.isNaN(errJson.classPrice) && errJson.classPrice >= 1) ? errJson.classPrice : (note && typeof note.classPrice === 'number' ? note.classPrice : null);
+                        if (hasPrice && reqPrice !== null) {
+                            showAccessDenied(
+                                "Active Class Subscription Required",
+                                `Access to ${reqClass || 'this class'} requires an active subscription. Unlock complete access today.`,
+                                `⚡ Buy ${reqClass} - ₹${reqPrice}`,
+                                null,
+                                () => initiateReaderCheckout(reqClass)
+                            );
+                        } else {
+                            showAccessDenied(
+                                "Active Class Subscription Required",
+                                `Access to ${reqClass || 'this class'} requires an active subscription. Price unavailable.`,
+                                "Back to Study Material",
+                                `/notes.html?section=${note && note.section ? note.section : 'notes'}`
+                            );
+                        }
                         return;
                     }
 
@@ -1003,10 +1013,17 @@
                     if (bottomBar && bottomBarText && bottomBarBtn) {
                         const noteTitle = note.title || 'study material';
                         const noteClass = note.classLevel || '';
-                        const classPrice = (note.classPrice !== undefined && note.classPrice !== null) ? note.classPrice : 299;
-                        bottomBarText.textContent = `You are viewing a free preview of ${noteTitle} (${noteClass}). Unlock full ${noteClass} material - ₹${classPrice}`;
-                        bottomBarBtn.textContent = `⚡ Buy ${noteClass} - ₹${classPrice}`;
-                        bottomBarBtn.setAttribute('data-class', noteClass);
+                        const hasPrice = typeof note.classPrice === 'number' && !Number.isNaN(note.classPrice) && note.classPrice >= 1;
+                        const classPrice = hasPrice ? note.classPrice : null;
+                        if (hasPrice) {
+                            bottomBarText.textContent = `You are viewing a free preview of ${noteTitle} (${noteClass}). Unlock full ${noteClass} material - ₹${classPrice}`;
+                            bottomBarBtn.textContent = `⚡ Buy ${noteClass} - ₹${classPrice}`;
+                            bottomBarBtn.setAttribute('data-class', noteClass);
+                            bottomBarBtn.style.display = 'inline-block';
+                        } else {
+                            bottomBarText.textContent = `You are viewing a free preview of ${noteTitle} (${noteClass}). Price unavailable.`;
+                            bottomBarBtn.style.display = 'none';
+                        }
                         bottomBar.style.display = 'flex';
                     }
                 } else {

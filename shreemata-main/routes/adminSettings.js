@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticateToken, isAdmin } = require('../middleware/auth');
 const AdminSettings = require('../models/AdminSettings');
+const Note = require('../models/Note');
 const User = require('../models/User');
 const { processUserPointsWithPriority } = require('../services/pointsService');
 const { normalizeClassLevel } = require('../utils/classLevelHelper');
@@ -163,16 +164,44 @@ router.put('/settings', authenticateToken, isAdmin, async (req, res) => {
 });
 
 /**
- * GET /api/admin/settings/class-prices - Get class-specific price map
+ * GET /api/admin/settings/class-prices - Get class-specific price map and available classes
  */
 router.get('/settings/class-prices', authenticateToken, isAdmin, async (req, res) => {
   try {
     const settings = await AdminSettings.getSettings();
     const defaultPlan = AdminSettings.getSectionPlan(settings, 'notes');
+
+    // Query all published notes of section notes to discover distinct classes
+    const publishedNotes = await Note.find({
+      isPublished: true,
+      $or: [
+        { section: 'notes' },
+        { section: { $exists: false } },
+        { section: null }
+      ],
+      classLevel: { $exists: true, $nin: ['', null] }
+    }).select('classLevel').lean();
+
+    const classMap = new Map();
+    for (const n of publishedNotes) {
+      if (typeof n.classLevel === 'string' && n.classLevel.trim()) {
+        const raw = n.classLevel.trim();
+        const key = normalizeClassLevel(raw);
+        if (key && !classMap.has(key)) {
+          classMap.set(key, raw);
+        }
+      }
+    }
+
+    const classes = Array.from(classMap.entries()).map(([key, label]) => ({ key, label }));
+    // Natural number order sort by label (e.g. Class 7, Class 8, Class 9, Class 10)
+    classes.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
+
     return res.json({
       success: true,
+      classes,
       classPrices: formatClassPrices(settings.classPrices),
-      defaultPrice: defaultPlan.price || 99
+      defaultPrice: (defaultPlan && typeof defaultPlan.price === 'number' && defaultPlan.price >= 1) ? defaultPlan.price : null
     });
   } catch (err) {
     console.error('Get class prices error:', err);

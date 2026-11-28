@@ -1365,11 +1365,15 @@
                 } else {
                     notesActionWrap.innerHTML = classes.map(cls => {
                         const matchedNote = cachedCatalogNotes.find(n => n.classLevel && n.classLevel.trim().toLowerCase() === cls.trim().toLowerCase());
-                        const price = (matchedNote && matchedNote.classPrice !== undefined) ? matchedNote.classPrice : ((sectionPlan && sectionPlan.price) || 299);
                         const isClassActive = userActiveClasses.some(ac => ac.trim().toLowerCase() === cls.trim().toLowerCase());
                         if (isClassActive) {
                             return `<div class="subscribed-badge" style="font-size: 13px;">✓ ${escapeHtml(cls)} (Active)</div>`;
                         }
+                        const hasPrice = matchedNote && typeof matchedNote.classPrice === 'number' && !Number.isNaN(matchedNote.classPrice) && matchedNote.classPrice >= 1;
+                        if (!hasPrice) {
+                            return `<span class="price-unavailable-badge" style="display: inline-flex; align-items: center; padding: 8px 14px; background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; font-size: 13px; font-weight: 500;">${escapeHtml(cls)}: Price unavailable</span>`;
+                        }
+                        const price = matchedNote.classPrice;
                         return `
                             <button type="button" class="btn-subscribe btn-banner-buy-class" data-class="${escapeHtml(cls)}" data-price="${escapeHtml(String(price))}" style="font-size: 13.5px; padding: 10px 18px;">
                                 <span>⚡</span> Buy ${escapeHtml(cls)} - ₹${escapeHtml(String(price))}
@@ -1910,7 +1914,8 @@
                     } else if (currentSection === 'notes') {
                         // Class-scoped Study Material (section notes)
                         const noteClass = note.classLevel || '';
-                        const notePrice = (note.classPrice !== undefined && note.classPrice !== null) ? note.classPrice : ((sectionPlan && sectionPlan.price) || 299);
+                        const hasPrice = typeof note.classPrice === 'number' && !Number.isNaN(note.classPrice) && note.classPrice >= 1;
+                        const notePrice = hasPrice ? note.classPrice : null;
                         const hasFull = !!note.hasFullAccess || (isUserSubscribed && subscriptionDetails && subscriptionDetails.isGrantedByAdmin);
                         const isPreviewOnly = !hasFull && !!note.previewOnly;
 
@@ -1919,16 +1924,29 @@
                             actionBtnHtml = `<a href="${targetViewerHref}" class="btn-card btn-card-unlocked">📖 Read</a>`;
                         } else if (isPreviewOnly) {
                             badgeHtml = `<span class="card-access-badge badge-preview">Preview</span>`;
-                            actionBtnHtml = `
-                                <div style="display: flex; gap: 8px; width: 100%;">
-                                    <a href="${targetViewerHref}" class="btn-card btn-card-free" style="flex: 1; text-align: center;">📖 Preview</a>
-                                    <button type="button" class="btn-card btn-card-buy btn-buy-class" data-class="${escapeHtml(noteClass)}" data-price="${escapeHtml(String(notePrice))}" style="flex: 1.2;">⚡ Buy ${escapeHtml(noteClass)} - ₹${escapeHtml(String(notePrice))}</button>
-                                </div>
-                            `;
+                            if (hasPrice) {
+                                actionBtnHtml = `
+                                    <div style="display: flex; gap: 8px; width: 100%;">
+                                        <a href="${targetViewerHref}" class="btn-card btn-card-free" style="flex: 1; text-align: center;">📖 Preview</a>
+                                        <button type="button" class="btn-card btn-card-buy btn-buy-class" data-class="${escapeHtml(noteClass)}" data-price="${escapeHtml(String(notePrice))}" style="flex: 1.2;">⚡ Buy ${escapeHtml(noteClass)} - ₹${escapeHtml(String(notePrice))}</button>
+                                    </div>
+                                `;
+                            } else {
+                                actionBtnHtml = `
+                                    <div style="display: flex; gap: 8px; width: 100%; align-items: center;">
+                                        <a href="${targetViewerHref}" class="btn-card btn-card-free" style="flex: 1; text-align: center;">📖 Preview</a>
+                                        <span class="price-unavailable-text" style="flex: 1.2; text-align: center; color: #dc2626; font-size: 12px; font-weight: 500;">Price unavailable</span>
+                                    </div>
+                                `;
+                            }
                         } else {
                             // Locked
                             badgeHtml = `<span class="card-access-badge badge-paid">Locked</span>`;
-                            actionBtnHtml = `<button type="button" class="btn-card btn-card-buy btn-buy-class" data-class="${escapeHtml(noteClass)}" data-price="${escapeHtml(String(notePrice))}" style="width: 100%;">⚡ Buy ${escapeHtml(noteClass)} - ₹${escapeHtml(String(notePrice))}</button>`;
+                            if (hasPrice) {
+                                actionBtnHtml = `<button type="button" class="btn-card btn-card-buy btn-buy-class" data-class="${escapeHtml(noteClass)}" data-price="${escapeHtml(String(notePrice))}" style="width: 100%;">⚡ Buy ${escapeHtml(noteClass)} - ₹${escapeHtml(String(notePrice))}</button>`;
+                            } else {
+                                actionBtnHtml = `<span class="price-unavailable-text" style="display: block; width: 100%; text-align: center; color: #dc2626; font-size: 13px; font-weight: 500; padding: 10px 0;">Price unavailable</span>`;
+                            }
                         }
                     } else {
                         // PDF Item (question_papers or others)

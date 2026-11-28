@@ -806,4 +806,234 @@ describe('Class-Scoped Study Material Real Browser Playwright Verification', () 
     expect(consoleErrors).toEqual([]);
     await context.close();
   });
+
+  // -------------------------------------------------------------------------
+  // Test (viii): Admin class discovery from all published notes, natural sorting & save price
+  // -------------------------------------------------------------------------
+  test('(viii) Admin class discovery: 15 notes, Class 7 only in 15th note, natural sort & save price', async () => {
+    // Clean and seed 15 published notes across classes: 8, 9, 10, and 7 on the 15th note
+    await Note.deleteMany({});
+    const createdNotes = [];
+    // 1-5: Class 8
+    for (let i = 1; i <= 5; i++) {
+      createdNotes.push({
+        title: `Study Guide 8-${i}`,
+        description: `Class 8 note ${i}`,
+        subject: 'General',
+        classLevel: 'Class 8',
+        section: 'notes',
+        isPublished: true,
+        pdfUrl: samplePdfKey,
+        totalPages: 3,
+        previewPages: 1
+      });
+    }
+    // 6-10: Class 9
+    for (let i = 1; i <= 5; i++) {
+      createdNotes.push({
+        title: `Study Guide 9-${i}`,
+        description: `Class 9 note ${i}`,
+        subject: 'General',
+        classLevel: 'Class 9',
+        section: 'notes',
+        isPublished: true,
+        pdfUrl: samplePdfKey,
+        totalPages: 3,
+        previewPages: 1
+      });
+    }
+    // 11-14: Class 10
+    for (let i = 1; i <= 4; i++) {
+      createdNotes.push({
+        title: `Study Guide 10-${i}`,
+        description: `Class 10 note ${i}`,
+        subject: 'General',
+        classLevel: 'Class 10',
+        section: 'notes',
+        isPublished: true,
+        pdfUrl: samplePdfKey,
+        totalPages: 3,
+        previewPages: 1
+      });
+    }
+    // 15: Class 7 (appears ONLY in note 15!)
+    createdNotes.push({
+      title: 'Study Guide 7-1',
+      description: 'Class 7 note (15th note)',
+      subject: 'General',
+      classLevel: 'Class 7',
+      section: 'notes',
+      isPublished: true,
+      pdfUrl: samplePdfKey,
+      totalPages: 3,
+      previewPages: 1
+    });
+
+    await Note.insertMany(createdNotes);
+
+    // Verify GET /api/admin/settings/class-prices returns exact classes list sorted naturally
+    const apiRes = await fetch(`${baseUrl}/api/admin/settings/class-prices`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    expect(apiRes.status).toBe(200);
+    const apiJson = await apiRes.json();
+    expect(apiJson.success).toBe(true);
+    expect(apiJson.classes).toEqual([
+      { key: 'class 7', label: 'Class 7' },
+      { key: 'class 8', label: 'Class 8' },
+      { key: 'class 9', label: 'Class 9' },
+      { key: 'class 10', label: 'Class 10' }
+    ]);
+
+    // Admin UI in Playwright
+    const { page, pageErrors, consoleErrors, context } = await createTrackedPage(adminToken, adminUser);
+    await page.goto(`${baseUrl}/admin-settings.html`, { waitUntil: 'networkidle' });
+
+    // Wait for class prices section
+    const classSection = page.locator('#classPricesSection');
+    await assertVisible(classSection);
+    await page.waitForSelector('#classPricesContainer .class-price-row');
+
+    // Verify all 4 classes are listed in exact natural order
+    const labelEls = page.locator('#classPricesContainer .class-title-text');
+    const count = await labelEls.count();
+    expect(count).toBe(4);
+    const labels = [];
+    for (let i = 0; i < count; i++) {
+      labels.push(await labelEls.nth(i).textContent());
+    }
+    expect(labels).toEqual(['Class 7', 'Class 8', 'Class 9', 'Class 10']);
+
+    // Check Class 7 input exists
+    const input7 = page.locator('.class-price-input[data-class="class 7"]');
+    await assertVisible(input7);
+
+    // Save price 150 for Class 7
+    let putBody = null;
+    await page.route('**/api/admin/settings/class-prices', async (route) => {
+      if (route.request().method() === 'PUT') {
+        putBody = JSON.parse(route.request().postData());
+      }
+      route.continue();
+    });
+
+    await input7.fill('150');
+    const saveBtn = page.locator('#btnSaveClassPrices');
+    await saveBtn.click();
+
+    await page.waitForResponse(res => res.url().includes('/api/admin/settings/class-prices') && res.request().method() === 'PUT' && res.status() === 200);
+    const msgEl = page.locator('#classPriceMessage');
+    await assertVisible(msgEl);
+    await assertContainsText(msgEl, 'saved successfully');
+
+    expect(putBody).toBeDefined();
+    expect(putBody.classPrices['class 7']).toBe(150);
+
+    // Reload page and verify saved price 150 persists
+    await page.reload({ waitUntil: 'networkidle' });
+    await assertVisible(classSection);
+    await page.waitForSelector('#classPricesContainer .class-price-row');
+    const reloadedInput7 = page.locator('.class-price-input[data-class="class 7"]');
+    await assertVisible(reloadedInput7);
+    await assertValue(reloadedInput7, '150');
+
+    expect(pageErrors).toEqual([]);
+    expect(consoleErrors).toEqual([]);
+    await context.close();
+  });
+
+  // -------------------------------------------------------------------------
+  // Test (ix): Note without classPrice shows "Price unavailable" and NO Buy button
+  // -------------------------------------------------------------------------
+  test('(ix) Note without classPrice shows "Price unavailable" and NO Buy button on notes.html and reader.html', async () => {
+    // Ensure clean student has no active subscriptions
+    await NoteSubscription.deleteMany({ userId: studentCleanUser._id });
+
+    // 1. In notes.html: note with no classPrice
+    const { page, pageErrors, consoleErrors, context } = await createTrackedPage(studentCleanToken, studentCleanUser);
+
+    // Intercept catalog API to return notes without classPrice
+    await page.route(url => url.pathname === '/api/notes', async (route) => {
+      const response = await route.fetch();
+      const json = await response.json();
+      if (Array.isArray(json.notes)) {
+        json.notes.forEach(n => {
+          delete n.classPrice;
+        });
+      }
+      await route.fulfill({ json });
+    });
+
+    await page.goto(`${baseUrl}/notes.html?section=notes`, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.item-card');
+
+    const firstCard = page.locator('.item-card').first();
+    const priceUnavailable = firstCard.locator('.price-unavailable-text');
+    await assertVisible(priceUnavailable);
+    await assertText(priceUnavailable, 'Price unavailable');
+
+    // Prove NO Buy button exists on this card
+    const buyBtn = firstCard.locator('.btn-buy-class');
+    const buyBtnCount = await buyBtn.count();
+    expect(buyBtnCount).toBe(0);
+
+    // 2. In reader.html: preview mode when note has no classPrice
+    const testNote = await Note.findOne({ section: 'notes', isPublished: true });
+    expect(testNote).toBeTruthy();
+
+    await page.route(url => url.pathname === `/api/notes/${testNote._id}`, async (route) => {
+      const response = await route.fetch();
+      const json = await response.json();
+      if (json.note) {
+        delete json.note.classPrice;
+      }
+      await route.fulfill({ json });
+    });
+
+    await page.goto(`${baseUrl}/reader.html?id=${testNote._id}`, { waitUntil: 'networkidle' });
+
+    // Wait for reader preview bar to appear
+    const bottomBar = page.locator('#previewBottomBar');
+    await assertVisible(bottomBar);
+
+    const bottomBarText = page.locator('#previewBottomBarText');
+    await assertContainsText(bottomBarText, 'Price unavailable.');
+
+    // Prove Buy button on bottom bar is hidden
+    const bottomBarBtn = page.locator('#btnPreviewBottomBuy');
+    await assertHidden(bottomBarBtn);
+
+    // 3. Reader 403 CLASS_SUBSCRIPTION_REQUIRED error when classPrice is missing
+    await page.route(url => url.pathname === `/api/notes/${testNote._id}/stream`, async (route) => {
+      await route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 'CLASS_SUBSCRIPTION_REQUIRED',
+          error: 'Active Class subscription required',
+          classLevel: 'Class 7'
+          // no classPrice provided
+        })
+      });
+    });
+
+    // Re-trigger reader stream or reload
+    await page.reload({ waitUntil: 'networkidle' });
+
+    const deniedModal = page.locator('#stateModal');
+    await assertVisible(deniedModal);
+    const deniedDesc = page.locator('#stateMessage');
+    await assertContainsText(deniedDesc, 'Price unavailable.');
+
+    // The primary action button is "Back to Study Material", NOT a Buy button
+    const actionBtn = page.locator('#stateActionBtn');
+    await assertVisible(actionBtn);
+    await assertText(actionBtn, 'Back to Study Material');
+
+    // Filter out expected HTTP 403 network status code from browser console
+    const unexpectedErrors = consoleErrors.filter(e => !e.includes('403 (Forbidden)'));
+    expect(pageErrors).toEqual([]);
+    expect(unexpectedErrors).toEqual([]);
+    await context.close();
+  });
 });
