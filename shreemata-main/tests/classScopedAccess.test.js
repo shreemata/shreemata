@@ -299,6 +299,16 @@ describe('Class-Scoped Study Material Access Control (Prompt A)', () => {
     });
     expect(media8.status).toBe(400);
 
+    // Direct GET /:id metadata of Class 8 note: does not leak full file access
+    const detail8 = await client.get(`/api/notes/${noteClass8._id}`, {
+      headers: { Authorization: `Bearer ${studentToken}` }
+    });
+    expect(detail8.status).toBe(200);
+    expect(detail8.data.note.hasFullAccess).toBe(false);
+    expect(detail8.data.note.previewOnly).toBe(true);
+    expect(detail8.data.note.pdfUrl).toBeUndefined();
+    expect(detail8.data.note.videoUrl).toBeUndefined();
+
     // Catalog list exposes hasFullAccess, previewOnly, classLevel, and classPrice
     const catRes = await client.get('/api/notes?section=notes', {
       headers: { Authorization: `Bearer ${studentToken}` }
@@ -778,9 +788,9 @@ describe('Class-Scoped Study Material Access Control (Prompt A)', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Test (10) question_papers and videos behave section-wide as before
+  // Test (10) question_papers and videos sections behave section-wide as before
   // -------------------------------------------------------------------------
-  test('(10) question_papers section behaves section-wide as before', async () => {
+  test('(10) question_papers and videos sections behave section-wide as before', async () => {
     await NoteSubscription.deleteMany({ userId: studentUser._id });
 
     // Grant question_papers subscription
@@ -797,12 +807,35 @@ describe('Class-Scoped Study Material Access Control (Prompt A)', () => {
     expect(qpStream.status).toBe(200);
     const qpDoc = await PDFDocument.load(qpStream.data);
     expect(qpDoc.getPageCount()).toBe(5);
+
+    // Seed a video item and grant videos subscription to secondStudentUser
+    const paidVideo = await Note.create({
+      title: 'Class 10 Math Video Lecture',
+      section: 'videos',
+      classLevel: 'Class 10',
+      videoProvider: 'vimeo',
+      videoUrl: 'https://player.vimeo.com/video/123456789',
+      isFree: false,
+      isPublished: true
+    });
+
+    await createSub({
+      userId: secondStudentUser._id,
+      section: 'videos'
+    });
+
+    const videoRes = await client.get(`/api/notes/${paidVideo._id}/media-url`, {
+      headers: { Authorization: `Bearer ${secondStudentToken}` }
+    });
+    expect(videoRes.status).toBe(200);
+    expect(videoRes.data.url).toBe('https://player.vimeo.com/video/123456789');
   });
 
   // -------------------------------------------------------------------------
-  // Test (11) Note with empty classLevel is readable with any active notes pass
+  // Test (11) Note with empty classLevel is readable with any active notes pass,
+  // and other sections (others) are not affected by the class rule
   // -------------------------------------------------------------------------
-  test('(11) Note with empty classLevel is readable with any active notes pass', async () => {
+  test('(11) Note with empty classLevel is readable with any active notes pass and other sections are not affected by class rule', async () => {
     // User has Class 8 pass; general note has empty classLevel
     await NoteSubscription.deleteMany({ userId: studentUser._id });
 
@@ -819,5 +852,149 @@ describe('Class-Scoped Study Material Access Control (Prompt A)', () => {
     expect(streamGeneral.status).toBe(200);
     const generalDoc = await PDFDocument.load(streamGeneral.data);
     expect(generalDoc.getPageCount()).toBe(5);
+
+    // Other section (others) note with a classLevel: access governed by section pass, not class
+    const othersNote = await Note.create({
+      title: 'Class 10 Syllabus Guidance',
+      section: 'others',
+      classLevel: 'Class 10',
+      pdfUrl: samplePdfKey,
+      fileSize: 2048,
+      totalPages: 5,
+      previewPages: 2,
+      isFree: false,
+      isPublished: true,
+      allowDownload: true
+    });
+
+    await createSub({
+      userId: secondStudentUser._id,
+      section: 'others'
+    });
+
+    const streamOthers = await client.get(`/api/notes/${othersNote._id}/stream`, {
+      headers: { Authorization: `Bearer ${secondStudentToken}` },
+      responseType: 'arraybuffer'
+    });
+    expect(streamOthers.status).toBe(200);
+    const othersDoc = await PDFDocument.load(streamOthers.data);
+    expect(othersDoc.getPageCount()).toBe(5);
+  });
+
+  // -------------------------------------------------------------------------
+  // Test (12) Multi-class purchase (Class 8 then Class 10) saves with new indexes;
+  // and proves that old indexes reject the second save with duplicate key errors
+  // -------------------------------------------------------------------------
+  test('(12) Multi-class purchase saves cleanly with new indexes, but old indexes reject second save with duplicate key error', async () => {
+    await NoteSubscription.deleteMany({ userId: studentUser._id });
+
+    const fixedExpiry = new Date('2026-12-30T10:00:00.000Z');
+
+    // 1. User buys Class 8
+    const sub8 = await createSub({
+      userId: studentUser._id,
+      section: 'notes',
+      classLevel: 'class 8',
+      subscriptionIndex: 1,
+      expiresAt: fixedExpiry,
+      status: 'active'
+    });
+
+    // 2. User buys Class 10 (same user, section 'notes', same subscriptionIndex and expiresAt)
+    const sub10 = await createSub({
+      userId: studentUser._id,
+      section: 'notes',
+      classLevel: 'class 10',
+      subscriptionIndex: 1,
+      expiresAt: fixedExpiry,
+      status: 'active'
+    });
+
+    // Both documents save successfully with the NEW indexes!
+    expect(sub8._id).toBeTruthy();
+    expect(sub10._id).toBeTruthy();
+    expect(sub8._id.toString()).not.toBe(sub10._id.toString());
+
+    // Print the real documents' fields as requested:
+    console.log('[PROMPT_VERIFY_4] Doc 1 (Class 8):', JSON.stringify({
+      userId: sub8.userId.toString(),
+      section: sub8.section,
+      classLevel: sub8.classLevel,
+      subscriptionIndex: sub8.subscriptionIndex,
+      expiresAt: sub8.expiresAt.toISOString()
+    }));
+
+    console.log('[PROMPT_VERIFY_4] Doc 2 (Class 10):', JSON.stringify({
+      userId: sub10.userId.toString(),
+      section: sub10.section,
+      classLevel: sub10.classLevel,
+      subscriptionIndex: sub10.subscriptionIndex,
+      expiresAt: sub10.expiresAt.toISOString()
+    }));
+
+    // 3. Now simulate the OLD indexes to prove which ones reject the second save:
+    const oldIndexColl = mongoose.connection.collection('test_old_indexes_proof');
+    await oldIndexColl.deleteMany({});
+
+    // Create old indexes on test collection:
+    // Old Index 1: userId_1_section_1_expiresAt_1
+    await oldIndexColl.createIndex(
+      { userId: 1, section: 1, expiresAt: 1 },
+      { unique: true, partialFilterExpression: { status: 'active' }, name: 'userId_1_section_1_expiresAt_1' }
+    );
+
+    // Old Index 2: userId_1_section_1_subscriptionIndex_1
+    await oldIndexColl.createIndex(
+      { userId: 1, section: 1, subscriptionIndex: 1 },
+      { unique: true, partialFilterExpression: { subscriptionIndex: { $type: 'number' } }, name: 'userId_1_section_1_subscriptionIndex_1' }
+    );
+
+    // Insert Doc 1 (Class 8):
+    await oldIndexColl.insertOne({
+      userId: studentUser._id,
+      section: 'notes',
+      classLevel: 'class 8',
+      subscriptionIndex: 1,
+      expiresAt: fixedExpiry,
+      status: 'active'
+    });
+
+    // Attempt to insert Doc 2 (Class 10 with same subscriptionIndex):
+    let subIndexCollisionErr = null;
+    try {
+      await oldIndexColl.insertOne({
+        userId: studentUser._id,
+        section: 'notes',
+        classLevel: 'class 10',
+        subscriptionIndex: 1,
+        expiresAt: new Date('2026-12-31T10:00:00.000Z'),
+        status: 'active'
+      });
+    } catch (err) {
+      subIndexCollisionErr = err;
+      console.log('[PROMPT_VERIFY_4] RAW ERROR on subscriptionIndex collision:', err.message);
+    }
+    expect(subIndexCollisionErr).toBeTruthy();
+    expect(subIndexCollisionErr.code).toBe(11000);
+    expect(subIndexCollisionErr.message).toMatch(/userId_1_section_1_subscriptionIndex_1/);
+
+    // Attempt to insert Doc 3 (Class 10 with different subscriptionIndex but same expiresAt):
+    let expiresAtCollisionErr = null;
+    try {
+      await oldIndexColl.insertOne({
+        userId: studentUser._id,
+        section: 'notes',
+        classLevel: 'class 10',
+        subscriptionIndex: 2,
+        expiresAt: fixedExpiry,
+        status: 'active'
+      });
+    } catch (err) {
+      expiresAtCollisionErr = err;
+      console.log('[PROMPT_VERIFY_4] RAW ERROR on expiresAt collision:', err.message);
+    }
+    expect(expiresAtCollisionErr).toBeTruthy();
+    expect(expiresAtCollisionErr.code).toBe(11000);
+    expect(expiresAtCollisionErr.message).toMatch(/userId_1_section_1_expiresAt_1/);
   });
 });
