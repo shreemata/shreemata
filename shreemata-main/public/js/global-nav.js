@@ -38,8 +38,13 @@
     function updateGlobalNavbarAuth() {
         try {
             const token = localStorage.getItem("token");
-            const userStr = localStorage.getItem("user");
-            const user = userStr ? JSON.parse(userStr) : null;
+            let user = null;
+            try {
+                const userStr = localStorage.getItem("user");
+                user = userStr ? JSON.parse(userStr) : null;
+            } catch (_) {
+                user = null;
+            }
 
             const authLinks = document.getElementById("authLinks");
             const userLinks = document.getElementById("userLinks");
@@ -49,16 +54,19 @@
             const accountLink = document.getElementById("accountLink");
             const ordersLink = document.getElementById("ordersLink");
             const referralLink = document.getElementById("referralLink");
-            const adminLink = document.getElementById("adminLink");
+            let adminLink = document.getElementById("adminLink");
             const cartLink = document.getElementById("cartLink");
 
             // Mobile drawer elements
             const drawerGuestAuth = document.getElementById("drawerGuestAuth");
             const drawerUserAuth = document.getElementById("drawerUserAuth");
             const drawerUserName = document.getElementById("drawerUserName");
-            const drawerAdminLink = document.getElementById("drawerAdminLink");
 
-            if (token && user) {
+            // Strict role check: exact string equality, case-sensitive
+            const isValidUser = Boolean(token && user && typeof user === "object" && user !== null && !Array.isArray(user));
+            const isAdmin = Boolean(isValidUser && typeof user.role === "string" && user.role === "admin");
+
+            if (isValidUser) {
                 // Desktop Header Auth
                 if (authLinks) authLinks.style.display = "none";
                 if (userLinks) userLinks.style.display = "inline-flex";
@@ -73,10 +81,39 @@
                 if (referralLink) referralLink.style.display = "flex";
                 
                 // Role-Aware Admin Link (Authorized Roles Only)
-                const isAdmin = user.role === "admin";
-                if (adminLink) {
-                    adminLink.style.display = isAdmin ? "flex" : "none";
+                if (isAdmin) {
+                    if (!adminLink) {
+                        const dropdownMenu = document.querySelector("#userDropdownMenu, .user-dropdown-menu, .dropdown-content");
+                        if (dropdownMenu) {
+                            adminLink = document.createElement("a");
+                            adminLink.href = "/admin.html";
+                            adminLink.className = "dropdown-item-link";
+                            adminLink.id = "adminLink";
+                            adminLink.setAttribute("role", "menuitem");
+                            adminLink.innerHTML = '<span class="dropdown-item-icon">⚙️</span> <span>Admin Dashboard</span>';
+                            const logoutBtn = dropdownMenu.querySelector("#logoutBtn, .btn-logout-item");
+                            const divider = logoutBtn ? logoutBtn.previousElementSibling : null;
+                            if (divider) {
+                                dropdownMenu.insertBefore(adminLink, divider);
+                            } else if (logoutBtn) {
+                                dropdownMenu.insertBefore(adminLink, logoutBtn);
+                            } else {
+                                dropdownMenu.appendChild(adminLink);
+                            }
+                        }
+                    }
+                    if (adminLink) {
+                        adminLink.style.display = "flex";
+                    }
+                } else {
+                    // Non-admin users: remove all admin links from the DOM entirely
+                    const adminElements = document.querySelectorAll('#adminLink, #drawerAdminLink, a[href="/admin.html"], a[href="admin.html"], a[href="/admin-dashboard"]');
+                    adminElements.forEach(el => el.remove());
                 }
+
+                // Remove drawer admin link so exactly 1 admin link exists in DOM
+                const drawerAdminLinks = document.querySelectorAll('#drawerAdminLink');
+                drawerAdminLinks.forEach(el => el.remove());
                 
                 if (cartLink) cartLink.style.display = "inline-flex";
 
@@ -84,7 +121,6 @@
                 if (drawerGuestAuth) drawerGuestAuth.style.display = "none";
                 if (drawerUserAuth) drawerUserAuth.style.display = "block";
                 if (drawerUserName) drawerUserName.textContent = displayName;
-                if (drawerAdminLink) drawerAdminLink.style.display = isAdmin ? "flex" : "none";
 
             } else {
                 // Desktop Header Guest
@@ -96,7 +132,10 @@
                 if (accountLink) accountLink.style.display = "none";
                 if (ordersLink) ordersLink.style.display = "none";
                 if (referralLink) referralLink.style.display = "none";
-                if (adminLink) adminLink.style.display = "none";
+                
+                // Guest / logged out: remove all admin links from the DOM entirely
+                const adminElements = document.querySelectorAll('#adminLink, #drawerAdminLink, a[href="/admin.html"], a[href="admin.html"], a[href="/admin-dashboard"]');
+                adminElements.forEach(el => el.remove());
 
                 // Mobile Drawer Guest
                 if (drawerGuestAuth) drawerGuestAuth.style.display = "block";
@@ -248,7 +287,6 @@
                                 <a href="/account.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">👤 My Account</a>
                                 <a href="/orders.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">📦 My Orders</a>
                                 <a href="/referral.html" class="drawer-link" style="min-height: 44px; padding: 10px 12px;">💰 Referral & Rewards</a>
-                                <a href="/admin.html" id="drawerAdminLink" class="drawer-link" style="min-height: 44px; padding: 10px 12px; display: none; color: #0284c7;">⚙️ Admin Dashboard</a>
                                 <button type="button" id="drawerLogoutBtn" class="btn-logout-item" style="min-height: 44px; padding: 10px 12px; margin-top: 4px; border: none; background: transparent; color: #dc2626; font-size: 14.5px; font-weight: 600; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px;">🚪 Logout</button>
                             </div>
                         </div>
@@ -469,10 +507,10 @@
 
     // Initialize on DOMContentLoaded or immediately if already loaded
     function bootstrap() {
+        initMobileDrawer();
         updateGlobalNavbarAuth();
         updateGlobalCartCount();
         initAccountDropdown();
-        initMobileDrawer();
         initGlobalEventListeners();
         updateFeaturesNav();
     }
