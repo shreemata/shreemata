@@ -561,12 +561,17 @@ function checkAuth() {
             updateCartCount();
         }
 
-        if (user.role === "admin" && adminLink) {
-            adminLink.style.display = "flex";
+        if (user && user.role === "admin") {
+            if (adminLink) adminLink.style.display = "flex";
+        } else {
+            const el = document.getElementById("adminLink");
+            if (el) el.remove();
         }
     } else {
         const cartLink = document.getElementById("cartLink");
         if (cartLink) cartLink.style.display = "none";
+        const el = document.getElementById("adminLink");
+        if (el) el.remove();
     }
 }
 

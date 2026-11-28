@@ -9,6 +9,12 @@
  * (v) A user who edits localStorage to role 'admin' in the browser sees the link (UI only),
  *      BUT every server admin call made with their real token returns 403 (testing >= 5 real admin API routes),
  *      and with no token returns 401.
+ * (vi) Reproduction on real index.html: OLD global-nav.js leaks #adminLink in DOM with display:flex on mobile due to CSS !important,
+ *      whereas NEW global-nav.js removes it completely (count 0).
+ * (vii) Stale-data Case (i): Real UI admin logout followed by normal customer login leaves count 0 for #adminLink on index.html.
+ * (viii) Stale-data Case (ii): Corrupted or missing role in localStorage user object leaves count 0 for #adminLink on index.html.
+ * (ix) Stale-data Case (iii): Visiting /cart.html?demoUser=anything then navigating to index.html does not elevate role to admin; #adminLink count remains 0.
+ * (x) Backdoor removal in cart.js: ?demoUser=anything, ?demoUser=admin, and ?demo=1 do NOT write to localStorage and leave existing user/token strictly unchanged.
  *
  * ZERO page errors and ZERO console errors across all test scenarios.
  */
@@ -16,8 +22,10 @@
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const { execSync } = require('child_process');
 const express = require('express');
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { chromium } = require('C:/Users/KRISHNA TAMBUR/browser-test/node_modules/playwright-core');
 
@@ -34,6 +42,7 @@ const orderRoutes = require('../routes/orders');
 const adminCommissionFundRoute = require('../routes/adminCommissionFund');
 const adminUsersRoute = require('../routes/adminUsers');
 const subscriptionsRoute = require('../routes/subscriptions');
+const authRoutes = require('../routes/auth');
 
 jest.setTimeout(60000);
 
@@ -45,6 +54,7 @@ describe('Admin Dashboard Link Visibility & Access Enforcement Suite', () => {
 
   let normalUser, normalToken;
   let adminUser, adminToken;
+  let oldGlobalNavSource;
 
   const auditedAdminRoutes = [
     { name: 'Admin Settings', path: '/api/admin/settings' },
@@ -61,11 +71,17 @@ describe('Admin Dashboard Link Visibility & Access Enforcement Suite', () => {
 
     process.env.JWT_SECRET = 'test_jwt_secret_admin_link_audit_secure';
 
-    // 1. Create real test users in MongoDB
+    oldGlobalNavSource = execSync('git show 078d67c:shreemata-main/public/js/global-nav.js', {
+      cwd: REPO_DIR
+    }).toString('utf8');
+
+    // 1. Create real test users in MongoDB with hashed passwords
+    const hashedPassword = await bcrypt.hash('password123', 10);
+
     normalUser = await User.create({
       name: 'Regular Customer',
       email: 'customer@shreemata.com',
-      password: 'hashed_password_123',
+      password: hashedPassword,
       role: 'user',
       isVerified: true
     });
@@ -77,7 +93,7 @@ describe('Admin Dashboard Link Visibility & Access Enforcement Suite', () => {
     adminUser = await User.create({
       name: 'Platform Administrator',
       email: 'admin@shreemata.com',
-      password: 'hashed_password_123',
+      password: hashedPassword,
       role: 'admin',
       isVerified: true
     });
@@ -112,6 +128,10 @@ describe('Admin Dashboard Link Visibility & Access Enforcement Suite', () => {
 
     app.get('/favicon.ico', (req, res) => res.status(204).end());
 
+    // Mount auth routes for login UI testing
+    app.use('/api/auth', authRoutes);
+    app.use('/api', authRoutes);
+
     // Mount audited admin routes
     app.use('/api/admin', adminSettingsRoute);
     app.use('/api/admin/dashboard', adminDashboardRoute);
@@ -134,12 +154,17 @@ describe('Admin Dashboard Link Visibility & Access Enforcement Suite', () => {
     app.get('/api/features', (req, res) => res.json({ success: true, features: { readNotes: true } }));
     app.get('/api/cart', (req, res) => res.json({ items: [] }));
     app.get('/api/notifications', (req, res) => res.json({ notifications: [] }));
+    app.get('/api/notifications/check-offers', (req, res) => res.json({ offers: [] }));
     app.get('/api/bundles', (req, res) => res.json({ bundles: [] }));
     app.get('/api/referral/details', (req, res) => res.json({ referralCode: 'REF123', totalEarned: 0 }));
     app.get('/api/orders', (req, res) => res.json([]));
     app.get('/api/books', (req, res) => res.json({ books: [], total: 0 }));
+    app.get('/api/books/search', (req, res) => res.json({ books: [], total: 0 }));
     app.get('/api/books/subjects', (req, res) => res.json({ classes: [], subjects: [] }));
     app.get('/api/admin/commission-settings', (req, res) => res.json({ settings: {} }));
+    app.get('/api/home-settings', (req, res) => res.json({ heroBanners: [], sections: [] }));
+    app.get('/api/store-details', (req, res) => res.json({ name: 'Shree Mata' }));
+    app.get('/api/shipping-settings', (req, res) => res.json({ shippingFee: 0, freeShippingThreshold: 500 }));
 
     // Real menu test page rendering the exact account menu markup and global-nav.js
     app.get('/menu-test.html', (req, res) => {
@@ -481,6 +506,293 @@ describe('Admin Dashboard Link Visibility & Access Enforcement Suite', () => {
       }, route.path);
 
       expect(responseStatus).toBe(401);
+    }
+
+    expect(pageErrors).toEqual([]);
+    expect(consoleErrors).toEqual([]);
+    await page.close();
+  });
+
+  test('(vi) Reproduction on real index.html: OLD global-nav.js leaks #adminLink in DOM with display:flex on mobile due to CSS !important, whereas NEW global-nav.js removes it completely (count 0)', async () => {
+    // Part A: Run with OLD global-nav.js intercepted on mobile viewport (375x667)
+    const pageOld = await browser.newPage();
+    const { pageErrors: oldPageErrors, consoleErrors: oldConsoleErrors } = setupPageConsoleTracking(pageOld);
+
+    await pageOld.setViewportSize({ width: 375, height: 667 });
+    await pageOld.route('**/js/global-nav.js', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: oldGlobalNavSource
+      });
+    });
+
+    await pageOld.addInitScript(({ token, user }) => {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+    }, {
+      token: normalToken,
+      user: {
+        _id: normalUser._id.toString(),
+        name: normalUser.name,
+        email: normalUser.email,
+        role: 'user'
+      }
+    });
+
+    await pageOld.goto(`${baseUrl}/index.html`, { waitUntil: 'domcontentloaded' });
+    await pageOld.waitForSelector('#userLinks', { state: 'visible' });
+
+    // OLD CODE FAILS: #adminLink remained in DOM (count 1)
+    const oldAdminCount = await pageOld.locator('#adminLink').count();
+    expect(oldAdminCount).toBe(1);
+
+    // OLD CODE FAILS: Due to home-3d.css @media (max-width: 768px) { .dropdown-item-link { display: flex !important; } },
+    // the inline style style="display: none" set by old global-nav.js was overridden by CSS !important, yielding display: flex!
+    const oldComputedDisplay = await pageOld.locator('#adminLink').evaluate(el => window.getComputedStyle(el).display);
+    expect(oldComputedDisplay).toBe('flex');
+
+    expect(oldPageErrors).toEqual([]);
+    expect(oldConsoleErrors).toEqual([]);
+    await pageOld.close();
+
+    // Part B: Run with NEW global-nav.js on both mobile and desktop viewports
+    for (const viewport of [{ width: 375, height: 667 }, { width: 1280, height: 800 }]) {
+      const pageNew = await browser.newPage();
+      const { pageErrors: newPageErrors, consoleErrors: newConsoleErrors } = setupPageConsoleTracking(pageNew);
+
+      await pageNew.setViewportSize(viewport);
+      await pageNew.addInitScript(({ token, user }) => {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+      }, {
+        token: normalToken,
+        user: {
+          _id: normalUser._id.toString(),
+          name: normalUser.name,
+          email: normalUser.email,
+          role: 'user'
+        }
+      });
+
+      await pageNew.goto(`${baseUrl}/index.html`, { waitUntil: 'domcontentloaded' });
+      await pageNew.waitForSelector('#userLinks', { state: 'visible' });
+
+      // NEW CODE SUCCEEDS: #adminLink and any admin dashboard references are completely removed from DOM (count 0)
+      const newAdminCount = await pageNew.locator('#adminLink').count();
+      expect(newAdminCount).toBe(0);
+
+      const newDrawerAdminCount = await pageNew.locator('#drawerAdminLink').count();
+      expect(newDrawerAdminCount).toBe(0);
+
+      const newTextCount = await pageNew.locator('text="Admin Dashboard"').count();
+      expect(newTextCount).toBe(0);
+
+      const newHrefCount = await pageNew.locator('a[href*="admin.html"], a[href*="admin-dashboard"]').count();
+      expect(newHrefCount).toBe(0);
+
+      expect(newPageErrors).toEqual([]);
+      expect(newConsoleErrors).toEqual([]);
+      await pageNew.close();
+    }
+  });
+
+  test('(vii) Stale-data Case (i): Real UI admin logout followed by normal customer login leaves count 0 for #adminLink on index.html', async () => {
+    const page = await browser.newPage();
+    const { pageErrors, consoleErrors } = setupPageConsoleTracking(page);
+
+    // 1. Start initially on index.html and set admin session
+    await page.goto(`${baseUrl}/index.html`, { waitUntil: 'domcontentloaded' });
+    await page.evaluate(({ token, user }) => {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      window.updateGlobalNavbarAuth();
+    }, {
+      token: adminToken,
+      user: {
+        _id: adminUser._id.toString(),
+        name: adminUser.name,
+        email: adminUser.email,
+        role: 'admin'
+      }
+    });
+
+    await page.waitForSelector('#userLinks', { state: 'visible' });
+    expect(await page.locator('#adminLink').count()).toBe(1);
+
+    // 2. Perform real UI logout
+    const menuBtn = page.locator('#userMenuBtn');
+    await menuBtn.click();
+    const logoutBtn = page.locator('#logoutBtn');
+    await logoutBtn.click();
+
+    // Verify localStorage auth items are strictly cleared
+    await page.waitForTimeout(500);
+    const tokenAfterLogout = await page.evaluate(() => localStorage.getItem('token'));
+    const userAfterLogout = await page.evaluate(() => localStorage.getItem('user'));
+    expect(tokenAfterLogout).toBeNull();
+    expect(userAfterLogout).toBeNull();
+
+    // 3. Normal customer logs in via real UI form on login.html
+    await page.goto(`${baseUrl}/login.html`, { waitUntil: 'domcontentloaded' });
+    await page.fill('#email', 'customer@shreemata.com');
+    await page.fill('#password', 'password123');
+    await page.click('#emailLoginBtn');
+
+    // Wait for redirect to home
+    await page.waitForURL('**/', { timeout: 10000 });
+    await page.waitForSelector('#userLinks', { state: 'visible' });
+
+    // Assert #adminLink and any admin dashboard text are count 0
+    const adminLinkCount = await page.locator('#adminLink').count();
+    expect(adminLinkCount).toBe(0);
+
+    const adminTextCount = await page.locator('text="Admin Dashboard"').count();
+    expect(adminTextCount).toBe(0);
+
+    expect(pageErrors).toEqual([]);
+    expect(consoleErrors).toEqual([]);
+    await page.close();
+  });
+
+  test('(viii) Stale-data Case (ii): Corrupted or missing role in localStorage user object leaves count 0 for #adminLink on index.html', async () => {
+    const corruptedVariants = [
+      { label: 'missing role', data: JSON.stringify({ name: 'Unknown User', email: 'unknown@example.com' }) },
+      { label: 'null role', data: JSON.stringify({ name: 'Unknown User', role: null }) },
+      { label: 'empty string role', data: JSON.stringify({ name: 'Unknown User', role: '' }) },
+      { label: 'corrupted role string', data: JSON.stringify({ name: 'Unknown User', role: 'INVALID_ROLE_###' }) },
+      { label: 'empty object', data: JSON.stringify({}) }
+    ];
+
+    for (const variant of corruptedVariants) {
+      const page = await browser.newPage();
+      const { pageErrors, consoleErrors } = setupPageConsoleTracking(page);
+
+      await page.addInitScript(({ token, userData }) => {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', userData);
+      }, {
+        token: normalToken,
+        userData: variant.data
+      });
+
+      await page.goto(`${baseUrl}/index.html`, { waitUntil: 'domcontentloaded' });
+
+      const adminLinkCount = await page.locator('#adminLink').count();
+      expect(adminLinkCount).toBe(0);
+
+      const adminTextCount = await page.locator('text="Admin Dashboard"').count();
+      expect(adminTextCount).toBe(0);
+
+      const hrefMatches = await page.locator('a[href*="admin.html"], a[href*="admin-dashboard"]').count();
+      expect(hrefMatches).toBe(0);
+
+      expect(pageErrors).toEqual([]);
+      expect(consoleErrors).toEqual([]);
+      await page.close();
+    }
+  });
+
+  test('(ix) Stale-data Case (iii): Visiting /cart.html?demoUser=anything then navigating to index.html does not elevate role to admin; #adminLink count remains 0', async () => {
+    const page = await browser.newPage();
+    const { pageErrors, consoleErrors } = setupPageConsoleTracking(page);
+
+    await page.route('https://checkout.razorpay.com/**', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: 'window.Razorpay = function(){};'
+      });
+    });
+
+    // Start with normal user logged in
+    await page.addInitScript(({ token, user }) => {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+    }, {
+      token: normalToken,
+      user: {
+        _id: normalUser._id.toString(),
+        name: normalUser.name,
+        email: normalUser.email,
+        role: 'user'
+      }
+    });
+
+    // Visit cart with ?demoUser parameter
+    await page.goto(`${baseUrl}/cart.html?demoUser=shakuntaladevi`, { waitUntil: 'domcontentloaded' });
+
+    // Verify localStorage was not corrupted with role: 'admin'
+    const userInStorage = await page.evaluate(() => JSON.parse(localStorage.getItem('user') || '{}'));
+    expect(userInStorage.role).toBe('user');
+    expect(userInStorage.email).toBe('customer@shreemata.com');
+
+    // Navigate to index.html
+    await page.goto(`${baseUrl}/index.html`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#userLinks', { state: 'visible' });
+
+    const adminLinkCount = await page.locator('#adminLink').count();
+    expect(adminLinkCount).toBe(0);
+
+    const adminTextCount = await page.locator('text="Admin Dashboard"').count();
+    expect(adminTextCount).toBe(0);
+
+    expect(pageErrors).toEqual([]);
+    expect(consoleErrors).toEqual([]);
+    await page.close();
+  });
+
+  test('(x) Backdoor removal in cart.js: ?demoUser=anything, ?demoUser=admin, and ?demo=1 do NOT write to localStorage and leave existing user/token strictly unchanged', async () => {
+    const page = await browser.newPage();
+    const { pageErrors, consoleErrors } = setupPageConsoleTracking(page);
+
+    await page.route('https://checkout.razorpay.com/**', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: 'window.Razorpay = function(){};'
+      });
+    });
+
+    const initialToken = normalToken;
+    const initialUserStr = JSON.stringify({
+      _id: normalUser._id.toString(),
+      name: normalUser.name,
+      email: normalUser.email,
+      role: 'user'
+    });
+
+    const testQueries = ['?demoUser=anything', '?demoUser=admin', '?demo=1'];
+
+    // Part A: Logged-in normal user -> assert exact equality before and after
+    for (const query of testQueries) {
+      await page.addInitScript(({ token, userStr }) => {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', userStr);
+      }, { token: initialToken, userStr: initialUserStr });
+
+      await page.goto(`${baseUrl}/cart.html${query}`, { waitUntil: 'domcontentloaded' });
+
+      const storedToken = await page.evaluate(() => localStorage.getItem('token'));
+      const storedUser = await page.evaluate(() => localStorage.getItem('user'));
+
+      expect(storedToken).toBe(initialToken);
+      expect(storedUser).toBe(initialUserStr);
+    }
+
+    // Part B: Visitor / guest not logged in -> assert token === null && user === null
+    for (const query of testQueries) {
+      await page.addInitScript(() => {
+        localStorage.clear();
+      });
+
+      await page.goto(`${baseUrl}/cart.html${query}`, { waitUntil: 'domcontentloaded' });
+
+      const storedToken = await page.evaluate(() => localStorage.getItem('token'));
+      const storedUser = await page.evaluate(() => localStorage.getItem('user'));
+
+      expect(storedToken).toBeNull();
+      expect(storedUser).toBeNull();
     }
 
     expect(pageErrors).toEqual([]);
