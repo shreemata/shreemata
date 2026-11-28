@@ -556,8 +556,8 @@ router.post("/choose-class", authenticateToken, async (req, res) => {
 
     const now = new Date();
 
-    // Atomic update condition: active notes pass, not expired, planType not admin_grant, and classLevel empty
-    const legacyQuery = {
+    // Query for active legacy notes passes for this user where classLevel is empty
+    const legacyPassFilter = {
       userId: req.user.id,
       status: "active",
       expiresAt: { $gt: now },
@@ -578,18 +578,10 @@ router.post("/choose-class", authenticateToken, async (req, res) => {
       ]
     };
 
-    const updatedSub = await NoteSubscription.findOneAndUpdate(
-      legacyQuery,
-      {
-        $set: {
-          classLevel: normClass,
-          classChosenAt: now
-        }
-      },
-      { new: true }
-    );
+    // Pick one deterministic target = the legacy pass with the smallest _id
+    const targetLegacy = await NoteSubscription.findOne(legacyPassFilter).sort({ _id: 1 });
 
-    if (!updatedSub) {
+    if (!targetLegacy) {
       // Check if user already locked in a class choice on an active pass
       const alreadyChosen = await NoteSubscription.findOne({
         userId: req.user.id,
@@ -616,6 +608,58 @@ router.post("/choose-class", authenticateToken, async (req, res) => {
         error: "No active legacy subscription found waiting for class choice"
       });
     }
+
+    // Atomic findOneAndUpdate on targetLegacy._id with condition that classLevel is empty
+    const updatedSub = await NoteSubscription.findOneAndUpdate(
+      {
+        _id: targetLegacy._id,
+        $or: [
+          { classLevel: "" },
+          { classLevel: null },
+          { classLevel: { $exists: false } }
+        ]
+      },
+      {
+        $set: {
+          classLevel: normClass,
+          classChosenAt: now
+        }
+      },
+      { new: true }
+    );
+
+    if (!updatedSub) {
+      // Another concurrent call updated targetLegacy first; loser gets 409
+      const alreadyChosen = await NoteSubscription.findOne({
+        userId: req.user.id,
+        status: "active",
+        expiresAt: { $gt: now },
+        planType: { $ne: "admin_grant" },
+        $or: [
+          { section: "notes" },
+          { section: { $exists: false } },
+          { section: null }
+        ],
+        classLevel: { $exists: true, $nin: ["", null] }
+      }).lean();
+
+      return res.status(409).json({
+        error: "Class has already been chosen for this subscription",
+        classLevel: alreadyChosen ? alreadyChosen.classLevel : normClass,
+        classChosenAt: alreadyChosen ? alreadyChosen.classChosenAt : now
+      });
+    }
+
+    // If it succeeds, update the user's other active legacy notes passes to the same class and classChosenAt
+    await NoteSubscription.updateMany(
+      legacyPassFilter,
+      {
+        $set: {
+          classLevel: normClass,
+          classChosenAt: now
+        }
+      }
+    );
 
     return res.json({
       success: true,

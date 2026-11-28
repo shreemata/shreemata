@@ -18,6 +18,8 @@
 
     <!-- PDF.js CDN (Standard Open Source Browser PDF Engine) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Razorpay Checkout SDK -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
     <style>
         :root {
@@ -388,6 +390,47 @@
             background: #ea580c;
         }
 
+        /* Preview Bottom Floating Bar */
+        .preview-bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            z-index: 1000;
+            box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
+            flex-wrap: wrap;
+            border-top: 2px solid var(--accent, #F68048);
+        }
+
+        .preview-bottom-bar-content {
+            font-size: 14.5px;
+            font-weight: 500;
+            color: #f8fafc;
+        }
+
+        .btn-preview-bottom-buy {
+            background: var(--accent, #F68048);
+            color: #ffffff;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-preview-bottom-buy:hover {
+            background: #ea580c;
+        }
+
         /* End of Preview Overlay Card */
         .preview-end-card {
             margin-top: 16px;
@@ -694,6 +737,14 @@
         </div>
     </main>
 
+    <!-- PREVIEW BOTTOM FLOATING BAR -->
+    <div id="previewBottomBar" class="preview-bottom-bar" style="display: none;">
+        <div class="preview-bottom-bar-content">
+            <span id="previewBottomBarText"></span>
+        </div>
+        <button type="button" id="btnPreviewBottomBuy" class="btn-preview-bottom-buy">⚡ Buy Full Material</button>
+    </div>
+
     <!-- 3. LOADING / ACCESS GATE MODALS -->
     <div id="stateModal" class="state-modal" style="display: flex;">
         <div class="state-card" id="stateCard">
@@ -742,6 +793,7 @@
         let ctx = canvas.getContext('2d');
         let activeBlobUrl = null;
         let isPreviewMode = false;
+        let currentNoteData = null;
 
         const urlParams = new URLSearchParams(window.location.search);
         const noteId = urlParams.get('id');
@@ -783,6 +835,7 @@
 
                 const metaData = await metaRes.json();
                 const note = metaData.note;
+                currentNoteData = note;
 
                 document.getElementById('toolbarTitle').textContent = note.title;
                 document.getElementById('toolbarSubtitle').textContent = `${note.subject || 'Curriculum'} • ${note.classLevel || 'General'}`;
@@ -838,6 +891,26 @@
                 }
 
                 if (streamRes.status === 403) {
+                    let errJson = {};
+                    try {
+                        const errBlob = await streamRes.blob();
+                        const errText = await errBlob.text();
+                        errJson = JSON.parse(errText);
+                    } catch (_) {}
+
+                    if (errJson.code === 'CLASS_SUBSCRIPTION_REQUIRED') {
+                        const reqClass = errJson.classLevel || (note && note.classLevel) || '';
+                        const reqPrice = (errJson.classPrice !== undefined && errJson.classPrice !== null) ? errJson.classPrice : ((note && note.classPrice) || 299);
+                        showAccessDenied(
+                            "Active Class Subscription Required",
+                            `Access to ${reqClass || 'this class'} requires an active subscription. Unlock complete access today.`,
+                            `⚡ Buy ${reqClass} - ₹${reqPrice}`,
+                            null,
+                            () => initiateReaderCheckout(reqClass)
+                        );
+                        return;
+                    }
+
                     const sectionName = note.section === 'question_papers' ? 'Question Papers' : (note.section === 'others' ? 'Others' : 'Notes');
                     showAccessDenied(
                         "Active Subscription Required",
@@ -922,9 +995,25 @@
                         }
                         if (actionWrap) actionWrap.style.display = 'block';
                     }
+
+                    // Floating Bottom Bar for Preview Mode
+                    const bottomBar = document.getElementById('previewBottomBar');
+                    const bottomBarText = document.getElementById('previewBottomBarText');
+                    const bottomBarBtn = document.getElementById('btnPreviewBottomBuy');
+                    if (bottomBar && bottomBarText && bottomBarBtn) {
+                        const noteTitle = note.title || 'study material';
+                        const noteClass = note.classLevel || '';
+                        const classPrice = (note.classPrice !== undefined && note.classPrice !== null) ? note.classPrice : 299;
+                        bottomBarText.textContent = `You are viewing a free preview of ${noteTitle} (${noteClass}). Unlock full ${noteClass} material - ₹${classPrice}`;
+                        bottomBarBtn.textContent = `⚡ Buy ${noteClass} - ₹${classPrice}`;
+                        bottomBarBtn.setAttribute('data-class', noteClass);
+                        bottomBar.style.display = 'flex';
+                    }
                 } else {
                     document.getElementById('previewBanner').style.display = 'none';
                     document.getElementById('previewEndCard').style.display = 'none';
+                    const bottomBar = document.getElementById('previewBottomBar');
+                    if (bottomBar) bottomBar.style.display = 'none';
                 }
 
                 // Close loading modal
@@ -1056,7 +1145,7 @@
             }
         }
 
-        function showAccessDenied(title, message, btnText, btnHref) {
+        function showAccessDenied(title, message, btnText, btnHref, onBtnClick) {
             document.getElementById('stateSpinner').style.display = 'none';
             document.getElementById('stateIcon').style.display = 'block';
             document.getElementById('stateTitle').textContent = title;
@@ -1065,10 +1154,118 @@
             const actionWrap = document.getElementById('stateActionWrap');
             const actionBtn = document.getElementById('stateActionBtn');
             actionBtn.textContent = btnText;
-            actionBtn.href = btnHref;
+            if (onBtnClick) {
+                actionBtn.removeAttribute('href');
+                actionBtn.onclick = (e) => {
+                    e.preventDefault();
+                    onBtnClick();
+                };
+            } else {
+                actionBtn.onclick = null;
+                actionBtn.href = btnHref || '/notes.html';
+            }
             actionWrap.style.display = 'block';
 
             document.getElementById('stateModal').style.display = 'flex';
+        }
+
+        async function initiateReaderCheckout(targetClass) {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            if (!token) {
+                window.location.href = `/login.html?redirect=${encodeURIComponent(window.location.href)}`;
+                return;
+            }
+
+            const stateSpinner = document.getElementById('stateSpinner');
+            const stateIcon = document.getElementById('stateIcon');
+            const stateTitle = document.getElementById('stateTitle');
+            const stateMessage = document.getElementById('stateMessage');
+            const stateActionWrap = document.getElementById('stateActionWrap');
+
+            if (stateSpinner) stateSpinner.style.display = 'block';
+            if (stateIcon) stateIcon.style.display = 'none';
+            if (stateTitle) stateTitle.textContent = 'Starting Checkout...';
+            if (stateMessage) stateMessage.textContent = 'Generating payment session...';
+            if (stateActionWrap) stateActionWrap.style.display = 'none';
+            document.getElementById('stateModal').style.display = 'flex';
+
+            try {
+                const reqBody = { section: (currentNoteData && currentNoteData.section) || 'notes' };
+                if (targetClass) reqBody.classLevel = targetClass;
+
+                const orderRes = await fetch(`${window.API_URL}/subscriptions/create-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(reqBody)
+                });
+
+                const orderData = await orderRes.json();
+                if (!orderRes.ok) {
+                    throw new Error(orderData.error || 'Failed to initialize subscription checkout');
+                }
+
+                document.getElementById('stateModal').style.display = 'none';
+
+                const options = {
+                    key: orderData.keyId || window.RAZORPAY_KEY_ID,
+                    amount: orderData.amount,
+                    currency: orderData.currency || "INR",
+                    name: "Shree Mata",
+                    description: `Subscription - ${orderData.planName || (orderData.classLevel ? 'Class ' + orderData.classLevel : 'Study Material')}`,
+                    image: "/images/press.png",
+                    order_id: orderData.orderId,
+                    theme: { color: "#F68048" },
+                    handler: async function (response) {
+                        if (stateSpinner) stateSpinner.style.display = 'block';
+                        if (stateIcon) stateIcon.style.display = 'none';
+                        if (stateTitle) stateTitle.textContent = 'Verifying Payment...';
+                        if (stateMessage) stateMessage.textContent = 'Activating your class subscription...';
+                        if (stateActionWrap) stateActionWrap.style.display = 'none';
+                        document.getElementById('stateModal').style.display = 'flex';
+
+                        try {
+                            const verifyRes = await fetch(`${window.API_URL}/subscriptions/verify-order`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature,
+                                    razorpayOrderId: response.razorpay_order_id,
+                                    razorpayPaymentId: response.razorpay_payment_id,
+                                    razorpaySignature: response.razorpay_signature,
+                                    section: (currentNoteData && currentNoteData.section) || 'notes'
+                                })
+                            });
+
+                            if (verifyRes.ok) {
+                                window.location.reload();
+                            } else {
+                                const vData = await verifyRes.json().catch(() => ({}));
+                                throw new Error(vData.error || 'Subscription verification failed');
+                            }
+                        } catch (vErr) {
+                            showAccessDenied('Verification Failed', vErr.message || 'Payment verification failed', 'Return to Study Material', '/notes.html');
+                        }
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.on('payment.failed', function (resp) {
+                    showAccessDenied('Payment Failed', resp?.error?.description || 'Payment was declined by bank', 'Try Again', `/notes.html`);
+                });
+                rzp.open();
+
+            } catch (err) {
+                showAccessDenied('Checkout Failed', err.message || 'Could not start checkout', 'Return to Study Material', '/notes.html');
+            }
         }
 
         // Capture & Print Deterrents (Honest browser-level mitigations, not absolute OS protection)
@@ -1145,6 +1342,16 @@
                 onZoomOut();
             } else if (e.key === 'f' || e.key === 'F') {
                 toggleFullscreen();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const bottomBarBtn = document.getElementById('btnPreviewBottomBuy');
+            if (bottomBarBtn) {
+                bottomBarBtn.addEventListener('click', () => {
+                    const targetClass = bottomBarBtn.getAttribute('data-class') || (currentNoteData && currentNoteData.classLevel);
+                    initiateReaderCheckout(targetClass);
+                });
             }
         });
     </script>

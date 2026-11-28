@@ -489,6 +489,91 @@ describe('Class-Scoped Study Material Access Control (Prompt A)', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Test (5b) Stacked legacy passes: choice cascades to all passes; second call 409; concurrent calls with different classes
+  // -------------------------------------------------------------------------
+  test('(5b) Stacked legacy passes: choosing a class updates all stacked passes; second choose call returns 409; concurrent calls with different classes yield exactly one 200 and one 409 and uniform class', async () => {
+    await NoteSubscription.deleteMany({ userId: secondStudentUser._id });
+
+    // 1. User with 2 stacked legacy passes
+    const pass1 = await createSub({
+      userId: secondStudentUser._id,
+      section: 'notes',
+      classLevel: '',
+      subscriptionIndex: 1,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    });
+    const pass2 = await createSub({
+      userId: secondStudentUser._id,
+      section: 'notes',
+      classLevel: '',
+      subscriptionIndex: 2,
+      expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
+    });
+
+    // Choose Class 10
+    const chooseRes = await client.post('/api/subscriptions/choose-class', {
+      classLevel: 'Class 10'
+    }, {
+      headers: { Authorization: `Bearer ${secondStudentToken}` }
+    });
+    expect(chooseRes.status).toBe(200);
+
+    // Both passes become Class 10
+    const updatedPass1 = await NoteSubscription.findById(pass1._id);
+    const updatedPass2 = await NoteSubscription.findById(pass2._id);
+    expect(updatedPass1.classLevel).toBe('class 10');
+    expect(updatedPass2.classLevel).toBe('class 10');
+    expect(updatedPass1.classChosenAt).toBeDefined();
+    expect(updatedPass2.classChosenAt).toBeDefined();
+
+    // A second choose call with Class 8 returns 409 and changes nothing
+    const secondCall = await client.post('/api/subscriptions/choose-class', {
+      classLevel: 'Class 8'
+    }, {
+      headers: { Authorization: `Bearer ${secondStudentToken}` }
+    });
+    expect(secondCall.status).toBe(409);
+    const unchangedPass1 = await NoteSubscription.findById(pass1._id);
+    const unchangedPass2 = await NoteSubscription.findById(pass2._id);
+    expect(unchangedPass1.classLevel).toBe('class 10');
+    expect(unchangedPass2.classLevel).toBe('class 10');
+
+    // 2. Two concurrent calls with different classes on a user with stacked passes
+    await NoteSubscription.deleteMany({ userId: secondStudentUser._id });
+    const cPass1 = await createSub({
+      userId: secondStudentUser._id,
+      section: 'notes',
+      classLevel: '',
+      subscriptionIndex: 1,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    });
+    const cPass2 = await createSub({
+      userId: secondStudentUser._id,
+      section: 'notes',
+      classLevel: '',
+      subscriptionIndex: 2,
+      expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
+    });
+
+    const [call10, call8] = await Promise.all([
+      client.post('/api/subscriptions/choose-class', { classLevel: 'Class 10' }, {
+        headers: { Authorization: `Bearer ${secondStudentToken}` }
+      }),
+      client.post('/api/subscriptions/choose-class', { classLevel: 'Class 8' }, {
+        headers: { Authorization: `Bearer ${secondStudentToken}` }
+      })
+    ]);
+
+    const statuses = [call10.status, call8.status].sort();
+    expect(statuses).toEqual([200, 409]);
+
+    const finalPass1 = await NoteSubscription.findById(cPass1._id);
+    const finalPass2 = await NoteSubscription.findById(cPass2._id);
+    expect(finalPass1.classLevel).toBe(finalPass2.classLevel);
+    expect(['class 10', 'class 8']).toContain(finalPass1.classLevel);
+  });
+
+  // -------------------------------------------------------------------------
   // Test (6) admin_grant without class: full access to every class; admin: full access
   // -------------------------------------------------------------------------
   test('(6) admin_grant without class grants full access to every class; admin user has full access to every class', async () => {

@@ -377,6 +377,23 @@
                     </div>
                 </div>
 
+                <!-- Class prices (Study Material) -->
+                <div id="classPricesSection" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px; margin-top: -10px;">
+                    <div style="margin-bottom: 12px;">
+                        <h4 style="margin: 0 0 6px 0; font-size: 15px; color: #1e293b;">📚 Class prices (Study Material)</h4>
+                        <p class="help-text" style="margin: 0; font-size: 12.5px;">Set specific subscription prices for individual classes. Classes without custom pricing use the fallback Notes Plan price.</p>
+                    </div>
+                    <div id="classPricesContainer" style="margin: 12px 0;">
+                        <p style="color: #64748b; font-size: 13px;">Loading classes...</p>
+                    </div>
+                    <div id="classPriceMessage" style="display: none; margin: 10px 0; font-size: 13px; font-weight: 600;"></div>
+                    <div>
+                        <button type="button" id="btnSaveClassPrices" onclick="saveClassPrices()" style="padding: 8px 16px; font-size: 13px; font-weight: 600; background: var(--brand-orange, #f97316); color: #fff; border: none; border-radius: 6px; cursor: pointer;">
+                            💾 Save Class Prices
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Question Papers Plan -->
                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -506,6 +523,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadSettings();
             loadStats();
+            loadClassPrices();
             
             // Add event listeners for real-time preview
             document.getElementById('pointsPerConversion').addEventListener('input', updateConversionPreview);
@@ -815,6 +833,179 @@
             setTimeout(() => {
                 messageDiv.remove();
             }, 5000);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        let adminClassPrices = {};
+        let adminDefaultPrice = 99;
+
+        async function loadClassPrices() {
+            const token = localStorage.getItem('token');
+            const container = document.getElementById('classPricesContainer');
+            if (!container) return;
+
+            try {
+                const [pricesRes, notesRes] = await Promise.all([
+                    fetch(`${API_URL}/admin/settings/class-prices`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }),
+                    fetch(`${API_URL}/notes?section=notes`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    })
+                ]);
+
+                if (pricesRes.ok) {
+                    const pData = await pricesRes.json();
+                    adminClassPrices = pData.classPrices || {};
+                    adminDefaultPrice = pData.defaultPrice || 99;
+                }
+
+                // Collect distinct classes found on published notes, preserving original spelling
+                const classMap = new Map(); // normalizedKey -> originalSpelling
+                if (notesRes.ok) {
+                    const nData = await notesRes.json();
+                    const notes = nData.notes || [];
+                    notes.forEach(n => {
+                        if (n.classLevel && n.classLevel.trim()) {
+                            const raw = n.classLevel.trim();
+                            const norm = raw.toLowerCase().replace(/\s+/g, ' ');
+                            if (!classMap.has(norm)) {
+                                classMap.set(norm, raw);
+                            }
+                        }
+                    });
+                }
+
+                // Also include any classes that already have a configured price in adminClassPrices
+                for (const normKey of Object.keys(adminClassPrices)) {
+                    if (!classMap.has(normKey)) {
+                        classMap.set(normKey, normKey.charAt(0).toUpperCase() + normKey.slice(1));
+                    }
+                }
+
+                renderClassPricesUI(classMap);
+            } catch (err) {
+                console.error('Error loading class prices:', err);
+                container.innerHTML = '<p style="color: #dc2626; font-size: 13px;">Error loading class prices.</p>';
+            }
+        }
+
+        function renderClassPricesUI(classMap) {
+            const container = document.getElementById('classPricesContainer');
+            if (!container) return;
+
+            if (classMap.size === 0) {
+                container.innerHTML = '<p style="color: #64748b; font-size: 13px;">No published study notes with classes found.</p>';
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+            classMap.forEach((displayName, normKey) => {
+                const hasCustom = adminClassPrices[normKey] !== undefined && adminClassPrices[normKey] !== null;
+                const currentVal = hasCustom ? adminClassPrices[normKey] : '';
+                const defaultBadge = `<span class="badge badge-default-price" style="background: #e2e8f0; color: #475569; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">default: ₹${adminDefaultPrice}</span>`;
+
+                html += `
+                    <div class="class-price-row" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 6px;">
+                        <div style="font-weight: 600; font-size: 13.5px; color: #1e293b;">
+                            <span class="class-title-text"></span>
+                            ${!hasCustom ? defaultBadge : ''}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="color: #64748b; font-size: 13px;">₹</span>
+                            <input type="number" class="class-price-input" data-class="${escapeHtml(normKey)}" value="${escapeHtml(String(currentVal))}" placeholder="${adminDefaultPrice}" min="1" max="100000" step="1" style="width: 100px; padding: 5px 8px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+
+            // Safely assign textContent to class-title-text elements
+            const labelEls = container.querySelectorAll('.class-title-text');
+            let idx = 0;
+            classMap.forEach((displayName) => {
+                if (labelEls[idx]) {
+                    labelEls[idx].textContent = displayName;
+                }
+                idx++;
+            });
+        }
+
+        async function saveClassPrices() {
+            const token = localStorage.getItem('token');
+            const msgEl = document.getElementById('classPriceMessage');
+            if (msgEl) {
+                msgEl.style.display = 'none';
+                msgEl.textContent = '';
+            }
+
+            const inputs = document.querySelectorAll('.class-price-input');
+            const newPrices = {};
+
+            for (const inp of inputs) {
+                const normKey = inp.getAttribute('data-class');
+                const valStr = inp.value.trim();
+                if (!valStr) continue;
+
+                const num = Number(valStr);
+                if (!Number.isInteger(num) || num < 1 || num > 100000) {
+                    if (msgEl) {
+                        msgEl.textContent = `Price for class '${normKey}' must be an integer between ₹1 and ₹1,00,000`;
+                        msgEl.style.color = '#dc2626';
+                        msgEl.style.display = 'block';
+                    }
+                    return;
+                }
+                newPrices[normKey] = num;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/admin/settings/class-prices`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ classPrices: newPrices })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    if (msgEl) {
+                        msgEl.textContent = data.error || 'Failed to save class prices';
+                        msgEl.style.color = '#dc2626';
+                        msgEl.style.display = 'block';
+                    }
+                    return;
+                }
+
+                if (msgEl) {
+                    msgEl.textContent = '✓ Class prices saved successfully!';
+                    msgEl.style.color = '#16a34a';
+                    msgEl.style.display = 'block';
+                }
+
+                // Reload to show updated values and badges
+                await loadClassPrices();
+            } catch (err) {
+                if (msgEl) {
+                    msgEl.textContent = 'Error saving class prices: ' + err.message;
+                    msgEl.style.color = '#dc2626';
+                    msgEl.style.display = 'block';
+                }
+            }
         }
     </script>
 </body>
